@@ -16,12 +16,12 @@ cost it features other synthesizers have.
 
 ## Download
 
-**[Noctuary-2.0.0-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.0/Noctuary-2.0.0-Setup.exe)**
+**[Noctuary-2.0.1-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.1/Noctuary-2.0.1-Setup.exe)**
 installs the standalone, the VST3 and the preset library, and offers to fetch the sample library as
 well. Nothing else has to be installed: the runtime is linked in. There is a
-**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.0/Noctuary-2.0.0-portable.zip)**
+**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.1/Noctuary-2.0.1-portable.zip)**
 for anyone who would rather not run an installer, and a
-**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.0/Noctuary-Manual.pdf)**
+**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.1/Noctuary-Manual.pdf)**
 — every tab of the panel as a picture, what each knob does, and seven chapters on why the
 instrument is built the way it is, with the mathematics and the references.
 

@@ -368,9 +368,23 @@ void testPresets()
         const bool ok = applyPreset(preset(p), [&](ParamId id, float) { touched[static_cast<int>(id)] = true; });
         CHECK(ok, "preset settings all refer to known parameters");
         int count = 0; for (bool t : touched) count += t ? 1 : 0;
-        int perf = 0; for (const ParamDesc& d : paramTable()) perf += isPerformanceParam(d.id) ? 1 : 0;
+        // Two kinds of parameter a preset does not reach. The performance state -- morph, macros,
+        // the map cursor, the route, the clock -- is the player's hands and never belonged to a
+        // preset. The near layer joined them on 13.09.2026: it is a bank of its own with its own
+        // selector, kept across sound presets on purpose, and while it was in scope every Full
+        // apply -- which is what a host's program change and a journey step do -- put its level
+        // back to zero and switched the foreground off without saying so.
+        int perf = 0, nearLayer = 0;
+        for (const ParamDesc& d : paramTable()) {
+            if (isPerformanceParam(d.id)) ++perf;
+            else if (isNearLayerParam(d.id)) ++nearLayer;
+        }
         for (const ParamDesc& d : paramTable()) CHECK(paramHelp(d.id)[0] != 0, (std::string("help text for ") + d.key).c_str());
-        CHECK(count == kNumParams - perf, "preset sets every parameter except the performance state (morph, macros, inertia, map, route, clock)");
+        CHECK(count == kNumParams - perf - nearLayer,
+              "preset sets every parameter except the performance state and the near layer");
+        bool touchedNear = false;
+        for (const ParamDesc& d : paramTable()) if (isNearLayerParam(d.id) && touched[static_cast<int>(d.id)]) touchedNear = true;
+        CHECK(!touchedNear, "and no built-in preset reaches into the near layer at all");
     }
     Engine e;
     CHECK(e.applyPreset(1), "apply preset 1");
@@ -8089,6 +8103,41 @@ static void testNearLayer()
         CHECK(bad == 0, "every pick is a near preset with a factor of its class");
         CHECK(with > 240 && with < 320, "about the table's share of them get one");
         CHECK(distinct >= 12, "drawn from the artist's whole list, not one of it");
+    }
+    // ---- A full preset leaves the near layer standing (13.09.2026). Applying a preset begins by
+    // putting everything in its scope back to its default, so that what the preset does not
+    // mention is not left over from what played before -- and the near layer was in that scope.
+    // A DAW program change and every journey step apply at Full, so both put fore_level back to
+    // zero and switched the foreground off without a word. Found by listening: twelve minutes of
+    // a journey with nothing in the near field, on a preset whose pack should have brought one.
+    {
+        // On the heap, not in this frame. MSVC lays every local of a function out at once, this
+        // function already holds six engines in its blocks, and a seventh overflowed the megabyte
+        // of stack -- the test died after printing its heading and nothing else.
+        auto engineOwned = std::make_unique<Engine>();
+        Engine& e = *engineOwned;
+        e.prepare(sr, 256);
+        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
+        // A foreground chosen for the night, and a sound setting that the preset must overwrite.
+        e.setParam(ParamId::ForeLevel, 0.8f);
+        e.setParam(ParamId::ForeType, 11.0f);      // Flute
+        e.setParam(ParamId::ForeRate, 45.0f);
+        e.setParam(ParamId::ForeAuto, 0.0f);       // the player's switch, not a preset's to make
+        e.setParam(ParamId::Depth, 0.77f);
+        CHECK(e.applyPreset(1), "a full preset applies over a foreground that is playing");
+        CHECK(e.getParam(ParamId::ForeLevel) == 0.8f, "the near layer's level survives it");
+        CHECK(e.getParam(ParamId::ForeType) == 11.0f && e.getParam(ParamId::ForeRate) == 45.0f,
+              "and so do its source and its clock");
+        CHECK(e.getParam(ParamId::ForeAuto) == 0.0f, "Auto is the player's switch and is not reset either");
+        CHECK(e.getParam(ParamId::Depth) != 0.77f, "everything outside the layer is still cleared, as it was");
+        // It clears less than it may set: a preset that NAMES a near key still sets it, so this
+        // cannot swallow a preset's intent, only its silence.
+        const Preset named{ "names a foreground", "fore_level=0.25;fore_rate=90" };
+        CHECK(applyPreset(named, [&](ParamId id, float v) { e.setParam(id, v); }),
+              "a preset that names near keys parses");
+        CHECK(std::fabs(e.getParam(ParamId::ForeLevel) - 0.25f) < 1.0e-6f &&
+              std::fabs(e.getParam(ParamId::ForeRate) - 90.0f) < 1.0e-3f,
+              "and a preset that names the near layer still sets it");
     }
     // ---- Distance and Dry (13.09.2026): where an event sits, and what goes past the room
     {

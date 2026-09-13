@@ -856,20 +856,25 @@ static int runOnce(int argc, char** argv)
         tapPath = tapDir + "/" + slug + ".wav";
     }
     engine.setClockHourOverride(clockHour);
-    if (nearAuto && presetIndex >= 0) {
-        // As the plugin does when a pack preset is chosen with Auto on: the artist's table, by the
-        // preset's name, and the near preset's Every scaled by the class's factor.
-        const int pack = presetPack(presetIndex);
+    // As the plugin does when a pack preset is chosen with Auto on: the artist's table, by the
+    // preset's name, and the near preset's Every scaled by the class's factor. A lambda rather
+    // than a block, because a journey has to do this again at every step -- the plugin's program
+    // change brings a foreground, so a step of a journey rendered here has to bring the same one
+    // or the offline take is not the take you heard (13.09.2026).
+    auto applyNearAutoTo = [&](Engine& e, int idx, bool announce) {
+        if (!nearAuto || idx < 0) return;
+        const int pack = presetPack(idx);
         float factor = 1.0f;
-        const int pick = pack >= 0 ? nearAutoPick(presetPackName(pack), preset(presetIndex).name, factor) : -1;
+        const int pick = pack >= 0 ? nearAutoPick(presetPackName(pack), preset(idx).name, factor) : -1;
         if (pick > 0) {
-            engine.applyNearPreset(pick);
+            e.applyNearPreset(pick);
             const Preset& np = nearPreset(pick);
-            if (np.texture != nullptr && *np.texture != 0) { const std::string got = resolveLibraryFile(np.texture); if (!got.empty()) loadNearClips(engine, got); }
-            engine.setParam(ParamId::ForeRate, clampv(engine.getParam(ParamId::ForeRate) * factor, 10.0f, 900.0f));
-            std::printf("near auto: %s (Every x%.2f)\n", np.name, factor);
-        } else std::printf("near auto: none for this preset\n");
-    }
+            if (np.texture != nullptr && *np.texture != 0) { const std::string got = resolveLibraryFile(np.texture); if (!got.empty()) loadNearClips(e, got); }
+            e.setParam(ParamId::ForeRate, clampv(e.getParam(ParamId::ForeRate) * factor, 10.0f, 900.0f));
+            if (announce) std::printf("near auto: %s (Every x%.2f)\n", np.name, factor);
+        } else if (announce) std::printf("near auto: none for this preset\n");
+    };
+    applyNearAutoTo(engine, presetIndex, true);
     engine.prepare(sr, block);
     if (!irChannels.empty()) {   // after prepare: the convolver's buffers exist now
         engine.setImpulse(irChannels[0].data(), irChannels.size() > 1 ? irChannels[1].data() : nullptr, static_cast<int>(irChannels[0].size()), irRate);
@@ -920,7 +925,7 @@ static int runOnce(int argc, char** argv)
     std::vector<float> fadeL(static_cast<size_t>(block)), fadeR(static_cast<size_t>(block));
     auto beginJourneyStep = [&](int idx, double fade) {
         Engine& out = live();
-        if (fade < 0.05) { out.applyPreset(idx); loadPresetMedia(out, idx, true); return; }
+        if (fade < 0.05) { out.applyPreset(idx); loadPresetMedia(out, idx, true); applyNearAutoTo(out, idx, false); return; }
         // Only ever two engines: a step whose fade is still running arrives on the one that is
         // going out, so the fade in flight is finished here rather than abandoned half way.
         if (fadingEngine != nullptr) { fadingEngine->allNotesOff(); fadingEngine->reset(); fadingEngine = nullptr; }
@@ -933,6 +938,7 @@ static int runOnce(int argc, char** argv)
         // the engine that is playing did, and is how --set survives a step.
         for (int i = 0; i < kNumParams; ++i) in.setParam(static_cast<ParamId>(i), out.getParam(static_cast<ParamId>(i)));
         in.applyPreset(idx);
+        applyNearAutoTo(in, idx, false);
         in.setClockHourOverride(clockHour);
         in.prepare(sr, block);
         // After prepare, in this order: the command line's room (the convolver's buffers exist

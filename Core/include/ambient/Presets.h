@@ -80,6 +80,10 @@ inline bool isStrikeParam(ParamId id) { return sectionOf(id) == ParamSection::St
 // Auto is the one Near Events control that is not part of a near preset: it decides whether a
 // sound preset brings its own foreground, and a near preset chosen by hand must not switch it on.
 inline bool isNearParam(ParamId id)   { const ParamSection s = sectionOf(id); return (s == ParamSection::NearSource || s == ParamSection::NearEvents) && id != ParamId::ForeAuto; }
+// The layer as a whole, Auto included. `isNearParam` is what a near PRESET carries; this is what
+// a sound preset has to leave standing. The two differ by exactly one control, and the difference
+// matters: Auto is the player's setting about presets, not a setting a preset may make.
+inline bool isNearLayerParam(ParamId id) { const ParamSection s = sectionOf(id); return s == ParamSection::NearSource || s == ParamSection::NearEvents; }
 inline bool isMorphParam(ParamId id)  { return sectionOf(id) == ParamSection::Morph; }
 inline bool isMacroParam(ParamId id)  { return sectionOf(id) == ParamSection::Macros; }
 inline bool isMapParam(ParamId id)    { return sectionOf(id) == ParamSection::Map; }
@@ -99,6 +103,25 @@ inline bool inScope(ParamId id, PresetScope scope)
         case PresetScope::Full:   break;
     }
     return true;
+}
+// What a preset CLEARS before it is applied, which is not the same question as what it may SET.
+//
+// Applying a preset begins by putting everything in its scope back to its default, so that what
+// the preset does not mention is not left over from whatever played before. For the near layer
+// that is wrong, and it was wrong for a fortnight (found 13.09.2026): the layer is a bank of its
+// own with its own selector, kept across sound presets on purpose, and no preset in the library
+// carries a single fore_* key. So a Full apply -- a DAW program change, a journey step, the
+// crossfade between two presets -- reset fore_level to its default of zero and switched the
+// foreground off, silently, every time the piece moved on. Twelve minutes of a journey with
+// nothing near in them.
+//
+// It CLEARS less than it may SET on purpose: a preset that does name a fore_* key still sets it,
+// because inScope, which decides that, is unchanged. So this cannot swallow a preset's intent --
+// only its silence.
+inline bool clearedBy(ParamId id, PresetScope scope)
+{
+    if (scope == PresetScope::Full && isNearLayerParam(id)) return false;
+    return inScope(id, scope);
 }
 
 // ---------------------------------------------------------------- preset packs
@@ -155,7 +178,7 @@ float paramValueFromText(const ParamDesc& d, const char* text);
 template <class SetFn>
 bool applyPreset(const Preset& p, SetFn&& set, PresetScope scope = PresetScope::Full)
 {
-    for (const ParamDesc& d : paramTable()) if (inScope(d.id, scope)) set(d.id, d.def);
+    for (const ParamDesc& d : paramTable()) if (clearedBy(d.id, scope)) set(d.id, d.def);
     bool ok = true;
     const char* s = p.settings;
     while (s && *s) {

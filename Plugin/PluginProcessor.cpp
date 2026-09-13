@@ -643,6 +643,14 @@ void NoctuaryProcessor::setCurrentProgram(int index)
     zIndex_ = -1; strikeIndex_ = -1;
     cosmosIndex_ = -1;   // the program brought its own Cosmos layer
     applyScoped(preset(index), PresetScope::Full);
+    // The foreground the pack's artist table gives this preset, on this path as well. Until
+    // 13.09.2026 the call stood only at the end of applySoundPreset -- the box's and the
+    // browser's way in -- while this is the way a host's program change comes, and the way every
+    // journey step comes, because a step crossfades and a crossfade is served through here. So
+    // Auto could be on all night and never bring anything, and a journey played twelve minutes
+    // with nothing in the near field. Nothing of the sort happens for a built-in or for a pack
+    // with no table: nearAutoPick says so and applyNearAuto returns.
+    applyNearAuto(index);
     // The knobs are a tenth of a millisecond. The files a preset names -- its clips, its
     // wavetable, its room -- are a sixth of a SECOND, because they are read off the disk and
     // decoded, and a host can automate the program number like any other parameter. Every step

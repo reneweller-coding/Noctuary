@@ -258,6 +258,44 @@ int main()
         }
     }
 
+    // ------------------------------------------------------ a program brings its foreground
+    // The near layer is a bank of its own, kept across sound presets, and a pack preset brings
+    // the one its artist's table gives it while Auto is on. Until 13.09.2026 that call stood only
+    // at the end of the by-hand path, so a host's program change -- and every journey step, which
+    // crossfades and is therefore served here -- arrived without one, while the Full-scope apply
+    // put whatever was playing back to its default of silence. Both halves are measured: what a
+    // program brings, and what it has to leave standing.
+    {
+        auto p = std::make_unique<NoctuaryProcessor>();
+        p->prepareToPlay(48000.0, 256);
+        int withNear = -1;
+        for (int i = builtinPresetCount(); i < p->getNumPrograms() && withNear < 0; ++i) {
+            const int pack = presetPack(i);
+            if (pack < 0) continue;
+            float f = 1.0f;
+            if (nearAutoPick(presetPackName(pack), preset(i).name, f) > 0) withNear = i;
+        }
+        if (withNear < 0) {
+            std::printf("  (no pack preset with a foreground in reach -- near auto not measured)\n");
+        } else {
+            // A preset reaches the engine through the parameter tree, and the tree is pushed into
+            // the engine once a block -- so the engine is asked after a block, not before one.
+            juce::AudioBuffer<float> buf(2, 256);
+            juce::MidiBuffer midi;
+            auto settle = [&] { for (int k = 0; k < 4; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); } };
+            p->setCurrentProgram(withNear);
+            settle();
+            const float brought = p->engine().getParam(ParamId::ForeLevel);
+            check(brought > 0.0f, "a program change brings the foreground its pack gives the preset");
+            // A built-in belongs to no pack, so Auto has nothing to say about it and must leave
+            // the layer alone. This is the half that was silently wrong: the apply cleared it.
+            p->setCurrentProgram(0);
+            settle();
+            check(p->engine().getParam(ParamId::ForeLevel) == brought,
+                  "and a program that brings none leaves the one that is playing alone");
+        }
+    }
+
     // ---------------------------------------------------------------- a preset's two rooms
     // A pack preset names impulse A and, since the ninth field, impulse B. One that names both gives
     // the Room both; one that names only A takes the old B away -- Room Morph blended into whatever
