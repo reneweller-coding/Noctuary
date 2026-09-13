@@ -296,6 +296,52 @@ int main()
         }
     }
 
+    // ----------------------------------------------- the Every a foreground is brought with
+    // Auto scales the near preset's Every by a factor from the artist's table. The factor was
+    // multiplied onto the engine's value, which is the one BEFORE the near preset arrived -- the
+    // preset is written into the parameter tree, and the tree reaches the engine a block later.
+    // So a fresh instrument scaled the default, and every further change scaled the result of the
+    // last: a factor above one ran the Every up to its fifteen-minute ceiling within a few presets
+    // and held it there. Rene waited twenty minutes in a journey for a near event (13.09.2026).
+    {
+        auto p = std::make_unique<NoctuaryProcessor>();
+        p->prepareToPlay(48000.0, 256);
+        juce::AudioBuffer<float> buf(2, 256);
+        juce::MidiBuffer midi;
+        int chosen = -1, nearIdx = -1;
+        float factor = 1.0f, nearRate = 0.0f;
+        for (int i = builtinPresetCount(); i < p->getNumPrograms() && chosen < 0; ++i) {
+            const int pack = presetPack(i);
+            if (pack < 0) continue;
+            float f = 1.0f;
+            const int pick = nearAutoPick(presetPackName(pack), preset(i).name, f);
+            if (pick <= 0) continue;
+            float v[kNumParams];
+            for (int k = 0; k < kNumParams; ++k) v[k] = paramTable()[static_cast<size_t>(k)].def;
+            applyPreset(nearPreset(pick), [&](ParamId id, float x) { v[static_cast<int>(id)] = x; }, PresetScope::Near);
+            const float r = v[static_cast<int>(ParamId::ForeRate)];
+            // One whose own Every is not the default and whose result is under the ceiling, so a
+            // wrong base cannot give the right answer by accident.
+            if (std::fabs(r - 120.0f) > 1.0f && r * f < 890.0f && std::fabs(f - 1.0f) > 0.05f) { chosen = i; nearIdx = pick; factor = f; nearRate = r; }
+        }
+        if (chosen < 0) {
+            std::printf("  (no pack preset with a scaled foreground in reach -- Auto's Every not measured)\n");
+        } else {
+            const float want = std::clamp(nearRate * factor, 10.0f, 900.0f);
+            auto settle = [&] { for (int k = 0; k < 4; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); } };
+            p->setCurrentProgram(chosen);
+            settle();
+            const float got = p->engine().getParam(ParamId::ForeRate);
+            std::printf("  [probe] Auto's Every: %s at %.0f s, factor %.2f -> want %.0f s, got %.0f s\n",
+                        nearPreset(nearIdx).name, nearRate, factor, want, got);
+            check(std::fabs(got - want) < 1.0f, "Auto scales the near preset's own Every, not what the engine held before");
+            p->setCurrentProgram(chosen);   // the same preset again
+            settle();
+            check(std::fabs(p->engine().getParam(ParamId::ForeRate) - want) < 1.0f,
+                  "and the same preset again brings the same Every, not a compounded one");
+        }
+    }
+
     // ------------------------------------------- Morph, a journey, and the engine that plays it
     // Rene, 13.09.2026, in a journey: the volume knob did nothing, no near event came, a texture
     // preset showed no grains, "and most knobs seem to have no function at all". One cause for

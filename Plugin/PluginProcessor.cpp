@@ -719,8 +719,13 @@ void NoctuaryProcessor::applyNearAuto(int soundIndex)
     if (pick < 0) return;
     applyNearPreset(pick);
     if (pick > 0) {
-        const float rate = juce::jlimit(10.0f, 900.0f, target().getParam(ParamId::ForeRate) * factor);
-        setParam(ParamId::ForeRate, rate);
+        // The near preset's own Every, read where applyNearPreset has just written it: the
+        // parameter tree. The engine gets it a block later, so reading the engine here scaled the
+        // Every that was there BEFORE -- the default on a fresh instrument, and after that the
+        // result of the last scaling, compounding with every preset change until the ceiling
+        // (13.09.2026: Whistler's 200 s at a factor of 1.18 came out as 142 instead of 236).
+        const float own = raw_[static_cast<size_t>(ParamId::ForeRate)]->load();
+        setParam(ParamId::ForeRate, juce::jlimit(10.0f, 900.0f, own * factor));
     }
 }
 

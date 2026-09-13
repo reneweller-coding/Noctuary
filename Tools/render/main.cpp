@@ -455,6 +455,10 @@ static int runOnce(int argc, char** argv)
     double skipSeconds = 0.0;   // played and thrown away before the measured window begins
     int sr = 48000, block = 256;
     bool stats = false, dump = false, useMap = false, measure = false, loudness = false;
+    // --near-log: one line per near event -- when, what near layer was in effect, and how loud the
+    // mix was around it. Rene waited twenty minutes in a journey and heard none (13.09.2026), and
+    // "the level is above zero" was never an answer to whether one plays or can be heard.
+    bool nearLog = false;
     bool tonal = false;
     double tonalSeconds = 14.0;
     std::string tapPath, tapDir;
@@ -499,6 +503,7 @@ static int runOnce(int argc, char** argv)
         else if (a == "--sr") sr = std::atoi(next().c_str());
         else if (a == "--block") block = std::atoi(next().c_str());
         else if (a == "--stats") stats = true;
+        else if (a == "--near-log") nearLog = true;
         else if (a == "--measure") measure = true;   // print descriptors instead of writing a file
         else if (a == "--tonal") tonal = true;       // print how much of it follows the note
         else if (a == "--tonal-seconds") tonalSeconds = std::atof(next().c_str());
@@ -992,6 +997,8 @@ static int runOnce(int argc, char** argv)
     // generative conductor changes every few seconds, which made the map's density axis a coin
     // toss. Sampled per block and averaged over the same half every other descriptor uses.
     double voiceSum = 0.0; long voiceBlocks = 0;
+    const Engine* nearLogEngine = nullptr;   // --near-log: the engine whose count was read last
+    int nearLogCount = 0;
     if (tonal) {
         const TonalProbe t = tonalProbe(engine, sr, tonalSeconds);
         std::printf("tonal: static=%.1f bass_db=%+.1f rms=%.1f\n", t.staticShare, t.bassDb, t.rms);
@@ -1058,6 +1065,19 @@ static int runOnce(int argc, char** argv)
             }
             fadePos = t1;
             if (t1 >= 1.0) { fadingEngine->allNotesOff(); fadingEngine->reset(); fadingEngine = nullptr; }
+        }
+        if (nearLog) {
+            // Counted on the engine that plays. A journey step hands the scheduler over with its
+            // count (adoptNear), so a change of engine rebases rather than counting twice.
+            const Engine* le = &live();
+            const int ev = le->nearEventsPlayed();
+            if (le != nearLogEngine) { nearLogEngine = le; nearLogCount = ev; }
+            for (; nearLogCount < ev; ++nearLogCount)
+                std::printf("near event %d at %s (%.1f s): level %.2f, every %.0f s, type %d, length %.1f s, distance %.2f, dry %.2f\n",
+                            nearLogCount + 1, Journey::timeText(static_cast<double>(done) / sr).c_str(), static_cast<double>(done) / sr,
+                            le->effectiveParam(ParamId::ForeLevel), le->effectiveParam(ParamId::ForeRate),
+                            static_cast<int>(le->effectiveParam(ParamId::ForeType)), le->effectiveParam(ParamId::ForeLength),
+                            le->effectiveParam(ParamId::ForeDistance), le->effectiveParam(ParamId::ForeDry));
         }
         if (done >= total / 2) { voiceSum += live().activeVoices(); ++voiceBlocks; }
         if (!stemPrefix.empty())
