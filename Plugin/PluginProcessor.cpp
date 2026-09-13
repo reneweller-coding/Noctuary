@@ -221,7 +221,8 @@ void NoctuaryProcessor::event(const ControlEvent& e)
 // left behind when it was switched off.
 void NoctuaryProcessor::servePresetRequests()
 {
-    if (mapExit_.exchange(false, std::memory_order_acq_rel)) {
+    if (mapExit_.exchange(false, std::memory_order_acq_rel)
+        && juce::Time::getMillisecondCounterHiRes() >= mapExitDiscardUntil_) {   // not the exit a journey asked for
         for (const ParamDesc& d : paramTable()) {
             if (isMapParam(d.id) || isMorphParam(d.id) || isMacroParam(d.id)) continue;
             if (auto* p = apvts.getParameter(d.key)) p->setValueNotifyingHost(p->convertTo0to1(live().blendValue(d.id)));
@@ -301,6 +302,11 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     if (const int sw = swapTo_.load(std::memory_order_acquire); sw >= 0) {
         fading_.store(live_.load(std::memory_order_relaxed), std::memory_order_relaxed);
         live_.store(sw, std::memory_order_release);
+        // Where the volume stood at the change, on both sides: the leaving engine's own level, and
+        // the parameter as the arriving preset left it. What the player turns from here on is the
+        // difference between the two readings of the parameter, and it goes to both engines.
+        fadeGainFrom_ = engines_[fading_.load(std::memory_order_relaxed)]->getParam(ParamId::MasterGain);
+        fadeGainBase_ = raw_[static_cast<size_t>(ParamId::MasterGain)]->load();
         fadePos_.store(0.0f, std::memory_order_relaxed);
         fadeHead_ = 0.0f;
         paramTarget_.store(-1, std::memory_order_release);
@@ -501,6 +507,17 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
             ramping = std::sqrt(e / static_cast<float>(2 * n)) > 1e-3f || fadeHead_ >= kFadeHeadStart;
         }
         const float t1 = ramping ? std::min(1.0f, t0 + static_cast<float>(n) / static_cast<float>(sampleRate_ * secs)) : 0.0f;
+        // The volume reaches the leaving preset too. Everything else of it stands still on
+        // purpose -- it is a sound on its way out -- but the volume is the listener's, not the
+        // preset's, and a journey fades for up to a minute and a half after a head start of up to
+        // eight seconds in which the leaving engine is nearly all there is to hear. So the knob did
+        // nothing at every step and half of what it should for a minute after (Rene, 13.09.2026).
+        // As a difference, not a value: the arriving preset's own level would make the leaving one
+        // jump the moment the fade began.
+        {
+            const float moved = raw_[static_cast<size_t>(ParamId::MasterGain)]->load() - fadeGainBase_;
+            engines_[fading_]->setParam(ParamId::MasterGain, juce::jlimit(-40.0f, 12.0f, fadeGainFrom_ + moved));
+        }
         engines_[fading_]->process(fadeBuf_.getWritePointer(0), fadeBuf_.getWritePointer(1), n);
         const float inA = std::sin(juce::MathConstants<float>::halfPi * t0), inB = std::sin(juce::MathConstants<float>::halfPi * t1);
         const float outA = std::cos(juce::MathConstants<float>::halfPi * t0), outB = std::cos(juce::MathConstants<float>::halfPi * t1);
@@ -1053,6 +1070,21 @@ bool NoctuaryProcessor::startJourney(const ambient::Journey& j)
 {
     if (j.steps.empty()) return false;
     journey_ = j;
+    // A journey is presets in a row, and Morph is the instrument held between two chosen ones:
+    // with both on, every preset the journey loaded was overruled by the blend and the journey
+    // appeared to do nothing. Starting one means playing its presets, so Morph lets go.
+    setParam(ParamId::MorphActive, 0.0f);
+    // The map blend is the same kind of hold, measured the same day: the engine plays the blend of
+    // the presets around the cursor and nothing the journey loads. A route plays through the map
+    // and switches it back on, so the route goes first. Leaving the map normally writes its blend
+    // into the parameters so the sound stays where it was -- here that write would land over the
+    // journey's first preset, so it is let go of instead, for a few seconds only, lest a later
+    // exit by hand lose its blend to a flag that was set for this one.
+    if (raw_[static_cast<size_t>(ParamId::MapActive)]->load() >= 0.5f || raw_[static_cast<size_t>(ParamId::RouteActive)]->load() >= 0.5f) {
+        mapExitDiscardUntil_ = juce::Time::getMillisecondCounterHiRes() + 3000.0;
+        setParam(ParamId::RouteActive, 0.0f);
+        setParam(ParamId::MapActive, 0.0f);
+    }
     // Seeded from the clock: the same journey runs differently every evening. A render that
     // wants it repeatable seeds the player itself (ambient_render --journey-seed).
     journeyPlayer_.start(journey_, static_cast<uint64_t>(juce::Time::currentTimeMillis()) | 1ull, 0);
@@ -1325,6 +1357,18 @@ void NoctuaryProcessor::beginTransition(int index)
         // place in it, a gap that was half over stays half over. What it does not carry is the
         // note that was sounding -- that voice belongs to the engine that is leaving.
         in.adoptNear(live().nearState());
+        // And the Morph snapshots. They live in the engine, and a crossfade hands the sound to the
+        // other one -- so a snapshot chosen before a journey step was gone after it, while the box
+        // went on showing its name over the new engine's own, which were the defaults (13.09.2026).
+        for (int slot = 0; slot < 2; ++slot) {
+            if (live().morphSlotSet(slot)) {
+                float v[kNumParams];
+                live().morphSlot(slot, v);
+                in.setMorphSlot(slot, v);
+            } else {
+                in.clearMorphSlot(slot);
+            }
+        }
     }
     // The chord that is being held is held on the new instrument too. Without this a player
     // holding a chord through a preset change heard it die with the old preset and nothing take
@@ -1435,6 +1479,7 @@ void NoctuaryProcessor::getStateInformation(juce::MemoryBlock& destData)
     for (int slot = 0; slot < 2; ++slot) {
         juce::ValueTree m(slot == 0 ? "morphA" : "morphB");
         m.setProperty("name", slotName_[slot], nullptr);
+        m.setProperty("set", live().morphSlotSet(slot), nullptr);   // a slot nobody chose is not a snapshot
         float values[kNumParams];
         live().morphSlot(slot, values);
         for (int i = 0; i < kNumParams; ++i) m.setProperty(paramTable()[static_cast<size_t>(i)].key, values[i], nullptr);
@@ -1467,8 +1512,14 @@ void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
                     const ParamDesc& d = paramTable()[static_cast<size_t>(i)];
                     values[i] = m.hasProperty(d.key) ? static_cast<float>(static_cast<double>(m.getProperty(d.key))) : d.def;
                 }
-                live().setMorphSlot(slot, values);
-                slotName_[slot] = m.getProperty("name").toString();
+                // Whether the slot was chosen. A state from before 2.0.2 does not say, and wrote both
+                // slots every time -- so every one of them read back as a snapshot of the defaults,
+                // and the session recall carried the trap into every start. For those the name
+                // decides: "Init" is what an untouched slot was called, so it counts as not chosen.
+                const juce::String nm = m.getProperty("name").toString();
+                const bool chosen = m.hasProperty("set") ? static_cast<bool>(m.getProperty("set")) : (nm.isNotEmpty() && nm != "Init");
+                if (chosen) { live().setMorphSlot(slot, values); slotName_[slot] = nm; }
+                else        { live().clearMorphSlot(slot);       slotName_[slot] = {}; }
             }
             tree.removeChild(tree.getChildWithName("midi"), nullptr);
             tree.removeChild(tree.getChildWithName("morphA"), nullptr);

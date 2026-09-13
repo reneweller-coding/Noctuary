@@ -209,12 +209,21 @@ void Engine::setMorphSlot(int slot, const float* values)
 {
     auto& s = (slot == 0) ? slotA_ : slotB_;
     for (int i = 0; i < kNumParams; ++i) s[i].store(values[i], std::memory_order_relaxed);
+    // Values first, the flag after: the audio thread reads the flag to decide whether to read the
+    // values at all, so it must never see "chosen" over a half-written snapshot.
+    slotSet_[slot & 1].store(true, std::memory_order_relaxed);
 }
 
 void Engine::captureMorphSlot(int slot)
 {
     auto& s = (slot == 0) ? slotA_ : slotB_;
     for (int i = 0; i < kNumParams; ++i) s[i].store(params_[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+    slotSet_[slot & 1].store(true, std::memory_order_relaxed);
+}
+
+void Engine::clearMorphSlot(int slot)
+{
+    slotSet_[slot & 1].store(false, std::memory_order_relaxed);
 }
 
 void Engine::morphSlot(int slot, float* out) const
@@ -298,8 +307,14 @@ float Engine::effectiveParam(ParamId id) const
         return paramDesc(id).kind == ParamKind::Int ? static_cast<float>(std::lround(v)) : v;
     }
     if (isMorphParam(id) || getParam(ParamId::MorphActive) < 0.5f) return live;
+    // An end nobody has chosen is the sound as the knobs have it, not the defaults. With neither
+    // chosen Morph is therefore silent in effect, and with one chosen it runs from what is playing
+    // now to that one -- which is what "morph to B" means to anyone who has not read this line.
+    const bool setA = slotSet_[0].load(std::memory_order_relaxed), setB = slotSet_[1].load(std::memory_order_relaxed);
+    if (!setA && !setB) return live;
     const int i = static_cast<int>(id);
-    const float a = slotA_[i].load(std::memory_order_relaxed), b = slotB_[i].load(std::memory_order_relaxed);
+    const float a = setA ? slotA_[i].load(std::memory_order_relaxed) : live;
+    const float b = setB ? slotB_[i].load(std::memory_order_relaxed) : live;
     const float t = morphCur_.load(std::memory_order_relaxed);
     const ParamDesc& d = paramDesc(id);
     switch (d.kind) {

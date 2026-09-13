@@ -296,6 +296,104 @@ int main()
         }
     }
 
+    // ------------------------------------------- Morph, a journey, and the engine that plays it
+    // Rene, 13.09.2026, in a journey: the volume knob did nothing, no near event came, a texture
+    // preset showed no grains, "and most knobs seem to have no function at all". One cause for
+    // all four. The Journey row sits in the Morph section, and a closed section shows only Active
+    // and Position -- so reaching the row meant switching Morph on. With Morph on the engine
+    // renders every parameter from snapshots A and B instead of from the knobs, and both
+    // snapshots start at the defaults: the instrument was held at Init, whatever was turned and
+    // whatever the journey loaded. And a snapshot that WAS chosen lived in one engine, while every
+    // crossfade -- every journey step -- hands the sound to the other.
+    {
+        auto p = std::make_unique<NoctuaryProcessor>();
+        p->prepareToPlay(48000.0, 256);
+        juce::AudioBuffer<float> buf(2, 256);
+        juce::MidiBuffer midi;
+        auto settle = [&] { for (int k = 0; k < 4; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); } };
+        auto knob = [&](ParamId id, float v) {
+            if (auto* prm = p->apvts.getParameter(paramDesc(id).key)) prm->setValueNotifyingHost(prm->convertTo0to1(v));
+        };
+        int texPreset = -1, other = -1;
+        for (int i = 0; i < p->getNumPrograms() && (texPreset < 0 || other < 0); ++i) {
+            const char* s = preset(i).settings;
+            if (s == nullptr) continue;
+            if (texPreset < 0 && std::strstr(s, "src1_type=Texture") != nullptr) texPreset = i;
+            else if (texPreset >= 0 && other < 0) other = i;
+        }
+        if (texPreset < 0 || other < 0) {
+            std::printf("  (no texture preset in reach -- Morph over a journey not measured)\n");
+        } else {
+            const float texture = static_cast<float>(static_cast<int>(SourceType::Texture));
+            p->setCurrentProgram(texPreset);
+            settle();
+            knob(ParamId::MorphActive, 1.0f);   // what reaching the Journey row took
+            settle();
+            check(p->engine().effectiveParam(ParamId::Src1Type) == texture,
+                  "Morph switched on with no snapshot chosen leaves the texture source playing");
+            knob(ParamId::MasterGain, -18.0f);
+            settle();
+            check(std::fabs(p->engine().effectiveParam(ParamId::MasterGain) + 18.0f) < 0.05f,
+                  "and the volume knob still reaches the sound");
+            knob(ParamId::ForeLevel, 0.7f);
+            settle();
+            check(std::fabs(p->engine().effectiveParam(ParamId::ForeLevel) - 0.7f) < 1.0e-4f,
+                  "and so does the near layer's level");
+            // A snapshot that was chosen has to survive the crossfade a journey step makes.
+            knob(ParamId::MorphActive, 0.0f);
+            knob(ParamId::Depth, 0.77f);
+            settle();
+            p->setMorphSlotFromCurrent(0);
+            p->selectPreset(other, true);         // a crossfade, which is what a journey step is
+            settle();
+            float a[kNumParams];
+            p->engine().morphSlot(0, a);
+            check(std::fabs(a[static_cast<int>(ParamId::Depth)] - 0.77f) < 1.0e-4f,
+                  "a snapshot chosen before a crossfade is still there after it");
+            // The map blend is the same kind of hold: while it is on, the engine plays the blend of
+            // the presets around the cursor and nothing a journey loads. Measured, not assumed.
+            knob(ParamId::MapX, 0.3f);
+            knob(ParamId::MapY, 0.6f);
+            knob(ParamId::MapActive, 1.0f);
+            for (int k = 0; k < 40; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); }
+            if (!p->engine().mapActive()) {
+                std::printf("  (the map is not ready in this run -- a journey over the map blend not measured)\n");
+            } else {
+                Journey j;
+                j.name = "probe";
+                JourneyStep s1; s1.preset = preset(texPreset).name; s1.dwellLo = s1.dwellHi = 600.0; s1.fadeLo = s1.fadeHi = 1.0;
+                JourneyStep s2 = s1; s2.preset = preset(other).name;
+                j.steps = { s1, s2 };
+                p->startJourney(j);
+                for (int k = 0; k < 40; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); }
+                check(p->apvts.getRawParameterValue(paramDesc(ParamId::MapActive).key)->load() < 0.5f,
+                      "starting a journey takes the map blend off");
+                check(!p->engine().mapActive() &&
+                      p->engine().effectiveParam(ParamId::Depth) == p->engine().getParam(ParamId::Depth),
+                      "so the engine that plays the journey plays its preset, not the blend");
+                p->stopJourney();
+            }
+            // The volume across a fade. A journey step fades for up to a minute and a half, after a
+            // head start in which the leaving engine is nearly all there is to hear, and that engine
+            // keeps every parameter it had -- so the knob reached only the one that was not yet
+            // audible. It has to reach the leaving one too, by as much as it was turned.
+            p->setMorphSelectSeconds(60.0f);
+            p->selectPreset(texPreset, true);
+            for (int k = 0; k < 3; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); p->servePendingPreset(); }
+            if (const ambient::Engine* leaving = p->leavingEngine()) {
+                const float before = leaving->getParam(ParamId::MasterGain);
+                const float knobNow = p->apvts.getRawParameterValue(paramDesc(ParamId::MasterGain).key)->load();
+                knob(ParamId::MasterGain, knobNow - 12.0f);
+                for (int k = 0; k < 2; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); }
+                const ambient::Engine* still = p->leavingEngine();
+                check(still != nullptr && std::fabs(still->getParam(ParamId::MasterGain) - (before - 12.0f)) < 0.05f,
+                      "the volume turned during a fade reaches the preset that is leaving, by as much");
+            } else {
+                check(false, "a crossfade is in flight to measure the volume across");
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- a preset's two rooms
     // A pack preset names impulse A and, since the ninth field, impulse B. One that names both gives
     // the Room both; one that names only A takes the old B away -- Room Morph blended into whatever

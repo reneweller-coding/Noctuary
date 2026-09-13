@@ -154,7 +154,9 @@ public:
     float morphProgress() const { return transitionInFlight() ? fadePos_.load() : 1.0f; }
     void setMorphSlotFromPreset(int slot, int presetIndex);
     void setMorphSlotFromCurrent(int slot);
-    juce::String morphSlotName(int slot) const { return slotName_[slot & 1]; }
+    // An empty name is a slot nobody chose, which plays as the knobs stand (Engine::morphSlotSet).
+    // It used to read "Init", and that was true: the slot held the defaults, which is the fault.
+    juce::String morphSlotName(int slot) const { return slotName_[slot & 1].isEmpty() ? juce::String("as played") : slotName_[slot & 1]; }
 
     // OSC input and gesture layer (see ambient/Osc.h for the namespace).
     ambient::GestureLayer& gestures() { return gestures_; }
@@ -265,6 +267,9 @@ private:
     std::atomic<bool> endFade_ { false };
     // The map was switched off: the message thread writes the blend it left into the parameters.
     std::atomic<bool> mapExit_ { false };
+    // Until when an exit is one a journey caused, whose blend must not be written over the journey's
+    // first preset (hi-res milliseconds; message thread only). See startJourney.
+    double mapExitDiscardUntil_ = 0.0;
     int routeMirrorLeft_ = 0;   // samples until the route's cursor is told to the host again
     int  pendingPreset_ = -1;         // a change waiting for the audio thread to free an engine
     void beginTransition(int index);  // message thread: prepare the incoming engine and publish it
@@ -303,6 +308,15 @@ private:
     // at full level -- otherwise the old sound fades into silence and the new one arrives into it.
     float fadeHead_ = 0.0f;
     static constexpr float kFadeHeadStart = 8.0f;
+    // The volume across a fade (audio thread only): the leaving engine's own level at the change,
+    // and the parameter at the change, so the player's turn reaches it as a difference.
+    float fadeGainFrom_ = 0.0f, fadeGainBase_ = 0.0f;
+public:
+    // The engine on its way out while a transition fades, else null. For the checks; the audio
+    // thread owns it for exactly as long as this returns it.
+    const ambient::Engine* leavingEngine() const
+    { const int f = fading_.load(std::memory_order_acquire); return f >= 0 ? engines_[f].get() : nullptr; }
+private:
     // The notes held right now, from MIDI, OSC and the set timeline alike. They are handed to the
     // incoming engine of a transition: a chord held through a preset change stays held.
     std::array<std::atomic<float>, 128> heldVel_{};   // audio writes, beginTransition reads
@@ -366,7 +380,7 @@ private:
     // MPE: which note each channel is currently playing, so its bend, pressure and slide reach
     // the right voice. Channel 1 (index 0) is the master channel and holds no note.
     int   mpeNote_[16] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-    juce::String slotName_[2] = { "Init", "Init" };
+    juce::String slotName_[2] = { "", "" };   // empty = not chosen
 
     // OscSink
     void setParam(ambient::ParamId id, float value) override;

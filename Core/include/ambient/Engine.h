@@ -193,6 +193,12 @@ public:
     void  setMorphSlot(int slot, const float* values);   // kNumParams values, any thread
     void  captureMorphSlot(int slot);                    // copy the live parameters into a slot
     void  morphSlot(int slot, float* out) const;
+    // A slot nobody has chosen is not a snapshot of anything, and plays as the knobs stand.
+    // Until 13.09.2026 both slots began at the defaults, so switching Morph on before choosing
+    // A or B held the whole instrument at Init: every knob dead, the near layer silent, a texture
+    // preset without its texture. setMorphSlot and captureMorphSlot choose a slot; this forgets it.
+    void  clearMorphSlot(int slot);
+    bool  morphSlotSet(int slot) const { return slotSet_[slot & 1].load(std::memory_order_relaxed); }
     float morphPosition() const { return morphCur_.load(std::memory_order_relaxed); }
     // Put the gliding position somewhere without waiting for the glide: a preset change
     // that travels has to start at A even if the morph was standing somewhere else.
@@ -421,6 +427,7 @@ private:
 
     std::atomic<float> params_[kNumParams];
     std::atomic<float> slotA_[kNumParams], slotB_[kNumParams];
+    std::atomic<bool>  slotSet_[2] { false, false };   // chosen, or still following the knobs
     std::atomic<float> morphCur_{ 0.0f };
     // Preset map blend (audio thread writes, host reads)
     std::atomic<float> blendCur_[kNumParams];

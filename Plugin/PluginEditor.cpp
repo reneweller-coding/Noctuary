@@ -860,7 +860,9 @@ const std::vector<Closer>& closers()
         { "Cosmos",     ParamId::CosmosSend,   { ParamId::CosmosSend, ParamId::CosmosReturn } },
         { "Memory",     ParamId::MemSend,      { ParamId::MemSend, ParamId::MemReturn } },
         { "Strike",     ParamId::StrikeLevel,  { ParamId::StrikeLevel, ParamId::StrikeType } },
-        { "Morph",      ParamId::MorphActive,  { ParamId::MorphActive, ParamId::MorphPos } },
+        // No entry for Morph any more (13.09.2026). A closed section keeps only its switch, and the
+        // Journey row lives in this one -- so the way to a journey was to switch Morph on, which held
+        // the whole instrument at the snapshots. The section stays open; it fits in every layout.
         { "Brain 2",    ParamId::Brain2On,     { ParamId::Brain2On } },
         { "Early Room", ParamId::EarlyLevel,   { ParamId::EarlyLevel } },
         { "Body",       ParamId::BodyLevel,    { ParamId::BodyLevel } },
