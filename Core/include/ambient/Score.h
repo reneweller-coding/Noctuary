@@ -1,4 +1,4 @@
-// AmbientSynth -- a score: what should happen, written down.
+// Noctuary -- a score: what should happen, written down.
 //
 // The set timeline (Timeline.h) records what you did and plays it back. The map route walks a
 // path between presets. Neither lets you write a piece: "start dry, bring the Cosmos in over four

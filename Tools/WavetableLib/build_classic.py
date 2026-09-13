@@ -82,7 +82,7 @@ MIN_GROUP = 4
 CONTINUITY_MAX = 3.0
 GROUNDED = 0.08           # the fundamental's least share of a frame's energy in a grounded table
 PEAK = 10.0 ** (-1.0 / 20.0)
-CLM = b"<!>2048 00000000 wavetable (AmbientSynth)"
+CLM = b"<!>2048 00000000 wavetable (Noctuary)"
 
 
 # ---------------------------------------------------------------------------- one cycle
@@ -479,7 +479,7 @@ def build_wavedit(out_dir):
 
 def credits(out_dir):
     text = (
-        "Klassische Wavetables fuer AmbientSynth, gebaut von Tools/WavetableLib/build_classic.py.\n"
+        "Klassische Wavetables fuer Noctuary, gebaut von Tools/WavetableLib/build_classic.py.\n"
         "Jede Tabelle: Frames zu 2048 Samples, 16 Bit, 44,1 kHz, mit clm-Chunk (Serum/Vital-Layout).\n"
         "akwf/ und wavedit/ sind geerdet (der Grundton traegt in jedem Frame, bei WaveEdit im mittleren Frame,\n"
         "wenigstens 8 % der Energie); akwf_hollow/ und wavedit_hollow/ sind ohne Grundton gebaut.\n\n"

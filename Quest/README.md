@@ -1,4 +1,4 @@
-# AmbientSynth for Meta Quest
+# Noctuary for Meta Quest
 
 Native OpenXR app, no game engine: `NativeActivity` + `android_native_app_glue`,
 EGL/GLES 3, the Khronos OpenXR loader, `XR_EXT_hand_tracking`, Oboe for audio,
@@ -6,7 +6,7 @@ and the unchanged synthesizer core from `../Core`.
 
 ```
 Quest/
-  CMakeLists.txt        NDK build of libambientquest.so (links AmbientCore, oboe, openxr_loader)
+  CMakeLists.txt        NDK build of libambientquest.so (links NoctuaryCore, oboe, openxr_loader)
   AndroidManifest.xml   NativeActivity, hasCode=false, hand-tracking permission/features, VR category
   src/main.cpp          the app: OpenXR session, hands -> GestureLayer -> Engine, Oboe, GLES scene, OSC bridge
   fetch_thirdparty.ps1  downloads the OpenXR loader (prefab AAR) and Oboe into ../ThirdParty
@@ -18,7 +18,7 @@ Quest/
 ```
 powershell -File Quest\fetch_thirdparty.ps1
 powershell -File Quest\build_apk.ps1
-adb install -r build-quest\AmbientSynthQuest.apk
+adb install -r build-quest\NoctuaryQuest.apk
 ```
 
 Needs: NDK r27 (`C:\Android-Buildtools\sdk\ndk\27.2.12479018`), build-tools 34,
@@ -26,7 +26,7 @@ platform android-34, JDK 17 — see the parameters at the top of `build_apk.ps1`
 
 ## Config (optional)
 
-`adb push ambient.cfg /sdcard/Android/data/com.reneweller.ambientsynth.quest/files/ambient.cfg`
+`adb push ambient.cfg /sdcard/Android/data/com.reneweller.noctuary.quest/files/ambient.cfg`
 
 ```
 osc_host=192.168.1.20     # bridge mode: stream hands/head as OSC to the desktop plugin
@@ -43,9 +43,9 @@ preset may name its own sample and wavetable; those are loaded when it is
 applied and take precedence over the folder's `texture.wav` and `wavetable.wav`.
 
 ```
-adb push Library/Packs      /sdcard/Android/data/com.reneweller.ambientsynth.quest/files/Packs
-adb push Library/Textures   /sdcard/Android/data/com.reneweller.ambientsynth.quest/files/Textures
-adb push Library/Wavetables /sdcard/Android/data/com.reneweller.ambientsynth.quest/files/Wavetables
+adb push Library/Packs      /sdcard/Android/data/com.reneweller.noctuary.quest/files/Packs
+adb push Library/Textures   /sdcard/Android/data/com.reneweller.noctuary.quest/files/Textures
+adb push Library/Wavetables /sdcard/Android/data/com.reneweller.noctuary.quest/files/Wavetables
 ```
 
 The whole library is about 8 GB, so pushing one or two packs and only the

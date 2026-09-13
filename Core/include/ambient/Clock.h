@@ -1,4 +1,4 @@
-// AmbientSynth -- the clock: a tempo, a beat position, and the note divisions that hang on it.
+// Noctuary -- the clock: a tempo, a beat position, and the note divisions that hang on it.
 //
 // A drone instrument does not need a clock to make sound, but the moment it plays with other
 // machines every rate in it wants to sit on the grid: an LFO that takes exactly two bars, a

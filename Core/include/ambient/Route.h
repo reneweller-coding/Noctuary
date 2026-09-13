@@ -1,4 +1,4 @@
-// AmbientSynth -- a route over the preset map: waypoints (a map position and blend radius)
+// Noctuary -- a route over the preset map: waypoints (a map position and blend radius)
 // with a travel time to reach each one and a hold time to stay there. The engine walks the
 // route and moves the map cursor (MapX / MapY / MapRadius), so a whole set becomes a path
 // that plays itself: smoothstep travel between points, no jumps, optional loop.

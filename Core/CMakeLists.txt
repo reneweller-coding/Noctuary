@@ -1,4 +1,4 @@
-add_library(AmbientCore STATIC
+add_library(NoctuaryCore STATIC
     src/Params.cpp
     src/Tuning.cpp
     src/Voice.cpp
@@ -36,24 +36,24 @@ add_library(AmbientCore STATIC
     src/Score.cpp
 )
 if(WIN32)
-    target_link_libraries(AmbientCore PUBLIC ws2_32)
+    target_link_libraries(NoctuaryCore PUBLIC ws2_32)
 endif()
 find_package(Threads)
 if(Threads_FOUND)
-    target_link_libraries(AmbientCore PUBLIC Threads::Threads)
+    target_link_libraries(NoctuaryCore PUBLIC Threads::Threads)
 endif()
-target_include_directories(AmbientCore
+target_include_directories(NoctuaryCore
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include
     # dr_flac, one public-domain header: the sample library ships as FLAC, and the core reads it
     # without a framework the way it reads WAV. PRIVATE -- nobody outside needs the decoder.
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/dr_libs)
-target_compile_features(AmbientCore PUBLIC cxx_std_20)
-set_target_properties(AmbientCore PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_features(NoctuaryCore PUBLIC cxx_std_20)
+set_target_properties(NoctuaryCore PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(MSVC)
-    target_compile_options(AmbientCore PRIVATE /W4 /permissive- /utf-8)
-    target_compile_definitions(AmbientCore PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(NoctuaryCore PRIVATE /W4 /permissive- /utf-8)
+    target_compile_definitions(NoctuaryCore PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
-    target_compile_options(AmbientCore PRIVATE -Wall -Wextra)
+    target_compile_options(NoctuaryCore PRIVATE -Wall -Wextra)
 endif()
 
 # AVX2 for the phasor banks (Simd.h), which are most of the instrument's arithmetic. Every x86-64
@@ -62,9 +62,9 @@ endif()
 option(AMBIENT_AVX2 "Build the x86-64 core with AVX2" ON)
 if(AMBIENT_AVX2 AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|x64)")
     if(MSVC)
-        target_compile_options(AmbientCore PUBLIC /arch:AVX2)
+        target_compile_options(NoctuaryCore PUBLIC /arch:AVX2)
     else()
-        target_compile_options(AmbientCore PUBLIC -mavx2 -mfma)
+        target_compile_options(NoctuaryCore PUBLIC -mavx2 -mfma)
     endif()
-    target_compile_definitions(AmbientCore PUBLIC AMBIENT_AVX=1)
+    target_compile_definitions(NoctuaryCore PUBLIC AMBIENT_AVX=1)
 endif()

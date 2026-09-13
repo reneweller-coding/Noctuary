@@ -1,4 +1,4 @@
-# Builds the AmbientSynth Quest APK without Gradle:
+# Builds the Noctuary Quest APK without Gradle:
 #   CMake/NDK -> libambientquest.so, aapt2 link -> base.apk, add native libs, zipalign, apksigner (debug key).
 # Windows PowerShell 5.1. Run from the repository root or anywhere:  powershell -File Quest\build_apk.ps1
 param(
@@ -63,9 +63,9 @@ if (-not (Test-Path $keystore)) {
         -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
     if ($LASTEXITCODE -ne 0) { throw "keytool failed" }
 }
-$final = Join-Path $build "AmbientSynthQuest.apk"
+$final = Join-Path $build "NoctuaryQuest.apk"
 & (Join-Path $bt "apksigner.bat") sign --ks $keystore --ks-pass pass:android --key-pass pass:android --out $final $aligned
 if ($LASTEXITCODE -ne 0) { throw "apksigner failed" }
 Write-Host "APK: $final"
 Write-Host "install:  adb install -r `"$final`""
-Write-Host "config:   adb push ambient.cfg /sdcard/Android/data/com.reneweller.ambientsynth.quest/files/ambient.cfg"
+Write-Host "config:   adb push ambient.cfg /sdcard/Android/data/com.reneweller.noctuary.quest/files/ambient.cfg"

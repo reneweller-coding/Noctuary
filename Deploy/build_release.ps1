@@ -1,4 +1,4 @@
-# AmbientSynth -- build the binaries other people get, and wrap them in a setup.
+# Noctuary -- build the binaries other people get, and wrap them in a setup.
 #
 #   powershell -File Deploy\build_release.ps1 [-Version 1.0.0] [-SkipBuild] [-NoSetup]
 #                                             [-Toolchain msvc|intel]
@@ -12,7 +12,7 @@
 #     before installing rather than letting an old one fail with an illegal instruction;
 #   * it builds in its own folder, so the everyday build tree is left alone.
 #
-# The result is Deploy\out\AmbientSynth-<version>-Setup.exe plus Deploy\out\AmbientSynth-<version>-portable.zip
+# The result is Deploy\out\Noctuary-<version>-Setup.exe plus Deploy\out\Noctuary-<version>-portable.zip
 # for people who would rather not run an installer at all.
 param(
     [string]$Version = "",
@@ -66,11 +66,11 @@ $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $root
 
 if (-not $Version) {
-    $m = Select-String -Path (Join-Path $root "CMakeLists.txt") -Pattern 'project\(AmbientSynth VERSION ([0-9.]+)'
+    $m = Select-String -Path (Join-Path $root "CMakeLists.txt") -Pattern 'project\(Noctuary VERSION ([0-9.]+)'
     if (-not $m) { throw "no version in CMakeLists.txt and none given" }
     $Version = $m.Matches[0].Groups[1].Value
 }
-Write-Host "AmbientSynth $Version" -ForegroundColor Cyan
+Write-Host "Noctuary $Version" -ForegroundColor Cyan
 
 $intel = $Toolchain -eq "intel"
 # A tree of its own per compiler: the two produce different objects from the same sources, and
@@ -122,7 +122,7 @@ if (-not $SkipBuild) {
     # project's version has changed. Version 1.1.0 was therefore built, packaged, installed and
     # tested with 1.0.0 stamped inside the executable -- the setup was named right, the file
     # properties were wrong, and nothing in the build said so. Deleting it forces the regenerate.
-    $rc = Join-Path $buildDir "Plugin\AmbientSynth_artefacts\JuceLibraryCode\AmbientSynth_resources.rc"
+    $rc = Join-Path $buildDir "Plugin\Noctuary_artefacts\JuceLibraryCode\Noctuary_resources.rc"
     if (Test-Path $rc) { Remove-Item $rc -Force }
 
     $common = @(
@@ -170,9 +170,9 @@ if (-not $SkipBuild) {
     if ($LASTEXITCODE -ne 0) { throw "race test failed in the release configuration" }
 }
 
-$art = Join-Path $buildDir "Plugin\AmbientSynth_artefacts\Release"
-$exe = Join-Path $art "Standalone\AmbientSynth.exe"
-$vst = Join-Path $art "VST3\AmbientSynth.vst3"
+$art = Join-Path $buildDir "Plugin\Noctuary_artefacts\Release"
+$exe = Join-Path $art "Standalone\Noctuary.exe"
+$vst = Join-Path $art "VST3\Noctuary.vst3"
 foreach ($p in @($exe, $vst)) { if (-not (Test-Path $p)) { throw "missing build output: $p" } }
 
 # ---------------------------------------------------------------- what must not be there
@@ -181,7 +181,7 @@ foreach ($p in @($exe, $vst)) { if (-not (Test-Path $p)) { throw "missing build 
 $dumpbin = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\*\*\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" -ErrorAction SilentlyContinue |
            Select-Object -First 1 -ExpandProperty FullName
 if ($dumpbin) {
-    foreach ($bin in @($exe, (Join-Path $vst "Contents\x86_64-win\AmbientSynth.vst3"))) {
+    foreach ($bin in @($exe, (Join-Path $vst "Contents\x86_64-win\Noctuary.vst3"))) {
         $deps = & $dumpbin /dependents $bin | Select-String -Pattern '^\s+\S+\.dll' | ForEach-Object { $_.Line.Trim() }
         # Intel's runtime is the same trap wearing another name: libmmd and svml_dispmd sit beside
         # icx and are found while building, and are nowhere on the machine of somebody who has
@@ -234,13 +234,13 @@ if (-not $SkipManual) {
     }
     if ($copyFailed) { Write-Warning "docs\manual could not be fully updated (a file is open there); the installer takes the manual from $manualWork" }
 }
-$manualPdf = if ($SkipManual) { Join-Path $manualDir "AmbientSynth-Manual.pdf" } else { Join-Path $manualWork "AmbientSynth-Manual.pdf" }
+$manualPdf = if ($SkipManual) { Join-Path $manualDir "Noctuary-Manual.pdf" } else { Join-Path $manualWork "Noctuary-Manual.pdf" }
 
 # ---------------------------------------------------------------- stage
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage, $out | Out-Null
 Copy-Item $exe $stage
-Copy-Item $vst (Join-Path $stage "AmbientSynth.vst3") -Recurse
+Copy-Item $vst (Join-Path $stage "Noctuary.vst3") -Recurse
 Copy-Item (Join-Path $root "docs\logo.ico") $stage
 if (Test-Path $manualPdf) { Copy-Item $manualPdf $stage } else { Write-Warning "no manual PDF to ship" }
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt")
@@ -257,7 +257,7 @@ if (Test-Path $journeys) {
 $journeyCount = (Get-ChildItem (Join-Path $stage "Journeys") -Filter *.journey -ErrorAction SilentlyContinue).Count
 
 @"
-AmbientSynth $Version
+Noctuary $Version
 =====================
 
 A drone and ambient synthesiser: three source slots, two filters, a resonating body, delays, a
@@ -265,17 +265,17 @@ convolution room, a far reverb, the Cosmos feedback network, and a conductor tha
 
 WHAT IS HERE
 
-  AmbientSynth.exe        the standalone instrument. Nothing else needs to be installed.
-  AmbientSynth.vst3       the plug-in. Copy the whole folder to
+  Noctuary.exe        the standalone instrument. Nothing else needs to be installed.
+  Noctuary.vst3       the plug-in. Copy the whole folder to
                           C:\Program Files\Common Files\VST3\ and rescan in your DAW.
-  AmbientSynth-Manual.pdf the manual, the same one the Help page shows.
+  Noctuary-Manual.pdf the manual, the same one the Help page shows.
   Packs\                  $packCount preset packs. Copy them to
-                          C:\ProgramData\AmbientSynth\Packs (for everyone on the machine) or
-                          Documents\AmbientSynth\Packs (just for you). The instrument reads both.
+                          C:\ProgramData\Noctuary\Packs (for everyone on the machine) or
+                          Documents\Noctuary\Packs (just for you). The instrument reads both.
   Journeys\               $journeyCount journeys: presets in a row, each held for a while and
                           crossfaded into the next, for an evening that plays itself. Copy them
-                          beside the packs (..\AmbientSynth\Journeys); your own go to
-                          Documents\AmbientSynth\Journeys.
+                          beside the packs (..\Noctuary\Journeys); your own go to
+                          Documents\Noctuary\Journeys.
 
 The setup does all of that for you; this archive is for anyone who would rather it did not.
 
@@ -296,7 +296,7 @@ $(Get-Content (Join-Path $root "LICENSE") -TotalCount 1)
 # files here are named after the version alone -- so a run can quietly replace an archive that
 # was published under that name with a different build of it, same name, different checksum.
 # Said out loud rather than discovered later by somebody comparing hashes with a release page.
-$zip = Join-Path $out "AmbientSynth-$Version-portable.zip"
+$zip = Join-Path $out "Noctuary-$Version-portable.zip"
 if (Test-Path $zip) {
     Write-Warning ("replacing {0} (built {1}) with a {2} build" -f
                    [System.IO.Path]::GetFileName($zip), (Get-Item $zip).LastWriteTime, $Toolchain)
@@ -324,18 +324,18 @@ function Invoke-Sign([string]$path) {
 }
 # The executable is signed before it goes into the installer, and the installer after it is built:
 # Windows checks both, and a signed setup that unpacks an unsigned exe warns on the exe instead.
-Invoke-Sign (Join-Path $stage "AmbientSynth.exe")
+Invoke-Sign (Join-Path $stage "Noctuary.exe")
 
 # ---------------------------------------------------------------- setup
 if (-not $NoSetup) {
     $iscc = Get-ChildItem "C:\Program Files\Inno Setup *\ISCC.exe", "C:\Program Files (x86)\Inno Setup *\ISCC.exe" -ErrorAction SilentlyContinue |
             Select-Object -First 1 -ExpandProperty FullName
     if (-not $iscc) { throw "Inno Setup not found. winget install JRSoftware.InnoSetup, or run with -NoSetup." }
-    $contentUrl = "https://github.com/reneweller-coding/AmbientSynth/releases/download/$ContentTag"
+    $contentUrl = "https://github.com/reneweller-coding/Noctuary/releases/download/$ContentTag"
     Write-Host "  sample library from $contentUrl"
-    & $iscc "/DVersion=$Version" "/DContentBaseUrl=$contentUrl" (Join-Path $root "Deploy\AmbientSynth.iss")
+    & $iscc "/DVersion=$Version" "/DContentBaseUrl=$contentUrl" (Join-Path $root "Deploy\Noctuary.iss")
     if ($LASTEXITCODE -ne 0) { throw "the installer failed to build" }
-    $setup = Join-Path $out "AmbientSynth-$Version-Setup.exe"
+    $setup = Join-Path $out "Noctuary-$Version-Setup.exe"
     Invoke-Sign $setup
     Write-Host ("  setup: {0:N1} MB" -f ((Get-Item $setup).Length / 1MB)) -ForegroundColor Green
 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(AmbientSynth VERSION 2.0.0 LANGUAGES C CXX)
+project(Noctuary VERSION 2.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ set(AMBIENT_JUCE_TAG "9.0.1" CACHE STRING "JUCE git tag to fetch")
 if(MSVC)
     add_compile_options(/MP)
     # Symbols for Release, so a crash can be read. The instrument writes its own stack trace on a
-    # crash (Documents/AmbientSynth/crash.log), and without a .pdb beside the executable that trace
+    # crash (Documents/Noctuary/crash.log), and without a .pdb beside the executable that trace
     # is the Windows frames and nothing of ours -- JUCE's backtrace skips every frame it cannot
     # name, so the one part worth seeing is the part that goes missing. /DEBUG is a LINKER switch
     # and changes no code; it does turn the /OPT defaults off, so they are named again here and the

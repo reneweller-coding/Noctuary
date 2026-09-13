@@ -16,7 +16,7 @@ audio. No Unity, no Unreal. The synthesizer core is used unchanged.
     -DCMAKE_BUILD_TYPE=Release -DAMBIENT_BUILD_PLUGIN=OFF
   cmake --build build-android
   ```
-  produces `libAmbientCore.a`, `ambient_render` and `ambient_selftest` for the
+  produces `libNoctuaryCore.a`, `ambient_render` and `ambient_selftest` for the
   device (the two executables can be run through `adb shell` for a device-side
   measurement pass).
 * The gesture layer (`ambient/Gesture.h`) is the mapping from hand quantities
@@ -71,7 +71,7 @@ the gesture mapping (clutch, dead-zone, smoothing, text round-trip).
 builds with NDK r27c against the Khronos OpenXR loader 1.1.63 (prefab AAR
 from Maven Central, since the Meta SDK zip no longer ships headers or
 loader) and Oboe from source; `build_apk.ps1` produces a signed
-`AmbientSynthQuest.apk` without Gradle (aapt2 → jar → zipalign → apksigner).
+`NoctuaryQuest.apk` without Gradle (aapt2 → jar → zipalign → apksigner).
 Steps 1, 2, 3 and 5 of the plan above are implemented in `src/main.cpp`.
 Not yet run on a headset.
 
@@ -94,7 +94,7 @@ comfortable; the first on-device bench confirms it.
 ## Open
 
 * First run on a device: session state flow, swapchain format, hand-tracking
-  permission prompt, Oboe stream start, `adb logcat -s AmbientSynth`.
+  permission prompt, Oboe stream start, `adb logcat -s Noctuary`.
 * Pinch thresholds (15–50 mm thumb-to-index) may need tuning per hand size.
 * Visual design of the scene beyond the first soft-point version; the
   Kaleidoscope rules apply (no camera motion driven by audio, everything

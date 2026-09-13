@@ -1,4 +1,4 @@
-// AmbientSynth -- the classic wavetable: a stack of single cycles, played as samples.
+// Noctuary -- the classic wavetable: a stack of single cycles, played as samples.
 //
 // The Harmonic type reads a table as a sequence of spectra, thirty-two partial amplitudes a frame,
 // and builds the sound from a phasor bank. That is alias-free and gives every partial a life of its

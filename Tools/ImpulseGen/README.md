@@ -1,6 +1,6 @@
 # ImpulseGen — impulse responses for the Room
 
-The Room is AmbientSynth's third reverb: a convolution reverb on the far plane
+The Room is Noctuary's third reverb: a convolution reverb on the far plane
 that plays an impulse response (BACKGROUND → Room). Without a file it uses a
 built-in dark hall; this tool makes files for it. Same Python environment as
 TextureGen:

@@ -1,4 +1,4 @@
-// AmbientSynth -- stereo effects.
+// Noctuary -- stereo effects.
 //   Ensemble    modulated three-tap chorus
 //   StereoDelay asymmetric L/R delay with cross-feed and damping (time-based width)
 //   Reverb      8-line feedback delay network with diffusion, damping, freeze,

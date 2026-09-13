@@ -1,4 +1,4 @@
-#include "AmbientLookAndFeel.h"
+#include "NoctuaryLookAndFeel.h"
 
 namespace ui {
 
@@ -40,7 +40,7 @@ juce::String valueText(juce::Slider& s)
 
 } // namespace
 
-AmbientLookAndFeel::AmbientLookAndFeel()
+NoctuaryLookAndFeel::NoctuaryLookAndFeel()
 {
     setColour(juce::ResizableWindow::backgroundColourId, ui::bg0);
     setColour(juce::Label::textColourId, ui::text);
@@ -79,7 +79,7 @@ AmbientLookAndFeel::AmbientLookAndFeel()
 
 // ---------------------------------------------------------------- rotary
 
-void AmbientLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
+void NoctuaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                                           float pos, float startAngle, float endAngle, juce::Slider& s)
 {
     const juce::Rectangle<float> area(static_cast<float>(x), static_cast<float>(y),
@@ -186,7 +186,7 @@ void AmbientLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w
     }
 }
 
-juce::Slider::SliderLayout AmbientLookAndFeel::getSliderLayout(juce::Slider& s)
+juce::Slider::SliderLayout NoctuaryLookAndFeel::getSliderLayout(juce::Slider& s)
 {
     juce::Slider::SliderLayout layout;
     layout.sliderBounds = s.getLocalBounds();
@@ -194,7 +194,7 @@ juce::Slider::SliderLayout AmbientLookAndFeel::getSliderLayout(juce::Slider& s)
     return layout;
 }
 
-juce::Label* AmbientLookAndFeel::createSliderTextBox(juce::Slider& s)
+juce::Label* NoctuaryLookAndFeel::createSliderTextBox(juce::Slider& s)
 {
     auto* l = LookAndFeel_V4::createSliderTextBox(s);
     l->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
@@ -202,7 +202,7 @@ juce::Label* AmbientLookAndFeel::createSliderTextBox(juce::Slider& s)
     return l;
 }
 
-void AmbientLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+void NoctuaryLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
                                           float pos, float, float, juce::Slider::SliderStyle style,
                                           juce::Slider& s)
 {
@@ -228,7 +228,7 @@ void AmbientLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w
 
 // ---------------------------------------------------------------- boxes and buttons
 
-void AmbientLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool,
+void NoctuaryLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool,
                                       int, int, int, int, juce::ComboBox& box)
 {
     const juce::Rectangle<float> r(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
@@ -247,19 +247,19 @@ void AmbientLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, 
     g.strokePath(chevron, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 
-void AmbientLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label& label)
+void NoctuaryLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label& label)
 {
     label.setBounds(9, 0, box.getWidth() - 26, box.getHeight());
     label.setFont(getComboBoxFont(box));
     label.setColour(juce::Label::textColourId, box.isEnabled() ? ui::text : ui::faint);
 }
 
-juce::Font AmbientLookAndFeel::getComboBoxFont(juce::ComboBox& box)
+juce::Font NoctuaryLookAndFeel::getComboBoxFont(juce::ComboBox& box)
 {
     return ui::body(juce::jmin(13.0f, box.getHeight() * 0.6f));
 }
 
-void AmbientLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& b,
+void NoctuaryLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& b,
                                           bool highlighted, bool)
 {
     // A pill switch: on/off is a position, not a tick, which reads at a glance in a wall of cells.
@@ -286,7 +286,7 @@ void AmbientLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton&
     }
 }
 
-void AmbientLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
+void NoctuaryLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
                                               bool highlighted, bool down)
 {
     const auto r = b.getLocalBounds().toFloat().reduced(0.5f);
@@ -301,7 +301,7 @@ void AmbientLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
     g.drawRoundedRectangle(r, 5.0f, 1.0f);
 }
 
-void AmbientLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& b, bool, bool)
+void NoctuaryLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& b, bool, bool)
 {
     g.setColour(b.findColour(b.getToggleState() ? juce::TextButton::textColourOnId
                                                 : juce::TextButton::textColourOffId)
@@ -310,12 +310,12 @@ void AmbientLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& b, 
     g.drawText(b.getButtonText(), b.getLocalBounds().reduced(6, 0), juce::Justification::centred, false);
 }
 
-juce::Font AmbientLookAndFeel::getTextButtonFont(juce::TextButton&, int buttonHeight)
+juce::Font NoctuaryLookAndFeel::getTextButtonFont(juce::TextButton&, int buttonHeight)
 {
     return ui::body(juce::jmin(13.0f, buttonHeight * 0.55f));
 }
 
-void AmbientLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
+void NoctuaryLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
 {
     const juce::Rectangle<float> r(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
     g.setColour(ui::card.brighter(0.05f));
@@ -324,9 +324,9 @@ void AmbientLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, i
     g.drawRoundedRectangle(r.reduced(0.5f), 6.0f, 1.0f);
 }
 
-juce::Font AmbientLookAndFeel::getPopupMenuFont() { return ui::body(13.0f); }
+juce::Font NoctuaryLookAndFeel::getPopupMenuFont() { return ui::body(13.0f); }
 
-void AmbientLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& l)
+void NoctuaryLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& l)
 {
     if (!l.isBeingEdited()) {
         g.setColour(l.findColour(juce::Label::textColourId).withMultipliedAlpha(l.isEnabled() ? 1.0f : 0.4f));
@@ -335,7 +335,7 @@ void AmbientLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& l)
     }
 }
 
-void AmbientLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar&, int x, int y, int width,
+void NoctuaryLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar&, int x, int y, int width,
                                        int height, bool vertical, int thumbPos, int thumbSize,
                                        bool mouseOver, bool down)
 {

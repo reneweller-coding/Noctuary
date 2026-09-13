@@ -1,4 +1,4 @@
-// AmbientSynth -- the engine: voices, cluster brain, spatial routing, effects, parameters.
+// Noctuary -- the engine: voices, cluster brain, spatial routing, effects, parameters.
 // Framework-free. `process()` never allocates; parameters are plain atomics so the
 // host layer can write them from any thread.
 //

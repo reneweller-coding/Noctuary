@@ -44,7 +44,7 @@ a stereo effect chain where the hall and the early room hear a stereo input, sou
 their own, slot roles (a slot that plays only the lowest, the inner or the highest note), and the
 far reverb's return after the foreground has ducked it as a parameter.
 
-**Favourites** are kept by name in `Documents\AmbientSynth\favourites.txt` -- the same stars in
+**Favourites** are kept by name in `Documents\Noctuary\favourites.txt` -- the same stars in
 the standalone and in every DAW, and they survive a library made anew -- and *favourites first*
 puts them at the top of the browser's list whatever the sort; the map rings them in gold. The
 table pictures (Harmonic, Wavetable) light the cycle between two frames where the sound is,

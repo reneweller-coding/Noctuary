@@ -1,4 +1,4 @@
-"""AmbientSynth -- give the library packs the four things that came after they were generated.
+"""Noctuary -- give the library packs the four things that came after they were generated.
 
 Tools/enrich_presets.py does this for the 191 compiled-in presets. This does it for the 5000 in
 Library/Packs, and it has a different job, because the library is not short of features the way

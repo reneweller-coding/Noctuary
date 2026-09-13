@@ -1,9 +1,9 @@
-// AmbientSynth -- what the editor's four translation units share: the geometry of the grid, the
+// Noctuary -- what the editor's four translation units share: the geometry of the grid, the
 // palette shorthands, and the small drawing helpers the displays are built from. Internal to the
 // plugin; nothing outside Plugin/ includes it.
 #pragma once
 #include "PluginEditor.h"
-#include "AmbientLookAndFeel.h"
+#include "NoctuaryLookAndFeel.h"
 #include "ambient/Params.h"
 #include "ambient/Help.h"
 #include "ambient/Presets.h"
@@ -15,7 +15,7 @@
 
 namespace edt {
 
-// One cell is a knob and its name; the value is drawn inside the knob (see AmbientLookAndFeel),
+// One cell is a knob and its name; the value is drawn inside the knob (see NoctuaryLookAndFeel),
 // which is what buys the room for a knob this size in the same wall of controls.
 constexpr int kCellW = 68, kCellH = 76, kPad = 11, kTitleH = 22, kGroupTitleH = 26, kHeaderH = 118;
 // The editor is laid out once, in this design space, and the whole thing is then scaled to
@@ -31,7 +31,7 @@ const juce::Colour kVoice = ui::voiceCol, kFore = ui::foreCol, kBack = ui::backC
                    kConductor = ui::condCol, kMorph = ui::morphCol, kMaster = ui::masterCol;
 
 // A parameter's raw value by key, for the displays (they read the host's atomics, never the engine's).
-inline float rawParam(AmbientSynthProcessor& proc, const char* key)
+inline float rawParam(NoctuaryProcessor& proc, const char* key)
 {
     auto* v = proc.apvts.getRawParameterValue(key);
     return v != nullptr ? v->load() : 0.0f;
@@ -42,7 +42,7 @@ inline float rawParam(AmbientSynthProcessor& proc, const char* key)
 // laid over what is actually coming out. A second copy of this arithmetic would be a second copy
 // to keep in step with the voice, so there is one.
 struct FilterCurve {
-    void capture(AmbientSynthProcessor& proc, float sampleRate)
+    void capture(NoctuaryProcessor& proc, float sampleRate)
     {
         sr = sampleRate;
         cutoff = rawParam(proc, "cutoff");
@@ -163,7 +163,7 @@ inline void drawAxes(juce::Graphics& g, juce::Rectangle<float> plot)
 // matrix back to the engine as the text the old box used, so nothing else learns a new format.
 class RouteTable : public juce::Component {
 public:
-    RouteTable(AmbientSynthProcessor& p, std::function<void()> onChanged);
+    RouteTable(NoctuaryProcessor& p, std::function<void()> onChanged);
     ~RouteTable() override;
     void pull();                 // read the engine's matrix into the rows
     int  count() const;
@@ -175,7 +175,7 @@ private:
     void changed();
     void addRow();
     void removeRow(int index);
-    AmbientSynthProcessor& proc;
+    NoctuaryProcessor& proc;
     std::function<void()> changedCallback;
     std::vector<std::unique_ptr<Row>> rows;
     juce::Component content;

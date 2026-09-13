@@ -1,4 +1,4 @@
-// AmbientSynth -- the Cosmos path: science-fiction / deep-space processing.
+// Noctuary -- the Cosmos path: science-fiction / deep-space processing.
 //   FreqShifter    single-sideband frequency shifter (Hilbert pair), inharmonic, alien
 //   CombResonator  tuned comb filters with feedback (metallic, hull-like resonances)
 //   VowelFilter    three formants morphing slowly between vowels (alien choir)

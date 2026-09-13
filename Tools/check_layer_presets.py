@@ -1,4 +1,4 @@
-"""AmbientSynth -- render and measure every preset in the three section layers.
+"""Noctuary -- render and measure every preset in the three section layers.
 
 The Cosmos, Z-plane and Strike banks are generated (Tools/make_layer_presets.py and
 Tools/make_zplane_bank.py), and a generated bank is exactly the kind of thing that can gain a

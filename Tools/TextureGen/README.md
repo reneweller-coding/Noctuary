@@ -1,6 +1,6 @@
 # TextureGen — text-to-audio textures for the Texture source slots
 
-A small PySide6 program that turns a prompt into WAV files for AmbientSynth's
+A small PySide6 program that turns a prompt into WAV files for Noctuary's
 *Texture* sources (Source 2 / Source 3, Type = Texture). The models run in a
 child process (`texturegen_worker.py`) that stays alive between jobs, so a
 model is loaded once per session.
@@ -36,7 +36,7 @@ python -m venv .venv
 `Textures/<slug>_<model>_<seed>[_<note>].wav` (32-bit float, peak −6 dBFS)
 plus a `.txt` with the prompt and settings. `<note>` is the detected base
 pitch (autocorrelation, only written when the clip is clearly periodic).
-AmbientSynth, the render tool and the Quest app read a `_A3`-style suffix and
+Noctuary, the render tool and the Quest app read a `_A3`-style suffix and
 pitch the texture to the key when the slot's *Pitch* is *Note*; unpitched
 textures (rain, wind) simply have no suffix and play free.
 

@@ -1,4 +1,4 @@
-// AmbientSynth -- hand menu: a small performance menu driven by the hands alone.
+// Noctuary -- hand menu: a small performance menu driven by the hands alone.
 //   open      hold the LEFT pinch
 //   choose    RIGHT hand height (top item = hand high)
 //   activate  RIGHT pinch while the menu is open

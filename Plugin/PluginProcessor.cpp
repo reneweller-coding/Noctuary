@@ -19,7 +19,7 @@
 
 using namespace ambient;
 
-juce::AudioProcessorValueTreeState::ParameterLayout AmbientSynthProcessor::createLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout NoctuaryProcessor::createLayout()
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     for (const ParamDesc& d : paramTable()) {
@@ -66,7 +66,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AmbientSynthProcessor::creat
 // written nothing at all -- no report in the event log, no minidump in CrashDumps, because local
 // dumps are off on most machines and switching them on means the registry. So the instrument keeps
 // its own account: a line with the version and the time, then the backtrace, appended to
-// Documents/AmbientSynth/crash.log. Appended, because the second crash is the one that shows which
+// Documents/Noctuary/crash.log. Appended, because the second crash is the one that shows which
 // part of the first was the accident.
 //
 // A handler runs in a process that has already lost, so it does the least it can: JUCE's backtrace
@@ -81,12 +81,12 @@ static void installCrashLog()
     static std::once_flag once;
     std::call_once(once, [] {
         static const juce::File logFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
-                                              .getChildFile("AmbientSynth").getChildFile("crash.log");
+                                              .getChildFile("Noctuary").getChildFile("crash.log");
         logFile.getParentDirectory().createDirectory();
         static const auto write = [](const char* how) {
             const juce::String trace = juce::SystemStats::getStackBacktrace();
             if (FILE* f = std::fopen(logFile.getFullPathName().toRawUTF8(), "a")) {
-                std::fprintf(f, "\n---- AmbientSynth %s %s %s\n%s\n", JucePlugin_VersionString, how,
+                std::fprintf(f, "\n---- Noctuary %s %s %s\n%s\n", JucePlugin_VersionString, how,
                              juce::Time::getCurrentTime().toISO8601(true).toRawUTF8(), trace.toRawUTF8());
                 std::fclose(f);
             }
@@ -106,9 +106,9 @@ static void installCrashLog()
     });
 }
 
-AmbientSynthProcessor::AmbientSynthProcessor()
+NoctuaryProcessor::NoctuaryProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts(*this, nullptr, "AmbientSynth", createLayout())
+      apvts(*this, nullptr, "Noctuary", createLayout())
 {
     installCrashLog();
     engines_[0] = std::make_unique<ambient::Engine>();   // the instrument; the second is built on demand
@@ -137,7 +137,7 @@ AmbientSynthProcessor::AmbientSynthProcessor()
     }
 }
 
-AmbientSynthProcessor::~AmbientSynthProcessor()
+NoctuaryProcessor::~NoctuaryProcessor()
 {
     // The OSC thread first: it calls event() on this object, and the queue it pushes into is
     // declared after it, so it would be destroyed first. Then the warmup thread, which would be
@@ -153,7 +153,7 @@ AmbientSynthProcessor::~AmbientSynthProcessor()
 // The standalone's settings, or nothing at all when this is a plugin: there the host owns the
 // state, saves it with the project and hands it back, and a synth that quietly loaded somebody
 // else's last session into a fresh instance would be a bug, not a feature.
-juce::PropertySet* AmbientSynthProcessor::standaloneSettings()
+juce::PropertySet* NoctuaryProcessor::standaloneSettings()
 {
    #if JucePlugin_Build_Standalone
     if (auto* holder = juce::StandalonePluginHolder::getInstance()) return holder->settings.get();
@@ -161,9 +161,9 @@ juce::PropertySet* AmbientSynthProcessor::standaloneSettings()
     return nullptr;
 }
 
-bool AmbientSynthProcessor::sessionRecallAvailable() { return standaloneSettings() != nullptr; }
+bool NoctuaryProcessor::sessionRecallAvailable() { return standaloneSettings() != nullptr; }
 
-void AmbientSynthProcessor::setSessionRecall(bool on)
+void NoctuaryProcessor::setSessionRecall(bool on)
 {
     sessionRecall_ = on;
     auto* settings = standaloneSettings();
@@ -177,7 +177,7 @@ void AmbientSynthProcessor::setSessionRecall(bool on)
 // Writes the state only when it has actually changed, so an instrument left running all night
 // touches the disk once. Hashing the block is cheaper than deciding what counts as a change:
 // every knob, the matrix, the tuning and the loaded files are in there already.
-void AmbientSynthProcessor::saveSession()
+void NoctuaryProcessor::saveSession()
 {
     auto* settings = standaloneSettings();
     if (settings == nullptr || !sessionRecall_) return;
@@ -193,23 +193,23 @@ void AmbientSynthProcessor::saveSession()
     if (auto* file = dynamic_cast<juce::PropertiesFile*>(settings)) file->saveIfNeeded();
 }
 
-void AmbientSynthProcessor::timerCallback() { saveSession(); }
+void NoctuaryProcessor::timerCallback() { saveSession(); }
 
 // ---------------------------------------------------------------- OSC sink + gestures
 
-void AmbientSynthProcessor::setParam(ParamId id, float value)
+void NoctuaryProcessor::setParam(ParamId id, float value)
 {
     if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
         p->setValueNotifyingHost(p->convertTo0to1(value));
 }
 
-void AmbientSynthProcessor::setParamNormalised(ParamId id, float norm)
+void NoctuaryProcessor::setParamNormalised(ParamId id, float norm)
 {
     if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
         p->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, norm));
 }
 
-void AmbientSynthProcessor::event(const ControlEvent& e)
+void NoctuaryProcessor::event(const ControlEvent& e)
 {
     // Notes to the audio thread, preset changes to the message thread: one is a handful of
     // atomics, the other opens files.
@@ -219,7 +219,7 @@ void AmbientSynthProcessor::event(const ControlEvent& e)
 
 // Message thread, from the pump: the preset changes OSC asked for, and the parameters the map
 // left behind when it was switched off.
-void AmbientSynthProcessor::servePresetRequests()
+void NoctuaryProcessor::servePresetRequests()
 {
     if (mapExit_.exchange(false, std::memory_order_acq_rel)) {
         for (const ParamDesc& d : paramTable()) {
@@ -245,21 +245,21 @@ void AmbientSynthProcessor::servePresetRequests()
     }
 }
 
-bool AmbientSynthProcessor::setGestureMappings(const juce::String& text)
+bool NoctuaryProcessor::setGestureMappings(const juce::String& text)
 {
     if (!gestures_.parseMappings(text.toRawUTF8())) return false;
     mappingText_ = text;
     return true;
 }
 
-juce::String AmbientSynthProcessor::gestureMappings() const
+juce::String NoctuaryProcessor::gestureMappings() const
 {
     char buf[4096];
     const int n = gestures_.writeMappings(buf, sizeof(buf));
     return juce::String(juce::CharPointer_UTF8(buf), static_cast<size_t>(juce::jmax(0, n)));
 }
 
-void AmbientSynthProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void NoctuaryProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     lastSampleRate_ = sampleRate > 0.0 ? sampleRate : 48000.0;
     lastBlockSize_ = samplesPerBlock;
@@ -281,13 +281,13 @@ void AmbientSynthProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     fadeHead_ = 0.0f;
 }
 
-bool AmbientSynthProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+bool NoctuaryProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
     const auto& out = layouts.getMainOutputChannelSet();
     return out == juce::AudioChannelSet::stereo() || out == juce::AudioChannelSet::mono();
 }
 
-void AmbientSynthProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
+void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
 
@@ -539,7 +539,7 @@ void AmbientSynthProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     if (muteOutput_) buffer.clear();
 }
 
-bool AmbientSynthProcessor::startRecording(const juce::File& file)
+bool NoctuaryProcessor::startRecording(const juce::File& file)
 {
     stopRecording();
     file.deleteFile();
@@ -559,7 +559,7 @@ bool AmbientSynthProcessor::startRecording(const juce::File& file)
     return true;
 }
 
-void AmbientSynthProcessor::stopRecording()
+void NoctuaryProcessor::stopRecording()
 {
     recording_.store(false);
     {
@@ -569,14 +569,14 @@ void AmbientSynthProcessor::stopRecording()
     recordThread_.stopThread(2000);
 }
 
-int AmbientSynthProcessor::getNumPrograms() { return numPresets(); }
+int NoctuaryProcessor::getNumPrograms() { return numPresets(); }
 
-const juce::String AmbientSynthProcessor::getProgramName(int index)
+const juce::String NoctuaryProcessor::getProgramName(int index)
 {
     return (index >= 0 && index < numPresets()) ? juce::String(preset(index).name) : juce::String();
 }
 
-void AmbientSynthProcessor::loadPresetFiles(int index)
+void NoctuaryProcessor::loadPresetFiles(int index)
 {
     // A pack preset can bring its own sample, wavetable and impulses; paths are relative to the pack.
     const juce::String tex(juce::CharPointer_UTF8(presetFilePath(index, 0)));
@@ -623,7 +623,7 @@ void AmbientSynthProcessor::loadPresetFiles(int index)
     }
 }
 
-void AmbientSynthProcessor::applyScoped(const Preset& pr, PresetScope scope)
+void NoctuaryProcessor::applyScoped(const Preset& pr, PresetScope scope)
 {
     applyPreset(pr, [this](ParamId id, float v) {
         if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
@@ -634,7 +634,7 @@ void AmbientSynthProcessor::applyScoped(const Preset& pr, PresetScope scope)
     if (scope != PresetScope::Cosmos && scope != PresetScope::Near) target().applyPresetModulation(pr);
 }
 
-void AmbientSynthProcessor::setCurrentProgram(int index)
+void NoctuaryProcessor::setCurrentProgram(int index)
 {
     if (index < 0 || index >= numPresets()) return;
     currentProgram_ = index;
@@ -660,7 +660,7 @@ void AmbientSynthProcessor::setCurrentProgram(int index)
     loadPresetFiles(index);
 }
 
-void AmbientSynthProcessor::applySoundPreset(int index)
+void NoctuaryProcessor::applySoundPreset(int index)
 {
     if (index < 0 || index >= numPresets()) return;
     soundIndex_ = index;
@@ -683,7 +683,7 @@ void AmbientSynthProcessor::applySoundPreset(int index)
 // The foreground a pack preset brings, while Auto is on: the artist's table by the preset's
 // name (nearAutoPick), the near preset applied like one chosen by hand, and its Every scaled by
 // the class's factor. A built-in, or a pack without a table, leaves the foreground as it is.
-void AmbientSynthProcessor::applyNearAuto(int soundIndex)
+void NoctuaryProcessor::applyNearAuto(int soundIndex)
 {
     if (soundIndex < 0 || soundIndex >= numPresets()) return;
     if (live().getParam(ParamId::ForeAuto) < 0.5f) return;
@@ -702,7 +702,7 @@ void AmbientSynthProcessor::applyNearAuto(int soundIndex)
 // The loudness of every preset was measured from a twelve-second render (Tools/preset_map.py
 // for the built-ins, measure_packs.py for the library). A preset that was never measured has
 // none, and is then left alone rather than guessed at.
-void AmbientSynthProcessor::applyLevelMatch(int index)
+void NoctuaryProcessor::applyLevelMatch(int index)
 {
     if (!levelMatch_ || index < 0 || index >= numPresetMeta()) return;
     const float loud = presetMeta(index).loudDb;
@@ -715,7 +715,7 @@ void AmbientSynthProcessor::applyLevelMatch(int index)
     }
 }
 
-void AmbientSynthProcessor::applyCosmosPreset(int index)
+void NoctuaryProcessor::applyCosmosPreset(int index)
 {
     if (index < 0 || index >= numCosmosPresets()) return;
     cosmosIndex_ = index;
@@ -723,21 +723,21 @@ void AmbientSynthProcessor::applyCosmosPreset(int index)
     applyScoped(cosmosPreset(index), PresetScope::Cosmos);
 }
 
-void AmbientSynthProcessor::applyZPreset(int index)
+void NoctuaryProcessor::applyZPreset(int index)
 {
     if (index < 0 || index >= numZPresets()) return;
     zIndex_ = index;
     applyScoped(zPreset(index), PresetScope::ZPlane);
 }
 
-void AmbientSynthProcessor::applyStrikePreset(int index)
+void NoctuaryProcessor::applyStrikePreset(int index)
 {
     if (index < 0 || index >= numStrikePresets()) return;
     strikeIndex_ = index;
     applyScoped(strikePreset(index), PresetScope::Strike);
 }
 
-void AmbientSynthProcessor::applyNearPreset(int index)
+void NoctuaryProcessor::applyNearPreset(int index)
 {
     if (index < 0 || index >= numNearPresets()) return;
     nearIndex_ = index;
@@ -755,7 +755,7 @@ void AmbientSynthProcessor::applyNearPreset(int index)
     } else clearNearClip();
 }
 
-bool AmbientSynthProcessor::loadNearClipFile(const juce::File& file)
+bool NoctuaryProcessor::loadNearClipFile(const juce::File& file)
 {
     std::vector<float> l, r; double rate = 0.0;
     if (!readStereo(file, l, r, rate)) return false;
@@ -767,7 +767,7 @@ bool AmbientSynthProcessor::loadNearClipFile(const juce::File& file)
     return true;
 }
 
-bool AmbientSynthProcessor::loadNearClipFolder(const juce::File& dir)
+bool NoctuaryProcessor::loadNearClipFolder(const juce::File& dir)
 {
     // A folder of recordings: up to kNearPoolMax of them, sorted by name so the same folder gives
     // the same pool, each kept to twenty seconds -- these are phrases, not beds. Which of them an
@@ -796,19 +796,19 @@ bool AmbientSynthProcessor::loadNearClipFolder(const juce::File& dir)
     return true;
 }
 
-void AmbientSynthProcessor::clearNearClip()
+void NoctuaryProcessor::clearNearClip()
 {
     target().clearNearTexture();
     nearClipFile_ = juce::File();
     nearClipCount_ = 0;
 }
 
-juce::AudioProcessorEditor* AmbientSynthProcessor::createEditor()
+juce::AudioProcessorEditor* NoctuaryProcessor::createEditor()
 {
-    return new AmbientSynthEditor(*this);
+    return new NoctuaryEditor(*this);
 }
 
-bool AmbientSynthProcessor::loadScalaText(const juce::String& text, const juce::String& displayName)
+bool NoctuaryProcessor::loadScalaText(const juce::String& text, const juce::String& displayName)
 {
     FixedScale s;
     if (!parseScala(text.toRawUTF8(), s)) return false;
@@ -824,7 +824,7 @@ bool AmbientSynthProcessor::loadScalaText(const juce::String& text, const juce::
     return true;
 }
 
-bool AmbientSynthProcessor::readMono(const juce::File& file, std::vector<float>& mono, double& sampleRate)
+bool NoctuaryProcessor::readMono(const juce::File& file, std::vector<float>& mono, double& sampleRate)
 {
     juce::AudioFormatManager fm;
     fm.registerBasicFormats();
@@ -847,7 +847,7 @@ bool AmbientSynthProcessor::readMono(const juce::File& file, std::vector<float>&
 // The same read, both channels kept. A texture slot plays the recording's own image now, so the
 // fold to mono that readMono does would throw away what it is there to play; readMono stays for
 // the wavetable loader, which really does want one signal.
-bool AmbientSynthProcessor::readStereo(const juce::File& file, std::vector<float>& left,
+bool NoctuaryProcessor::readStereo(const juce::File& file, std::vector<float>& left,
                                        std::vector<float>& right, double& sampleRate)
 {
     left.clear();
@@ -878,7 +878,7 @@ bool AmbientSynthProcessor::readStereo(const juce::File& file, std::vector<float
     return true;
 }
 
-bool AmbientSynthProcessor::loadTextureFile(int slot, const juce::File& file)
+bool NoctuaryProcessor::loadTextureFile(int slot, const juce::File& file)
 {
     if (slot < 0 || slot >= ambient::kSlots) return false;
     std::vector<float> l, r; double rate = 0.0;
@@ -890,7 +890,7 @@ bool AmbientSynthProcessor::loadTextureFile(int slot, const juce::File& file)
     return true;
 }
 
-bool AmbientSynthProcessor::loadTextureFile(const juce::File& file)
+bool NoctuaryProcessor::loadTextureFile(const juce::File& file)
 {
     std::vector<float> l, r; double rate = 0.0;
     if (!readStereo(file, l, r, rate)) return false;
@@ -901,7 +901,7 @@ bool AmbientSynthProcessor::loadTextureFile(const juce::File& file)
     return true;
 }
 
-bool AmbientSynthProcessor::loadImpulseFile(const juce::File& file, bool second)
+bool NoctuaryProcessor::loadImpulseFile(const juce::File& file, bool second)
 {
     juce::AudioFormatManager fm;
     fm.registerBasicFormats();
@@ -922,13 +922,13 @@ bool AmbientSynthProcessor::loadImpulseFile(const juce::File& file, bool second)
     return true;
 }
 
-void AmbientSynthProcessor::clearImpulseB()
+void NoctuaryProcessor::clearImpulseB()
 {
     target().clearImpulseB();
     impulseBFile_ = juce::File();
 }
 
-bool AmbientSynthProcessor::loadWavetableFile(const juce::File& file)
+bool NoctuaryProcessor::loadWavetableFile(const juce::File& file)
 {
     // The core's reader first: it knows the chunk in which Serum and Vital name their frame length,
     // and Surge's .wt, and JUCE's readers know neither. What it cannot open (an AIFF, say) comes in
@@ -945,7 +945,7 @@ bool AmbientSynthProcessor::loadWavetableFile(const juce::File& file)
     return true;
 }
 
-void AmbientSynthProcessor::startSetRecording()
+void NoctuaryProcessor::startSetRecording()
 {
     setPlaying_.store(false);
     setRec_.clear();
@@ -965,7 +965,7 @@ void AmbientSynthProcessor::startSetRecording()
     setRecording_.store(true);
 }
 
-bool AmbientSynthProcessor::stopSetRecording(const juce::File& saveTo)
+bool NoctuaryProcessor::stopSetRecording(const juce::File& saveTo)
 {
     // Stop, then wait for the audio thread to finish the block it may be writing into the
     // timeline. Without this the message thread walked the event list while the audio thread was
@@ -976,7 +976,7 @@ bool AmbientSynthProcessor::stopSetRecording(const juce::File& saveTo)
     return setRec_.save(saveTo.getFullPathName().toRawUTF8());
 }
 
-bool AmbientSynthProcessor::playSetFile(const juce::File& file)
+bool NoctuaryProcessor::playSetFile(const juce::File& file)
 {
     setPlaying_.store(false);
     setRecording_.store(false);
@@ -990,7 +990,7 @@ bool AmbientSynthProcessor::playSetFile(const juce::File& file)
     return true;
 }
 
-bool AmbientSynthProcessor::savePresetFile(const juce::File& file)
+bool NoctuaryProcessor::savePresetFile(const juce::File& file)
 {
     juce::MemoryBlock block;
     getStateInformation(block);
@@ -999,7 +999,7 @@ bool AmbientSynthProcessor::savePresetFile(const juce::File& file)
     return xml->writeTo(file);
 }
 
-bool AmbientSynthProcessor::loadPresetFile(const juce::File& file)
+bool NoctuaryProcessor::loadPresetFile(const juce::File& file)
 {
     auto xml = juce::XmlDocument::parse(file);
     if (xml == nullptr || !xml->hasTagName(apvts.state.getType())) return false;
@@ -1011,7 +1011,7 @@ bool AmbientSynthProcessor::loadPresetFile(const juce::File& file)
 
 // Choosing a preset as a journey rather than a cut: the old one plays on while the new one comes
 // up under it, and the map draws the crossing from one to the other while it happens.
-void AmbientSynthProcessor::selectPreset(int index, bool viaMorph)
+void NoctuaryProcessor::selectPreset(int index, bool viaMorph)
 {
     if (index < 0 || index >= numPresets()) return;
     if (!viaMorph || !morphOnSelect_) { endFade_.store(true, std::memory_order_release); setCurrentProgram(index); return; }
@@ -1033,7 +1033,7 @@ void AmbientSynthProcessor::selectPreset(int index, bool viaMorph)
 
 // ---------------------------------------------------------------- journeys
 
-bool AmbientSynthProcessor::startJourney(const juce::File& file)
+bool NoctuaryProcessor::startJourney(const juce::File& file)
 {
     ambient::Journey j;
     if (!j.load(file.getFullPathName().toRawUTF8()) || j.steps.empty()) return false;
@@ -1041,7 +1041,7 @@ bool AmbientSynthProcessor::startJourney(const juce::File& file)
     return startJourney(j);
 }
 
-bool AmbientSynthProcessor::startJourney(const ambient::Journey& j)
+bool NoctuaryProcessor::startJourney(const ambient::Journey& j)
 {
     if (j.steps.empty()) return false;
     journey_ = j;
@@ -1053,9 +1053,9 @@ bool AmbientSynthProcessor::startJourney(const ambient::Journey& j)
     return true;
 }
 
-void AmbientSynthProcessor::stopJourney() { journeyPlayer_.stop(); }
+void NoctuaryProcessor::stopJourney() { journeyPlayer_.stop(); }
 
-juce::String AmbientSynthProcessor::journeyStatus() const
+juce::String NoctuaryProcessor::journeyStatus() const
 {
     if (!journeyPlayer_.running()) return {};
     const int n = static_cast<int>(journey_.steps.size());
@@ -1063,7 +1063,7 @@ juce::String AmbientSynthProcessor::journeyStatus() const
          + "  " + juce::String(ambient::Journey::timeText(std::max(0.0, journeyPlayer_.remaining())));
 }
 
-void AmbientSynthProcessor::journeyAddCurrent(double dwellLo, double dwellHi, double fadeLo, double fadeHi)
+void NoctuaryProcessor::journeyAddCurrent(double dwellLo, double dwellHi, double fadeLo, double fadeHi)
 {
     if (soundIndex_ < 0 || soundIndex_ >= numPresets()) return;
     ambient::JourneyStep st;
@@ -1072,7 +1072,7 @@ void AmbientSynthProcessor::journeyAddCurrent(double dwellLo, double dwellHi, do
     journey_.steps.push_back(st);
 }
 
-bool AmbientSynthProcessor::saveJourney(const juce::File& file)
+bool NoctuaryProcessor::saveJourney(const juce::File& file)
 {
     if (journey_.steps.empty()) return false;
     if (journey_.name.empty()) journey_.name = file.getFileNameWithoutExtension().toStdString();
@@ -1082,14 +1082,14 @@ bool AmbientSynthProcessor::saveJourney(const juce::File& file)
 
 // ---------------------------------------------------------------- favourites
 
-juce::File AmbientSynthProcessor::favouritesFile()
+juce::File NoctuaryProcessor::favouritesFile()
 {
-    const juce::File dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("AmbientSynth");
+    const juce::File dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Noctuary");
     dir.createDirectory();
     return dir.getChildFile("favourites.txt");
 }
 
-void AmbientSynthProcessor::loadFavourites()
+void NoctuaryProcessor::loadFavourites()
 {
     favourites_.clear();
     favouriteNames_.clear();
@@ -1112,16 +1112,16 @@ void AmbientSynthProcessor::loadFavourites()
     }
 }
 
-void AmbientSynthProcessor::saveFavourites() const
+void NoctuaryProcessor::saveFavourites() const
 {
     juce::String text;
-    text << "# AmbientSynth favourites: one preset name a line. A name whose preset is not installed is kept.\n"
+    text << "# Noctuary favourites: one preset name a line. A name whose preset is not installed is kept.\n"
          << "first " << (favouritesFirst_ ? "on" : "off") << "\n";
     for (const juce::String& n : favouriteNames_) text << n << "\n";
     favouritesFile().replaceWithText(text);
 }
 
-void AmbientSynthProcessor::setFavourite(int index, bool on)
+void NoctuaryProcessor::setFavourite(int index, bool on)
 {
     if (index < 0 || index >= numPresets()) return;
     favourites_.setBit(index, on);
@@ -1131,16 +1131,16 @@ void AmbientSynthProcessor::setFavourite(int index, bool on)
     saveFavourites();
 }
 
-juce::File AmbientSynthProcessor::userJourneyFolder()
+juce::File NoctuaryProcessor::userJourneyFolder()
 {
-    const juce::File dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("AmbientSynth").getChildFile("Journeys");
+    const juce::File dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("Noctuary").getChildFile("Journeys");
     dir.createDirectory();
     return dir;
 }
 
 // The user's own first, then the templates wherever the library lies (the installer's folders,
 // the source tree's Library): every *.journey, each folder once, sorted by name.
-juce::Array<juce::File> AmbientSynthProcessor::journeyFiles()
+juce::Array<juce::File> NoctuaryProcessor::journeyFiles()
 {
     juce::Array<juce::File> out;
     juce::StringArray seen;
@@ -1161,7 +1161,7 @@ juce::Array<juce::File> AmbientSynthProcessor::journeyFiles()
 
 // The pump's tick: the seconds since the last, and the step the player hands over when one
 // begins -- the preset by name, brought up over the drawn fade, and the foreground it asks for.
-void AmbientSynthProcessor::journeyTick()
+void NoctuaryProcessor::journeyTick()
 {
     const double now = juce::Time::getMillisecondCounterHiRes() * 0.001;
     if (journeyLastTick_ <= 0.0) journeyLastTick_ = now;
@@ -1186,7 +1186,7 @@ void AmbientSynthProcessor::journeyTick()
 
 // Message thread: the engine at `i`, built and prepared if it is not there. Allocating a hundred
 // megabytes and generating a room impulse is fine here and nowhere near the audio thread.
-ambient::Engine& AmbientSynthProcessor::ensureEngine(int i)
+ambient::Engine& NoctuaryProcessor::ensureEngine(int i)
 {
     if (engines_[i] == nullptr) {
         auto e = std::make_unique<ambient::Engine>();
@@ -1205,7 +1205,7 @@ ambient::Engine& AmbientSynthProcessor::ensureEngine(int i)
 // themselves. Those live in the engine and nowhere else, and a fresh engine starts without them --
 // so a preset change silently retuned the instrument to twelve-tone equal temperament and put the
 // built-in table back. Copied from the engine that is playing, not read from disk again.
-void AmbientSynthProcessor::carryUserData(ambient::Engine& e)
+void NoctuaryProcessor::carryUserData(ambient::Engine& e)
 {
     ambient::Engine& from = live();
     if (scalaText_.isNotEmpty()) {
@@ -1234,7 +1234,7 @@ void AmbientSynthProcessor::carryUserData(ambient::Engine& e)
 
 // Message thread: the engine nobody is using goes back. Only when nothing is fading and no change
 // is on its way, which is exactly when the audio thread touches the live one and nothing else.
-void AmbientSynthProcessor::releaseIdleEngine()
+void NoctuaryProcessor::releaseIdleEngine()
 {
     // swapTo_ FIRST, then fading_. The audio thread writes fading_ before it clears swapTo_, so
     // a reader that sees swapTo_ cleared is guaranteed to see fading_ set. Read the other way
@@ -1249,7 +1249,7 @@ void AmbientSynthProcessor::releaseIdleEngine()
 
 // Message thread. Runs when neither engine is being rendered but one: the one that is not live is
 // then ours to build on.
-void AmbientSynthProcessor::servePendingPreset()
+void NoctuaryProcessor::servePendingPreset()
 {
     if (pendingPreset_ < 0) { releaseIdleEngine(); return; }
     // Still busy: a fade in flight (both engines rendered), or a swap already published and not
@@ -1260,7 +1260,7 @@ void AmbientSynthProcessor::servePendingPreset()
     beginTransition(index);
 }
 
-void AmbientSynthProcessor::beginTransition(int index)
+void NoctuaryProcessor::beginTransition(int index)
 {
     const int incoming = live_.load(std::memory_order_relaxed) ^ 1;
     // Where the sound is leaving from, for the map's line.
@@ -1329,27 +1329,27 @@ void AmbientSynthProcessor::beginTransition(int index)
 }
 
 // Notes go to the live engine and are remembered, so a transition can hand them on.
-void AmbientSynthProcessor::noteOn(int note, float vel)
+void NoctuaryProcessor::noteOn(int note, float vel)
 {
     if (note < 0 || note >= 128) return;
     heldVel_[static_cast<size_t>(note)] = std::max(vel, 1.0f / 127.0f);
     live().noteOn(note, vel);
 }
 
-void AmbientSynthProcessor::noteOff(int note)
+void NoctuaryProcessor::noteOff(int note)
 {
     if (note < 0 || note >= 128) return;
     heldVel_[static_cast<size_t>(note)] = 0.0f;
     live().noteOff(note);
 }
 
-void AmbientSynthProcessor::allNotesOff()
+void NoctuaryProcessor::allNotesOff()
 {
     for (auto& h : heldVel_) h.store(0.0f, std::memory_order_relaxed);
     live().allNotesOff();
 }
 
-void AmbientSynthProcessor::setMorphSlotFromPreset(int slot, int presetIndex)
+void NoctuaryProcessor::setMorphSlotFromPreset(int slot, int presetIndex)
 {
     if (presetIndex < 0 || presetIndex >= numPresets()) return;
     float values[kNumParams];
@@ -1359,7 +1359,7 @@ void AmbientSynthProcessor::setMorphSlotFromPreset(int slot, int presetIndex)
     slotName_[slot & 1] = preset(presetIndex).name;
 }
 
-void AmbientSynthProcessor::setMorphSlotFromCurrent(int slot)
+void NoctuaryProcessor::setMorphSlotFromCurrent(int slot)
 {
     float values[kNumParams];
     for (int i = 0; i < kNumParams; ++i) values[i] = raw_[static_cast<size_t>(i)]->load();
@@ -1367,19 +1367,19 @@ void AmbientSynthProcessor::setMorphSlotFromCurrent(int slot)
     slotName_[slot & 1] = "(captured)";
 }
 
-void AmbientSynthProcessor::clearMidiLearn(ParamId id)
+void NoctuaryProcessor::clearMidiLearn(ParamId id)
 {
     for (auto& c : ccMap_) if (c.load() == static_cast<int>(id)) c.store(-1);
     if (learnTarget_.load() == static_cast<int>(id)) learnTarget_.store(-1);
 }
 
-int AmbientSynthProcessor::midiCcFor(ParamId id) const
+int NoctuaryProcessor::midiCcFor(ParamId id) const
 {
     for (int cc = 0; cc < 128; ++cc) if (ccMap_[static_cast<size_t>(cc)].load() == static_cast<int>(id)) return cc;
     return -1;
 }
 
-void AmbientSynthProcessor::getStateInformation(juce::MemoryBlock& destData)
+void NoctuaryProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
     if (scalaText_.isNotEmpty()) {
@@ -1435,7 +1435,7 @@ void AmbientSynthProcessor::getStateInformation(juce::MemoryBlock& destData)
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destData);
 }
 
-void AmbientSynthProcessor::setStateInformation(const void* data, int sizeInBytes)
+void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary(data, sizeInBytes)) {
         if (xml->hasTagName(apvts.state.getType())) {
@@ -1554,5 +1554,5 @@ void AmbientSynthProcessor::setStateInformation(const void* data, int sizeInByte
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new AmbientSynthProcessor();
+    return new NoctuaryProcessor();
 }

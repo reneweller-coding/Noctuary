@@ -1,4 +1,4 @@
-// AmbientSynth -- Z-plane filter, after the idea Dave Rossum built into the E-mu Morpheus
+// Noctuary -- Z-plane filter, after the idea Dave Rossum built into the E-mu Morpheus
 // (US 5,170,369, expired): four filter "frames" sit on the corners of a square, and a point
 // (X, Y) inside it is a filter whose POLES AND ZEROS are interpolated between the corners.
 // Move the point and the whole resonant structure glides, always through stable filters.

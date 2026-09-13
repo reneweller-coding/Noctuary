@@ -1,4 +1,4 @@
-// AmbientSynth for Meta Quest -- native OpenXR application.
+// Noctuary for Meta Quest -- native OpenXR application.
 //
 //   hands (XR_EXT_hand_tracking) -> GestureLayer -> Engine parameters
 //   left pinch                   -> HandMenu (presets A/B, morph, record, calibrate)
@@ -49,8 +49,8 @@
 #include "ambient/Sources.h"
 #include <dirent.h>
 
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "AmbientSynth", __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "AmbientSynth", __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "Noctuary", __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "Noctuary", __VA_ARGS__)
 
 using namespace ambient;
 
@@ -701,9 +701,9 @@ private:
         android.applicationActivity = app_->activity->clazz;
         XrInstanceCreateInfo ci{ XR_TYPE_INSTANCE_CREATE_INFO };
         ci.next = &android;
-        std::strncpy(ci.applicationInfo.applicationName, "AmbientSynth", XR_MAX_APPLICATION_NAME_SIZE - 1);
+        std::strncpy(ci.applicationInfo.applicationName, "Noctuary", XR_MAX_APPLICATION_NAME_SIZE - 1);
         ci.applicationInfo.applicationVersion = 1;
-        std::strncpy(ci.applicationInfo.engineName, "AmbientCore", XR_MAX_ENGINE_NAME_SIZE - 1);
+        std::strncpy(ci.applicationInfo.engineName, "NoctuaryCore", XR_MAX_ENGINE_NAME_SIZE - 1);
         ci.applicationInfo.apiVersion = XR_API_VERSION_1_0;
         ci.enabledExtensionCount = 3;
         ci.enabledExtensionNames = exts;

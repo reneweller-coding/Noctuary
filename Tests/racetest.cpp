@@ -1,4 +1,4 @@
-// AmbientSynth -- the handovers between threads, under load.
+// Noctuary -- the handovers between threads, under load.
 //
 // The self test measures the instrument and the host test measures the plugin around it, and both
 // of them ask their questions one at a time. This one asks only one question, and asks it of two

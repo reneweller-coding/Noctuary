@@ -1,4 +1,4 @@
-// AmbientSynth -- parameter table (single source of truth).
+// Noctuary -- parameter table (single source of truth).
 // The core engine, the plugin host layer, the GUI and the render tool all read this table.
 // No framework dependencies here: this header must compile on Quest/Android.
 #pragma once

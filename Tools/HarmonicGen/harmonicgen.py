@@ -1,6 +1,6 @@
 """HarmonicGen: Tabellen fuer den Harmonic-Oszillator.
 
-Der Oszillator, der in AmbientSynth "Harmonic" heisst (bis 09/2026 "Wavetable"), ist additiv: eine Tabelle
+Der Oszillator, der in Noctuary "Harmonic" heisst (bis 09/2026 "Wavetable"), ist additiv: eine Tabelle
 ist fuer ihn keine Folge von Wellenformen, sondern eine Folge von SPEKTREN. Die Engine liest eine
 Tabellen-WAV (Frames zu 2048 Samples hintereinander), behaelt bis zu 64 Frames, nimmt aus jedem die
 FFT-Bins 1..32 und normiert den Frame auf Energie 1 (Wavetable::analyse). Die Phase verwirft sie.

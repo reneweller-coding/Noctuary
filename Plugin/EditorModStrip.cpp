@@ -18,7 +18,7 @@ juce::Colour sourceColour(ambient::ModSource s)
 }
 } // namespace edt
 
-AmbientSynthEditor::ModView::ModView(AmbientSynthProcessor& p, AmbientSynthEditor& o)
+NoctuaryEditor::ModView::ModView(NoctuaryProcessor& p, NoctuaryEditor& o)
     : proc(p), owner(o)
 {
     auto addKnob = [this](Row& row, const juce::String& key, const juce::String& name) {
@@ -137,7 +137,7 @@ AmbientSynthEditor::ModView::ModView(AmbientSynthProcessor& p, AmbientSynthEdito
     startTimerHz(15);   // was 30: this strip was 54 % of all the drawing the panel did
 }
 
-void AmbientSynthEditor::ModView::setTab(int t)
+void NoctuaryEditor::ModView::setTab(int t)
 {
     tab = t;
     for (int i = 0; i < ambient::kNumLfos; ++i) {
@@ -161,7 +161,7 @@ void AmbientSynthEditor::ModView::setTab(int t)
     repaint();
 }
 
-void AmbientSynthEditor::ModView::setEnvPage(int page)
+void NoctuaryEditor::ModView::setEnvPage(int page)
 {
     envPage = juce::jlimit(0, 1, page);
     pageMod.setToggleState(envPage == 0, juce::dontSendNotification);
@@ -171,33 +171,33 @@ void AmbientSynthEditor::ModView::setEnvPage(int page)
 }
 
 // Rows 0..5 are the six modulation envelopes, 6..9 the sources' own; one page shows either.
-bool AmbientSynthEditor::ModView::envVisible(int env) const
+bool NoctuaryEditor::ModView::envVisible(int env) const
 {
     return (env < ambient::kNumModEnvs) == (envPage == 0);
 }
 
-const ambient::ModEnv& AmbientSynthEditor::ModView::shapeOf(int env) const
+const ambient::ModEnv& NoctuaryEditor::ModView::shapeOf(int env) const
 {
     return env < ambient::kNumModEnvs ? proc.engine().envShape(env) : proc.engine().srcEnvShape(env - ambient::kNumModEnvs);
 }
 
 // "env3_depth" for the six, "src2_env_depth" for the sources' own.
-juce::String AmbientSynthEditor::ModView::envKey(int env, const char* field) const
+juce::String NoctuaryEditor::ModView::envKey(int env, const char* field) const
 {
     return env < ambient::kNumModEnvs ? "env" + juce::String(env + 1) + "_" + field
                                       : "src" + juce::String(env - ambient::kNumModEnvs + 1) + "_env_" + field;
 }
 
-void AmbientSynthEditor::ModView::pullMatrix()
+void NoctuaryEditor::ModView::pullMatrix()
 {
     if (table) table->pull();
     matrixInfo.setColour(juce::Label::textColourId, ui::dim);
     matrixInfo.setText(juce::String(proc.engine().modMatrix().count()) + " of 32 routes", juce::dontSendNotification);
 }
 
-AmbientSynthEditor::ModView::~ModView() = default;   // here, where RouteTable is a complete type
+NoctuaryEditor::ModView::~ModView() = default;   // here, where RouteTable is a complete type
 
-bool AmbientSynthEditor::ModView::addRoute(ambient::ModSource src, ParamId target)
+bool NoctuaryEditor::ModView::addRoute(ambient::ModSource src, ParamId target)
 {
     char buf[4096];
     const int n = proc.engine().writeModMatrix(buf, sizeof(buf));
@@ -212,9 +212,9 @@ bool AmbientSynthEditor::ModView::addRoute(ambient::ModSource src, ParamId targe
     return true;
 }
 
-void AmbientSynthEditor::ModView::timerCallback() { if (isShowing()) repaint(); }
+void NoctuaryEditor::ModView::timerCallback() { if (isShowing()) repaint(); }
 
-ambient::LfoSpec AmbientSynthEditor::ModView::specOf(int i) const
+ambient::LfoSpec NoctuaryEditor::ModView::specOf(int i) const
 {
     const juce::String n(i + 1);
     auto get = [this](const juce::String& key) {
@@ -250,7 +250,7 @@ void curveFrame(juce::Graphics& g, juce::Rectangle<int> r, bool lit, juce::Colou
 }
 }
 
-void AmbientSynthEditor::ModView::paintCard(juce::Graphics& g, const Card& c, bool hot)
+void NoctuaryEditor::ModView::paintCard(juce::Graphics& g, const Card& c, bool hot)
 {
     const auto r = c.bounds;
     const float v = proc.engine().modSource(static_cast<int>(c.source));
@@ -306,7 +306,7 @@ void AmbientSynthEditor::ModView::paintCard(juce::Graphics& g, const Card& c, bo
     g.drawText(c.label, r.reduced(5, 3), juce::Justification::topLeft, false);
 }
 
-void AmbientSynthEditor::ModView::paintLane(juce::Graphics& g)
+void NoctuaryEditor::ModView::paintLane(juce::Graphics& g)
 {
     g.setColour(ui::group);
     g.fillRect(lane);
@@ -314,7 +314,7 @@ void AmbientSynthEditor::ModView::paintLane(juce::Graphics& g)
         paintCard(g, cards[i], static_cast<int>(i) == hoverCard || static_cast<int>(i) == dragCard);
 }
 
-void AmbientSynthEditor::ModView::paintLfo(juce::Graphics& g, int i)
+void NoctuaryEditor::ModView::paintLfo(juce::Graphics& g, int i)
 {
     const Row& row = lfos[static_cast<size_t>(i)];
     const auto r = row.curve;
@@ -349,7 +349,7 @@ void AmbientSynthEditor::ModView::paintLfo(juce::Graphics& g, int i)
     g.drawText(row.title, r.reduced(7, 3), juce::Justification::topLeft, false);
 }
 
-void AmbientSynthEditor::ModView::paintEnv(juce::Graphics& g, int i)
+void NoctuaryEditor::ModView::paintEnv(juce::Graphics& g, int i)
 {
     const Row& row = envs[static_cast<size_t>(i)];
     const auto r = row.curve;
@@ -432,7 +432,7 @@ void AmbientSynthEditor::ModView::paintEnv(juce::Graphics& g, int i)
     g.drawText(used ? row.title : row.title + "   -   not heard: this source's Env is not Own", r.reduced(7, 3), juce::Justification::topLeft, false);
 }
 
-void AmbientSynthEditor::ModView::paint(juce::Graphics& g)
+void NoctuaryEditor::ModView::paint(juce::Graphics& g)
 {
     g.setColour(ui::bg1);
     g.fillRect(getLocalBounds());
@@ -453,7 +453,7 @@ void AmbientSynthEditor::ModView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- strip: mouse
 
-void AmbientSynthEditor::ModView::mouseMove(const juce::MouseEvent& e)
+void NoctuaryEditor::ModView::mouseMove(const juce::MouseEvent& e)
 {
     int h = -1;
     for (size_t i = 0; i < cards.size(); ++i) if (cards[i].bounds.contains(e.getPosition())) h = static_cast<int>(i);
@@ -480,7 +480,7 @@ void AmbientSynthEditor::ModView::mouseMove(const juce::MouseEvent& e)
 // Now: drag a point, double-click to add or remove one, right-click for the sustain point, the
 // loop, the curvature of a segment, and a handful of shapes to start from.
 
-int AmbientSynthEditor::ModView::envAt(juce::Point<int> pos, int* pointOut) const
+int NoctuaryEditor::ModView::envAt(juce::Point<int> pos, int* pointOut) const
 {
     if (tab != 1) return -1;
     for (int i = 0; i < kEnvRows; ++i) {
@@ -505,7 +505,7 @@ int AmbientSynthEditor::ModView::envAt(juce::Point<int> pos, int* pointOut) cons
 // The geometry of one envelope row, in one place. The drawing and the mouse must agree to the
 // pixel or a point is grabbed next to where it is seen -- which is what the first version did,
 // with 8/16/0.34 against the drawing's 5/10/0.36, and Depth left out of the vertical entirely.
-AmbientSynthEditor::ModView::EnvGeom AmbientSynthEditor::ModView::envGeom(int env) const
+NoctuaryEditor::ModView::EnvGeom NoctuaryEditor::ModView::envGeom(int env) const
 {
     const auto r = envs[static_cast<size_t>(env)].curve;
     const ambient::ModEnv& e = shapeOf(env);
@@ -525,7 +525,7 @@ AmbientSynthEditor::ModView::EnvGeom AmbientSynthEditor::ModView::envGeom(int en
     return g;
 }
 
-juce::Point<float> AmbientSynthEditor::ModView::envToXY(int env, float time, float value) const
+juce::Point<float> NoctuaryEditor::ModView::envToXY(int env, float time, float value) const
 {
     const EnvGeom g = envGeom(env);
     const float x = g.x0 + juce::jlimit(0.0f, 1.0f, time / g.len) * g.w;
@@ -534,7 +534,7 @@ juce::Point<float> AmbientSynthEditor::ModView::envToXY(int env, float time, flo
     return { x, g.cy - juce::jlimit(-1.0f, 1.0f, value * g.depth) * g.h };
 }
 
-void AmbientSynthEditor::ModView::envFromXY(int env, juce::Point<int> pos, float& time, float& value) const
+void NoctuaryEditor::ModView::envFromXY(int env, juce::Point<int> pos, float& time, float& value) const
 {
     const EnvGeom g = envGeom(env);
     time  = juce::jlimit(0.0f, g.len, (static_cast<float>(pos.x) - g.x0) / g.w * g.len);
@@ -546,12 +546,12 @@ void AmbientSynthEditor::ModView::envFromXY(int env, juce::Point<int> pos, float
     value = juce::jlimit(-1.0f, 1.0f, (g.cy - static_cast<float>(pos.y)) / g.h / g.depth);
 }
 
-ambient::ModEnv AmbientSynthEditor::ModView::envCopy(int env) const
+ambient::ModEnv NoctuaryEditor::ModView::envCopy(int env) const
 {
     return shapeOf(env);
 }
 
-void AmbientSynthEditor::ModView::envCommit(int env, const ambient::ModEnv& e, const juce::String& what)
+void NoctuaryEditor::ModView::envCommit(int env, const ambient::ModEnv& e, const juce::String& what)
 {
     char buf[512];
     if (e.write(buf, sizeof(buf)) <= 0) return;
@@ -561,7 +561,7 @@ void AmbientSynthEditor::ModView::envCommit(int env, const ambient::ModEnv& e, c
     repaint();
 }
 
-void AmbientSynthEditor::ModView::envShapeMenu(int env, int point)
+void NoctuaryEditor::ModView::envShapeMenu(int env, int point)
 {
     ambient::ModEnv e = envCopy(env);
     juce::PopupMenu menu;
@@ -622,7 +622,7 @@ void AmbientSynthEditor::ModView::envShapeMenu(int env, int point)
     });
 }
 
-void AmbientSynthEditor::ModView::mouseDown(const juce::MouseEvent& e)
+void NoctuaryEditor::ModView::mouseDown(const juce::MouseEvent& e)
 {
     {   // On an envelope curve: grab a breakpoint, or open its menu.
         int point = -1;
@@ -671,7 +671,7 @@ void AmbientSynthEditor::ModView::mouseDown(const juce::MouseEvent& e)
 
 // Double click: on a point, remove it; on the curve, put one there. Sixteen is the engine's
 // limit, and past it the click does nothing rather than silently dropping a point somewhere else.
-void AmbientSynthEditor::ModView::mouseDoubleClick(const juce::MouseEvent& e)
+void NoctuaryEditor::ModView::mouseDoubleClick(const juce::MouseEvent& e)
 {
     int point = -1;
     const int env = envAt(e.getPosition(), &point);
@@ -710,7 +710,7 @@ void AmbientSynthEditor::ModView::mouseDoubleClick(const juce::MouseEvent& e)
     envCommit(env, out, "envelope");
 }
 
-void AmbientSynthEditor::ModView::mouseDrag(const juce::MouseEvent& e)
+void NoctuaryEditor::ModView::mouseDrag(const juce::MouseEvent& e)
 {
     if (dragCard >= 0) {
         // The strip can only draw inside itself, and this gesture leaves it at once: the editor
@@ -749,7 +749,7 @@ void AmbientSynthEditor::ModView::mouseDrag(const juce::MouseEvent& e)
     repaint();
 }
 
-void AmbientSynthEditor::ModView::mouseUp(const juce::MouseEvent& e)
+void NoctuaryEditor::ModView::mouseUp(const juce::MouseEvent& e)
 {
     if (dragEnv >= 0) { dragEnv = dragPoint = -1; repaint(); return; }
     if (dragCard >= 0) {
@@ -765,7 +765,7 @@ void AmbientSynthEditor::ModView::mouseUp(const juce::MouseEvent& e)
 
 // ---------------------------------------------------------------- strip: layout
 
-void AmbientSynthEditor::ModView::resized()
+void NoctuaryEditor::ModView::resized()
 {
     auto area = getLocalBounds().reduced(10, 8);
     lane = area.removeFromTop(56);

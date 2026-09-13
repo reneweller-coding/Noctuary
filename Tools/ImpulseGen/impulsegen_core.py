@@ -1,4 +1,4 @@
-"""ImpulseGen core: impulse responses for AmbientSynth's convolution Room.
+"""ImpulseGen core: impulse responses for Noctuary's convolution Room.
 
 Two ways to make one, and a way to turn any recording into one:
   procedural(...)   a designed room: per-band decay (RT60 low / mid / high), size (pre-delay and

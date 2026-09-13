@@ -1,4 +1,4 @@
-// AmbientSynth -- framework-free WAV recorder: the audio thread pushes frames into a
+// Noctuary -- framework-free WAV recorder: the audio thread pushes frames into a
 // lock-free ring, a background thread writes 32-bit float WAV. For the Quest app
 // (the desktop plugin records through JUCE) and for any host without a writer.
 #pragma once

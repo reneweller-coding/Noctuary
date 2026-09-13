@@ -35,7 +35,7 @@ void fillPresetBox(juce::ComboBox& box)
 namespace {
 }
 
-AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
+NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
     : AudioProcessorEditor(p), proc_(p)
 {
     setLookAndFeel(&laf_);
@@ -173,7 +173,7 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
     aboutButton_->onClick = [this] {
         const int packs = ambient::numPresetPacks();
         juce::String text;
-        text << "AmbientSynth " << JucePlugin_VersionString << "\n"
+        text << "Noctuary " << JucePlugin_VersionString << "\n"
              << "built " << juce::String(__DATE__).trim() << ", " << __TIME__ << "\n\n"
              << ambient::numPresets() << " presets";
         if (packs > 0) text << " (" << ambient::builtinPresetCount() << " built in, " << packs << " packs)";
@@ -182,8 +182,8 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
              << "Sample library: "
              << (proc_.engine().displayTexture(0) != nullptr && !proc_.engine().displayTexture(0)->empty()
                      ? "a clip is loaded" : "nothing loaded in slot 1")
-             << "\n" << JucePlugin_Manufacturer << "   " << "github.com/reneweller-coding/AmbientSynth";
-        juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::NoIcon, "About AmbientSynth", text, "Close", this);
+             << "\n" << JucePlugin_Manufacturer << "   " << "github.com/reneweller-coding/Noctuary";
+        juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::NoIcon, "About Noctuary", text, "Close", this);
     };
     addAndMakeVisible(*aboutButton_);
     undoButton_ = std::make_unique<juce::TextButton>("Undo");
@@ -209,7 +209,7 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
     addAndMakeVisible(*compactButton_);
     // Session recall, and the switch for it. Only in the standalone: in a plugin the host saves
     // the state with the project, which is what a plugin is supposed to do.
-    if (AmbientSynthProcessor::sessionRecallAvailable()) {
+    if (NoctuaryProcessor::sessionRecallAvailable()) {
         recallButton_ = std::make_unique<juce::TextButton>("Recall");
         recallButton_->setTooltip("Start where you left off: the whole state is kept while the instrument runs and comes back next time. Off means it always starts at Init, and what was stored is forgotten.");
         recallButton_->setClickingTogglesState(true);
@@ -236,12 +236,12 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
 
     saveButton_ = std::make_unique<juce::TextButton>("Save...");
     saveButton_->onClick = [this] {
-        chooser_ = std::make_unique<juce::FileChooser>("Save preset", juce::File(), "*.ambientsynth");
+        chooser_ = std::make_unique<juce::FileChooser>("Save preset", juce::File(), "*.noctuary");
         chooser_->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting,
             [this](const juce::FileChooser& fc) {
                 auto file = fc.getResult();
                 if (file == juce::File()) return;
-                if (!file.hasFileExtension("ambientsynth")) file = file.withFileExtension("ambientsynth");
+                if (!file.hasFileExtension("noctuary")) file = file.withFileExtension("noctuary");
                 if (!proc_.savePresetFile(file))
                     juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Preset", "Could not write the preset file.");
             });
@@ -249,13 +249,13 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
     addAndMakeVisible(*saveButton_);
     loadButton_ = std::make_unique<juce::TextButton>("Load...");
     loadButton_->onClick = [this] {
-        chooser_ = std::make_unique<juce::FileChooser>("Load preset", juce::File(), "*.ambientsynth");
+        chooser_ = std::make_unique<juce::FileChooser>("Load preset", juce::File(), "*.noctuary");
         chooser_->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
             [this](const juce::FileChooser& fc) {
                 const auto file = fc.getResult();
                 if (!file.existsAsFile()) return;
                 if (!proc_.loadPresetFile(file))
-                    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Preset", "This is not an AmbientSynth preset file.");
+                    juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Preset", "This is not an Noctuary preset file.");
                 repaint();
             });
     };
@@ -379,7 +379,7 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
         const juce::String mt = juce::SystemStats::getEnvironmentVariable("AMBIENT_MORPH_TO", "");
         for (int i = 0; mt.isNotEmpty() && i < numPresets(); ++i)
             if (mt == preset(i).name) {
-                juce::Timer::callAfterDelay(1200, [safe = juce::Component::SafePointer<AmbientSynthEditor>(this), i] {
+                juce::Timer::callAfterDelay(1200, [safe = juce::Component::SafePointer<NoctuaryEditor>(this), i] {
                     if (safe != nullptr) safe->proc_.selectPreset(i, true);
                 });
                 break;
@@ -467,14 +467,14 @@ AmbientSynthEditor::AmbientSynthEditor(AmbientSynthProcessor& p)
     startTimerHz(12);
 }
 
-AmbientSynthEditor::~AmbientSynthEditor()
+NoctuaryEditor::~NoctuaryEditor()
 {
     setLookAndFeel(nullptr);
 }
 
 // ---------------------------------------------------------------- cells
 
-void AmbientSynthEditor::buildCells()
+void NoctuaryEditor::buildCells()
 {
     for (const ParamDesc& d : paramTable()) {
         if (d.id == ParamId::MasterGain) continue;   // header knob
@@ -729,7 +729,7 @@ void AmbientSynthEditor::buildCells()
     addExtraCell("Morph", std::move(setB), "capture", 1);
     {
         // Journeys (13.09.2026): presets in a row with dwell and fade ranges, cyclic for an evening.
-        // The templates lie beside the library, the player's own in Documents/AmbientSynth/Journeys.
+        // The templates lie beside the library, the player's own in Documents/Noctuary/Journeys.
         auto jb = std::make_unique<juce::ComboBox>();
         jb->setTextWhenNothingSelected("Journey");
         jb->setTooltip("A journey: presets in a row, each held for a while drawn from its range and crossfaded into the next over a drawn fade, round and round when it is cyclic. Choosing one starts it. The files are plain text (*.journey): one preset a line with its dwell and fade, editable by hand.");
@@ -751,7 +751,7 @@ void AmbientSynthEditor::buildCells()
         add->onClick = [this] { proc_.journeyAddCurrent(300.0, 600.0, 30.0, 90.0); };
         addExtraCell("Morph", std::move(add), "write", 1);
         auto save = std::make_unique<juce::TextButton>("Save...");
-        save->setTooltip("Writes the journey being written (the presets added with + now) into Documents/AmbientSynth/Journeys under a name, and offers it in the box.");
+        save->setTooltip("Writes the journey being written (the presets added with + now) into Documents/Noctuary/Journeys under a name, and offers it in the box.");
         save->onClick = [this] { saveJourneyAs(); };
         addExtraCell("Morph", std::move(save), "write", 1);
         auto status = std::make_unique<juce::Label>();
@@ -762,15 +762,15 @@ void AmbientSynthEditor::buildCells()
     }
 }
 
-void AmbientSynthEditor::fillJourneyBox()
+void NoctuaryEditor::fillJourneyBox()
 {
     if (journeyBox_ == nullptr) return;
-    journeyFiles_ = AmbientSynthProcessor::journeyFiles();
+    journeyFiles_ = NoctuaryProcessor::journeyFiles();
     journeyBox_->clear(juce::dontSendNotification);
     for (int i = 0; i < journeyFiles_.size(); ++i) journeyBox_->addItem(journeyFiles_[i].getFileNameWithoutExtension(), i + 1);
 }
 
-void AmbientSynthEditor::saveJourneyAs()
+void NoctuaryEditor::saveJourneyAs()
 {
     auto* w = new juce::AlertWindow("Save journey", "A name for the journey being written (" + juce::String(static_cast<int>(proc_.journey().steps.size())) + " steps):", juce::MessageBoxIconType::NoIcon);
     w->addTextEditor("name", proc_.journey().name.empty() ? "My Journey" : juce::String(proc_.journey().name), "Name");
@@ -781,7 +781,7 @@ void AmbientSynthEditor::saveJourneyAs()
         if (result != 1) return;
         const juce::String name = juce::File::createLegalFileName(w->getTextEditorContents("name").trim());
         if (name.isEmpty()) return;
-        const juce::File file = AmbientSynthProcessor::userJourneyFolder().getChildFile(name + ".journey");
+        const juce::File file = NoctuaryProcessor::userJourneyFolder().getChildFile(name + ".journey");
         if (!proc_.saveJourney(file))
             juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Journey", "Nothing to save: add presets with + now first.");
         else fillJourneyBox();
@@ -789,7 +789,7 @@ void AmbientSynthEditor::saveJourneyAs()
 }
 
 // Which parameter sits under a screen point: the drop target for a dragged modulation source.
-int AmbientSynthEditor::cellParamAt(juce::Point<int> screenPos) const
+int NoctuaryEditor::cellParamAt(juce::Point<int> screenPos) const
 {
     for (const auto& c : cells_) {
         if (c.param < 0 || c.comp == nullptr || !c.comp->isShowing()) continue;
@@ -798,14 +798,14 @@ int AmbientSynthEditor::cellParamAt(juce::Point<int> screenPos) const
     return -1;
 }
 
-juce::Rectangle<int> AmbientSynthEditor::cellScreenBounds(int cellIndex) const
+juce::Rectangle<int> NoctuaryEditor::cellScreenBounds(int cellIndex) const
 {
     if (cellIndex < 0 || cellIndex >= static_cast<int>(cells_.size())) return {};
     const Cell& c = cells_[static_cast<size_t>(cellIndex)];
     return c.comp != nullptr ? c.comp->getScreenBounds() : juce::Rectangle<int>();
 }
 
-void AmbientSynthEditor::colourCellsByGroup()
+void NoctuaryEditor::colourCellsByGroup()
 {
     for (const auto& sec : sections_) {
         const juce::Colour col = sec.group >= 0 ? groups_[static_cast<size_t>(sec.group)].colour : kMaster;
@@ -817,7 +817,7 @@ void AmbientSynthEditor::colourCellsByGroup()
     }
 }
 
-int AmbientSynthEditor::addExtraCell(const juce::String& section, std::unique_ptr<juce::Component> comp, const juce::String& label, int units)
+int NoctuaryEditor::addExtraCell(const juce::String& section, std::unique_ptr<juce::Component> comp, const juce::String& label, int units)
 {
     Section* sec = findSection(section);
     if (sec == nullptr) return -1;
@@ -837,7 +837,7 @@ int AmbientSynthEditor::addExtraCell(const juce::String& section, std::unique_pt
     return idx;
 }
 
-AmbientSynthEditor::Section* AmbientSynthEditor::findSection(const juce::String& name)
+NoctuaryEditor::Section* NoctuaryEditor::findSection(const juce::String& name)
 {
     for (auto& s : sections_) if (s.name == name) return &s;
     return nullptr;
@@ -878,7 +878,7 @@ const Closer* closerFor(const juce::String& section)
 }
 }
 
-bool AmbientSynthEditor::sectionCollapsed(const Section& s) const
+bool NoctuaryEditor::sectionCollapsed(const Section& s) const
 {
     if (openAll_) return false;
     const Closer* c = closerFor(s.name);
@@ -895,7 +895,7 @@ bool AmbientSynthEditor::sectionCollapsed(const Section& s) const
     return true;
 }
 
-bool AmbientSynthEditor::cellShown(const Section& s, const Cell& c) const
+bool NoctuaryEditor::cellShown(const Section& s, const Cell& c) const
 {
     if (c.unused) return false;
     if (!s.closedNow()) return true;
@@ -905,14 +905,14 @@ bool AmbientSynthEditor::cellShown(const Section& s, const Cell& c) const
     return false;
 }
 
-int AmbientSynthEditor::shownCells(const Section& s) const
+int NoctuaryEditor::shownCells(const Section& s) const
 {
     int n = 0;
     for (int ci : s.cells) if (cellShown(s, cells_[static_cast<size_t>(ci)])) ++n;
     return n;
 }
 
-int AmbientSynthEditor::sectionWidth(const Section& s) const
+int NoctuaryEditor::sectionWidth(const Section& s) const
 {
     int widest = 0, row = 0;
     for (int ci : s.cells) {
@@ -924,7 +924,7 @@ int AmbientSynthEditor::sectionWidth(const Section& s) const
     return widest * kCellW + 2 * kPad;
 }
 
-int AmbientSynthEditor::sectionHeight(const Section& s) const
+int NoctuaryEditor::sectionHeight(const Section& s) const
 {
     int rows = 1, row = 0;
     for (int ci : s.cells) {
@@ -936,7 +936,7 @@ int AmbientSynthEditor::sectionHeight(const Section& s) const
     return rows * kCellH + kTitleH + kPad;
 }
 
-void AmbientSynthEditor::layoutSection(Section& s, int x, int y)
+void NoctuaryEditor::layoutSection(Section& s, int x, int y)
 {
     s.bounds = { x, y, sectionWidth(s), sectionHeight(s) };
     int cx = x + kPad, cy = y + kTitleH, row = 0;
@@ -954,7 +954,7 @@ void AmbientSynthEditor::layoutSection(Section& s, int x, int y)
     }
 }
 
-void AmbientSynthEditor::resized()
+void NoctuaryEditor::resized()
 {
     // Measure the body first: the design width is whatever it needs, so the right-hand column can
     // never fall off the edge, and the scale follows from that.
@@ -1028,7 +1028,7 @@ void AmbientSynthEditor::resized()
 // so switching a tab never moves anything else.
 // Compact: the columns are kCompactFactor as wide and every page is refitted into them. The page
 // loses width and gains height; nothing scrolls either way, and the arrangement is otherwise untouched.
-void AmbientSynthEditor::applyLayoutMode(int mode)
+void NoctuaryEditor::applyLayoutMode(int mode)
 {
     mode = juce::jlimit(0, 2, mode);
     compact_ = mode == 1;
@@ -1038,7 +1038,7 @@ void AmbientSynthEditor::applyLayoutMode(int mode)
     rebuildLayout();
 }
 
-void AmbientSynthEditor::rebuildLayout()
+void NoctuaryEditor::rebuildLayout()
 {
     resized();
     // The design's shape has changed, so the window has to follow: keep the width, take the new
@@ -1052,7 +1052,7 @@ void AmbientSynthEditor::rebuildLayout()
     repaint();
 }
 
-void AmbientSynthEditor::layoutBody()
+void NoctuaryEditor::layoutBody()
 {
     for (auto& s : sections_) {
         s.collapsed = sectionCollapsed(s);
@@ -1196,7 +1196,7 @@ void AmbientSynthEditor::layoutBody()
 }
 
 // The tabbed page: Normal and Compact. See the header for the rule; the pieces are these.
-void AmbientSynthEditor::layoutTabbed()
+void NoctuaryEditor::layoutTabbed()
 {
     for (auto& g : expandedGroups_) for (auto* d : g.displays) if (d != nullptr) d->setVisible(false);
     std::vector<Group>& G = groups_;
@@ -1385,13 +1385,13 @@ void AmbientSynthEditor::layoutTabbed()
     }
 }
 
-AmbientSynthEditor::TabRow* AmbientSynthEditor::tabRowFor(int group, int row)
+NoctuaryEditor::TabRow* NoctuaryEditor::tabRowFor(int group, int row)
 {
     for (auto& t : tabRows_) if (t.group == group && t.row == row) return &t;
     return nullptr;
 }
 
-void AmbientSynthEditor::setSectionVisible(Section& s, bool v)
+void NoctuaryEditor::setSectionVisible(Section& s, bool v)
 {
     s.visible = v;
     for (int ci : s.cells) {
@@ -1405,7 +1405,7 @@ void AmbientSynthEditor::setSectionVisible(Section& s, bool v)
 // The layout's inputs from the parameters: which cells a slot's type uses, which sections are
 // closed. Called from the timer; when anything moved, the page is laid out again -- on the
 // player's own action (a type chosen, a switch thrown), never on the window's.
-bool AmbientSynthEditor::refreshLayoutState()
+bool NoctuaryEditor::refreshLayoutState()
 {
     bool changed = false;
     for (auto& s : sections_) {
@@ -1415,7 +1415,7 @@ bool AmbientSynthEditor::refreshLayoutState()
     return changed;
 }
 
-void AmbientSynthEditor::clickTabs(juce::Point<int> pos)
+void NoctuaryEditor::clickTabs(juce::Point<int> pos)
 {
     if (expanded_) return;   // every page is open; the titles are titles, not tabs
     for (auto& t : tabRows_)
@@ -1430,9 +1430,9 @@ void AmbientSynthEditor::clickTabs(juce::Point<int> pos)
 
 // ---------------------------------------------------------------- perform page
 
-void AmbientSynthEditor::setPerforming(bool on) { setPage(on ? 1 : 0); }
+void NoctuaryEditor::setPerforming(bool on) { setPage(on ? 1 : 0); }
 
-void AmbientSynthEditor::setPage(int page)
+void NoctuaryEditor::setPage(int page)
 {
     performing_ = page == 1;
     viewport_.setVisible(page == 0);
@@ -1454,7 +1454,7 @@ void AmbientSynthEditor::setPage(int page)
 
 // ---------------------------------------------------------------- interaction
 
-void AmbientSynthEditor::mouseDown(const juce::MouseEvent& e)
+void NoctuaryEditor::mouseDown(const juce::MouseEvent& e)
 {
     if (!e.mods.isPopupMenu()) return;
     auto it = cellOf_.find(e.eventComponent);
@@ -1491,21 +1491,21 @@ void AmbientSynthEditor::mouseDown(const juce::MouseEvent& e)
     });
 }
 
-void AmbientSynthEditor::registerHelp(juce::Component* c, ambient::ParamId id)
+void NoctuaryEditor::registerHelp(juce::Component* c, ambient::ParamId id)
 {
     if (c == nullptr) return;
     helpParamOf_[c] = static_cast<int>(id);
     c->addMouseListener(this, false);
 }
 
-void AmbientSynthEditor::mouseEnter(const juce::MouseEvent& e)
+void NoctuaryEditor::mouseEnter(const juce::MouseEvent& e)
 {
     auto it = helpParamOf_.find(e.eventComponent);
     const int param = it != helpParamOf_.end() ? it->second : -1;
     if (param != hoveredParam_) { hoveredParam_ = param; repaint(); }
 }
 
-void AmbientSynthEditor::mouseExit(const juce::MouseEvent& e)
+void NoctuaryEditor::mouseExit(const juce::MouseEvent& e)
 {
     auto it = helpParamOf_.find(e.eventComponent);
     if (it != helpParamOf_.end() && it->second == hoveredParam_) { hoveredParam_ = -1; repaint(); }
@@ -1513,7 +1513,7 @@ void AmbientSynthEditor::mouseExit(const juce::MouseEvent& e)
 
 // ---------------------------------------------------------------- undo, redo, A/B, the die
 
-AmbientSynthEditor::Snapshot AmbientSynthEditor::takeSnapshot(const juce::String& what) const
+NoctuaryEditor::Snapshot NoctuaryEditor::takeSnapshot(const juce::String& what) const
 {
     Snapshot s;
     s.what = what;
@@ -1523,7 +1523,7 @@ AmbientSynthEditor::Snapshot AmbientSynthEditor::takeSnapshot(const juce::String
     return s;
 }
 
-void AmbientSynthEditor::restore(const Snapshot& s)
+void NoctuaryEditor::restore(const Snapshot& s)
 {
     if (static_cast<int>(s.v.size()) != kNumParams) return;
     for (int i = 0; i < kNumParams; ++i)
@@ -1532,14 +1532,14 @@ void AmbientSynthEditor::restore(const Snapshot& s)
     repaint();
 }
 
-void AmbientSynthEditor::pushUndo(const juce::String& what)
+void NoctuaryEditor::pushUndo(const juce::String& what)
 {
     undo_.push_back(takeSnapshot(what));
     if (undo_.size() > 32) undo_.erase(undo_.begin());   // a session's worth, not a history
     redo_.clear();
 }
 
-void AmbientSynthEditor::doUndo()
+void NoctuaryEditor::doUndo()
 {
     if (undo_.empty()) return;
     redo_.push_back(takeSnapshot(undo_.back().what));
@@ -1547,7 +1547,7 @@ void AmbientSynthEditor::doUndo()
     undo_.pop_back();
 }
 
-void AmbientSynthEditor::doRedo()
+void NoctuaryEditor::doRedo()
 {
     if (redo_.empty()) return;
     undo_.push_back(takeSnapshot(redo_.back().what));
@@ -1557,7 +1557,7 @@ void AmbientSynthEditor::doRedo()
 
 // A/B: the first click parks what you have in A and leaves you on B (a copy, so nothing is lost);
 // every click after that swaps the two. This is the comparison a sound gets judged by.
-void AmbientSynthEditor::swapAB()
+void NoctuaryEditor::swapAB()
 {
     const Snapshot now = takeSnapshot("A/B");
     if (slotA_.v.empty()) { slotA_ = now; slotB_ = now; showingB_ = true; }
@@ -1572,7 +1572,7 @@ void AmbientSynthEditor::swapAB()
 // The die on a section: every parameter of that section is drawn again. Choices and switches are
 // picked at random, numbers land inside the middle of their range (the ends of a range are
 // usually where a preset stops being usable), and shift keeps them near where they already are.
-void AmbientSynthEditor::randomiseSection(const juce::String& name, bool subtle)
+void NoctuaryEditor::randomiseSection(const juce::String& name, bool subtle)
 {
     Section* sec = findSection(name);
     if (sec == nullptr) return;
@@ -1605,7 +1605,7 @@ void AmbientSynthEditor::randomiseSection(const juce::String& name, bool subtle)
     repaint();
 }
 
-bool AmbientSynthEditor::keyPressed(const juce::KeyPress& k)
+bool NoctuaryEditor::keyPressed(const juce::KeyPress& k)
 {
     if (k == juce::KeyPress::F1Key) { setPage(help_ && help_->isVisible() ? 0 : 3); return true; }
     if (k == juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)) { doUndo(); return true; }
@@ -1616,7 +1616,7 @@ bool AmbientSynthEditor::keyPressed(const juce::KeyPress& k)
 
 // ---------------------------------------------------------------- help page
 
-juce::Image AmbientSynthEditor::snapshotSection(const juce::String& name)
+juce::Image NoctuaryEditor::snapshotSection(const juce::String& name)
 {
     Section* sec = findSection(name);
     if (sec == nullptr) return {};
@@ -1639,7 +1639,7 @@ juce::Image AmbientSynthEditor::snapshotSection(const juce::String& name)
 // it, the display beside it and -- on Source 1 -- the strand bank under that display. A picture
 // per section would have been easier and would have shown the manual's reader something that is
 // not on their screen; what they see is a tab.
-juce::Image AmbientSynthEditor::snapshotTab(int rowIndex, int page)
+juce::Image NoctuaryEditor::snapshotTab(int rowIndex, int page)
 {
     if (rowIndex < 0 || rowIndex >= static_cast<int>(tabRows_.size())) return {};
     TabRow& t = tabRows_[static_cast<size_t>(rowIndex)];
@@ -1670,7 +1670,7 @@ juce::Image AmbientSynthEditor::snapshotTab(int rowIndex, int page)
 // A whole page of the instrument -- Perform, Browse, the modulation strip, the help page itself --
 // rather than one section of it. Pages are siblings of the panel and are shown one at a time, so
 // the one being photographed is made visible for the picture and put back afterwards.
-juce::Image AmbientSynthEditor::snapshotPage(juce::Component* page)
+juce::Image NoctuaryEditor::snapshotPage(juce::Component* page)
 {
     if (page == nullptr || page->getWidth() <= 0 || page->getHeight() <= 0) return {};
     const bool was = page->isVisible();
@@ -1680,9 +1680,9 @@ juce::Image AmbientSynthEditor::snapshotPage(juce::Component* page)
     return img;
 }
 
-juce::Image AmbientSynthEditor::snapshotPerform() { return snapshotPage(perform_.get()); }
+juce::Image NoctuaryEditor::snapshotPerform() { return snapshotPage(perform_.get()); }
 
-juce::Image AmbientSynthEditor::snapshotBrowseMap()
+juce::Image NoctuaryEditor::snapshotBrowseMap()
 {
     if (!browse_) return {};
     const bool vis = browse_->isVisible();
@@ -1698,7 +1698,7 @@ juce::Image AmbientSynthEditor::snapshotBrowseMap()
 
 // The map as it looks once it has been zoomed in: the current preset in the middle at eight
 // times, its neighbours around it, and names on everything that has room for one.
-juce::Image AmbientSynthEditor::snapshotBrowseMapZoomed()
+juce::Image NoctuaryEditor::snapshotBrowseMapZoomed()
 {
     if (!browse_) return {};
     const bool vis = browse_->isVisible();
@@ -1717,7 +1717,7 @@ juce::Image AmbientSynthEditor::snapshotBrowseMapZoomed()
     return img;
 }
 
-juce::Image AmbientSynthEditor::snapshotHeader()
+juce::Image NoctuaryEditor::snapshotHeader()
 {
     // The master's corner of the header: the mid/side section, the loudness meter and the
     // master knob. The whole header is four thousand pixels wide and unreadable on a page.
@@ -1734,7 +1734,7 @@ juce::Image AmbientSynthEditor::snapshotHeader()
     return createComponentSnapshot(box, true, 1.0f);
 }
 
-juce::Image AmbientSynthEditor::snapshotStripTab(int tab, bool detail)
+juce::Image NoctuaryEditor::snapshotStripTab(int tab, bool detail)
 {
     if (!mod_) return {};
     const int was = mod_->tab;
@@ -1752,7 +1752,7 @@ juce::Image AmbientSynthEditor::snapshotStripTab(int tab, bool detail)
     return img;
 }
 
-void AmbientSynthEditor::openSourceEnvelope(int slot)
+void NoctuaryEditor::openSourceEnvelope(int slot)
 {
     // The pictures that call this sit on the main page, where the strip is, so it only needs its
     // page turned. Which source asked is not singled out: the page shows all four side by side.
@@ -1762,7 +1762,7 @@ void AmbientSynthEditor::openSourceEnvelope(int slot)
     mod_->setEnvPage(1);
 }
 
-juce::StringArray AmbientSynthEditor::tabSectionNames(int rowIndex, int page) const
+juce::StringArray NoctuaryEditor::tabSectionNames(int rowIndex, int page) const
 {
     juce::StringArray out;
     if (rowIndex < 0 || rowIndex >= static_cast<int>(tabRows_.size())) return out;
@@ -1774,7 +1774,7 @@ juce::StringArray AmbientSynthEditor::tabSectionNames(int rowIndex, int page) co
 
 // What a tab is called on its own bar, so the manual's caption is the word the reader will look
 // for on the screen.
-juce::String AmbientSynthEditor::tabName(int rowIndex, int page) const
+juce::String NoctuaryEditor::tabName(int rowIndex, int page) const
 {
     if (rowIndex < 0 || rowIndex >= static_cast<int>(tabRows_.size())) return {};
     const TabRow& t = tabRows_[static_cast<size_t>(rowIndex)];
@@ -1782,7 +1782,7 @@ juce::String AmbientSynthEditor::tabName(int rowIndex, int page) const
     return t.names[static_cast<size_t>(page)];
 }
 
-juce::Image AmbientSynthEditor::snapshotStrip()
+juce::Image NoctuaryEditor::snapshotStrip()
 {
     if (!mod_) return {};
     const bool vis = mod_->isVisible();
@@ -1792,7 +1792,7 @@ juce::Image AmbientSynthEditor::snapshotStrip()
     return img;
 }
 
-juce::Image AmbientSynthEditor::snapshotBrowse()
+juce::Image NoctuaryEditor::snapshotBrowse()
 {
     if (!browse_) return {};
     const bool vis = browse_->isVisible();
@@ -1802,7 +1802,7 @@ juce::Image AmbientSynthEditor::snapshotBrowse()
     return img;
 }
 
-AmbientSynthEditor::HelpView::HelpView(AmbientSynthProcessor& p, AmbientSynthEditor& o)
+NoctuaryEditor::HelpView::HelpView(NoctuaryProcessor& p, NoctuaryEditor& o)
     : proc(p), owner(o), flow(p)
 {
     addChildComponent(flow);
@@ -1835,7 +1835,7 @@ AmbientSynthEditor::HelpView::HelpView(AmbientSynthProcessor& p, AmbientSynthEdi
     selectedRowsChanged(0);
 }
 
-void AmbientSynthEditor::HelpView::paint(juce::Graphics& g)
+void NoctuaryEditor::HelpView::paint(juce::Graphics& g)
 {
     g.fillAll(ui::bg0);
     g.setColour(ui::group);
@@ -1853,7 +1853,7 @@ void AmbientSynthEditor::HelpView::paint(juce::Graphics& g)
     g.drawText("F1 or Help closes it again  --  the pictures are the panel as it stands right now, and the displays are live", 120, 18, getWidth() - 160, 20, juce::Justification::centredLeft, false);
 }
 
-void AmbientSynthEditor::HelpView::resized()
+void NoctuaryEditor::HelpView::resized()
 {
     auto r = getLocalBounds().reduced(20).withTrimmedTop(26);
     topics.setBounds(r.removeFromLeft(230));
@@ -1888,7 +1888,7 @@ void AmbientSynthEditor::HelpView::resized()
 // some of the pictures need the instrument to have MOVED between two of them: the gallery of
 // source types sets Source 2 to each type in turn, and its display and its greyed-out knobs
 // follow on the next timer tick, not in the same call.
-struct AmbientSynthEditor::ManualJob {
+struct NoctuaryEditor::ManualJob {
     juce::File dir;
     std::vector<std::function<void()>> steps;
     size_t next = 0;
@@ -1902,7 +1902,7 @@ struct AmbientSynthEditor::ManualJob {
     juce::String originalType;    // Source 2's type before the gallery, put back afterwards
 };
 
-void AmbientSynthEditor::exportManual(const juce::File& dir, std::function<void()> onDone)
+void NoctuaryEditor::exportManual(const juce::File& dir, std::function<void()> onDone)
 {
     dir.createDirectory();
     if (help_ == nullptr) { if (onDone) onDone(); return; }
@@ -2085,7 +2085,7 @@ void AmbientSynthEditor::exportManual(const juce::File& dir, std::function<void(
     runManualStep();
 }
 
-void AmbientSynthEditor::runManualStep()
+void NoctuaryEditor::runManualStep()
 {
     if (manual_ == nullptr || manual_->next >= manual_->steps.size()) return;
     manual_->steps[manual_->next++]();
@@ -2093,7 +2093,7 @@ void AmbientSynthEditor::runManualStep()
         juce::Timer::callAfterDelay(350, [this] { runManualStep(); });
 }
 
-void AmbientSynthEditor::HelpView::showTopic(int row)
+void NoctuaryEditor::HelpView::showTopic(int row)
 {
     topic = row;
     pics.clear();
@@ -2219,9 +2219,9 @@ void AmbientSynthEditor::HelpView::showTopic(int row)
     repaint();
 }
 
-int AmbientSynthEditor::HelpView::getNumRows() { return ambient::numHelpTopics() + 1; }
+int NoctuaryEditor::HelpView::getNumRows() { return ambient::numHelpTopics() + 1; }
 
-void AmbientSynthEditor::HelpView::paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool selected)
+void NoctuaryEditor::HelpView::paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool selected)
 {
     if (selected) { g.setColour(ui::accent.withAlpha(0.22f)); g.fillRoundedRectangle(2.0f, 1.0f, static_cast<float>(w - 4), static_cast<float>(h - 2), 4.0f); }
     g.setColour(selected ? ui::text : ui::dim);
@@ -2230,7 +2230,7 @@ void AmbientSynthEditor::HelpView::paintListBoxItem(int row, juce::Graphics& g, 
     g.drawText(title, 10, 0, w - 14, h, juce::Justification::centredLeft, true);
 }
 
-void AmbientSynthEditor::HelpView::selectedRowsChanged(int row)
+void NoctuaryEditor::HelpView::selectedRowsChanged(int row)
 {
     if (row < 0) return;
     text.setText(row < ambient::numHelpTopics() ? juce::String(juce::CharPointer_UTF8(ambient::helpTopicText(row))) : parameters, false);
@@ -2238,7 +2238,7 @@ void AmbientSynthEditor::HelpView::selectedRowsChanged(int row)
     showTopic(row);
 }
 
-juce::Rectangle<int> AmbientSynthEditor::HelpView::FlowDiagram::drawn() const
+juce::Rectangle<int> NoctuaryEditor::HelpView::FlowDiagram::drawn() const
 {
     const float sc = juce::jmin(getWidth() / kCanvasW, getHeight() / kCanvasH);
     if (sc <= 0.0f) return getLocalBounds();
@@ -2246,7 +2246,7 @@ juce::Rectangle<int> AmbientSynthEditor::HelpView::FlowDiagram::drawn() const
 }
 
 // The signal flow as a picture: the units as boxes in their group colours, the buses as arrows.
-void AmbientSynthEditor::HelpView::FlowDiagram::paint(juce::Graphics& g)
+void NoctuaryEditor::HelpView::FlowDiagram::paint(juce::Graphics& g)
 {
     // Drawn on a fixed canvas, scaled to fit whatever the column offers.
     const float sx = getWidth() / kCanvasW, sy = getHeight() / kCanvasH, sc = juce::jmin(sx, sy);
@@ -2370,7 +2370,7 @@ void AmbientSynthEditor::HelpView::FlowDiagram::paint(juce::Graphics& g)
     juce::ignoreUnused(ens, d1, d2, nr, cos, cloud, fr, rm, sh, out1, out2, env, filt, zp, s4, vec, air, blur, ne, ns, nty, nrt);
 }
 
-void AmbientSynthEditor::timerCallback()
+void NoctuaryEditor::timerCallback()
 {
     proc_.engine().soundingNotes(sounding_);
     {   // Auto switched on (the toggle, or the host): the preset that is playing brings its foreground now.
@@ -2471,7 +2471,7 @@ void AmbientSynthEditor::timerCallback()
     if (Section* m = findSection("Morph")) content_.repaint(m->bounds.withTrimmedTop(-kGroupTitleH));
 }
 
-int AmbientSynthEditor::cellForParam(ParamId id) const
+int NoctuaryEditor::cellForParam(ParamId id) const
 {
     for (int i = 0; i < static_cast<int>(cells_.size()); ++i) if (cells_[static_cast<size_t>(i)].param == static_cast<int>(id)) return i;
     return -1;
@@ -2479,7 +2479,7 @@ int AmbientSynthEditor::cellForParam(ParamId id) const
 
 // The Near Source's cells by its type, the way updateSourceCells does it for the four slots: what
 // the chosen type ignores is gone from the strip, not greyed.
-bool AmbientSynthEditor::updateNearCells()
+bool NoctuaryEditor::updateNearCells()
 {
     enum { Off = 0, Harmonic = 1, Fm = 2, Texture = 3, Noise = 4, Additive = 5, Stretch = 6, Bow = 7, Spectral = 8, Wavetable = 9,
            Flute = 10, Murmur = 11, Bowl = 12, Ice = 13, Drops = 14, Clip = 15,
@@ -2523,7 +2523,7 @@ bool AmbientSynthEditor::updateNearCells()
     return changed;
 }
 
-void AmbientSynthEditor::updateSourceCells()
+void NoctuaryEditor::updateSourceCells()
 {
     // The 24 slot fields (see Params.h): 0 type 1 level 2 octave 3 ratio 4 pan 5 table 6 position
     // 7 pos drift 8 fm ratio 9 fm index 10 grain 11 density 12 follow 13 grains 14 spread 15 noise
@@ -2620,7 +2620,7 @@ void AmbientSynthEditor::updateSourceCells()
     nameCell(nearClipCell_, "Source 4's clip", proc_.nearClipName());
 }
 
-void AmbientSynthEditor::showMappingEditor()
+void NoctuaryEditor::showMappingEditor()
 {
     // A plain text editor over the mapping table: one line per mapping,
     //   input param min max smooth deadzone clutch invert
@@ -2655,7 +2655,7 @@ void AmbientSynthEditor::showMappingEditor()
     mapOpen_ = true;
 }
 
-void AmbientSynthEditor::chooseSourceFile(bool wavetable, int slot)
+void NoctuaryEditor::chooseSourceFile(bool wavetable, int slot)
 {
     const juce::String what = wavetable ? juce::String("Load a wavetable (Serum, Vital, Hive, Surge .wt, WaveEdit, a single cycle)")
                             : slot >= 0 ? "Load a clip for Source " + juce::String(slot + 1)
@@ -2675,7 +2675,7 @@ void AmbientSynthEditor::chooseSourceFile(bool wavetable, int slot)
         });
 }
 
-void AmbientSynthEditor::chooseNearClipFile()
+void NoctuaryEditor::chooseNearClipFile()
 {
     chooser_ = std::make_unique<juce::FileChooser>("Load a recording for the near source", juce::File(), "*.wav;*.aif;*.aiff;*.flac;*.ogg;*.mp3");
     chooser_->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
@@ -2688,7 +2688,7 @@ void AmbientSynthEditor::chooseNearClipFile()
         });
 }
 
-void AmbientSynthEditor::chooseImpulseFile(bool second)
+void NoctuaryEditor::chooseImpulseFile(bool second)
 {
     chooser_ = std::make_unique<juce::FileChooser>(second ? "Load the second impulse response (Room Morph fades to it)"
                                                           : "Load an impulse response (mono or stereo)", juce::File(), "*.wav;*.aif;*.aiff;*.flac");
@@ -2702,7 +2702,7 @@ void AmbientSynthEditor::chooseImpulseFile(bool second)
         });
 }
 
-void AmbientSynthEditor::chooseScalaFile()
+void NoctuaryEditor::chooseScalaFile()
 {
     chooser_ = std::make_unique<juce::FileChooser>("Load a Scala scale", juce::File(), "*.scl");
     chooser_->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
@@ -2717,7 +2717,7 @@ void AmbientSynthEditor::chooseScalaFile()
 
 // ---------------------------------------------------------------- painting
 
-void AmbientSynthEditor::ScopeView::paint(juce::Graphics& g)
+void NoctuaryEditor::ScopeView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds().toFloat();
     g.setColour(ui::card.withAlpha(0.55f));
@@ -2792,7 +2792,7 @@ void AmbientSynthEditor::ScopeView::paint(juce::Graphics& g)
     }
 }
 
-void AmbientSynthEditor::parentHierarchyChanged()
+void NoctuaryEditor::parentHierarchyChanged()
 {
     // A maximise button beside the other two. Only the standalone has a DocumentWindow of its own;
     // in a host the plug-in lives in the host's window and this finds nothing, which is right.
@@ -2802,7 +2802,7 @@ void AmbientSynthEditor::parentHierarchyChanged()
                                          | juce::DocumentWindow::closeButton, false);
 }
 
-void AmbientSynthEditor::paint(juce::Graphics& g)
+void NoctuaryEditor::paint(juce::Graphics& g)
 {
     // Everything below is drawn in the design space; one transform scales the whole editor.
     g.fillAll(ui::bg0);
@@ -2818,7 +2818,7 @@ void AmbientSynthEditor::paint(juce::Graphics& g)
     g.fillRect(header_);
     g.setColour(kText);
     g.setFont(juce::FontOptions(22.0f, juce::Font::bold));
-    g.drawText("AmbientSynth", 14, 6, 180, 26, juce::Justification::centredLeft);
+    g.drawText("Noctuary", 14, 6, 180, 26, juce::Justification::centredLeft);
     {   // The help line: the control under the mouse, its value and what it does -- otherwise
         // the three things worth knowing first. This is where the routing map used to be; the
         // signal flow is in the manual now, where it can be read rather than deciphered.
@@ -2840,7 +2840,7 @@ void AmbientSynthEditor::paint(juce::Graphics& g)
             const int mods = [&] { int n = 0; const auto& m = proc_.engine().modMatrix(); for (int k = 0; k < m.count(); ++k) if (m.route(k).target == id) ++n; return n; }();
             if (mods > 0) body += "   [" + juce::String(mods) + (mods == 1 ? " modulation route" : " modulation routes") + " -- right-click to see them]";
         } else {
-            title = "AmbientSynth";
+            title = "Noctuary";
             body = "Point at any control to read what it does. Help (or F1) opens the manual. Right-click a knob for MIDI learn and its modulation routes; drag a card from the strip at the bottom onto a knob to modulate it.";
         }
         g.setColour(kText);
@@ -2912,7 +2912,7 @@ void AmbientSynthEditor::paint(juce::Graphics& g)
                    760, 8, 90, 24, juce::Justification::centredLeft);
     }
     // The Master section is the only section painted here (it sits in the header).
-    if (const Section* ms = const_cast<AmbientSynthEditor*>(this)->findSection("Master")) {
+    if (const Section* ms = const_cast<NoctuaryEditor*>(this)->findSection("Master")) {
         g.setColour(kSectionFill);
         g.fillRoundedRectangle(ms->bounds.toFloat(), 5.0f);
         g.setColour(kMaster.withAlpha(0.85f));
@@ -2921,7 +2921,7 @@ void AmbientSynthEditor::paint(juce::Graphics& g)
     }
 }
 
-void AmbientSynthEditor::paintContent(juce::Graphics& g)
+void NoctuaryEditor::paintContent(juce::Graphics& g)
 {
     g.fillAll(kBg);
     for (const auto& grp : (expanded_ ? expandedGroups_ : groups_)) {

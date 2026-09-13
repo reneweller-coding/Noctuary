@@ -1,4 +1,4 @@
-// AmbientSynth -- a set as a timeline: every parameter change and every note with its time,
+// Noctuary -- a set as a timeline: every parameter change and every note with its time,
 // recorded while playing (hands, knobs, OSC, MIDI, routes -- everything ends up as parameter
 // changes) and played back later, live or offline. A good set becomes reproducible, and
 // `ambient_render --set-file` renders it again at any length or sample rate.

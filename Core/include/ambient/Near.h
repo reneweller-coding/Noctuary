@@ -1,4 +1,4 @@
-// AmbientSynth -- the near events: what the instrument plays close to the ear, on a clock of its
+// Noctuary -- the near events: what the instrument plays close to the ear, on a clock of its
 // own (13.09.2026).
 //
 // The conductor makes the background; nothing in the instrument made a foreground except the

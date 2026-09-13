@@ -1,7 +1,7 @@
-"""AmbientSynth -- the logo, drawn rather than painted.
+"""Noctuary -- the logo, drawn rather than painted.
 
 Every candidate is built from something the instrument actually is, in the palette the editor
-already uses (Plugin/AmbientLookAndFeel.h): the cold turquoise is the instrument's own colour, the
+already uses (Plugin/NoctuaryLookAndFeel.h): the cold turquoise is the instrument's own colour, the
 warm orange means something is sounding, and the deep blue-black is the ground everything sits on.
 
     python Tools/make_logo.py            # all candidates, previews at 512 / 64 / 32 / 16

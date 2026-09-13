@@ -10,11 +10,11 @@
 #include <array>
 #include <atomic>
 
-class AmbientSynthProcessor : public juce::AudioProcessor, private ambient::OscSink, private juce::Timer
+class NoctuaryProcessor : public juce::AudioProcessor, private ambient::OscSink, private juce::Timer
 {
 public:
-    AmbientSynthProcessor();
-    ~AmbientSynthProcessor() override;
+    NoctuaryProcessor();
+    ~NoctuaryProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override {}
@@ -138,7 +138,7 @@ public:
     void journeyAddCurrent(double dwellLo, double dwellHi, double fadeLo, double fadeHi);   // the sound preset playing, appended
     void journeyClear() { journey_ = ambient::Journey(); }
     bool saveJourney(const juce::File& file);
-    static juce::File userJourneyFolder();            // Documents/AmbientSynth/Journeys, made if need be
+    static juce::File userJourneyFolder();            // Documents/Noctuary/Journeys, made if need be
     static juce::Array<juce::File> journeyFiles();    // the templates beside the library and the user's own
     void journeyTick();                               // message thread, from the pump
     // Which preset the instrument is travelling towards, -1 when it is not, and how far it has
@@ -192,7 +192,7 @@ public:
     void clearRoute() { live().clearRoute(); routeText_.clear(); }
     bool addRoutePoint(const ambient::Waypoint& w) { if (!live().addRoutePoint(w)) return false; char buf[4096]; live().writeRoute(buf, sizeof(buf)); routeText_ = buf; return true; }
     // Favourite presets (the browser's stars). By name, in a file of the player's own
-    // (Documents\AmbientSynth\favourites.txt, one name a line), so they survive a library that is
+    // (Documents\Noctuary\favourites.txt, one name a line), so they survive a library that is
     // generated again under the same names and are the same in the standalone and in every DAW.
     // The plugin state used to carry them by index, and the 2.0 library renumbered every index.
     // juce::BigInteger grows on demand, so the library's size is not a limit here.
@@ -274,9 +274,9 @@ private:
     // It also carries out the preset changes OSC asks for: those write the whole parameter tree
     // and read files, which is not work for the audio thread.
     struct PresetPump : juce::Timer {
-        explicit PresetPump(AmbientSynthProcessor& p) : proc(p) {}
+        explicit PresetPump(NoctuaryProcessor& p) : proc(p) {}
         void timerCallback() override { proc.servePresetRequests(); proc.servePendingPreset(); proc.journeyTick(); }
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
     };
     PresetPump presetPump_ { *this };
     ambient::Journey       journey_;
@@ -379,11 +379,11 @@ private:
     juce::String          mappingText_;
 
     // Recording
-    juce::TimeSliceThread recordThread_{ "AmbientSynth recorder" };
+    juce::TimeSliceThread recordThread_{ "Noctuary recorder" };
     std::unique_ptr<juce::AudioFormatWriter::ThreadedWriter> recordWriter_;
     juce::CriticalSection recordLock_;
     std::atomic<bool> recording_{ false };
     std::atomic<juce::int64> recordedSamples_{ 0 };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AmbientSynthProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoctuaryProcessor)
 };

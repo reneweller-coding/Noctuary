@@ -1,4 +1,4 @@
-// AmbientSynth -- the resonating body: a bank of modes under everything.
+// Noctuary -- the resonating body: a bank of modes under everything.
 //
 // The Cosmos comb is a tuned comb: one delay, one pitch, a metallic ring. A real instrument's
 // body is not that. It is a small number of modes with their own frequencies, their own decay

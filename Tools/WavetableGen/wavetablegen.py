@@ -1,4 +1,4 @@
-"""WavetableGen: wavetables for AmbientSynth's User table (and any 2048-frame wavetable synth).
+"""WavetableGen: wavetables for Noctuary's User table (and any 2048-frame wavetable synth).
 
 Three sources:
   Audio     - slice single cycles out of any WAV (a TextureGen result, a recording, a synth note):
@@ -101,7 +101,7 @@ class TableView(QWidget):
 class Main(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AmbientSynth WavetableGen")
+        self.setWindowTitle("Noctuary WavetableGen")
         self.resize(1100, 760)
         self.table = None
         self.info = {}
@@ -170,7 +170,7 @@ class Main(QMainWindow):
         play = QPushButton("Play"); play.clicked.connect(self.play); prow.addWidget(play)
         stop = QPushButton("Stop"); stop.clicked.connect(self.player.stop); prow.addWidget(stop)
         prow.addStretch(1)
-        hint = QLabel("In AmbientSynth: Source 2/3 → Type Wavetable → Table User → Wavetable... → pick the exported file. "
+        hint = QLabel("In Noctuary: Source 2/3 → Type Wavetable → Table User → Wavetable... → pick the exported file. "
                       "Position morphs through the frames, Pos Drift lets it wander.")
         hint.setWordWrap(True); right.addWidget(hint)
 

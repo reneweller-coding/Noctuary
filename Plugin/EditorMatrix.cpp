@@ -1,4 +1,4 @@
-// AmbientSynth -- the modulation matrix as a table of routes.
+// Noctuary -- the modulation matrix as a table of routes.
 //
 // The MATRIX tab used to be a text box: one route per line, "lfo1>cutoff:0.4", with an Apply
 // button. Exact, scriptable, and the wrong thing to put in front of a musician -- somebody who
@@ -96,7 +96,7 @@ struct RouteTable::Row : juce::Component {
     juce::TextButton remove;
 };
 
-RouteTable::RouteTable(AmbientSynthProcessor& p, std::function<void()> onChanged)
+RouteTable::RouteTable(NoctuaryProcessor& p, std::function<void()> onChanged)
     : proc(p), changedCallback(std::move(onChanged))
 {
     port.setViewedComponent(&content, false);

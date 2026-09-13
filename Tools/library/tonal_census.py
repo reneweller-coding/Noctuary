@@ -7,7 +7,7 @@ import os
 import re
 import collections
 
-ROOT = r"G:\Tools\VRAudio\AmbientSynth"
+ROOT = r"G:\Tools\VRAudio\Noctuary"
 CLIP = re.compile(r"(Textures|FieldRecordings)/[^|;,\s]+")
 TAG_TONAL, TAG_NOISY = 1 << 4, 1 << 5
 # The spectral table type is called Harmonic since the classic wavetable arrived, and leaving it

@@ -1,4 +1,4 @@
-# AmbientSynth journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]
+# Noctuary journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Harbour Rain: Journey
 cyclic on

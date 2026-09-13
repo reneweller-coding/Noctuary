@@ -1,4 +1,4 @@
-// AmbientSynth -- Memory: a drifting sound memory.
+// Noctuary -- Memory: a drifting sound memory.
 //
 // In the spirit of SOMA's Cosmos (Vlad Kreimer, 2021): a long memory in which what was played keeps
 // being recombined -- delay lines of different prime lengths sliding against each other, their

@@ -1,4 +1,4 @@
-"""AmbientSynth -- the journey templates: presets in a row, per pack and across the packs.
+"""Noctuary -- the journey templates: presets in a row, per pack and across the packs.
 
 A journey (Core/include/ambient/Journey.h) is a plain text file of presets, each held for a
 while drawn from a range and crossfaded into the next; cyclic, so an evening plays itself. This
@@ -149,7 +149,7 @@ def chain(chosen, vecs, start):
 def write(path, name, steps, cyclic=True):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# AmbientSynth journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n")
+        f.write("# Noctuary journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n")
         f.write("# Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.\n")
         f.write("journey %s\n" % name)
         f.write("cyclic %s\n" % ("on" if cyclic else "off"))

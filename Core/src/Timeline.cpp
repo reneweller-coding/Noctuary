@@ -66,7 +66,7 @@ bool SetTimeline::parse(const char* text)
 std::vector<char> SetTimeline::write() const
 {
     std::vector<char> out;
-    const char* head = "# AmbientSynth set: seconds, event, arguments\n";
+    const char* head = "# Noctuary set: seconds, event, arguments\n";
     out.insert(out.end(), head, head + std::strlen(head));
     char line[160];
     for (const TimelineEvent& e : events_) {

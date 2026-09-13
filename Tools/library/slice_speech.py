@@ -1,4 +1,4 @@
-"""AmbientSynth -- phrases out of old radio, for the near layer.
+"""Noctuary -- phrases out of old radio, for the near layer.
 
 Takes an item of the Internet Archive (or recordings on disk), cuts the speech at its pauses into
 phrases of two to six seconds, gives them the sound of the set they came out of, and writes them
@@ -52,7 +52,7 @@ for cand in (r"C:\Anw\Tools\ffmpeg\bin\ffmpeg.exe",):
     if FFMPEG == "ffmpeg" and os.path.exists(cand):
         FFMPEG = cand
 SR = 48000
-AGENT = "AmbientSynth/2.0 (library tool; +https://github.com/reneweller-coding/AmbientSynth)"
+AGENT = "Noctuary/2.0 (library tool; +https://github.com/reneweller-coding/Noctuary)"
 AUDIO_FORMATS = ("VBR MP3", "MP3", "128Kbps MP3", "64Kbps MP3", "Flac", "FLAC", "WAVE", "Ogg Vorbis")
 
 

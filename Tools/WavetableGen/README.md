@@ -1,7 +1,7 @@
 # WavetableGen — wavetables for the User table
 
 A PySide6 program that builds wavetables (frames of 2048 samples, the
-Serum/Vital layout) for AmbientSynth's Wavetable source (*Table = User*) and
+Serum/Vital layout) for Noctuary's Wavetable source (*Table = User*) and
 for any other wavetable synth. Same Python environment as TextureGen:
 
 ```
@@ -48,7 +48,7 @@ generates a note per line through TextureGen's batch mode and slices it,
 ## Why not a learned latent space?
 
 Models like WaveSpace learn a latent space of single cycles and let you walk
-through it. AmbientSynth's tables are spectra, so a table is already a path
+through it. Noctuary's tables are spectra, so a table is already a path
 through a spectral space, and the three sources above cover that path from
 real sound (audio), from language (prompt) and from rules (procedural) without
 a training set, a checkpoint or a GPU. A learned model can be added as a

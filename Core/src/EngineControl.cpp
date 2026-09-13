@@ -1,4 +1,4 @@
-// AmbientSynth -- what the engine decides once per block: the modulation sources and the matrix,
+// Noctuary -- what the engine decides once per block: the modulation sources and the matrix,
 // the clock, and readParams, which turns the parameter atomics into the structures the voices and
 // the effects are given. Split out of Engine.cpp, which had grown past fourteen hundred lines.
 #include "ambient/Engine.h"

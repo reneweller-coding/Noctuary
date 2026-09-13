@@ -1,4 +1,4 @@
-// AmbientSynth -- what a modulation route looks like while it is being made.
+// Noctuary -- what a modulation route looks like while it is being made.
 //
 // Dragging a card from the strip onto a knob worked, but you could not see it: the strip drew a
 // line inside its own bounds, and the gesture leaves those bounds immediately. So the modulator
@@ -14,7 +14,7 @@ using namespace ambient;
 
 // ---------------------------------------------------------------- the drag overlay
 
-void AmbientSynthEditor::DragOverlay::paint(juce::Graphics& g)
+void NoctuaryEditor::DragOverlay::paint(juce::Graphics& g)
 {
     if (!active) return;
     // The knob it would land on: a ring in the modulator's colour, and the parameter's name.
@@ -54,7 +54,7 @@ void AmbientSynthEditor::DragOverlay::paint(juce::Graphics& g)
     g.drawText(name, card, juce::Justification::centred, false);
 }
 
-void AmbientSynthEditor::showModDrag(juce::Point<int> screenFrom, juce::Point<int> screenTo,
+void NoctuaryEditor::showModDrag(juce::Point<int> screenFrom, juce::Point<int> screenTo,
                                      const juce::String& name, juce::Colour c)
 {
     dragOverlay_.active = true;
@@ -80,7 +80,7 @@ void AmbientSynthEditor::showModDrag(juce::Point<int> screenFrom, juce::Point<in
     dragOverlay_.repaint();
 }
 
-void AmbientSynthEditor::hideModDrag()
+void NoctuaryEditor::hideModDrag()
 {
     if (!dragOverlay_.active) return;
     dragOverlay_.active = false;
@@ -89,7 +89,7 @@ void AmbientSynthEditor::hideModDrag()
 
 // ---------------------------------------------------------------- the route's depth, as text
 
-float AmbientSynthEditor::routeDepth(ModSource src, ParamId target) const
+float NoctuaryEditor::routeDepth(ModSource src, ParamId target) const
 {
     const ModMatrix& m = proc_.engine().modMatrix();
     for (int i = 0; i < m.count(); ++i)
@@ -116,7 +116,7 @@ static juce::String matrixTextWith(const ModMatrix& m, ModSource src, ParamId ta
     return t;
 }
 
-bool AmbientSynthEditor::setRouteDepth(ModSource src, ParamId target, float depth)
+bool NoctuaryEditor::setRouteDepth(ModSource src, ParamId target, float depth)
 {
     const juce::String t = matrixTextWith(proc_.engine().modMatrix(), src, target, &depth, false);
     const bool ok = proc_.engine().setModMatrixText(t.toRawUTF8());
@@ -124,7 +124,7 @@ bool AmbientSynthEditor::setRouteDepth(ModSource src, ParamId target, float dept
     return ok;
 }
 
-bool AmbientSynthEditor::removeRoute(ModSource src, ParamId target)
+bool NoctuaryEditor::removeRoute(ModSource src, ParamId target)
 {
     const juce::String t = matrixTextWith(proc_.engine().modMatrix(), src, target, nullptr, true);
     const bool ok = proc_.engine().setModMatrixText(t.toRawUTF8());
@@ -134,7 +134,7 @@ bool AmbientSynthEditor::removeRoute(ModSource src, ParamId target)
 
 // ---------------------------------------------------------------- the depth popup
 
-AmbientSynthEditor::DepthPopup::DepthPopup(AmbientSynthEditor& o, ModSource s, ParamId t, juce::Colour c)
+NoctuaryEditor::DepthPopup::DepthPopup(NoctuaryEditor& o, ModSource s, ParamId t, juce::Colour c)
     : owner(o), source(s), target(t), colour(c)
 {
     depth.setSliderStyle(juce::Slider::LinearHorizontal);
@@ -160,12 +160,12 @@ AmbientSynthEditor::DepthPopup::DepthPopup(AmbientSynthEditor& o, ModSource s, P
     juce::Desktop::getInstance().addGlobalMouseListener(this);
 }
 
-AmbientSynthEditor::DepthPopup::~DepthPopup()
+NoctuaryEditor::DepthPopup::~DepthPopup()
 {
     juce::Desktop::getInstance().removeGlobalMouseListener(this);
 }
 
-void AmbientSynthEditor::DepthPopup::paint(juce::Graphics& g)
+void NoctuaryEditor::DepthPopup::paint(juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat().reduced(0.5f);
     g.setColour(ui::card.withAlpha(0.97f));
@@ -179,7 +179,7 @@ void AmbientSynthEditor::DepthPopup::paint(juce::Graphics& g)
                getLocalBounds().removeFromTop(18).reduced(8, 0), juce::Justification::centredLeft, false);
 }
 
-void AmbientSynthEditor::DepthPopup::resized()
+void NoctuaryEditor::DepthPopup::resized()
 {
     auto r = getLocalBounds().reduced(8, 6);
     r.removeFromTop(16);
@@ -188,7 +188,7 @@ void AmbientSynthEditor::DepthPopup::resized()
     depth.setBounds(r);
 }
 
-void AmbientSynthEditor::showDepthPopup(ModSource src, ParamId target, juce::Colour c, juce::Point<int> screenAt)
+void NoctuaryEditor::showDepthPopup(ModSource src, ParamId target, juce::Colour c, juce::Point<int> screenAt)
 {
     hideDepthPopup();
     depthPopup_ = std::make_unique<DepthPopup>(*this, src, target, c);
@@ -204,7 +204,7 @@ void AmbientSynthEditor::showDepthPopup(ModSource src, ParamId target, juce::Col
     depthPopup_->toFront(false);
 }
 
-void AmbientSynthEditor::hideDepthPopup()
+void NoctuaryEditor::hideDepthPopup()
 {
     depthPopup_.reset();
 }

@@ -1,6 +1,6 @@
-<img src="docs/logo-128.png" width="96" align="left" alt="AmbientSynth" />
+<img src="docs/logo-128.png" width="96" align="left" alt="Noctuary" />
 
-# AmbientSynth
+# Noctuary
 
 A drone instrument for slowly breathing clusters, built to one brief: the sleep concerts Robert
 Rich has played since 1982 — dense chords in just intonation, no rhythm, changes that take
@@ -16,12 +16,12 @@ cost it features other synthesizers have.
 
 ## Download
 
-**[AmbientSynth-2.0.0-Setup.exe](https://github.com/reneweller-coding/AmbientSynth/releases/download/v2.0.0/AmbientSynth-2.0.0-Setup.exe)**
+**[Noctuary-2.0.0-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.0/Noctuary-2.0.0-Setup.exe)**
 installs the standalone, the VST3 and the preset library, and offers to fetch the sample library as
 well. Nothing else has to be installed: the runtime is linked in. There is a
-**[portable zip](https://github.com/reneweller-coding/AmbientSynth/releases/download/v2.0.0/AmbientSynth-2.0.0-portable.zip)**
+**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.0/Noctuary-2.0.0-portable.zip)**
 for anyone who would rather not run an installer, and a
-**[manual](https://github.com/reneweller-coding/AmbientSynth/releases/download/v2.0.0/AmbientSynth-Manual.pdf)**
+**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.0.0/Noctuary-Manual.pdf)**
 — every tab of the panel as a picture, what each knob does, and seven chapters on why the
 instrument is built the way it is, with the mathematics and the references.
 
@@ -139,7 +139,7 @@ sonifications from NASA, 724 cylinder and early-radio transfers from the Library
 | `Tools/render/` | `ambient_render`: offline renderer to WAV with per-second measurements, journeys and a rule-book audit of the conductor. | Core |
 | `Tools/library/` | The library pipeline: generates, renders, measures and lays out the presets. | Python, numpy |
 | `Tests/` | The self test, the host test, the race test and the SIMD path tests (below). | Core, JUCE for the host test |
-| `Deploy/` | `build_release.ps1` builds, checks and packages; `AmbientSynth.iss` is the installer. | Inno Setup 6+ |
+| `Deploy/` | `build_release.ps1` builds, checks and packages; `Noctuary.iss` is the installer. | Inno Setup 6+ |
 | `Quest/` | A native Meta Quest app against the same core: OpenXR, hand tracking, Oboe. Builds; not yet run on a headset. | NDK, OpenXR, Oboe |
 | `docs/concept.md` | Sound-design and architecture notes. | |
 
@@ -150,7 +150,7 @@ cmake -S . -B build -G "Visual Studio 18 2026" -A x64
 cmake --build build --config Release
 ```
 
-Outputs: the VST3 under `build/Plugin/AmbientSynth_artefacts/Release/VST3/` (copy the folder to
+Outputs: the VST3 under `build/Plugin/Noctuary_artefacts/Release/VST3/` (copy the folder to
 `C:\Program Files\Common Files\VST3`), the standalone beside it, `ambient_render` under
 `build/Tools/render/Release/`, and the tests under `build/Tests/Release/`. The first configure
 downloads JUCE. `-DAMBIENT_BUILD_PLUGIN=OFF` builds only the core and the tools, which needs no

@@ -1,4 +1,4 @@
-// AmbientSynth -- a pitch shifter in the spectrum, for loops.
+// Noctuary -- a pitch shifter in the spectrum, for loops.
 //
 // A pitch shifter inside a feedback loop hears its own output again on every pass, and whatever it
 // does to a sound once it does a hundred times. The granular shifter the shimmer used -- two read

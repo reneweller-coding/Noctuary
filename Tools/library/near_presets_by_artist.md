@@ -1,6 +1,6 @@
 # Near-Presets je Künstler — welche, wie oft
 
-Stand: `AmbientSynth-near/Core/src/NearPresets.inc`, 107 Near-Presets in 12 Familien (Flutes, Bowls, Water, Signals, Bells, Radio, Library, Voices, Ice, Strings, Sequences, Archive), zusammengefasst zu 35 Gruppen. Ein Pack-Preset trägt genau ein Near-Preset, also ist die Tabelle ein Zuggewicht pro Künstler, kein Stundenbudget.
+Stand: `Noctuary-near/Core/src/NearPresets.inc`, 107 Near-Presets in 12 Familien (Flutes, Bowls, Water, Signals, Bells, Radio, Library, Voices, Ice, Strings, Sequences, Archive), zusammengefasst zu 35 Gruppen. Ein Pack-Preset trägt genau ein Near-Preset, also ist die Tabelle ein Zuggewicht pro Künstler, kein Stundenbudget.
 
 Drei Größen pro Künstler:
 

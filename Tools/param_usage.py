@@ -1,4 +1,4 @@
-"""AmbientSynth -- which of the instrument's parameters the presets actually use.
+"""Noctuary -- which of the instrument's parameters the presets actually use.
 
 The parameter table has 386 entries. The presets are 191 compiled in and 6000 in the library.
 This counts, for every parameter, how many presets move it off its default and how many point a

@@ -1,4 +1,4 @@
-// AmbientSynth -- built-in presets. A preset is a name plus "key=value;key=value"
+// Noctuary -- built-in presets. A preset is a name plus "key=value;key=value"
 // over the parameter table; unspecified parameters take their defaults.
 //
 // Two independent layers can be loaded and combined:
@@ -117,7 +117,7 @@ inline bool inScope(ParamId id, PresetScope scope)
 bool loadPresetPack(const char* path);      // false if the file is missing or a line is malformed
 int  loadPresetPacksIn(const char* dir);    // every *.ambientpack in a directory; returns how many loaded
 // $AMBIENT_PACKS (';'-separated) if it finds anything, else the user's own
-// Documents/AmbientSynth/Packs and the folders an installer writes to (Windows: ProgramData and
+// Documents/Noctuary/Packs and the folders an installer writes to (Windows: ProgramData and
 // LocalAppData; elsewhere /usr/local/share and /usr/share). A pack found twice loads once.
 int  loadDefaultPresetPacks();
 void clearPresetPacks();
@@ -143,7 +143,7 @@ const char* presetFilePath(int presetIndex, int which);
 // A file named relative to the library's root ("Archive/NASA/Historical/...flac"), as the
 // compiled-in banks name theirs: looked for under $AMBIENT_LIBRARY, beside every loaded pack
 // folder (the library is the folder the Packs folder is in), in the user's and the installer's
-// AmbientSynth folders, and last relative to the working directory (the source tree's Library).
+// Noctuary folders, and last relative to the working directory (the source tree's Library).
 // Empty if nowhere. The .flac beside a named .wav counts, as everywhere else.
 std::string resolveLibraryFile(const char* relative);
 

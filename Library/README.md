@@ -1,4 +1,4 @@
-# The AmbientSynth preset library
+# The Noctuary preset library
 
 Fourteen thousand three hundred and thirty-six presets in fifty-six packs, the two hundred and
 fifty-six compiled into the instrument, and the material they play.
@@ -37,7 +37,7 @@ Library/
 The clips were generated in `G:/Tools/VRAudio/StableAudio3` (`build/`, `build_fr/`, the prompt lists
 in `prompts/`); the category `tape-loop` was renamed `tapeloop` on the way in, because a `-loop` in a
 name makes the engine treat a clip as a seamless loop (`build/library_renames.json`). The previous
-library is backed up on `M:/Samples/AmbientSynth-Backup/2026-09-10` and `2026-09-11`.
+library is backed up on `M:/Samples/Noctuary-Backup/2026-09-10` and `2026-09-11`.
 
 ## How a preset is made
 
@@ -122,15 +122,15 @@ bronze bowl 0.92. A bell struck once is not a texture; the number will say so.
 ## Installing it
 
 The synth loads every `*.ambientpack` in `$AMBIENT_PACKS` (one folder, or several separated by `;`),
-and otherwise in `Documents/AmbientSynth/Packs`. A pack names its files relative to its own folder, as
+and otherwise in `Documents/Noctuary/Packs`. A pack names its files relative to its own folder, as
 `../Textures/...`, `../Wavetables/<shelf>/...` and `../Impulses/...`, so keep the folders together:
 
 ```
-Documents/AmbientSynth/Packs             <- Library/Packs
-Documents/AmbientSynth/Textures          <- Library/Textures
-Documents/AmbientSynth/FieldRecordings   <- Library/FieldRecordings
-Documents/AmbientSynth/Wavetables        <- Library/Wavetables
-Documents/AmbientSynth/Impulses          <- Library/Impulses
+Documents/Noctuary/Packs             <- Library/Packs
+Documents/Noctuary/Textures          <- Library/Textures
+Documents/Noctuary/FieldRecordings   <- Library/FieldRecordings
+Documents/Noctuary/Wavetables        <- Library/Wavetables
+Documents/Noctuary/Impulses          <- Library/Impulses
 ```
 
 A preset whose sample is missing still loads; it just leaves that slot empty.

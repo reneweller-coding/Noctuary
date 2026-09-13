@@ -1,4 +1,4 @@
-// AmbientSynth -- the preset map: every built-in preset is a point in a plane (PresetMeta);
+// Noctuary -- the preset map: every built-in preset is a point in a plane (PresetMeta);
 // a cursor anywhere in the plane blends the presets around it, weighted by a Gaussian of
 // the distance (radius = its sigma). On a point the blend is that preset; between points
 // it is a new sound that has never been saved. The engine runs this at control rate when

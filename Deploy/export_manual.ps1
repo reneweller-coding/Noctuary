@@ -1,4 +1,4 @@
-# AmbientSynth -- the manual on its own, from a build that is already there, with the standalone
+# Noctuary -- the manual on its own, from a build that is already there, with the standalone
 # MUTED while it photographs itself.
 #
 #   powershell -File Deploy\export_manual.ps1 [-Toolchain intel|msvc]
@@ -17,7 +17,7 @@ $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $root
 $python = "Tools\TextureGen\.venv\Scripts\python.exe"
 $buildDir = Join-Path $root ($(if ($Toolchain -eq "intel") { "build-release-intel" } else { "build-release" }))
-$exe = Join-Path $buildDir "Plugin\AmbientSynth_artefacts\Release\Standalone\AmbientSynth.exe"
+$exe = Join-Path $buildDir "Plugin\Noctuary_artefacts\Release\Standalone\Noctuary.exe"
 if (-not (Test-Path $exe)) { throw "no release standalone at $exe -- run build_release.ps1 -SkipManual -NoSetup first" }
 
 $manualDir = Join-Path $root "docs\manual"
@@ -42,5 +42,5 @@ Get-ChildItem $manualWork -File | ForEach-Object {
     catch { $copyFailed = $true }
 }
 if ($copyFailed) { Write-Warning "docs\manual could not be fully updated (a file is open there); the installer takes the manual from $manualWork" }
-$pdf = Join-Path $manualWork "AmbientSynth-Manual.pdf"
+$pdf = Join-Path $manualWork "Noctuary-Manual.pdf"
 if (Test-Path $pdf) { Write-Host ("  manual: {0:N1} MB" -f ((Get-Item $pdf).Length / 1MB)) -ForegroundColor Green } else { throw "no manual PDF was written" }

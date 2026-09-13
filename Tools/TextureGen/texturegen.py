@@ -1,4 +1,4 @@
-"""TextureGen: text-to-audio textures for AmbientSynth's Texture source slots.
+"""TextureGen: text-to-audio textures for Noctuary's Texture source slots.
 
 PySide6 GUI over texturegen_worker.py (which runs as a child process so torch never lives
 inside a Qt thread). Prompts become WAV files in the Textures folder, named
@@ -43,7 +43,7 @@ PROMPT_IDEAS = [
 class Main(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AmbientSynth TextureGen")
+        self.setWindowTitle("Noctuary TextureGen")
         self.resize(980, 720)
         self.proc = None
         self.queue = []
@@ -110,7 +110,7 @@ class Main(QMainWindow):
         stopp = QPushButton("Stop"); stopp.clicked.connect(self.player.stop)
         folder = QPushButton("Folder"); folder.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.out_dir.text())))
         prow.addWidget(play); prow.addWidget(stopp); prow.addWidget(folder)
-        hint = QLabel("In AmbientSynth: Source 2/3 → Type Texture → Texture... → pick the file. A _A3-style suffix pitches it to the key.")
+        hint = QLabel("In Noctuary: Source 2/3 → Type Texture → Texture... → pick the file. A _A3-style suffix pitches it to the key.")
         hint.setWordWrap(True); right.addWidget(hint)
         self.on_model()
         self.load_existing()

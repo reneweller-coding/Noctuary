@@ -1,4 +1,4 @@
-// AmbientSynth self test: parameter table, tuning, envelope, engine render,
+// Noctuary self test: parameter table, tuning, envelope, engine render,
 // cluster brain, determinism. Exit code 0 = all passed.
 #include "ambient/Engine.h"
 #include "ambient/Params.h"
@@ -2411,7 +2411,7 @@ void testPresetPacks()
     // the metadata must come back, and the sample paths must resolve next to the pack file.
     const int base = numPresets();
     const int baseFamilies = numPresetFamilies();
-    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "ambientsynth_packtest";
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "noctuary_packtest";
     std::error_code ec;
     std::filesystem::remove_all(dir, ec);
     std::filesystem::create_directories(dir, ec);

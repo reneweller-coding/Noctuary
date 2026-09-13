@@ -1,4 +1,4 @@
-// AmbientSynth -- Cluster Brain: the generative "sleep concert" conductor.
+// Noctuary -- Cluster Brain: the generative "sleep concert" conductor.
 // Slowly starts and stops notes of the current scale around a wandering root,
 // weighted by interval consonance. Emits note events; the engine turns them into
 // voices with their long envelopes. Header-only (templated callbacks), no allocation.

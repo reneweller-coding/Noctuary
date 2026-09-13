@@ -1,7 +1,7 @@
-# AmbientSynth for Meta Quest -- native OpenXR app (NativeActivity, GLES 3, Oboe).
+# Noctuary for Meta Quest -- native OpenXR app (NativeActivity, GLES 3, Oboe).
 # Configure with the NDK toolchain, see build_apk.ps1.
 cmake_minimum_required(VERSION 3.22)
-project(AmbientQuest LANGUAGES C CXX)
+project(NoctuaryQuest LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +29,7 @@ target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/androi
 
 add_library(ambientquest SHARED src/main.cpp)
 target_compile_definitions(ambientquest PRIVATE XR_USE_PLATFORM_ANDROID XR_USE_GRAPHICS_API_OPENGL_ES)
-target_link_libraries(ambientquest PRIVATE AmbientCore openxr_loader oboe native_app_glue android log EGL GLESv3)
+target_link_libraries(ambientquest PRIVATE NoctuaryCore openxr_loader oboe native_app_glue android log EGL GLESv3)
 # Keep ANativeActivity_onCreate from the glue library.
 target_link_options(ambientquest PRIVATE -u ANativeActivity_onCreate)
 if(NOT MSVC)

@@ -1,4 +1,4 @@
-// AmbientSynth -- the spectrum strip along the bottom of the left column.
+// Noctuary -- the spectrum strip along the bottom of the left column.
 //
 // The header carries a small spectrum already, at 1024 points and 96 bands: enough to see that
 // something is loud, not enough to see what it is. This one has the width of the whole left
@@ -21,7 +21,7 @@
 
 using namespace ambient;
 
-AmbientSynthEditor::SpectrumView::SpectrumView(AmbientSynthProcessor& p)
+NoctuaryEditor::SpectrumView::SpectrumView(NoctuaryProcessor& p)
     : proc(p), re(kN), im(kN), window(kN), fft(std::make_unique<ambient::Fft>(kN)),
       band(kBands, kFloorDb), hold(kBands, kFloorDb)
 {
@@ -33,7 +33,7 @@ AmbientSynthEditor::SpectrumView::SpectrumView(AmbientSynthProcessor& p)
     startTimerHz(12);
 }
 
-void AmbientSynthEditor::SpectrumView::timerCallback()
+void NoctuaryEditor::SpectrumView::timerCallback()
 {
     if (!isShowing()) return;
     proc.engine().outputTap(re.data(), kN);
@@ -71,19 +71,19 @@ void AmbientSynthEditor::SpectrumView::timerCallback()
     repaint();
 }
 
-void AmbientSynthEditor::SpectrumView::mouseMove(const juce::MouseEvent& e)
+void NoctuaryEditor::SpectrumView::mouseMove(const juce::MouseEvent& e)
 {
     hoverX = e.x;
     repaint();
 }
 
-void AmbientSynthEditor::SpectrumView::mouseExit(const juce::MouseEvent&)
+void NoctuaryEditor::SpectrumView::mouseExit(const juce::MouseEvent&)
 {
     hoverX = -1;
     repaint();
 }
 
-void AmbientSynthEditor::SpectrumView::paint(juce::Graphics& g)
+void NoctuaryEditor::SpectrumView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "OUTPUT SPECTRUM", ui::voiceCol);

@@ -1,4 +1,4 @@
-// AmbientSynth -- convolution reverb ("Room"): a third, optional reverb on the far plane that
+// Noctuary -- convolution reverb ("Room"): a third, optional reverb on the far plane that
 // plays a real (or generated) impulse response of up to a minute.
 //
 // Partitioned convolution with partitions that grow along the impulse (Battenberg and Avizienis

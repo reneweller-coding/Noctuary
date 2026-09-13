@@ -1,4 +1,4 @@
-"""AmbientSynth -- turn the in-app help into an HTML manual and a PDF.
+"""Noctuary -- turn the in-app help into an HTML manual and a PDF.
 
 The help page inside the instrument is the manual, and its pictures are snapshots of the panel
 itself: the real sections with their real values, taken as the page is opened. That is what keeps
@@ -8,8 +8,8 @@ step job:
 
     set AMBIENT_PRESET=Tidal Expanse
     set AMBIENT_MANUAL=docs\\manual
-    build\\...\\AmbientSynth.exe            waits five seconds, writes the folder, quits
-    python Tools/make_manual.py           folder -> AmbientSynth-Manual.html -> .pdf
+    build\\...\\Noctuary.exe            waits five seconds, writes the folder, quits
+    python Tools/make_manual.py           folder -> Noctuary-Manual.html -> .pdf
 
 AMBIENT_PRESET matters as much as the rest. The pictures are of the panel as it stands, so a
 preset with a source switched off gives a picture of a greyed-out section, and the manual then
@@ -187,7 +187,7 @@ def main():
     logo = os.path.relpath(os.path.join(ROOT, "docs", "logo-256.png"), a.dir).replace("\\", "/")
     body.append('<div class="cover">')
     body.append('<img class="logo" src="%s" alt="">' % logo)
-    body.append("<h1>AmbientSynth</h1>")
+    body.append("<h1>Noctuary</h1>")
     body.append('<p class="sub">Manual &middot; version %s</p>' % html.escape(man.get("version", "")))
     if os.path.isfile(os.path.join(a.dir, "panel.png")):
         body.append('<img class="panel" src="panel.png" alt="The instrument">')
@@ -254,14 +254,14 @@ def main():
                 body.append('</div>')
         body.append("</div>")
 
-    body.append('<footer>AmbientSynth %s &middot; the pictures in this manual are snapshots of the '
+    body.append('<footer>Noctuary %s &middot; the pictures in this manual are snapshots of the '
                 'instrument itself, taken while it was running. AGPL-3.0.</footer>'
                 % html.escape(man.get("version", "")))
 
-    out_html = os.path.join(a.dir, "AmbientSynth-Manual.html")
+    out_html = os.path.join(a.dir, "Noctuary-Manual.html")
     with open(out_html, "w", encoding="utf-8") as f:
         f.write("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n"
-                "<title>AmbientSynth Manual</title>\n<style>%s</style></head><body>\n%s\n"
+                "<title>Noctuary Manual</title>\n<style>%s</style></head><body>\n%s\n"
                 "</body></html>\n" % (CSS, "\n".join(body)))
     print("wrote %s (%.0f KB)" % (out_html, os.path.getsize(out_html) / 1024))
     if a.no_pdf:
@@ -274,7 +274,7 @@ def main():
     if edge is None:
         print("no Edge or Chrome found -- the HTML is written, print it yourself")
         return 0
-    pdf = os.path.join(a.dir, "AmbientSynth-Manual.pdf")
+    pdf = os.path.join(a.dir, "Noctuary-Manual.pdf")
     if os.path.exists(pdf):
         os.remove(pdf)
     # --headless=new, not --headless. On Edge 152 the old flag exits without a word and without
@@ -287,7 +287,7 @@ def main():
     # the printing has written anything, so the file is waited for, not just looked for. That is
     # how a print that worked in the morning produced nothing in the afternoon.
     for flag in ("--headless=new", "--headless"):
-        profile = tempfile.mkdtemp(prefix="ambientsynth-manual-print-")
+        profile = tempfile.mkdtemp(prefix="noctuary-manual-print-")
         cmd = [edge, flag, "--disable-gpu", "--no-pdf-header-footer", "--user-data-dir=" + profile,
                "--print-to-pdf=" + pdf, url]
         try:

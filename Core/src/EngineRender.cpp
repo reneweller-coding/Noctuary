@@ -1,4 +1,4 @@
-// AmbientSynth -- what the engine renders: process() with its denormal control and its sleep
+// Noctuary -- what the engine renders: process() with its denormal control and its sleep
 // check, and renderChunk, which is the signal path from the voices through both planes to the
 // master. Split out of Engine.cpp.
 #include "ambient/Engine.h"

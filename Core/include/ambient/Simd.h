@@ -1,4 +1,4 @@
-// AmbientSynth -- the loops worth vectorising by hand.
+// Noctuary -- the loops worth vectorising by hand.
 //
 // Every voice is a bank of rotating phasors: per sample and per partial, one complex multiply to
 // turn the phasor, one multiply-add into the sum, one add to ramp the amplitude. With up to six

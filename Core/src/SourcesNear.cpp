@@ -1,4 +1,4 @@
-// AmbientSynth -- the near sources (13.09.2026): what the instrument plays close to the ear.
+// Noctuary -- the near sources (13.09.2026): what the instrument plays close to the ear.
 //
 // Every source the instrument had was a plane -- a bank, a table, a recording, a string, all of
 // them made to be sustained and to be sent back into the far reverb. Rich's foreground is

@@ -1,5 +1,5 @@
 add_executable(ambient_render main.cpp)
-target_link_libraries(ambient_render PRIVATE AmbientCore)
+target_link_libraries(ambient_render PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_render PRIVATE /W4 /permissive- /utf-8)
 endif()
@@ -13,7 +13,7 @@ endif()
 
 # The conductor's hour, measured without audio: the rule book's section 11 as a tool.
 add_executable(ambient_brain_audit brain_audit.cpp)
-target_link_libraries(ambient_brain_audit PRIVATE AmbientCore)
+target_link_libraries(ambient_brain_audit PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_brain_audit PRIVATE /W4 /permissive- /utf-8)
 endif()

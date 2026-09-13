@@ -36,7 +36,7 @@ juce::Colour familyColour(int f)
 }
 }
 
-AmbientSynthEditor::BrowseView::BrowseView(AmbientSynthProcessor& p) : proc(p), map(*this)
+NoctuaryEditor::BrowseView::BrowseView(NoctuaryProcessor& p) : proc(p), map(*this)
 {
     search.setTextToShowWhenEmpty("search", kDim);
     search.onTextChange = [this] { applyFilter(); };
@@ -109,7 +109,7 @@ AmbientSynthEditor::BrowseView::BrowseView(AmbientSynthProcessor& p) : proc(p), 
     star.onClick = [this] { if (selected >= 0) { proc.setFavourite(selected, !proc.isFavourite(selected)); applyFilter(); } };
     onlyFavourites.onClick = [this] { applyFilter(); };
     favouritesFirst.setToggleState(proc.favouritesFirst(), juce::dontSendNotification);
-    favouritesFirst.setTooltip("Puts the starred presets at the top of the list, whatever the sort. Remembered with the favourites (Documents\\AmbientSynth\\favourites.txt).");
+    favouritesFirst.setTooltip("Puts the starred presets at the top of the list, whatever the sort. Remembered with the favourites (Documents\\Noctuary\\favourites.txt).");
     favouritesFirst.onClick = [this] { proc.setFavouritesFirst(favouritesFirst.getToggleState()); applyFilter(); };
     hideDull.onClick = [this] { applyFilter(); };
     hideDull.setTooltip("Hides presets that measured as barely moving and barely wide -- the dull tail of a generated library");
@@ -217,7 +217,7 @@ AmbientSynthEditor::BrowseView::BrowseView(AmbientSynthProcessor& p) : proc(p), 
     startTimerHz(15);
 }
 
-void AmbientSynthEditor::BrowseView::setMode(int m)
+void NoctuaryEditor::BrowseView::setMode(int m)
 {
     mode = m;
     modeClassic.setToggleState(m == 0, juce::dontSendNotification);
@@ -235,7 +235,7 @@ void AmbientSynthEditor::BrowseView::setMode(int m)
     applyFilter();
 }
 
-void AmbientSynthEditor::BrowseView::Column::paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool)
+void NoctuaryEditor::BrowseView::Column::paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool)
 {
     const bool on = (row == 0) ? chosen.empty() : chosen.count(row) > 0;
     if (on) g.fillAll(kAccent.withAlpha(0.18f));
@@ -252,7 +252,7 @@ void AmbientSynthEditor::BrowseView::Column::paintListBoxItem(int row, juce::Gra
     }
 }
 
-void AmbientSynthEditor::BrowseView::Column::updateCounts()
+void NoctuaryEditor::BrowseView::Column::updateCounts()
 {
     if (countsFor == numPresets() && counts.size() == static_cast<size_t>(items.size())) return;
     countsFor = numPresets();
@@ -264,7 +264,7 @@ void AmbientSynthEditor::BrowseView::Column::updateCounts()
     }
 }
 
-void AmbientSynthEditor::BrowseView::Column::listBoxItemClicked(int row, const juce::MouseEvent& e)
+void NoctuaryEditor::BrowseView::Column::listBoxItemClicked(int row, const juce::MouseEvent& e)
 {
     if (row == 0) chosen.clear();
     else if (e.mods.isCommandDown() || e.mods.isCtrlDown()) { if (chosen.count(row)) chosen.erase(row); else chosen.insert(row); }
@@ -274,7 +274,7 @@ void AmbientSynthEditor::BrowseView::Column::listBoxItemClicked(int row, const j
     if (owner) owner->applyFilter();
 }
 
-bool AmbientSynthEditor::BrowseView::Column::passes(int preset) const
+bool NoctuaryEditor::BrowseView::Column::passes(int preset) const
 {
     if (chosen.empty()) return true;
     const PresetMeta& m = presetMeta(preset);
@@ -286,7 +286,7 @@ bool AmbientSynthEditor::BrowseView::Column::passes(int preset) const
     return false;
 }
 
-void AmbientSynthEditor::BrowseView::applyFilter()
+void NoctuaryEditor::BrowseView::applyFilter()
 {
     ++filterGen;          // the map's cached cloud is drawn from this list
     filtered.clear();
@@ -342,7 +342,7 @@ void AmbientSynthEditor::BrowseView::applyFilter()
 // The info panel. Headings in the accent colour, the prose under them, wrapped -- the same shape
 // u-he uses, because it is the right one: name at the top, then what it is, then what your hands
 // do, then where it is filed.
-void AmbientSynthEditor::BrowseView::InfoPanel::paint(juce::Graphics& g)
+void NoctuaryEditor::BrowseView::InfoPanel::paint(juce::Graphics& g)
 {
     auto r = getLocalBounds();
     g.setColour(ui::card.withAlpha(0.55f));
@@ -397,7 +397,7 @@ void AmbientSynthEditor::BrowseView::InfoPanel::paint(juce::Graphics& g)
     }
 }
 
-void AmbientSynthEditor::BrowseView::updateInfo()
+void NoctuaryEditor::BrowseView::updateInfo()
 {
     const int want = selected >= 0 ? selected : proc.getCurrentProgram();
     if (want == infoFor) return;
@@ -410,7 +410,7 @@ void AmbientSynthEditor::BrowseView::updateInfo()
     info2.repaint();
 }
 
-bool AmbientSynthEditor::BrowseView::macroActive() const
+bool NoctuaryEditor::BrowseView::macroActive() const
 {
     for (const auto& mc : macros)
         if (mc.slider.getMinValue() > 0.0 || mc.slider.getMaxValue() < 1.0) return true;
@@ -421,7 +421,7 @@ bool AmbientSynthEditor::BrowseView::macroActive() const
 // points -- their places are what they mean -- so the view closes in on what is left instead,
 // which is the same gesture from the other side. Only on the filter's own action, never while
 // the mouse is panning or zooming, so the view never fights the hand.
-void AmbientSynthEditor::BrowseView::fitToFilter()
+void NoctuaryEditor::BrowseView::fitToFilter()
 {
     fitPending = false;
     if (mode != 1) return;
@@ -442,7 +442,7 @@ void AmbientSynthEditor::BrowseView::fitToFilter()
     map.zoomTo(0.5f * (x0 + x1), 0.5f * (y0 + y1), z);
 }
 
-void AmbientSynthEditor::BrowseView::paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool sel)
+void NoctuaryEditor::BrowseView::paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool sel)
 {
     if (row < 0 || row >= static_cast<int>(filtered.size())) return;
     const int i = filtered[static_cast<size_t>(row)];
@@ -465,7 +465,7 @@ void AmbientSynthEditor::BrowseView::paintListBoxItem(int row, juce::Graphics& g
     }
 }
 
-void AmbientSynthEditor::BrowseView::listBoxItemClicked(int row, const juce::MouseEvent& e)
+void NoctuaryEditor::BrowseView::listBoxItemClicked(int row, const juce::MouseEvent& e)
 {
     if (row < 0 || row >= static_cast<int>(filtered.size())) return;
     selected = filtered[static_cast<size_t>(row)];
@@ -483,7 +483,7 @@ void AmbientSynthEditor::BrowseView::listBoxItemClicked(int row, const juce::Mou
     map.repaint();
 }
 
-void AmbientSynthEditor::BrowseView::timerCallback()
+void NoctuaryEditor::BrowseView::timerCallback()
 {
     map.repaint(); list.repaint(); updateInfo();
     if (routeEditOpen) {   // same pattern as the gesture editor: mirror while open, apply when gone
@@ -498,7 +498,7 @@ void AmbientSynthEditor::BrowseView::timerCallback()
     }
 }
 
-void AmbientSynthEditor::BrowseView::showRouteEditor()
+void NoctuaryEditor::BrowseView::showRouteEditor()
 {
     auto* editor = new juce::TextEditor();
     editor->setMultiLine(true, true);
@@ -525,7 +525,7 @@ void AmbientSynthEditor::BrowseView::showRouteEditor()
     routeEditor = editor; routeEditText = editor->getText(); routeEditOpen = true;
 }
 
-void AmbientSynthEditor::BrowseView::paint(juce::Graphics& g)
+void NoctuaryEditor::BrowseView::paint(juce::Graphics& g)
 {
     g.fillAll(kBg);
     g.setColour(kGroupFill);
@@ -542,7 +542,7 @@ void AmbientSynthEditor::BrowseView::paint(juce::Graphics& g)
     }
 }
 
-void AmbientSynthEditor::BrowseView::resized()
+void NoctuaryEditor::BrowseView::resized()
 {
     auto area = getLocalBounds().reduced(16);
     auto top = area.removeFromTop(26);
@@ -631,27 +631,27 @@ void AmbientSynthEditor::BrowseView::resized()
 }
 
 // The window onto the plane: at zoom 1 and centre (0.5, 0.5) this is exactly the old fixed view.
-juce::Point<float> AmbientSynthEditor::BrowseView::MapView::toScreen(float x, float y) const
+juce::Point<float> NoctuaryEditor::BrowseView::MapView::toScreen(float x, float y) const
 {
     const auto r = getLocalBounds().toFloat().reduced(18.0f);
     return { r.getCentreX() + (x - centre.x) * zoom * r.getWidth(),
              r.getCentreY() - (y - centre.y) * zoom * r.getHeight() };
 }
 
-juce::Point<float> AmbientSynthEditor::BrowseView::MapView::toMapRaw(juce::Point<float> s) const
+juce::Point<float> NoctuaryEditor::BrowseView::MapView::toMapRaw(juce::Point<float> s) const
 {
     const auto r = getLocalBounds().toFloat().reduced(18.0f);
     return { centre.x + (s.x - r.getCentreX()) / juce::jmax(1.0f, zoom * r.getWidth()),
              centre.y + (r.getCentreY() - s.y) / juce::jmax(1.0f, zoom * r.getHeight()) };
 }
 
-juce::Point<float> AmbientSynthEditor::BrowseView::MapView::toMap(juce::Point<float> s) const
+juce::Point<float> NoctuaryEditor::BrowseView::MapView::toMap(juce::Point<float> s) const
 {
     const auto m = toMapRaw(s);
     return { juce::jlimit(0.0f, 1.0f, m.x), juce::jlimit(0.0f, 1.0f, m.y) };
 }
 
-void AmbientSynthEditor::BrowseView::MapView::zoomTo(float x, float y, float z)
+void NoctuaryEditor::BrowseView::MapView::zoomTo(float x, float y, float z)
 {
     zoom = juce::jlimit(1.0f, 40.0f, z);
     centre = { x, y };
@@ -659,7 +659,7 @@ void AmbientSynthEditor::BrowseView::MapView::zoomTo(float x, float y, float z)
     repaint();
 }
 
-void AmbientSynthEditor::BrowseView::MapView::mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& w)
+void NoctuaryEditor::BrowseView::MapView::mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& w)
 {
     // Zoom about the mouse: the point of the plane under the cursor stays under the cursor, so
     // the eye can follow a cluster in while it opens up.
@@ -675,12 +675,12 @@ void AmbientSynthEditor::BrowseView::MapView::mouseWheelMove(const juce::MouseEv
     repaint();
 }
 
-void AmbientSynthEditor::BrowseView::MapView::mouseDoubleClick(const juce::MouseEvent&)
+void NoctuaryEditor::BrowseView::MapView::mouseDoubleClick(const juce::MouseEvent&)
 {
     zoomTo(0.5f, 0.5f, 1.0f);
 }
 
-int AmbientSynthEditor::BrowseView::MapView::nearestPreset(juce::Point<float> p, float maxDist) const
+int NoctuaryEditor::BrowseView::MapView::nearestPreset(juce::Point<float> p, float maxDist) const
 {
     int best = -1; float bd = maxDist * maxDist;
     for (int i = 0; i < std::min(numPresetMeta(), numPresets()); ++i) {
@@ -691,7 +691,7 @@ int AmbientSynthEditor::BrowseView::MapView::nearestPreset(juce::Point<float> p,
     return best;
 }
 
-void AmbientSynthEditor::BrowseView::MapView::paint(juce::Graphics& g)
+void NoctuaryEditor::BrowseView::MapView::paint(juce::Graphics& g)
 {
     g.setColour(kBg.brighter(0.03f));
     g.fillRoundedRectangle(getLocalBounds().toFloat(), 6.0f);
@@ -931,13 +931,13 @@ void AmbientSynthEditor::BrowseView::MapView::paint(juce::Graphics& g)
     }
 }
 
-void AmbientSynthEditor::BrowseView::MapView::mouseMove(const juce::MouseEvent& e)
+void NoctuaryEditor::BrowseView::MapView::mouseMove(const juce::MouseEvent& e)
 {
     const int h = nearestPreset(e.position, 10.0f);
     if (h != hover) { hover = h; repaint(); }
 }
 
-void AmbientSynthEditor::BrowseView::MapView::mouseDown(const juce::MouseEvent& e)
+void NoctuaryEditor::BrowseView::MapView::mouseDown(const juce::MouseEvent& e)
 {
     dragging = false;
     panning = false;
@@ -954,7 +954,7 @@ void AmbientSynthEditor::BrowseView::MapView::mouseDown(const juce::MouseEvent& 
     mouseDrag(e);
 }
 
-void AmbientSynthEditor::BrowseView::MapView::mouseDrag(const juce::MouseEvent& e)
+void NoctuaryEditor::BrowseView::MapView::mouseDrag(const juce::MouseEvent& e)
 {
     if (panning) {
         const auto r = getLocalBounds().toFloat().reduced(18.0f);
@@ -975,9 +975,9 @@ void AmbientSynthEditor::BrowseView::MapView::mouseDrag(const juce::MouseEvent& 
     repaint();
 }
 
-void AmbientSynthEditor::BrowseView::MapView::mouseUp(const juce::MouseEvent&) { dragging = false; panning = false; }
+void NoctuaryEditor::BrowseView::MapView::mouseUp(const juce::MouseEvent&) { dragging = false; panning = false; }
 
-AmbientSynthEditor::PerformView::PerformView(AmbientSynthProcessor& p) : proc(p)
+NoctuaryEditor::PerformView::PerformView(NoctuaryProcessor& p) : proc(p)
 {
     for (int m = 0; m < 8; ++m) {
         const ParamDesc& d = paramDesc(static_cast<ParamId>(static_cast<int>(ParamId::MacroA) + m));
@@ -1042,7 +1042,7 @@ AmbientSynthEditor::PerformView::PerformView(AmbientSynthProcessor& p) : proc(p)
     updateSetInfo();
 }
 
-void AmbientSynthEditor::PerformView::updateSetInfo()
+void NoctuaryEditor::PerformView::updateSetInfo()
 {
     setRec.setToggleState(proc.isRecordingSet(), juce::dontSendNotification);
     const int t = static_cast<int>(proc.setTime());
@@ -1053,7 +1053,7 @@ void AmbientSynthEditor::PerformView::updateSetInfo()
     setInfo.setText(text, juce::dontSendNotification);
 }
 
-void AmbientSynthEditor::PerformView::paint(juce::Graphics& g)
+void NoctuaryEditor::PerformView::paint(juce::Graphics& g)
 {
     g.fillAll(kBg);
     g.setColour(kGroupFill);
@@ -1067,7 +1067,7 @@ void AmbientSynthEditor::PerformView::paint(juce::Graphics& g)
     updateSetInfo();
 }
 
-void AmbientSynthEditor::PerformView::resized()
+void NoctuaryEditor::PerformView::resized()
 {
     auto area = getLocalBounds().reduced(24);
     auto top = area.removeFromTop(32);

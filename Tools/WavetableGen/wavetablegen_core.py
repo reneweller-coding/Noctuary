@@ -3,7 +3,7 @@ text prompt (through TextureGen's models) or from a procedural spectral walk.
 
 A wavetable here is an array of shape (frames, 2048), each row one cycle, peak-normalised,
 phase-aligned to its neighbour so morphing between frames does not click. Export writes the
-Serum/Vital layout (frames back to back) as a 32-bit float or 16-bit WAV; AmbientSynth's
+Serum/Vital layout (frames back to back) as a 32-bit float or 16-bit WAV; Noctuary's
 User table analyses that back into spectra (Tools/render --wavetable, the plugin's
 "Wavetable..." button, wavetable.wav on the Quest).
 """

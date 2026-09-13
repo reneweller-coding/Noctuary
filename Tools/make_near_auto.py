@@ -1,4 +1,4 @@
-"""AmbientSynth -- the near layer's Auto table: which foreground a sound preset of a pack brings.
+"""Noctuary -- the near layer's Auto table: which foreground a sound preset of a pack brings.
 
 Rene's table (Tools/library/near_by_artist.json, 13.09.2026) says, per artist, what share of the
 artist's presets get a foreground at all, which near presets they draw from and with what

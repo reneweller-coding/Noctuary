@@ -1,4 +1,4 @@
-// AmbientSynth -- the sound sources per voice: three equal slots.
+// Noctuary -- the sound sources per voice: three equal slots.
 //
 // Source 1 defaults to Additive, which is the voice's strand bank (Voice.h: up to six detuned or
 // stacked copies of a 32-partial spectrum, the classic Oscillator); Additive in Source 2 or 3 is

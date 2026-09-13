@@ -1,4 +1,4 @@
-"""RoomGen: impulse responses for AmbientSynth's convolution Room, from the statistical model of late
+"""RoomGen: impulse responses for Noctuary's convolution Room, from the statistical model of late
 reverberation (Polack 1993; Moorer 1979; Jot 1992).
 
 Why this model. The research round of 11.09.2026 measured the alternatives: neural room generators give a

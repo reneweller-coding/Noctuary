@@ -1,4 +1,4 @@
-"""AmbientSynth -- score every preset, so "make the presets better" has something to aim at.
+"""Noctuary -- score every preset, so "make the presets better" has something to aim at.
 
 Tools/preset_check.py already asks whether a preset is broken: silent, clipping, clicking,
 collapsing in mono. This asks the harder question -- whether it is any good -- and it asks it in

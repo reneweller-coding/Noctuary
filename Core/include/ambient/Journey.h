@@ -1,4 +1,4 @@
-// AmbientSynth -- a journey: presets in a row, each held for a while, each crossfaded into the
+// Noctuary -- a journey: presets in a row, each held for a while, each crossfaded into the
 // next, round and round if it is meant to be endless (13.09.2026, Rene's sets).
 //
 // The score (Score.h) writes parameter ramps down; the map route walks a path between presets by
@@ -115,7 +115,7 @@ struct Journey {
     }
     std::string text() const
     {
-        std::string out = "# AmbientSynth journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n";
+        std::string out = "# Noctuary journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n";
         out += "journey " + name + "\n";
         out += std::string("cyclic ") + (cyclic ? "on" : "off") + "\n";
         for (const JourneyStep& st : steps) {

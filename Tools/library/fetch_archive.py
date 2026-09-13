@@ -137,7 +137,7 @@ def fetch(url, path, dry):
         return "kept", os.path.getsize(path)
     if dry:
         return "would fetch", 0
-    req = urllib.request.Request(url, headers={"User-Agent": "AmbientSynth-archive/1.0 (+library fetch, one file at a time)"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Noctuary-archive/1.0 (+library fetch, one file at a time)"})
     with urllib.request.urlopen(req, timeout=120) as r, open(path + ".part", "wb") as f:
         while True:
             chunk = r.read(1 << 16)

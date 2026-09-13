@@ -1,4 +1,4 @@
-"""AmbientSynth -- the Library of Congress's Citizen DJ sample packs, into the archive.
+"""Noctuary -- the Library of Congress's Citizen DJ sample packs, into the archive.
 
 Citizen DJ (citizen-dj.labs.loc.gov) is the Library of Congress's own sampling project: audio
 from its collections that the Library has identified as free to use, already cut into
@@ -43,7 +43,7 @@ FFMPEG = os.environ.get("AMBIENT_FFMPEG") or "ffmpeg"
 for cand in (r"C:\Anw\Tools\ffmpeg\bin\ffmpeg.exe",):
     if FFMPEG == "ffmpeg" and os.path.exists(cand):
         FFMPEG = cand
-AGENT = "AmbientSynth/2.0 (library tool; +https://github.com/reneweller-coding/AmbientSynth)"
+AGENT = "Noctuary/2.0 (library tool; +https://github.com/reneweller-coding/Noctuary)"
 S3 = "https://s3.amazonaws.com/citizen-dj-assets.labs.loc.gov/samplepacks/"
 SITE = "https://citizen-dj.labs.loc.gov/"
 

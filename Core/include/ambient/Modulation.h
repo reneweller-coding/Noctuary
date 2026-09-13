@@ -1,4 +1,4 @@
-// AmbientSynth -- the modulation section: free LFOs, multi-segment envelopes and a matrix that
+// Noctuary -- the modulation section: free LFOs, multi-segment envelopes and a matrix that
 // connects any source to any number of targets.
 //
 // Until now every modulator in this instrument was soldered to one destination and carried its

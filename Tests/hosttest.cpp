@@ -1,4 +1,4 @@
-// AmbientSynth -- the host contract.
+// Noctuary -- the host contract.
 //
 // The self test measures the instrument; this one measures the plugin around it. Everything here
 // is something a host does and a synth has to survive: prepare and release at rates and block
@@ -39,7 +39,7 @@ bool finite(const juce::AudioBuffer<float>& b)
 }
 
 // A block of audio with a couple of notes and some expression, which is what a host really sends.
-void feed(AmbientSynthProcessor& p, juce::AudioBuffer<float>& buf, int blocks, bool notes)
+void feed(NoctuaryProcessor& p, juce::AudioBuffer<float>& buf, int blocks, bool notes)
 {
     juce::MidiBuffer midi;
     for (int b = 0; b < blocks; ++b) {
@@ -68,7 +68,7 @@ int main()
     // ---------------------------------------------------------------- rates and block sizes
     for (double sr : { 44100.0, 48000.0, 96000.0 }) {
         for (int block : { 16, 64, 512, 2048 }) {
-            auto p = std::make_unique<AmbientSynthProcessor>();
+            auto p = std::make_unique<NoctuaryProcessor>();
             p->setPlayConfigDetails(0, 2, sr, block);
             p->prepareToPlay(sr, block);
             juce::AudioBuffer<float> buf(2, block);
@@ -90,7 +90,7 @@ int main()
 
     // ---------------------------------------------------------------- state round trip
     {
-        auto a = std::make_unique<AmbientSynthProcessor>();
+        auto a = std::make_unique<NoctuaryProcessor>();
         a->prepareToPlay(48000.0, 256);
         juce::Random rng(1234);
         // Move every parameter somewhere unusual, so a state that silently drops one shows up.
@@ -103,7 +103,7 @@ int main()
         juce::MemoryBlock blob;
         a->getStateInformation(blob);
 
-        auto b = std::make_unique<AmbientSynthProcessor>();
+        auto b = std::make_unique<NoctuaryProcessor>();
         b->prepareToPlay(48000.0, 256);
         b->setStateInformation(blob.getData(), static_cast<int>(blob.getSize()));
         int wrong = 0;
@@ -139,7 +139,7 @@ int main()
     // rather than at what the state said, and nothing here would have noticed, because the engine
     // value was right in each case.
     {
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         juce::MemoryBlock blob;
         p->getStateInformation(blob);
@@ -168,7 +168,7 @@ int main()
     // it can see, and through the VST3 wrapper that includes the program change -- so this number,
     // times the number of writes it makes, is the fifteen minutes it gave up after.
     if (std::getenv("AMBIENT_TIMING") != nullptr) {
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         std::printf("  timing: %d programs are on offer\n", p->getNumPrograms());
         auto time = [&p](int from, int count, const char* what) {
@@ -192,7 +192,7 @@ int main()
         // Plays a chord on a fresh instrument and says whether the sound stayed a number, while
         // `pick` is being written to from another thread the whole time.
         auto trial = [&buf](const char* section, double seconds, int seed) {
-            auto p = std::make_unique<AmbientSynthProcessor>();
+            auto p = std::make_unique<NoctuaryProcessor>();
             p->prepareToPlay(48000.0, 256);
             std::vector<juce::AudioProcessorParameter*> pick;
             int i = 0;
@@ -242,7 +242,7 @@ int main()
     // then. Only a sweep is held back, and only until it stops -- so this has to keep working, or
     // presets would quietly play with whatever clip happened to be loaded before.
     {
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         int withClip = -1;
         for (int i = 0; i < p->getNumPrograms() && withClip < 0; ++i)
@@ -264,7 +264,7 @@ int main()
     // B was left from before, so a preset sounded like its history. And a file longer than twelve
     // seconds is read whole now: the Room keeps a minute.
     {
-        const juce::File dir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("ambientsynth_roomtest");
+        const juce::File dir = juce::File::getSpecialLocation(juce::File::tempDirectory).getChildFile("noctuary_roomtest");
         dir.deleteRecursively();
         dir.createDirectory();
         auto writeIr = [](const juce::File& f, double seconds, uint32_t seed) {
@@ -305,7 +305,7 @@ int main()
             if (std::strcmp(preset(i).name, "Room Test One") == 0) one = i;
         }
         check(both >= 0 && one >= 0, "its presets are in the list");
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         if (both >= 0 && one >= 0) {
             p->applySoundPreset(both);
@@ -324,7 +324,7 @@ int main()
     // What a host does when it plays back automation on everything at once, which is what
     // pluginval's parameter thread safety test does -- and where it gave up after fifteen minutes.
     {
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         juce::AudioBuffer<float> buf(2, 256);
         std::atomic<bool> stop { false };
@@ -371,7 +371,7 @@ int main()
     // not work. The name is stored, not the index: a pack added between two sessions renumbers
     // every preset behind it.
     {
-        auto a = std::make_unique<AmbientSynthProcessor>();
+        auto a = std::make_unique<NoctuaryProcessor>();
         a->prepareToPlay(48000.0, 256);
         // Any preset but the empty one. It used to name a built-in, which tied a host test to a
         // library that is regenerated whole -- and what is under test here is the name, not which
@@ -383,7 +383,7 @@ int main()
         juce::MemoryBlock blob;
         a->getStateInformation(blob);
 
-        auto b = std::make_unique<AmbientSynthProcessor>();
+        auto b = std::make_unique<NoctuaryProcessor>();
         b->prepareToPlay(48000.0, 256);
         b->setStateInformation(blob.getData(), static_cast<int>(blob.getSize()));
         check(b->soundPresetIndex() == which, "a restored session still knows which sound preset it holds");
@@ -397,7 +397,7 @@ int main()
         xml->removeAttribute("cosmosPreset");
         juce::MemoryBlock old;
         juce::AudioProcessor::copyXmlToBinary(*xml, old);
-        auto c = std::make_unique<AmbientSynthProcessor>();
+        auto c = std::make_unique<NoctuaryProcessor>();
         c->prepareToPlay(48000.0, 256);
         c->setStateInformation(old.getData(), static_cast<int>(old.getSize()));
         check(c->soundPresetIndex() >= 0 && c->cosmosPresetIndex() >= 0, "a state without preset names leaves the boxes on their default");
@@ -405,7 +405,7 @@ int main()
 
     // ---------------------------------------------------------------- programs while playing
     {
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         juce::AudioBuffer<float> buf(2, 256);
         bool ok = true;
@@ -422,7 +422,7 @@ int main()
     // ---------------------------------------------------------------- editor, and writes from
     // the message thread while the audio thread renders
     {
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(48000.0, 256);
         juce::AudioBuffer<float> buf(2, 256);
         std::atomic<bool> stop{ false };
@@ -472,7 +472,7 @@ int main()
         // from one block to the next while the change travels, that the displays know what is
         // travelling and when it has arrived, and that both engines stay finite throughout.
         const double sr = 48000.0; const int block = 256;
-        auto p = std::make_unique<AmbientSynthProcessor>();
+        auto p = std::make_unique<NoctuaryProcessor>();
         p->prepareToPlay(sr, block);
         p->setMorphSelectSeconds(2.0f);
         // Two presets that share as little as possible: the first built-in bank, and the first
@@ -565,7 +565,7 @@ int main()
         // at an event every 98.8 seconds -- that was two voices after a minute and four after
         // seven. A few seconds of audio after the change, the new one should be at its density.
         {
-            auto q = std::make_unique<AmbientSynthProcessor>();
+            auto q = std::make_unique<NoctuaryProcessor>();
             q->prepareToPlay(sr, block);
             q->setMorphSelectSeconds(2.0f);
             int slow = -1;
@@ -602,7 +602,7 @@ int main()
             //
             // The transition test above never showed it: two seconds after its own change the
             // conductor is still holding one or two notes. So this one waits for five.
-            auto q = std::make_unique<AmbientSynthProcessor>();
+            auto q = std::make_unique<NoctuaryProcessor>();
             q->prepareToPlay(sr, block);
             q->setMorphSelectSeconds(1.0f);
             q->selectPreset(1, false);

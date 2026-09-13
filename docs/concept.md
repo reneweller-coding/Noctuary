@@ -1,4 +1,4 @@
-# AmbientSynth — concept and architecture
+# Noctuary — concept and architecture
 
 ## Goal
 
@@ -955,7 +955,7 @@ morph position from inside would fight the hand holding it.
 
 The LFO settings and the envelope times are parameters, so a host automates them. The shapes and
 the matrix rows are **data**, the way a Scala scale and the gesture mappings already are: a text
-form that travels in the preset (fields 7 and 8 of a pack line), in `.ambientsynth` files and in
+form that travels in the preset (fields 7 and 8 of a pack line), in `.noctuary` files and in
 the plugin state. Thirty-two rows as four parameters each would put a hundred and twenty entries
 into the automation list for very little gain.
 
@@ -2313,7 +2313,7 @@ bank sounding, so the preset makes sense before a clip is loaded and gains its
 granular layer the moment one is. In the grain-forward ones the layer carries
 the sound: measured against the same preset without a clip, it sits 0.9 dB
 below the whole in *Grain Swarm* and 1.5 dB in *Pulverised*.
-User presets are saved by the plugin as `.ambientsynth` XML files (full
+User presets are saved by the plugin as `.noctuary` XML files (full
 state including a loaded Scala scale).
 
 ### Preset packs
@@ -2324,7 +2324,7 @@ line, `name|settings|x y bright motion width noisy bass density tags|texture|
 wavetable`; everything after the settings is optional, and the two file fields
 are resolved against the pack's own folder. Packs come from `$AMBIENT_PACKS`
 (one folder, or several separated by `;`), otherwise from
-`Documents/AmbientSynth/Packs`, and on the Quest from `<externalDataPath>/Packs`.
+`Documents/Noctuary/Packs`, and on the Quest from `<externalDataPath>/Packs`.
 
 The list the rest of the program sees is `builtinPresetCount()` compiled-in
 presets followed by every loaded pack, and `numPresets`, `preset`, `presetMeta`,
@@ -2538,7 +2538,7 @@ integer index and a fraction.
 instrument, advertises *"128 grains per voice, which can add up to a total of 1000+ grains
 simultaneously"*; Waldorf's Iridium runs 1 to 8 grains per voice in Particle mode; Omnisphere
 documents *"up to eight voices of granularity per Layer"*; Pigments and Novum have a ceiling but do
-not publish it. AmbientSynth is at 128 per slot, four slots per voice, sixteen voices. The GR-1's
+not publish it. Noctuary is at 128 per slot, four slots per voice, sixteen voices. The GR-1's
 number is the interesting one: the instrument that does nothing else picked 128 per voice as the
 figure worth printing, which is the same one this arrived at from the other direction.
 
@@ -2812,7 +2812,7 @@ switches take A below 0.5 and B above. The position glides toward *MorphPos*
 at `1/MorphGlide` per second (glide 0 = jump), so a controller or a hand can
 jump while the sound follows over minutes. The Morph section is excluded
 from every preset scope: loading presets never disturbs a running morph.
-Slots are saved in the plugin state and in `.ambientsynth` files.
+Slots are saved in the plugin state and in `.noctuary` files.
 
 ## Toward VR (the reason for the design)
 
@@ -3271,7 +3271,7 @@ evening that plays itself, and never the same way twice. A plain text file
 foreground it wants), a player in the plugin that advances on the preset pump
 and asks the transition for the drawn fade, the box in the Morph section that
 starts one, `+ now` and `Save...` to write one's own into
-`Documents/AmbientSynth/Journeys`, and `--journey` in the render tool (which
+`Documents/Noctuary/Journeys`, and `--journey` in the render tool (which
 cuts where the plugin crossfades). The templates the instrument ships,
 `Tools/make_journeys.py` makes from the library's own measurement: for every
 pack a *Journey* of twelve presets spread across the pack's space (farthest
@@ -3357,7 +3357,7 @@ audible at the end.
 **Two small things Rene asked for while that ran.** Favourites had been kept
 in the plugin state by preset index; the 2.0 library renumbered every index,
 so every star pointed at a stranger. They are now a file of names in
-Documents\AmbientSynth\favourites.txt (one a line, a name whose preset is not
+Documents\Noctuary\favourites.txt (one a line, a name whose preset is not
 installed is kept), the same in the standalone and in every DAW, and the
 browser gained *favourites first* -- the starred presets to the top of the
 list in whatever order the sort left them (a stable partition, so "by

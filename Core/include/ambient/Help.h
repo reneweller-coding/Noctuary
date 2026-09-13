@@ -1,4 +1,4 @@
-// AmbientSynth -- the help texts: one or two sentences for every parameter, and the manual by
+// Noctuary -- the help texts: one or two sentences for every parameter, and the manual by
 // topic. They live in the core so every shell (plugin, standalone, the Quest app, the render
 // tool's --list) tells the same story; the plugin shows them as tooltips, as the line in the
 // header that follows the mouse, and as the Help page.

@@ -1,4 +1,4 @@
-// AmbientSynth -- gesture layer: a few continuous inputs (hands, head, or anything
+// Noctuary -- gesture layer: a few continuous inputs (hands, head, or anything
 // a controller sends) mapped onto parameters with range, smoothing, jitter
 // dead-zone and a clutch. Framework-free: the same code runs behind an OpenXR
 // hand tracker on the Quest and behind the OSC receiver on the desktop.

@@ -1,4 +1,4 @@
-// AmbientSynth -- the editor's look. A dark, cool ground with one warm accent for anything that
+// Noctuary -- the editor's look. A dark, cool ground with one warm accent for anything that
 // is actually sounding; knobs are a thin value arc rather than a chrome cap, and the value lives
 // inside the knob so a cell is a knob and a name, not a knob, a box and a name.
 //
@@ -42,10 +42,10 @@ juce::Font body(float height);
 // Slider properties the look reads:
 //   "bipolar" (bool)  arc grows from the centre instead of from the left
 //   "suffix"  (String) unit drawn after the value inside the knob
-class AmbientLookAndFeel : public juce::LookAndFeel_V4
+class NoctuaryLookAndFeel : public juce::LookAndFeel_V4
 {
 public:
-    AmbientLookAndFeel();
+    NoctuaryLookAndFeel();
 
     void drawRotarySlider(juce::Graphics&, int x, int y, int width, int height, float pos,
                           float startAngle, float endAngle, juce::Slider&) override;

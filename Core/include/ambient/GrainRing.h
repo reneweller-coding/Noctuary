@@ -1,4 +1,4 @@
-// AmbientSynth -- the grain loop the granular effects share.
+// Noctuary -- the grain loop the granular effects share.
 //
 // The texture sources read their grains out of a finished clip; the Cloud and the Memory read
 // theirs out of a ring that is being written while they play. The loop is the one Sources.cpp

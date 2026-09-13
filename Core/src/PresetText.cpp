@@ -1,4 +1,4 @@
-// AmbientSynth -- a sentence about a preset.
+// Noctuary -- a sentence about a preset.
 //
 // Six thousand eight hundred names tell you nothing. u-he's browsers put a line of prose under
 // every patch, and the reason it works is that the line says what the thing IS, not what it is

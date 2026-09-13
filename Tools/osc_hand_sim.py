@@ -1,4 +1,4 @@
-"""Simulated hands for AmbientSynth's OSC input.
+"""Simulated hands for Noctuary's OSC input.
 
 Sends /ambient/hand/L and /R (x y z pinch tilt, metres) and /ambient/head
 (yaw pitch roll, degrees) at 60 Hz. The right hand pinches (the clutch) in

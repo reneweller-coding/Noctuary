@@ -1,4 +1,4 @@
-// AmbientSynth -- runtime preset packs. The preset list the rest of the program sees is the
+// Noctuary -- runtime preset packs. The preset list the rest of the program sees is the
 // built-in presets followed by every loaded pack, so the DAW programs, the map, the browser and
 // routes-by-name all pick packs up without knowing they exist.
 #include "ambient/Presets.h"
@@ -250,13 +250,13 @@ std::vector<std::string> rootsOfTheLibrary()
     }
     const char* home = std::getenv("USERPROFILE");
     if (home == nullptr) home = std::getenv("HOME");
-    if (home != nullptr) roots.push_back((std::filesystem::path(home) / "Documents" / "AmbientSynth").string());
+    if (home != nullptr) roots.push_back((std::filesystem::path(home) / "Documents" / "Noctuary").string());
 #if defined(_WIN32)
-    if (const char* shared = std::getenv("ProgramData")) roots.push_back((std::filesystem::path(shared) / "AmbientSynth").string());
-    if (const char* local = std::getenv("LOCALAPPDATA")) roots.push_back((std::filesystem::path(local) / "AmbientSynth").string());
+    if (const char* shared = std::getenv("ProgramData")) roots.push_back((std::filesystem::path(shared) / "Noctuary").string());
+    if (const char* local = std::getenv("LOCALAPPDATA")) roots.push_back((std::filesystem::path(local) / "Noctuary").string());
 #else
-    roots.push_back("/usr/local/share/AmbientSynth");
-    roots.push_back("/usr/share/AmbientSynth");
+    roots.push_back("/usr/local/share/Noctuary");
+    roots.push_back("/usr/share/Noctuary");
 #endif
     roots.push_back("Library");
     roots.push_back(".");
@@ -297,7 +297,7 @@ std::string resolveLibraryFile(const char* relative)
 int loadDefaultPresetPacks()
 {
     // AMBIENT_PACKS wins (a folder, or several separated by ';'). Otherwise two places are read,
-    // the user's own first: Documents/AmbientSynth/Packs, and the shared folder an installer can
+    // the user's own first: Documents/Noctuary/Packs, and the shared folder an installer can
     // write to for everybody on the machine. A pack that is in both loads once (see above), and
     // nothing anywhere simply means no packs.
     if (const char* env = std::getenv("AMBIENT_PACKS")) {
@@ -314,17 +314,17 @@ int loadDefaultPresetPacks()
     const char* home = std::getenv("USERPROFILE");
     if (home == nullptr) home = std::getenv("HOME");
     if (home != nullptr)
-        n += loadPresetPacksIn((std::filesystem::path(home) / "Documents" / "AmbientSynth" / "Packs").string().c_str());
+        n += loadPresetPacksIn((std::filesystem::path(home) / "Documents" / "Noctuary" / "Packs").string().c_str());
 #if defined(_WIN32)
     // Where an installer puts them: ProgramData when it ran for everybody, LocalAppData when it
     // ran for one user without administrator rights.
     if (const char* shared = std::getenv("ProgramData"))
-        n += loadPresetPacksIn((std::filesystem::path(shared) / "AmbientSynth" / "Packs").string().c_str());
+        n += loadPresetPacksIn((std::filesystem::path(shared) / "Noctuary" / "Packs").string().c_str());
     if (const char* local = std::getenv("LOCALAPPDATA"))
-        n += loadPresetPacksIn((std::filesystem::path(local) / "AmbientSynth" / "Packs").string().c_str());
+        n += loadPresetPacksIn((std::filesystem::path(local) / "Noctuary" / "Packs").string().c_str());
 #else
-    n += loadPresetPacksIn("/usr/local/share/AmbientSynth/Packs");
-    n += loadPresetPacksIn("/usr/share/AmbientSynth/Packs");
+    n += loadPresetPacksIn("/usr/local/share/Noctuary/Packs");
+    n += loadPresetPacksIn("/usr/share/Noctuary/Packs");
 #endif
     return n;
 }

@@ -1,4 +1,4 @@
-"""AmbientSynth -- give the built-in presets the parts of the instrument they were written before.
+"""Noctuary -- give the built-in presets the parts of the instrument they were written before.
 
 The 191 compiled-in presets were written over many rounds, and the instrument kept growing under
 them: the modulation matrix, three source slots instead of one, the z-plane's 155 shapes and its

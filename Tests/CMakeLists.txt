@@ -1,5 +1,5 @@
 add_executable(ambient_selftest selftest.cpp)
-target_link_libraries(ambient_selftest PRIVATE AmbientCore)
+target_link_libraries(ambient_selftest PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_selftest PRIVATE /W4 /permissive- /utf-8)
     target_compile_definitions(ambient_selftest PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -15,7 +15,7 @@ add_test(NAME selftest COMMAND ambient_selftest)
 # framework, so it builds on Linux too -- which is the only place a sanitizer can watch a data
 # race happen (see the file's own notes). On Windows it is a stress test.
 add_executable(ambient_racetest racetest.cpp)
-target_link_libraries(ambient_racetest PRIVATE AmbientCore)
+target_link_libraries(ambient_racetest PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_racetest PRIVATE /W4 /permissive- /utf-8)
     target_compile_definitions(ambient_racetest PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -28,9 +28,9 @@ add_test(NAME racetest COMMAND ambient_racetest 4)
 # The convolution room's checks on their own, once per vector path: as the core is built for this
 # machine (AVX2 on the desktop, NEON on the Quest), and on x86 also through the NEON path -- with
 # neonshim/arm_neon.h, which spells the few intrinsics out lane by lane -- and scalar. The two x86
-# variants compile the convolver themselves: linking AmbientCore would bring its AVX2 flags along.
+# variants compile the convolver themselves: linking NoctuaryCore would bring its AVX2 flags along.
 add_executable(ambient_convtest convtest.cpp)
-target_link_libraries(ambient_convtest PRIVATE AmbientCore)
+target_link_libraries(ambient_convtest PRIVATE NoctuaryCore)
 # The Quest build is arm64 and must get NEON. (It cannot run here: see Quest/README.md for the
 # two adb lines that run it on the headset.)
 if(ANDROID AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
@@ -72,7 +72,7 @@ endif()
 add_test(NAME banktest COMMAND ambient_banktest)
 set(AMBIENT_BANKTEST_TARGETS ambient_banktest)
 if(NOT ANDROID AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|x64)")
-    # The AVX2 one needs the flag in its own right: this target does not link AmbientCore.
+    # The AVX2 one needs the flag in its own right: this target does not link NoctuaryCore.
     target_compile_definitions(ambient_banktest PRIVATE AMBIENT_EXPECT_PATH="avx2")
     if(MSVC)
         target_compile_options(ambient_banktest PRIVATE /arch:AVX2)
@@ -100,7 +100,7 @@ endforeach()
 # The convolution room's cost, by hand: CPU per second of audio and the worst callback, for impulse
 # lengths up to a minute. Nothing in it passes or fails, so it is not registered with ctest.
 add_executable(ambient_convbench convbench.cpp)
-target_link_libraries(ambient_convbench PRIVATE AmbientCore)
+target_link_libraries(ambient_convbench PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_convbench PRIVATE /W4 /permissive- /utf-8)
     target_compile_definitions(ambient_convbench PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -109,17 +109,17 @@ endif()
 # The host contract: rates and block sizes, state round trip, programs while playing, an editor
 # opened under load, parameters written from another thread. Needs the plugin's shared code, so it
 # is only built when the plugin is.
-if(TARGET AmbientSynth)
+if(TARGET Noctuary)
     add_executable(ambient_hosttest hosttest.cpp)
     # The plugin's shared code carries the JUCE modules and their include paths; linking the
     # wrapper target alone gives neither.
     # The plugin's shared code holds the processor and editor; the JUCE modules are linked to it
     # privately, so the test asks for them again.
-    # juce_add_plugin makes AmbientSynth the shared-code library itself (it builds as
-    # AmbientSynth_SharedCode.lib), so linking that one target gives the processor, the editor and
+    # juce_add_plugin makes Noctuary the shared-code library itself (it builds as
+    # Noctuary_SharedCode.lib), so linking that one target gives the processor, the editor and
     # the JucePlugin_* definitions; the module target adds the JUCE headers, which the plugin links
     # privately and therefore does not pass on.
-    target_link_libraries(ambient_hosttest PRIVATE AmbientSynth AmbientCore
+    target_link_libraries(ambient_hosttest PRIVATE Noctuary NoctuaryCore
                           juce::juce_audio_utils juce::juce_recommended_config_flags)
     # The test is an application, not a plugin, so it may run a dispatch loop; that is how the
     # editor's timers and async calls get a chance to run while it is open.

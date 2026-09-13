@@ -1,4 +1,4 @@
-"""AmbientSynth -- generate the Cosmos and Strike preset banks (Core/src/*Presets.inc).
+"""Noctuary -- generate the Cosmos and Strike preset banks (Core/src/*Presets.inc).
 
 Both are layers: a bank of presets that touches only one section, so it lands on top of whatever
 sound is loaded without disturbing it. The Cosmos bank is the feedback network; the Strike bank is

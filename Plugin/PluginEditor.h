@@ -2,7 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
-#include "AmbientLookAndFeel.h"
+#include "NoctuaryLookAndFeel.h"
 #include "ambient/Modulation.h"
 #include "ambient/ZPlane.h"
 #include "ambient/Sources.h"
@@ -20,11 +20,11 @@ namespace edt { class RouteTable; }   // EditorCommon.h / EditorMatrix.cpp
 //   Near Reverb) -> out; FOREGROUND -> COSMOS (parallel, returns) ; FOREGROUND -> BACKGROUND
 //   (Cloud, Far Reverb) -> out ; CONDUCTOR (Cluster Brain, Tuning) drives the voices;
 //   MORPH blends two full presets. A routing map in the header draws exactly this.
-class AmbientSynthEditor : public juce::AudioProcessorEditor, private juce::Timer
+class NoctuaryEditor : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
-    explicit AmbientSynthEditor(AmbientSynthProcessor&);
-    ~AmbientSynthEditor() override;
+    explicit NoctuaryEditor(NoctuaryProcessor&);
+    ~NoctuaryEditor() override;
 
     void paint(juce::Graphics&) override;
     void resized() override;
@@ -82,7 +82,7 @@ private:
     // change, named after the parameter, and throttles the wheel so a scroll is one step back, not
     // forty.
     struct UndoHook : juce::MouseListener {
-        AmbientSynthEditor* editor = nullptr;
+        NoctuaryEditor* editor = nullptr;
         std::map<juce::Component*, juce::String> names;
         std::map<juce::Component*, double> lastWheel;
         void mouseDown(const juce::MouseEvent& e) override
@@ -120,7 +120,7 @@ private:
     // modulator's own colour and named after both ends of it. The next click anywhere else puts
     // it away.
     struct DepthPopup : juce::Component {   // a Component is already a MouseListener: inheriting it twice is ambiguous
-        DepthPopup(AmbientSynthEditor& o, ambient::ModSource s, ambient::ParamId t, juce::Colour c);
+        DepthPopup(NoctuaryEditor& o, ambient::ModSource s, ambient::ParamId t, juce::Colour c);
         ~DepthPopup() override;
         void paint(juce::Graphics&) override;
         void resized() override;
@@ -135,7 +135,7 @@ private:
                 if (w != nullptr) w->owner.hideDepthPopup();
             });
         }
-        AmbientSynthEditor& owner;
+        NoctuaryEditor& owner;
         ambient::ModSource source;
         ambient::ParamId target;
         juce::Colour colour;
@@ -176,15 +176,15 @@ private:
     void     rebuildLayout();
     void     applyLayoutMode(int mode);   // 0 normal, 1 compact, 2 expanded
     struct HelpView : juce::Component, juce::ListBoxModel {
-        HelpView(AmbientSynthProcessor&, AmbientSynthEditor&);
+        HelpView(NoctuaryProcessor&, NoctuaryEditor&);
         void paint(juce::Graphics&) override;
         void resized() override;
         int  getNumRows() override;
         void paintListBoxItem(int row, juce::Graphics&, int w, int h, bool selected) override;
         void selectedRowsChanged(int row) override;
         void showTopic(int row);
-        AmbientSynthProcessor& proc;
-        AmbientSynthEditor& owner;
+        NoctuaryProcessor& proc;
+        NoctuaryEditor& owner;
         juce::ListBox topics;
         juce::TextEditor text;
         juce::String parameters;   // the generated last topic: every parameter with its help
@@ -202,14 +202,14 @@ private:
         std::unique_ptr<juce::Component> live;
         // The signal flow, drawn large enough to read: what the routing map in the header was for.
         struct FlowDiagram : juce::Component {
-            explicit FlowDiagram(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); }
+            explicit FlowDiagram(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); }
             void paint(juce::Graphics&) override;
             // The part of this component the drawing actually covers. The diagram is a fixed
             // canvas scaled to fit, so one of the two dimensions is always left over; a picture
             // of the whole component would be a diagram with a field of black under it.
             juce::Rectangle<int> drawn() const;
             static constexpr float kCanvasW = 1000.0f, kCanvasH = 545.0f;
-            AmbientSynthProcessor& proc;
+            NoctuaryProcessor& proc;
         };
         FlowDiagram flow;
         int topic = 0;
@@ -316,8 +316,8 @@ private:
     int      sectionHeight(const Section&) const;
     void     layoutSection(Section&, int x, int y);
 
-    AmbientSynthProcessor& proc_;
-    AmbientLookAndFeel laf_;
+    NoctuaryProcessor& proc_;
+    NoctuaryLookAndFeel laf_;
     float scale_ = 1.0f;   // window size / design size
     int   designW_ = 1400, designH_ = 820;   // measured from the layout, not guessed
     int   bodyW_ = 0, bodyH_ = 0;
@@ -345,10 +345,10 @@ private:
     // voice is summing right now, plus those partials as a spectrum. It moves because the
     // shimmer and the drift move -- it is the sound, not an illustration of it.
     struct ScopeView : juce::Component, juce::Timer {
-        explicit ScopeView(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(20); }
+        explicit ScopeView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(20); }
         void paint(juce::Graphics&) override;
         void timerCallback() override { if (isShowing()) repaint(); }
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         float amp[ambient::kMaxPartials] = {};   // smoothed towards the engine's values
         int   count = 0;
         bool  mode = false;                      // false = waveform, true = spectrum
@@ -371,10 +371,10 @@ private:
     std::unique_ptr<juce::TextButton> mainButton_, vrButton_;
     // Perform page: the eight macros as large knobs plus the morph, instead of the editor.
     struct PerformView : juce::Component {
-        explicit PerformView(AmbientSynthProcessor& p);
+        explicit PerformView(NoctuaryProcessor& p);
         void paint(juce::Graphics&) override;
         void resized() override;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         std::vector<std::unique_ptr<juce::Slider>> knobs;
         std::vector<std::unique_ptr<juce::Label>> labels;
         std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> attachments;
@@ -396,7 +396,7 @@ private:
     // Browse page: filterable preset list plus the preset map (points = presets, drag the
     // cursor to blend between neighbours).
     struct BrowseView : juce::Component, juce::ListBoxModel, juce::Timer {
-        explicit BrowseView(AmbientSynthProcessor& p);
+        explicit BrowseView(NoctuaryProcessor& p);
         void paint(juce::Graphics&) override;
         void resized() override;
         void timerCallback() override;
@@ -492,7 +492,7 @@ private:
         void  fitToFilter();      // zoom the map onto what survived the filter
         bool  fitPending = false;
 
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         juce::TextEditor search;
         juce::ComboBox family, sort;
         std::vector<std::unique_ptr<juce::ToggleButton>> tagButtons;
@@ -528,7 +528,7 @@ private:
     // of every modulator as a small card with its live curve, a row of tabs, and the full editors
     // for whichever group is open. A modulator you cannot see is a modulator you cannot aim.
     struct ModView : juce::Component, juce::Timer {
-        ModView(AmbientSynthProcessor& p, AmbientSynthEditor& o);
+        ModView(NoctuaryProcessor& p, NoctuaryEditor& o);
         void paint(juce::Graphics&) override;
         void resized() override;
         void timerCallback() override;
@@ -593,8 +593,8 @@ private:
         // Where a drag ended: the parameter under the mouse, or none.
         int paramUnder(juce::Point<int> screenPos) const;
 
-        AmbientSynthProcessor& proc;
-        AmbientSynthEditor& owner;
+        NoctuaryProcessor& proc;
+        NoctuaryEditor& owner;
         juce::TextButton tabLfo{ "LFO" }, tabEnv{ "ENVELOPES" }, tabMatrix{ "MATRIX" };
         juce::TextButton pageMod{ "MODULATION 1-6" }, pageSrc{ "SOURCES 1-4" };
         // The matrix page: a table of routes (EditorMatrix.cpp), where a text box used to be.
@@ -621,12 +621,12 @@ private:
     // The two filters as a frequency response: the state-variable filter in the voice's colour,
     // the z-plane cascade in the accent, and what a note actually meets after both.
     struct FilterView : juce::Component, juce::Timer {
-        explicit FilterView(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
+        explicit FilterView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         void paint(juce::Graphics&) override;
         // Nothing but parameters is drawn here, so nothing but a parameter can change it.
         void timerCallback() override
         { const uint32_t g = proc.paramGeneration(); if (isShowing() && g != seen) { seen = g; repaint(); } }
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         uint32_t seen = 0xffffffffu;
     };
     // One source slot: the wavetable frame, the FM cycle, the clip with its grain window, or the
@@ -634,7 +634,7 @@ private:
     // whole and in depth -- every frame a line, the first at the front, the frame at Position lit --
     // and a click turns it into the flat picture of that one frame with its neighbours, and back.
     struct SourceView : juce::Component, juce::Timer {
-        SourceView(AmbientSynthProcessor& p, int s) : proc(p), slot(s) { setInterceptsMouseClicks(true, false); startTimerHz(15); }
+        SourceView(NoctuaryProcessor& p, int s) : proc(p), slot(s) { setInterceptsMouseClicks(true, false); startTimerHz(15); }
         void paint(juce::Graphics&) override;
         void paintSource(juce::Graphics&);
         // A slot that enters on a shape of its own carries a small picture of it in the corner, with
@@ -670,7 +670,7 @@ private:
         }
         // The table in depth; false when there is nothing to stand in depth (no table, one frame).
         bool paintTable3D(juce::Graphics& g, juce::Rectangle<float> plot, int type, int table, float pos);
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         uint32_t seen = 0xffffffffu;
         int slot;   // 1 .. 4
         float amp[ambient::kTablePartials] = {};   // smoothed live amplitudes for the additive picture
@@ -689,10 +689,10 @@ private:
     // The conductor's notes as they happen: a piano roll scrolling left, one column per tick, so
     // the cluster brain's choices can be watched rather than inferred from the keyboard strip.
     struct BrainView : juce::Component, juce::Timer {
-        explicit BrainView(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
+        explicit BrainView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         void paint(juce::Graphics&) override;
         void timerCallback() override;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         static constexpr int kCols = 240;                 // 16 s at 15 Hz
         std::vector<std::array<bool, 128>> hist = std::vector<std::array<bool, 128>>(kCols);
         int head = 0;
@@ -704,7 +704,7 @@ private:
     // The stereo stage: every sounding voice as a dot, left-right by its pan, near-far by its
     // plane, size by its envelope -- the spatial model (concept.md) as a picture, moving.
     struct StageView : juce::Component, juce::Timer {
-        explicit StageView(AmbientSynthProcessor& p) : proc(p) { startTimerHz(15); }
+        explicit StageView(NoctuaryProcessor& p) : proc(p) { startTimerHz(15); }
         void paint(juce::Graphics&) override;
         void timerCallback() override { if (isShowing()) repaint(); }
         // The planes are the things on the stage a hand can move: the conductor's, the keys' and
@@ -720,7 +720,7 @@ private:
         int  lineAt(juce::Point<int>) const;
         std::function<void(const juce::String&)> onUndo;
         int hoverLine = -1, dragLine = -1;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         struct Dot { float x = 0.0f, y = 0.0f, r = 0.0f; int note = -1; bool on = false; };
         Dot dots[ambient::Engine::kMaxVoices];   // smoothed positions, one per voice slot seen
     };
@@ -729,10 +729,10 @@ private:
     // the chosen scale's degrees on it, the key the conductor has found, the comma and the tide.
     // What the tuning section computes, drawn, instead of only its numbers.
     struct TuningView : juce::Component, juce::Timer {
-        explicit TuningView(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(5); }
+        explicit TuningView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(5); }
         void paint(juce::Graphics&) override;
         void timerCallback() override { if (isShowing()) repaint(); }
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         static constexpr int kPoints = 240;   // five cents apart
         float curve[kPoints] = {};
     };
@@ -740,10 +740,10 @@ private:
     // The Coherence page's display: the four Kuramoto phases on a ring, the Lenia field as a
     // grey grid, the six attractor readings as bars -- the living modulators, seen.
     struct CoherenceView : juce::Component, juce::Timer {
-        explicit CoherenceView(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(10); }
+        explicit CoherenceView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(10); }
         void paint(juce::Graphics&) override;
         void timerCallback() override;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         // Where the two attractors have been: the last forty seconds of their x/y, drawn as orbits.
         std::vector<juce::Point<float>> lorenzTrail, rosslerTrail;
     };
@@ -751,10 +751,10 @@ private:
     // The Cosmos return's spectrum: what the shifter, the resonator, the vowel and the nebula are
     // handing back, on a log-frequency axis, smoothed the way a meter falls.
     struct CosmosView : juce::Component, juce::Timer {
-        explicit CosmosView(AmbientSynthProcessor& p);
+        explicit CosmosView(NoctuaryProcessor& p);
         void paint(juce::Graphics&) override;
         void timerCallback() override;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         static constexpr int kN = 2048, kBins = 160;
         std::vector<float> re, im, window;
         std::unique_ptr<ambient::Fft> fft;
@@ -768,24 +768,24 @@ private:
     // its dynamic range is still there. A drone mastered to -9 LUFS has had the movement squeezed
     // out of its reverb tails and cannot get it back.
     struct LoudnessView : juce::Component, juce::Timer {
-        explicit LoudnessView(AmbientSynthProcessor& p) : proc(p) { startTimerHz(10); }
+        explicit LoudnessView(NoctuaryProcessor& p) : proc(p) { startTimerHz(10); }
         void paint(juce::Graphics&) override;
         void timerCallback() override { if (isShowing()) repaint(); }
         void mouseDown(const juce::MouseEvent&) override;   // click to start measuring again
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
     };
     std::unique_ptr<LoudnessView> outputView_;
     // The Vector's square, with the point in it: three corners are the source slots, the fourth
     // is all three together. Drag the point; it is the one control here whose value is a place.
     struct VectorView : juce::Component, juce::Timer {
-        explicit VectorView(AmbientSynthProcessor& p) : proc(p) { startTimerHz(15); }
+        explicit VectorView(NoctuaryProcessor& p) : proc(p) { startTimerHz(15); }
         void paint(juce::Graphics&) override;
         void timerCallback() override { if (isShowing()) repaint(); }
         void mouseDown(const juce::MouseEvent& e) override { drag(e); }
         void mouseDrag(const juce::MouseEvent& e) override { drag(e); }
         void drag(const juce::MouseEvent&);
         juce::Rectangle<float> square() const;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         static constexpr int kTrail = 240;      // where the wander has been, at 20 Hz: twelve seconds
         float tx[kTrail] = {}, ty[kTrail] = {};
         int   head = 0, filled = 0;
@@ -796,12 +796,12 @@ private:
     // the partials of a low drone are separate lines rather than a hump, and the filter's own
     // response is drawn over them -- what the filter is doing to what is actually there.
     struct SpectrumView : juce::Component, juce::Timer {
-        explicit SpectrumView(AmbientSynthProcessor& p);
+        explicit SpectrumView(NoctuaryProcessor& p);
         void paint(juce::Graphics&) override;
         void timerCallback() override;
         void mouseMove(const juce::MouseEvent&) override;
         void mouseExit(const juce::MouseEvent&) override;
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
         static constexpr int kN = ambient::kOutTapLen;   // FFT length: the whole tap
         static constexpr int kBands = 480;               // one band per two or three pixels
         static constexpr float kLoHz = 20.0f, kHiHz = 16000.0f;
@@ -818,10 +818,10 @@ private:
     std::unique_ptr<SpectrumView> spectrumView_;
     // The amplitude envelope as a curve, with the loudest voice's level on it.
     struct EnvView : juce::Component, juce::Timer {
-        explicit EnvView(AmbientSynthProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
+        explicit EnvView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         void paint(juce::Graphics&) override;
         void timerCallback() override { if (isShowing()) repaint(); }
-        AmbientSynthProcessor& proc;
+        NoctuaryProcessor& proc;
     };
     std::unique_ptr<EnvView> envView_;
     std::unique_ptr<FilterView> filterView_;
@@ -840,5 +840,5 @@ private:
     juce::Rectangle<int> header_, helpLine_, keys_;
     bool sounding_[128] = {};
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AmbientSynthEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoctuaryEditor)
 };

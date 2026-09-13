@@ -1,4 +1,4 @@
-"""AmbientSynth -- generate the Z-plane filter bank (Core/src/ZPlaneBank.inc).
+"""Noctuary -- generate the Z-plane filter bank (Core/src/ZPlaneBank.inc).
 
 The Z-plane filter is Dave Rossum's idea from the E-mu Morpheus (US 5,170,369, expired): four
 filter frames on the corners of a square, and a point inside it is a filter whose poles and zeros

@@ -1,4 +1,4 @@
-// AmbientSynth -- minimal WAV reader (PCM 8/16/24/32 and 32-bit float, any channel
+// Noctuary -- minimal WAV reader (PCM 8/16/24/32 and 32-bit float, any channel
 // count mixed to mono). Framework-free so the render tool and the Quest app can load
 // textures and wavetables; the plugin uses JUCE's readers for other formats.
 #pragma once

@@ -1,4 +1,4 @@
-// AmbientSynth -- the voice filter: one of ten models behind the same five knobs.
+// Noctuary -- the voice filter: one of ten models behind the same five knobs.
 //
 // For a long time the voice had a single 12 dB state-variable low pass. That is the right default
 // for a drone instrument (it takes the edge off a spectrum without imposing a character), but a

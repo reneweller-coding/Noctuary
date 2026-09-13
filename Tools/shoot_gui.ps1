@@ -1,4 +1,4 @@
-# Screenshot of the AmbientSynth standalone window, so a GUI change can be looked at instead of
+# Screenshot of the Noctuary standalone window, so a GUI change can be looked at instead of
 # imagined. Starts the app, waits for the window, captures it, closes it again.
 #
 #   powershell -File Tools\shoot_gui.ps1 -Out docs\screenshot.png [-Width 1500] [-Height 920]
@@ -15,7 +15,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$exe = Join-Path $root "build\Plugin\AmbientSynth_artefacts\Release\Standalone\AmbientSynth.exe"
+$exe = Join-Path $root "build\Plugin\Noctuary_artefacts\Release\Standalone\Noctuary.exe"
 if (-not (Test-Path $exe)) { throw "standalone not built: $exe" }
 
 # The editor reads these on start (see PluginEditor.cpp).
@@ -27,7 +27,7 @@ if ($Tab) { $env:AMBIENT_TAB = $Tab } else { Remove-Item env:AMBIENT_TAB -ErrorA
 if ($Mod) { $env:AMBIENT_MOD = $Mod } else { Remove-Item env:AMBIENT_MOD -ErrorAction SilentlyContinue }
 
 if ($Fresh) {
-    $settings = Join-Path $env:APPDATA "AmbientSynth\AmbientSynth.settings"
+    $settings = Join-Path $env:APPDATA "Noctuary\Noctuary.settings"
     if (Test-Path $settings) { Remove-Item $settings -Force }
 }
 

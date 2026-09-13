@@ -1,4 +1,4 @@
-// AmbientSynth -- tuning: just-intonation tables, Scala parser, note -> frequency.
+// Noctuary -- tuning: just-intonation tables, Scala parser, note -> frequency.
 #pragma once
 #include <cstddef>
 

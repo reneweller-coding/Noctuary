@@ -1,4 +1,4 @@
-// AmbientSynth -- saturation with antiderivative antialiasing.
+// Noctuary -- saturation with antiderivative antialiasing.
 //
 // A saturation makes partials the sample rate cannot hold, and they fold back below Nyquist as tones
 // in no harmonic relation to anything; in a feedback loop they fold back again on every pass.

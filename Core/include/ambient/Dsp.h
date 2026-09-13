@@ -1,4 +1,4 @@
-// AmbientSynth -- DSP primitives: PRNG, sine table, slow modulators, envelope, filter.
+// Noctuary -- DSP primitives: PRNG, sine table, slow modulators, envelope, filter.
 // Header-only, allocation-free, no framework dependencies.
 #pragma once
 #include <cstdint>

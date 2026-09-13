@@ -1,4 +1,4 @@
-// AmbientSynth -- OSC over UDP: the one control socket for everything that is not
+// Noctuary -- OSC over UDP: the one control socket for everything that is not
 // MIDI (a hand-tracking bridge, a tablet, a script). Framework-free: Winsock on
 // Windows, BSD sockets elsewhere (Linux, macOS, Android).
 //

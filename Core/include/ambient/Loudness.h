@@ -1,4 +1,4 @@
-// AmbientSynth -- loudness to ITU-R BS.1770-4 / EBU R 128, and the peak numbers that go with it.
+// Noctuary -- loudness to ITU-R BS.1770-4 / EBU R 128, and the peak numbers that go with it.
 //
 // Ambient is the one genre where loudness is the enemy rather than the goal: a brickwall limiter
 // takes the finest amplitude movement out of a reverb tail and leaves it grainy and flat, and the

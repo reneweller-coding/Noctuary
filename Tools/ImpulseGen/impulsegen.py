@@ -1,4 +1,4 @@
-"""ImpulseGen: impulse responses for AmbientSynth's Room (convolution reverb), with a GUI.
+"""ImpulseGen: impulse responses for Noctuary's Room (convolution reverb), with a GUI.
 
 Tabs: Design (procedural rooms with per-band RT60, size, pre-delay, width, tone, modulation),
 Recording (any WAV or an AI render becomes an impulse: onset, trim, floor, tail extension),
@@ -87,7 +87,7 @@ class IrView(QWidget):
 class Main(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("AmbientSynth ImpulseGen")
+        self.setWindowTitle("Noctuary ImpulseGen")
         self.resize(1080, 720)
         self.ir = None; self.sr = 48000; self.meta = {}
         self.player = QMediaPlayer(self); self.audio_out = QAudioOutput(self); self.player.setAudioOutput(self.audio_out)
@@ -155,7 +155,7 @@ class Main(QMainWindow):
         play_ch = QPushButton("Play chord through it"); play_ch.clicked.connect(lambda: self.play(True)); prow.addWidget(play_ch)
         stop = QPushButton("Stop"); stop.clicked.connect(self.player.stop); prow.addWidget(stop)
         prow.addStretch(1)
-        hint = QLabel("In AmbientSynth: BACKGROUND → Room → Impulse... → the exported file, then Room Level up. Source Far reverberates the far sends, Near the finished foreground.")
+        hint = QLabel("In Noctuary: BACKGROUND → Room → Impulse... → the exported file, then Room Level up. Source Far reverberates the far sends, Near the finished foreground.")
         hint.setWordWrap(True); right.addWidget(hint)
 
     # ---------------------------------------------------------------- actions

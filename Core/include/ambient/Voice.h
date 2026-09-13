@@ -1,4 +1,4 @@
-// AmbientSynth -- one cluster voice: `unison` strands, each an additive bank of
+// Noctuary -- one cluster voice: `unison` strands, each an additive bank of
 // up to 32 harmonic partials with individually drifting amplitudes and a slowly
 // drifting pitch, plus a filtered-noise "air" layer. Alias-free by construction.
 //

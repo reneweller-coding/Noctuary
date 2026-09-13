@@ -1,10 +1,10 @@
-; AmbientSynth -- the Windows installer.
+; Noctuary -- the Windows installer.
 ;
 ; Built by Deploy/build_release.ps1, which stages everything under Deploy/stage first. Nothing in
 ; here reaches into the build tree: what is in the staging folder is exactly what gets installed,
 ; so the setup can be looked at before it is run.
 ;
-;   ISCC.exe /DVersion=1.0.0 Deploy\AmbientSynth.iss
+;   ISCC.exe /DVersion=1.0.0 Deploy\Noctuary.iss
 ;
 ; The binaries are linked against the static runtime (AMBIENT_STATIC_RUNTIME), so there is no
 ; redistributable to chase and no DLL beside the executable: two files and the presets.
@@ -12,9 +12,9 @@
 #ifndef Version
   #define Version "1.0.0"
 #endif
-#define AppName "AmbientSynth"
+#define AppName "Noctuary"
 #define Publisher "Rene Weller"
-#define AppURL "https://github.com/reneweller-coding/AmbientSynth"
+#define AppURL "https://github.com/reneweller-coding/Noctuary"
 #define Stage "stage"
 ; Where the sample library is downloaded from. The archives are release assets; the lines that
 ; name them, with their sizes and hashes, are generated into content-files.iss by
@@ -23,7 +23,7 @@
   ; Only a fallback for a hand-run compile. build_release.ps1 passes the real one
   ; (/DContentBaseUrl=...): the archives live with the release that introduced them, and this
   ; line pointing at a fixed old tag is what produced "Download failed: 404 Not Found".
-  #define ContentBaseUrl "https://github.com/reneweller-coding/AmbientSynth/releases/download/library-v5"
+  #define ContentBaseUrl "https://github.com/reneweller-coding/Noctuary/releases/download/library-v5"
 #endif
 #define HaveContent FileExists(AddBackslash(SourcePath) + "content-files.iss")
 #if HaveContent
@@ -45,7 +45,7 @@ LicenseFile={#Stage}\LICENSE.txt
 OutputDir=out
 OutputBaseFilename={#AppName}-{#Version}-Setup
 SetupIconFile={#Stage}\logo.ico
-UninstallDisplayIcon={app}\AmbientSynth.exe
+UninstallDisplayIcon={app}\Noctuary.exe
 UninstallDisplayName={#AppName} {#Version}
 Compression=lzma2/max
 SolidCompression=yes
@@ -79,15 +79,15 @@ en.CompVst3=VST3 plug-in (for a DAW)
 en.CompPacks=Preset library (56 packs, 14336 presets)
 en.CompContent=Sample library: the samples, wavetables and impulse responses the presets use (downloaded, %1 GB)
 en.TaskDesktop=Create a desktop shortcut
-en.DownloadFailed=The sample library could not be downloaded:%n%n%1%n%nEverything else installs and works without it; presets that want a sample fall back to the built-in sources. You can install the library later by unpacking the content archives from the release into the AmbientSynth folder.%n%nInstall without the sample library?
-en.NoAvx2=This processor reports no AVX2 support.%n%nAmbientSynth is built for AVX2, which every x86-64 processor since 2013 has. Without it, it will not start.%n%nInstall anyway?
+en.DownloadFailed=The sample library could not be downloaded:%n%n%1%n%nEverything else installs and works without it; presets that want a sample fall back to the built-in sources. You can install the library later by unpacking the content archives from the release into the Noctuary folder.%n%nInstall without the sample library?
+en.NoAvx2=This processor reports no AVX2 support.%n%nNoctuary is built for AVX2, which every x86-64 processor since 2013 has. Without it, it will not start.%n%nInstall anyway?
 de.CompStandalone=Eigenstaendiges Programm
 de.CompVst3=VST3-Plugin (fuer eine DAW)
 de.CompPacks=Preset-Bibliothek (56 Pakete, 14336 Presets)
 de.CompContent=Sample-Bibliothek: die Samples, Wavetables und Impulsantworten der Presets (wird geladen, %1 GB)
 de.TaskDesktop=Verknuepfung auf dem Desktop anlegen
-de.DownloadFailed=Die Sample-Bibliothek konnte nicht geladen werden:%n%n%1%n%nAlles andere wird installiert und funktioniert auch ohne sie; Presets, die ein Sample moechten, greifen auf die eingebauten Quellen zurueck. Die Bibliothek laesst sich spaeter nachlegen, indem man die Content-Archive aus dem Release in den AmbientSynth-Ordner entpackt.%n%nOhne die Sample-Bibliothek installieren?
-de.NoAvx2=Dieser Prozessor meldet keine AVX2-Unterstuetzung.%n%nAmbientSynth ist fuer AVX2 gebaut, das jeder x86-64-Prozessor seit 2013 hat. Ohne AVX2 startet es nicht.%n%nTrotzdem installieren?
+de.DownloadFailed=Die Sample-Bibliothek konnte nicht geladen werden:%n%n%1%n%nAlles andere wird installiert und funktioniert auch ohne sie; Presets, die ein Sample moechten, greifen auf die eingebauten Quellen zurueck. Die Bibliothek laesst sich spaeter nachlegen, indem man die Content-Archive aus dem Release in den Noctuary-Ordner entpackt.%n%nOhne die Sample-Bibliothek installieren?
+de.NoAvx2=Dieser Prozessor meldet keine AVX2-Unterstuetzung.%n%nNoctuary ist fuer AVX2 gebaut, das jeder x86-64-Prozessor seit 2013 hat. Ohne AVX2 startet es nicht.%n%nTrotzdem installieren?
 
 [Types]
 Name: "full"; Description: "{code:FullTypeName}"
@@ -107,22 +107,22 @@ Name: "packs\content"; Description: "{cm:CompContent,{#ContentSize}}"; Types: fu
 Name: "desktopicon"; Description: "{cm:TaskDesktop}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; Components: standalone
 
 [Files]
-Source: "{#Stage}\AmbientSynth.exe"; DestDir: "{app}"; Components: standalone; Flags: ignoreversion
+Source: "{#Stage}\Noctuary.exe"; DestDir: "{app}"; Components: standalone; Flags: ignoreversion
 Source: "{#Stage}\LICENSE.txt";      DestDir: "{app}"; Components: standalone; Flags: ignoreversion
 Source: "{#Stage}\README.txt";       DestDir: "{app}"; Components: standalone; Flags: ignoreversion isreadme
 ; The manual, so it is on the machine rather than only on a web page somewhere.
-Source: "{#Stage}\AmbientSynth-Manual.pdf"; DestDir: "{app}"; Components: standalone;     Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#Stage}\Noctuary-Manual.pdf"; DestDir: "{app}"; Components: standalone;     Flags: ignoreversion skipifsourcedoesntexist
 ; The VST3 is a bundle: a folder that the host reads as one plug-in.
-Source: "{#Stage}\AmbientSynth.vst3\*"; DestDir: "{autocf}\VST3\AmbientSynth.vst3"; \
+Source: "{#Stage}\Noctuary.vst3\*"; DestDir: "{autocf}\VST3\Noctuary.vst3"; \
     Components: vst3; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Packs go into a folder of the installer's own -- machine-wide or, for an install without
 ; administrator rights, per user -- so that removing them again can never take a pack the user put
 ; there themselves along with it. The instrument reads both of these as well as each user's own
-; Documents\AmbientSynth\Packs (see Core/src/PresetPacks.cpp).
+; Documents\Noctuary\Packs (see Core/src/PresetPacks.cpp).
 Source: "{#Stage}\Packs\*.ambientpack"; DestDir: "{code:LibDir}\Packs"; \
     Components: packs; Flags: ignoreversion
 ; The journey templates (presets in a row, Core/include/ambient/Journey.h), beside the packs;
-; the player's own go to Documents\AmbientSynth\Journeys and are never touched.
+; the player's own go to Documents\Noctuary\Journeys and are never touched.
 Source: "{#Stage}\Journeys\*.journey"; DestDir: "{code:LibDir}\Journeys"; \
     Components: packs; Flags: ignoreversion skipifsourcedoesntexist
 #if HaveContent
@@ -135,35 +135,35 @@ Source: "{#Stage}\Journeys\*.journey"; DestDir: "{code:LibDir}\Journeys"; \
 #endif
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\AmbientSynth.exe"; Components: standalone
-Name: "{group}\Manual"; Filename: "{app}\AmbientSynth-Manual.pdf"; Components: standalone;     Check: FileExists(ExpandConstant('{app}\AmbientSynth-Manual.pdf'))
+Name: "{group}\{#AppName}"; Filename: "{app}\Noctuary.exe"; Components: standalone
+Name: "{group}\Manual"; Filename: "{app}\Noctuary-Manual.pdf"; Components: standalone;     Check: FileExists(ExpandConstant('{app}\Noctuary-Manual.pdf'))
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\AmbientSynth.exe"; Tasks: desktopicon
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\Noctuary.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\AmbientSynth.exe"; Description: "{cm:LaunchProgram,{#AppName}}"; \
+Filename: "{app}\Noctuary.exe"; Description: "{cm:LaunchProgram,{#AppName}}"; \
     Flags: nowait postinstall skipifsilent; Components: standalone
 
 [UninstallDelete]
 ; The plug-in bundle and the pack folders are ones the installer made; what a user put in their
 ; own Documents is theirs and is never touched.
-Type: filesandordirs; Name: "{autocf}\VST3\AmbientSynth.vst3"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\Packs"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\Textures"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\FieldRecordings"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\Wavetables"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\Impulses"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\Archive"
-Type: filesandordirs; Name: "{commonappdata}\AmbientSynth\Journeys"
-Type: dirifempty;     Name: "{commonappdata}\AmbientSynth"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\Packs"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\Textures"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\FieldRecordings"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\Wavetables"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\Impulses"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\Archive"
-Type: filesandordirs; Name: "{localappdata}\AmbientSynth\Journeys"
-Type: dirifempty;     Name: "{localappdata}\AmbientSynth"
+Type: filesandordirs; Name: "{autocf}\VST3\Noctuary.vst3"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\Packs"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\Textures"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\FieldRecordings"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\Wavetables"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\Impulses"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\Archive"
+Type: filesandordirs; Name: "{commonappdata}\Noctuary\Journeys"
+Type: dirifempty;     Name: "{commonappdata}\Noctuary"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\Packs"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\Textures"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\FieldRecordings"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\Wavetables"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\Impulses"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\Archive"
+Type: filesandordirs; Name: "{localappdata}\Noctuary\Journeys"
+Type: dirifempty;     Name: "{localappdata}\Noctuary"
 
 [Code]
 #if HaveContent
@@ -235,13 +235,13 @@ end;
 // the relative paths inside the packs ("../Textures/x.wav") land where they are looked for. What
 // actually arrives there is "x.flac" -- the same audio at half the download -- and the synth looks
 // for the FLAC beside the name a pack gives, so both spellings work. Never the user's own
-// Documents\AmbientSynth, which is theirs and must survive an uninstall.
+// Documents\Noctuary, which is theirs and must survive an uninstall.
 function LibDir(Param: String): String;
 begin
   if IsAdminInstallMode then
-    Result := ExpandConstant('{commonappdata}\AmbientSynth')
+    Result := ExpandConstant('{commonappdata}\Noctuary')
   else
-    Result := ExpandConstant('{localappdata}\AmbientSynth');
+    Result := ExpandConstant('{localappdata}\Noctuary');
 end;
 
 function FullTypeName(Param: String): String;

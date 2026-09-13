@@ -1,7 +1,7 @@
 """Upload the sample library (Textures, FieldRecordings) to a GitHub release as archives the installer
 can take: AmbientSynth-library-<version>-partN.zip, each at most --max-part-mb (GitHub refuses a release
 asset over 2 GiB). Files are stored as they are -- FLAC does not shrink any further -- under the paths
-Textures/<name> and FieldRecordings/<name>, the layout the installer unpacks into the AmbientSynth folder.
+Textures/<name> and FieldRecordings/<name>, the layout the installer unpacks into the Noctuary folder.
 A manifest in the shape make_content_pack.py writes (version, parts with name, bytes, sha256, files)
 goes up last, so the installer's include can be generated from it.
 
@@ -43,8 +43,8 @@ EXTRA_FOLDERS = ("Wavetables", "Impulses")
 # the second: the fifty-four archives already on the release stay exactly what they are.
 ARCHIVE_FOLDERS = ("Archive",)
 KEEP = (".flac", ".wav", ".json", ".txt", ".md")
-REPO = "reneweller-coding/AmbientSynth"
-DEFAULT_STAGE = os.path.normpath(os.path.join(ROOT, "..", "AmbientSynth-Upload"))
+REPO = "reneweller-coding/Noctuary"
+DEFAULT_STAGE = os.path.normpath(os.path.join(ROOT, "..", "Noctuary-Upload"))
 
 
 def _walk(kind, audio_only):
@@ -139,10 +139,10 @@ def ensure_release(tag, version, summary):
     if gh("release", "view", tag, "--json", "name", check=False).returncode == 0:
         return
     notes = (f"Sample library {version}: {summary}. Draft, not published: the preset packs that use it are "
-             "being rebuilt. Each archive unpacks into the AmbientSynth folder (Textures/, FieldRecordings/, "
+             "being rebuilt. Each archive unpacks into the Noctuary folder (Textures/, FieldRecordings/, "
              "Wavetables/, Impulses/, Archive/); "
              f"AmbientSynth-library-{version}-manifest.json lists every part with its SHA-256 and files.")
-    gh("release", "create", tag, "--draft", "--title", f"AmbientSynth sample library {version}", "--notes", notes)
+    gh("release", "create", tag, "--draft", "--title", f"Noctuary sample library {version}", "--notes", notes)
 
 
 def build(part, path):

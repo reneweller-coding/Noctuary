@@ -1,4 +1,4 @@
-// ambient_render -- offline renderer for AmbientSynth (no JUCE, deterministic).
+// ambient_render -- offline renderer for Noctuary (no JUCE, deterministic).
 // Renders the engine to a 32-bit float WAV and prints measurements, so a patch
 // can be judged by numbers instead of by ear.
 //
@@ -469,7 +469,7 @@ static int runOnce(int argc, char** argv)
     int presetIndex = -1;
     bool nearAuto = false;
     Journey journey; bool haveJourney = false; uint64_t journeySeed = 1;
-    loadDefaultPresetPacks();   // $AMBIENT_PACKS or ~/Documents/AmbientSynth/Packs; --packs adds more
+    loadDefaultPresetPacks();   // $AMBIENT_PACKS or ~/Documents/Noctuary/Packs; --packs adds more
     std::vector<int> notes;
     std::string sclPath;
     Engine engine;

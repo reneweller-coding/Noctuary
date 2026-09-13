@@ -6,7 +6,7 @@ using namespace ambient;
 
 
 
-void AmbientSynthEditor::BrainView::timerCallback()
+void NoctuaryEditor::BrainView::timerCallback()
 {
     if (!isShowing()) return;
     bool now[128] = {};
@@ -20,7 +20,7 @@ void AmbientSynthEditor::BrainView::timerCallback()
     repaint();
 }
 
-void AmbientSynthEditor::BrainView::paint(juce::Graphics& g)
+void NoctuaryEditor::BrainView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds().toFloat().reduced(6.0f);
     g.setColour(ui::card);
@@ -99,7 +99,7 @@ void AmbientSynthEditor::BrainView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- stage
 
-juce::Rectangle<float> AmbientSynthEditor::StageView::plotRect() const
+juce::Rectangle<float> NoctuaryEditor::StageView::plotRect() const
 {
     return getLocalBounds().toFloat().reduced(12.0f, 8.0f).withTrimmedTop(14.0f);
 }
@@ -110,7 +110,7 @@ struct StagePlane { const char* key; const char* label; };
 const StagePlane kStagePlanes[3] = { { "depth", "conductor" }, { "keys_depth", "keys" }, { "brain2_depth", "conductor 2" } };
 }
 
-int AmbientSynthEditor::StageView::lineAt(juce::Point<int> pos) const
+int NoctuaryEditor::StageView::lineAt(juce::Point<int> pos) const
 {
     const auto plot = plotRect();
     int best = -1; float bestD = 7.0f;
@@ -123,7 +123,7 @@ int AmbientSynthEditor::StageView::lineAt(juce::Point<int> pos) const
     return best;
 }
 
-void AmbientSynthEditor::StageView::mouseMove(const juce::MouseEvent& e)
+void NoctuaryEditor::StageView::mouseMove(const juce::MouseEvent& e)
 {
     const int was = hoverLine;
     hoverLine = lineAt(e.getPosition());
@@ -131,7 +131,7 @@ void AmbientSynthEditor::StageView::mouseMove(const juce::MouseEvent& e)
     if (was != hoverLine) repaint();
 }
 
-void AmbientSynthEditor::StageView::mouseDown(const juce::MouseEvent& e)
+void NoctuaryEditor::StageView::mouseDown(const juce::MouseEvent& e)
 {
     dragLine = lineAt(e.getPosition());
     if (dragLine < 0) return;
@@ -140,7 +140,7 @@ void AmbientSynthEditor::StageView::mouseDown(const juce::MouseEvent& e)
     mouseDrag(e);
 }
 
-void AmbientSynthEditor::StageView::mouseDrag(const juce::MouseEvent& e)
+void NoctuaryEditor::StageView::mouseDrag(const juce::MouseEvent& e)
 {
     if (dragLine < 0) return;
     const auto plot = plotRect();
@@ -149,7 +149,7 @@ void AmbientSynthEditor::StageView::mouseDrag(const juce::MouseEvent& e)
     repaint();
 }
 
-void AmbientSynthEditor::StageView::mouseUp(const juce::MouseEvent&)
+void NoctuaryEditor::StageView::mouseUp(const juce::MouseEvent&)
 {
     if (dragLine < 0) return;
     if (auto* p = proc.apvts.getParameter(kStagePlanes[dragLine].key)) p->endChangeGesture();
@@ -157,7 +157,7 @@ void AmbientSynthEditor::StageView::mouseUp(const juce::MouseEvent&)
     repaint();
 }
 
-void AmbientSynthEditor::StageView::paint(juce::Graphics& g)
+void NoctuaryEditor::StageView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "STAGE", ui::voiceCol);
@@ -222,7 +222,7 @@ void AmbientSynthEditor::StageView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- tuning
 
-void AmbientSynthEditor::TuningView::paint(juce::Graphics& g)
+void NoctuaryEditor::TuningView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "TUNING", ui::condCol);
@@ -287,7 +287,7 @@ void AmbientSynthEditor::TuningView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- coherence
 
-void AmbientSynthEditor::CoherenceView::timerCallback()
+void NoctuaryEditor::CoherenceView::timerCallback()
 {
     if (!isShowing()) return;
     if (proc.engine().chaosSteps() > 0) {
@@ -299,7 +299,7 @@ void AmbientSynthEditor::CoherenceView::timerCallback()
     repaint();
 }
 
-void AmbientSynthEditor::CoherenceView::paint(juce::Graphics& g)
+void NoctuaryEditor::CoherenceView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "COHERENCE", ui::condCol);
@@ -389,7 +389,7 @@ void AmbientSynthEditor::CoherenceView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- cosmos spectrum
 
-AmbientSynthEditor::CosmosView::CosmosView(AmbientSynthProcessor& p)
+NoctuaryEditor::CosmosView::CosmosView(NoctuaryProcessor& p)
     : proc(p), re(kN), im(kN), window(kN), fft(std::make_unique<ambient::Fft>(kN))
 {
     setInterceptsMouseClicks(false, false);
@@ -398,7 +398,7 @@ AmbientSynthEditor::CosmosView::CosmosView(AmbientSynthProcessor& p)
     startTimerHz(15);
 }
 
-void AmbientSynthEditor::CosmosView::timerCallback()
+void NoctuaryEditor::CosmosView::timerCallback()
 {
     if (!isShowing()) return;
     proc.engine().cosmosTap(re.data(), kN);
@@ -421,7 +421,7 @@ void AmbientSynthEditor::CosmosView::timerCallback()
     repaint();
 }
 
-void AmbientSynthEditor::CosmosView::paint(juce::Graphics& g)
+void NoctuaryEditor::CosmosView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "COSMOS RETURN", ui::cosmosCol);
@@ -460,7 +460,7 @@ void AmbientSynthEditor::CosmosView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- amplitude envelope
 
-void AmbientSynthEditor::EnvView::paint(juce::Graphics& g)
+void NoctuaryEditor::EnvView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "AMP ENVELOPE", ui::voiceCol);
@@ -497,7 +497,7 @@ void AmbientSynthEditor::EnvView::paint(juce::Graphics& g)
     g.drawText("R " + juce::String(rl, 1) + " s", juce::roundToInt(xAt(a + d + hold)) + 2, juce::roundToInt(plot.getBottom()) - 11, 60, 10, juce::Justification::left, false);
 }
 
-void AmbientSynthEditor::FilterView::paint(juce::Graphics& g)
+void NoctuaryEditor::FilterView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "FILTER RESPONSE", ui::voiceCol);
@@ -536,10 +536,10 @@ void AmbientSynthEditor::FilterView::paint(juce::Graphics& g)
     g.drawText(fc.legend(), r.reduced(9, 5), juce::Justification::topRight, false);
 }
 
-void AmbientSynthEditor::SourceView::mouseDown(const juce::MouseEvent& e)
+void NoctuaryEditor::SourceView::mouseDown(const juce::MouseEvent& e)
 {
     if (ownEntrance() && entranceBox().contains(e.getPosition())) {   // the entrance picture: open it
-        if (auto* ed = findParentComponentOfClass<AmbientSynthEditor>()) ed->openSourceEnvelope(slot - 1);
+        if (auto* ed = findParentComponentOfClass<NoctuaryEditor>()) ed->openSourceEnvelope(slot - 1);
         return;
     }
     const int type = static_cast<int>(std::lround(rawParam(proc, ("src" + juce::String(slot) + "_type").toRawUTF8())));
@@ -551,7 +551,7 @@ void AmbientSynthEditor::SourceView::mouseDown(const juce::MouseEvent& e)
 // way Serum taught everyone to look at a wavetable. The lines are drawn once into an image for as
 // long as the table and the size stay; what is drawn on every tick is the frame at Position, lit in
 // the warm colour of what is sounding, which is the part that moves.
-bool AmbientSynthEditor::SourceView::paintTable3D(juce::Graphics& g, juce::Rectangle<float> plot, int type, int table, float pos)
+bool NoctuaryEditor::SourceView::paintTable3D(juce::Graphics& g, juce::Rectangle<float> plot, int type, int table, float pos)
 {
     // Which table, and whether it has changed since it was sampled. A user table is loaded into the
     // same place as the one before it, so the signature reads a little of the content as well.
@@ -698,13 +698,13 @@ bool AmbientSynthEditor::SourceView::paintTable3D(juce::Graphics& g, juce::Recta
     return true;
 }
 
-void AmbientSynthEditor::SourceView::paint(juce::Graphics& g)
+void NoctuaryEditor::SourceView::paint(juce::Graphics& g)
 {
     paintSource(g);
     paintEntrance(g);
 }
 
-bool AmbientSynthEditor::SourceView::ownEntrance() const
+bool NoctuaryEditor::SourceView::ownEntrance() const
 {
     const juce::String pre = "src" + juce::String(slot) + "_";
     return juce::roundToInt(rawParam(proc, (pre + "type").toRawUTF8())) != 0
@@ -712,12 +712,12 @@ bool AmbientSynthEditor::SourceView::ownEntrance() const
 }
 
 // Under the right-hand line of text, where every type's picture is plot and none is text.
-juce::Rectangle<int> AmbientSynthEditor::SourceView::entranceBox() const
+juce::Rectangle<int> NoctuaryEditor::SourceView::entranceBox() const
 {
     return getLocalBounds().reduced(9, 0).removeFromRight(84).withY(21).withHeight(26);
 }
 
-void AmbientSynthEditor::SourceView::paintEntrance(juce::Graphics& g)
+void NoctuaryEditor::SourceView::paintEntrance(juce::Graphics& g)
 {
     if (!ownEntrance() || getWidth() < 200 || getHeight() < 60) return;
     const auto box = entranceBox().toFloat();
@@ -750,7 +750,7 @@ void AmbientSynthEditor::SourceView::paintEntrance(juce::Graphics& g)
     g.drawText("ENV", box.withWidth(24.0f).toNearestInt(), juce::Justification::centred, false);
 }
 
-void AmbientSynthEditor::SourceView::paintSource(juce::Graphics& g)
+void NoctuaryEditor::SourceView::paintSource(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     const juce::String pre = "src" + juce::String(slot) + "_";
@@ -1073,14 +1073,14 @@ void AmbientSynthEditor::SourceView::paintSource(juce::Graphics& g)
 
 // ---------------------------------------------------------------- the Vector's square
 
-juce::Rectangle<float> AmbientSynthEditor::VectorView::square() const
+juce::Rectangle<float> NoctuaryEditor::VectorView::square() const
 {
     const auto plot = getLocalBounds().toFloat().reduced(12.0f, 9.0f).withTrimmedTop(15.0f);
     const float side = juce::jmin(plot.getWidth(), plot.getHeight());
     return juce::Rectangle<float>(plot.getCentreX() - side * 0.5f, plot.getCentreY() - side * 0.5f, side, side);
 }
 
-void AmbientSynthEditor::VectorView::drag(const juce::MouseEvent& e)
+void NoctuaryEditor::VectorView::drag(const juce::MouseEvent& e)
 {
     const auto sq = square();
     if (sq.getWidth() < 4.0f) return;
@@ -1090,7 +1090,7 @@ void AmbientSynthEditor::VectorView::drag(const juce::MouseEvent& e)
     if (auto* py = proc.apvts.getParameter(paramDesc(ambient::ParamId::VecY).key)) py->setValueNotifyingHost(y);
 }
 
-void AmbientSynthEditor::VectorView::paint(juce::Graphics& g)
+void NoctuaryEditor::VectorView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds();
     displayFrame(g, r, "VECTOR", ui::voiceCol);
@@ -1189,13 +1189,13 @@ void AmbientSynthEditor::VectorView::paint(juce::Graphics& g)
 
 // ---------------------------------------------------------------- loudness, in the header
 
-void AmbientSynthEditor::LoudnessView::mouseDown(const juce::MouseEvent&)
+void NoctuaryEditor::LoudnessView::mouseDown(const juce::MouseEvent&)
 {
     proc.engine().resetLoudness();
     repaint();
 }
 
-void AmbientSynthEditor::LoudnessView::paint(juce::Graphics& g)
+void NoctuaryEditor::LoudnessView::paint(juce::Graphics& g)
 {
     const auto r = getLocalBounds().toFloat();
     g.setColour(ui::bg0.withAlpha(0.5f));

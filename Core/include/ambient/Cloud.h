@@ -1,4 +1,4 @@
-// AmbientSynth -- the granular cloud on the far plane.
+// Noctuary -- the granular cloud on the far plane.
 //
 // Grains of the recent foreground, scattered back in time, transposed and dropped into the far
 // reverb. Since 12.09.2026 it also does what Absynth's Aetherizer is known for -- grains that hear
