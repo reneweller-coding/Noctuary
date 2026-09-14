@@ -170,8 +170,8 @@ public:
     void setPlace(bool lowest, bool highest) { placeLowest_ = lowest; placeHighest_ = highest; }
     // A near event's shape, set before its noteOn: the gate as a share of the release, the bloom
     // as a factor on the cutoff, the near field's low lift in decibels, and its place in the field.
-    void setNearShape(float releaseMul, float cutoffMul, float proximityDb, float pan)
-    { releaseMul_ = std::max(releaseMul, 0.05f); cutoffMul_ = clampv(cutoffMul, 0.05f, 8.0f); proxDb_ = proximityDb; panOffset_ = clampv(pan, -1.0f, 1.0f); }
+    void setNearShape(float releaseMul, float cutoffMul, float proximityDb, float pan, float gain = 1.0f)
+    { releaseMul_ = std::max(releaseMul, 0.05f); cutoffMul_ = clampv(cutoffMul, 0.05f, 8.0f); proxDb_ = proximityDb; panOffset_ = clampv(pan, -1.0f, 1.0f); nearGain_ = std::max(gain, 0.0f); }
     uint64_t order = 0;      // allocation order for voice stealing
 
     // For pictures only: the current amplitude of each partial of the first strand, exactly the
@@ -306,6 +306,7 @@ private:
     // A near event's shape (see setNearShape), the low lift's one-pole per ear, its place in the
     // field as an equal-power pair, and the plane it is travelling to.
     float    releaseMul_ = 1.0f, cutoffMul_ = 1.0f, proxDb_ = 0.0f, panOffset_ = 0.0f;
+    float    nearGain_ = 1.0f;   // the event's Gain (fore_gain), folded into the pan pair at note-on
     float    proxAmt_ = 0.0f, proxLoCoef_ = 0.0f, proxHiCoef_ = 0.0f;
     float    proxLoL_ = 0.0f, proxLoR_ = 0.0f, proxHiL_ = 0.0f, proxHiR_ = 0.0f;
     float    panL_ = 1.0f, panR_ = 1.0f;

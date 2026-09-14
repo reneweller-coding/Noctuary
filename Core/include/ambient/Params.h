@@ -313,6 +313,13 @@ enum class ParamId : int {
     // routing switch -- the event still sounds where Distance and Dry put it, and this is what is
     // thrown into the long chain or into the deep space beside it.
     ForeDelay2, ForeCosmos,
+    // The foreground's own gain, in dB, after its source and before everything it passes through
+    // (14.09.2026). Level is the source's level, and for several near sources it is not only a
+    // level -- a jet, a bow, a clip each read it their own way, one clamps it at two -- so it cannot
+    // carry a calibration of twenty decibels. This does, and the bank's presets carry a measured
+    // one each: Tools/library/near_loudness.py puts every preset's loudest moment at the same
+    // distance from the background, where they had lain eighteen decibels apart.
+    ForeGain,
     Count
 };
 

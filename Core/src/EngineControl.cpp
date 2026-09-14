@@ -1239,6 +1239,7 @@ void Engine::readParams()
     np_.bloom     = g(ParamId::ForeBloom);
     np_.attack    = g(ParamId::ForeAttack);
     np_.release   = g(ParamId::ForeRelease);
+    nearGain_     = dbToGain(g(ParamId::ForeGain));
     {
         // What a near event's voice renders with: the sound preset's voice with its four slots
         // put out and the Near Source in the last one, its own envelope, its own filter, its own

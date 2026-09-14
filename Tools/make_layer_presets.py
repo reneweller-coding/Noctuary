@@ -696,11 +696,24 @@ def main():
                and not (os.path.isfile(os.path.join(library, kw["__clip__"])) or os.path.isdir(os.path.join(library, kw["__clip__"])))]
     if missing:
         sys.exit("near bank: %d clip(s) not found under Library/:\n  %s" % (len(missing), "\n  ".join(missing)))
-    def fmt_clip(kw):
+    # The measured gain of every near preset (14.09.2026): what brings its loudest moment to the
+    # loudness of the background it plays over, as Tools/library/near_loudness.py measured it over
+    # several backgrounds. Kept in a file of its own so a preset edited here keeps its measurement
+    # until it is measured again; a preset the file does not know plays at 0 dB.
+    import json
+    gain_path = os.path.join(ROOT, "Tools", "library", "near_gain.json")
+    gains = json.load(open(gain_path, encoding="utf-8")).get("gain_db", {}) if os.path.isfile(gain_path) else {}
+
+    def fmt_clip(nm, kw):
         kw = dict(kw)
         clip = kw.pop("__clip__", None)
+        if nm in gains:
+            kw["fore_gain"] = round(float(gains[nm]), 1)
         return fmt(**kw) + ("|" + clip if clip else "")
-    fams = [(f, [(nm, fmt_clip(kw)) for nm, kw in ps]) for f, ps in NEAR]
+    fams = [(f, [(nm, fmt_clip(nm, kw)) for nm, kw in ps]) for f, ps in NEAR]
+    unmeasured = [nm for _, ps in NEAR for nm, _ in ps if nm not in gains]
+    if gains and unmeasured:
+        print("near bank: %d preset(s) without a measured gain, left at 0 dB: %s" % (len(unmeasured), ", ".join(unmeasured[:8])))
     n = write_bank(NEAR_OUT, "kNearPresets", "kNearPresetCategory", "Near Off",
                    "fore_level=0", fams,
                    "%d presets in %d families, touching only the Near Source and Near Events sections."

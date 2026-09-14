@@ -846,7 +846,7 @@ void Engine::startNearNote(const NearNote& e)
     Voice* v = allocate(e.note, OwnerNear);
     v->order = ++order_;
     v->setPlace(true, true);
-    v->setNearShape(e.releaseMul, e.cutoffMul, 6.0f * clampv(np_.proximity, 0.0f, 1.0f), e.pan);
+    v->setNearShape(e.releaseMul, e.cutoffMul, 6.0f * clampv(np_.proximity, 0.0f, 1.0f), e.pan, nearGain_);
     v->noteOn(e.note, frequencyOf(e.note), e.velocity, OwnerNear, e.distance, vpNear_, vpNear_.strikeLevel > 0.0f, 0.0f);
 }
 

@@ -19,6 +19,14 @@ ROOT = os.path.normpath(os.path.join(HERE, ".."))
 TABLE = os.path.join(HERE, "library", "near_by_artist.json")
 OUT = os.path.join(ROOT, "Core", "src", "NearAuto.inc")
 
+# Rene, 14.09.2026: "mindestens 90% aller Presets sollten Nahtöne haben". The table's shares ran from
+# 0.05 to 0.70, and 61 % of the library's pack presets brought no foreground -- which, with Auto on,
+# means they switched off the one that was playing, so most steps of a journey were silent near the
+# ear. The shares stay as he wrote them and still order the artists (the sparsest drone artist stays
+# the sparsest), but they are mapped linearly onto [SHARE_FLOOR, 1]: every pack gives at least this
+# share of its presets a foreground.
+SHARE_FLOOR = 0.90
+
 
 def artist_packs():
     sys.path.insert(0, os.path.join(HERE, "library"))   # artists.py imports its neighbours
@@ -48,6 +56,12 @@ def main():
     packs = artist_packs()
     known = set(near_names())
     entries, rows, missing, unknown = [], [], [], set()
+    written = [float(a["share"]) for a in table["artists"].values()]
+    lo_s, hi_s = min(written), max(written)
+
+    def share_of(s):
+        return SHARE_FLOOR + (1.0 - SHARE_FLOOR) * ((s - lo_s) / (hi_s - lo_s) if hi_s > lo_s else 1.0)
+
     for artist, a in table["artists"].items():
         pack = packs.get(artist)
         if pack is None:
@@ -60,7 +74,7 @@ def main():
                 continue
             lo, hi = p["rate_factor"]
             entries.append((p["preset"], float(p["weight"]), float(lo), float(hi)))
-        rows.append((pack, float(a["share"]), first, len(entries) - first))
+        rows.append((pack, share_of(float(a["share"])), first, len(entries) - first))
     if missing:
         print("no pack for: " + ", ".join(missing))
     if unknown:

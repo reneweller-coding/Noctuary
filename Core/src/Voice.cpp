@@ -119,7 +119,7 @@ void Voice::noteOn(int note, double freqHz, float velocity, int owner, float dis
            : (note < 43 ? 0.0f : note < 60 ? 0.25f : note < 84 ? 0.5f : 0.75f);
     // A near event's shape was set just before this; any other note starts with none of it, or a
     // voice that played an event a minute ago would keep its gate and its lift.
-    if (owner != 3) { releaseMul_ = 1.0f; cutoffMul_ = 1.0f; proxDb_ = 0.0f; panOffset_ = 0.0f; }
+    if (owner != 3) { releaseMul_ = 1.0f; cutoffMul_ = 1.0f; proxDb_ = 0.0f; panOffset_ = 0.0f; nearGain_ = 1.0f; }
     // The near field's lift is a band, 120 to 300 Hz, and not a shelf: below it stand the
     // Foundation and Bass Mono, and a shelf there muddied the sub, which is where the depth lives.
     proxAmt_ = proxDb_ > 0.0f ? dbToGain(proxDb_) - 1.0f : 0.0f;
@@ -127,7 +127,9 @@ void Voice::noteOn(int note, double freqHz, float velocity, int owner, float dis
     proxHiCoef_ = 1.0f - std::exp(-kTwoPi * 300.0f / static_cast<float>(sr_));
     {
         const float angle = (panOffset_ + 1.0f) * 0.25f * kPi;
-        panL_ = 1.41421356f * std::cos(angle); panR_ = 1.41421356f * std::sin(angle);
+        // The event's Gain rides on the pan pair: one multiplication that is already there, after
+        // the sources and the filter, so it changes how loud the event is and nothing about it.
+        panL_ = nearGain_ * 1.41421356f * std::cos(angle); panR_ = nearGain_ * 1.41421356f * std::sin(angle);
     }
     // The slot roles start where the note stands; control() fades them as the cluster changes.
     for (int k = 0; k < kSlots; ++k) roleGain_[k] = roleTarget(p.slot[k].role, placeLowest_, placeHighest_);

@@ -8099,10 +8099,22 @@ static void testNearLayer()
         }
         int distinct = 0;
         for (int n : counts) if (n > 0) ++distinct;
-        std::printf("  [probe] near auto: %d of 400 names bring a foreground (share 0.7), %d different near presets, %d bad picks\n", with, distinct, bad);
+        std::printf("  [probe] near auto: %d of 400 names bring a foreground (the table's widest share, now 1.0), %d different near presets, %d bad picks\n", with, distinct, bad);
         CHECK(bad == 0, "every pick is a near preset with a factor of its class");
-        CHECK(with > 240 && with < 320, "about the table's share of them get one");
+        CHECK(with == 400, "the pack with the table's widest share gives every preset a foreground");
         CHECK(distinct >= 12, "drawn from the artist's whole list, not one of it");
+        // Rene, 14.09.2026: at least 90 % of all presets have near events. The table's shares are
+        // mapped onto 0.9 .. 1 (make_near_auto.py), so even the sparsest artist -- a pack of long
+        // sustains -- gives nine in ten of its presets a foreground. Four hundred names, so three
+        // standard deviations of sampling are about four and a half points.
+        int sparse = 0;
+        for (int i = 0; i < 400; ++i) {
+            char name[32]; std::snprintf(name, sizeof(name), "Preset %d of the night", i);
+            float f = 0.0f;
+            if (nearAutoPick("Sustain", name, f) > 0) ++sparse;
+        }
+        std::printf("  [probe] near auto: the sparsest pack gives %d of 400 names a foreground\n", sparse);
+        CHECK(sparse >= 342, "even the sparsest pack gives about nine in ten presets a foreground");
     }
     // ---- A full preset leaves the near layer standing (13.09.2026). Applying a preset begins by
     // putting everything in its scope back to its default, so that what the preset does not
@@ -8138,6 +8150,42 @@ static void testNearLayer()
         CHECK(std::fabs(e.getParam(ParamId::ForeLevel) - 0.25f) < 1.0e-6f &&
               std::fabs(e.getParam(ParamId::ForeRate) - 90.0f) < 1.0e-3f,
               "and a preset that names the near layer still sets it");
+    }
+    // ---- Gain (14.09.2026): the event's own gain in decibels, after its source. Measured on an
+    // event that goes straight to the output past every room, over a silent background, so what
+    // comes out while it sounds is the event and every stage it passes is linear. It has to be a
+    // gain and nothing else: Level reads into a jet, a bow and a clip, and a calibration of twenty
+    // decibels carried by Level would have been twenty decibels of a different sound.
+    {
+        auto eventEnergy = [&](float gainDb) {
+            auto owned = std::make_unique<Engine>();
+            Engine& e = *owned;
+            e.prepare(sr, 256);
+            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
+            e.setParam(ParamId::BrainOn, 1.0f); e.setParam(ParamId::BrainRate, 3.0f);
+            e.setParam(ParamId::Src1Type, 0.0f); e.setParam(ParamId::OscLevel, 0.0f); e.setParam(ParamId::Air, 0.0f);
+            e.setParam(ParamId::ForeLevel, 0.3f); e.setParam(ParamId::ForeType, 5.0f); e.setParam(ParamId::ForePartials, 1.0f);   // a sine
+            e.setParam(ParamId::ForeRate, 10.0f); e.setParam(ParamId::ForeLength, 4.0f);
+            e.setParam(ParamId::ForeAttack, 0.01f); e.setParam(ParamId::ForeRelease, 0.1f);
+            e.setParam(ParamId::ForeApproach, 0.0f); e.setParam(ParamId::ForeDistance, 0.0f); e.setParam(ParamId::ForeDry, 1.0f);
+            e.setParam(ParamId::ForeGain, gainDb);
+            e.reset();
+            std::vector<float> L(256), R(256);
+            double energy = 0.0;
+            for (int b = 0; b < static_cast<int>(40.0 * sr / 256.0); ++b) {
+                e.process(L.data(), R.data(), 256);
+                if (!e.nearActive()) continue;
+                for (int i = 0; i < 256; ++i)
+                    energy += static_cast<double>(L[static_cast<size_t>(i)]) * L[static_cast<size_t>(i)]
+                            + static_cast<double>(R[static_cast<size_t>(i)]) * R[static_cast<size_t>(i)];
+            }
+            return energy;
+        };
+        const double e0 = eventEnergy(0.0f), eUp = eventEnergy(6.0206f), eDown = eventEnergy(-12.0f);
+        const double up = 10.0 * std::log10(eUp / std::max(e0, 1e-30)), down = 10.0 * std::log10(eDown / std::max(e0, 1e-30));
+        std::printf("  [probe] near gain: +6.02 dB set -> %+.2f dB out, -12 dB set -> %+.2f dB out\n", up, down);
+        CHECK(e0 > 1.0e-9, "a near event sounds, to be measured");
+        CHECK(std::fabs(up - 6.02) < 0.3 && std::fabs(down + 12.0) < 0.3, "Gain makes the event louder and quieter by what it says, and nothing else");
     }
     // ---- Distance and Dry (13.09.2026): where an event sits, and what goes past the room
     {

@@ -577,6 +577,7 @@ private:
     // Source in the last of them, and the section's own envelope, filter and strike.
     NearEvents    near_;
     NearParams    np_;
+    float         nearGain_ = 1.0f;   // fore_gain as a factor, read with the rest of the near layer
     VoiceParams   vpNear_;
     bool          rolesUsed_ = false;   // any slot with a role other than All: the places are then kept
     // The excitation the cascade has been running at lately, so Cluster can weigh a note against
