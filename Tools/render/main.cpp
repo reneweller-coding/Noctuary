@@ -141,14 +141,25 @@ void fft(std::vector<float>& re, std::vector<float>& im)
 // for the preset map, three descriptors that say what a drone is like rather than what a note is
 // like: how much it changes over a minute, how rough its spectrum is, and how wet it stands.
 // stemE holds the energy of the four buses (near, far, cosmos, room) or is null.
+// --bands (14.09.2026): with --measure, one more line -- the settled half's energy in ten octave bands,
+// 31.5 Hz to 16 kHz, in dB of mean power per frame. For asking whether every source of a preset can be
+// heard: rendered one source at a time in a batch, the bands say which source carries which part of
+// the spectrum, without writing tens of thousands of files to read them back. The two channels are
+// measured apart and their powers averaged, as loudness adds them: through the mono sum the other
+// descriptors use, a wide texture loses up to 3 dB against a centred source it is compared with.
+bool g_printBands = false;
+
 void printMeasurements(const std::vector<float>& L, const std::vector<float>& R, int sr, double voices,
                        const double* stemE = nullptr)
 {
     const size_t n = L.size();
+    static const double kOctEdge[11] = { 22.4, 44.7, 89.1, 178.0, 355.0, 708.0, 1413.0, 2818.0, 5623.0, 11220.0, 22390.0 };
+    double octave[10] = {};
     if (n < 4096) { std::printf("measure: rms=-120 centroid=0 flatness=0 flux=0 bass=0 width=0 voices=%.2f peak=0 jump=0 dc=0 monoloss=0\n", voices); return; }
     const size_t half = n / 2;
     const int win = 2048, hop = 1024;
     std::vector<float> re(win), im(win), mag(win / 2 + 1), prev(win / 2 + 1, 0.0f), hann(win);
+    std::vector<float> bre(g_printBands ? win : 0), bim(g_printBands ? win : 0);
     for (int i = 0; i < win; ++i) hann[static_cast<size_t>(i)] = 0.5f - 0.5f * std::cos(6.28318530718f * i / (win - 1));
     double centroid = 0.0, flatness = 0.0, flux = 0.0, bass = 0.0;
     int frames = 0;
@@ -168,6 +179,22 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
             sum += p; wsum += p * f; logsum += std::log(static_cast<double>(m));
             if (f < 150.0) low += p;
         }
+        if (g_printBands)
+            for (int ch = 0; ch < 2; ++ch) {
+                const std::vector<float>& x = ch == 0 ? L : R;
+                for (int i = 0; i < win; ++i) {
+                    bre[static_cast<size_t>(i)] = x[start + static_cast<size_t>(i)] * hann[static_cast<size_t>(i)];
+                    bim[static_cast<size_t>(i)] = 0.0f;
+                }
+                fft(bre, bim);
+                for (int k = 0; k <= win / 2; ++k) {
+                    const double f = static_cast<double>(k) * sr / win;
+                    const double p = 0.5 * (static_cast<double>(bre[static_cast<size_t>(k)]) * bre[static_cast<size_t>(k)]
+                                          + static_cast<double>(bim[static_cast<size_t>(k)]) * bim[static_cast<size_t>(k)]);
+                    for (int b = 0; b < 10; ++b)
+                        if (f >= kOctEdge[b] && f < kOctEdge[b + 1]) { octave[b] += p; break; }
+                }
+            }
         if (frames > 0) {
             double na = 0.0, nb = 0.0;
             for (int k = 0; k <= win / 2; ++k) { na += mag[static_cast<size_t>(k)]; nb += prev[static_cast<size_t>(k)]; }
@@ -351,6 +378,11 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
     for (int c = 0; c < kCeps; ++c) std::printf(" %.4f", mfccMean[c]);
     for (int c = 0; c < kCeps; ++c) std::printf(" %.4f", mfccVar[c]);
     std::printf("\n");
+    if (g_printBands) {
+        std::printf("bands:");
+        for (int b = 0; b < 10; ++b) std::printf(" %.2f", 10.0 * std::log10(octave[b] * inv + 1e-30));
+        std::printf("\n");
+    }
 }
 
 } // namespace
@@ -505,6 +537,7 @@ static int runOnce(int argc, char** argv)
         else if (a == "--stats") stats = true;
         else if (a == "--near-log") nearLog = true;
         else if (a == "--measure") measure = true;   // print descriptors instead of writing a file
+        else if (a == "--bands") g_printBands = true; // with --measure: ten octave-band energies too
         else if (a == "--tonal") tonal = true;       // print how much of it follows the note
         else if (a == "--tonal-seconds") tonalSeconds = std::atof(next().c_str());
         // A short mono excerpt of the settled part, for whatever wants to listen to the render
