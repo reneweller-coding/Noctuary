@@ -3544,28 +3544,55 @@ the window. The 256 built-ins, measured before that re-measurement under the pip
 conditions (60 s after a 45 s warm-up, notes 45/52/59, brain rate 6, hour 21), before and after:
 
 ```
-                                            before    after
-LUFS integrated, median                      -25.3    -26.2
-crest (true peak over short-term), median     11.9     11.9   presets at 12 dB and over: 122 of 256, both
-mono loss, median                             2.2      2.2    presets under 3 dB: 192 -> 194
-|L/R correlation| of the mix, median          0.22     0.23   presets in 0.3 .. 0.7: 89 -> 93
-63 Hz octave band under the loudest band      -8.5    -10.1   the halls' low end
-31.5 Hz octave band under the loudest        -19.9    -14.6   the sub an octave down
-wet share of the energy, median               0.24     0.19   the background 14 dB under, per note
-true peak, loudest preset                     -2.6     -3.9
+                                            before   engine  presets   (engine: the six parameters; presets: guide.py over the built-ins as well)
+LUFS integrated, median                      -25.3    -26.2    -26.7
+crest (true peak over short-term), median     11.9     11.9     12.1   presets at 12 dB and over: 122 -> 122 -> 134 of 256
+mono loss, median                             2.2      2.2      2.1    presets under 3 dB: 192 -> 194 -> 209
+|L/R correlation| of the mix, median          0.22     0.23     0.24   presets in 0.3 .. 0.7: 89 -> 93 -> 100
+63 Hz octave band under the loudest band      -8.5    -10.1    -10.7   the halls' low end, then the pads' low cut
+31.5 Hz octave band under the loudest        -19.9    -14.6    -15.7   the sub an octave down
+wet share of the energy, median               0.24     0.19     0.21   the background 14 dB under, per note
+true peak, loudest preset                     -2.6     -3.9     -3.3
 ```
 
 The whole-mix figures move little, as they should: the mix is the near bus, and what changed is
-the far bus under it. The default patch's stems say it: far against near from +0.8 dB to -3.2, the
+the far bus under it. The gates the pipeline now counts moved the right way with the presets' pass
+(crest, mono loss and the mix's correlation each gained a tenth of the library); the sub against the
+250-500 Hz band did not (-9.4 -> -10.3 dB median, three presets in the guide's +3..+6), because that
+is a level the generator draws and the measurement re-levels, not a window a parameter can hold --
+the pipeline's next step is a band-measured sub balance in rebalance_sub.py, which today compares
+knob values. The default patch's stems say it: far against near from +0.8 dB to -3.2, the
 far stem's 63 Hz band from +2 dB against the mix's loudest band to -19, the near stem's correlation
 from 0.44 to 0.61 (the strands a third as wide at the ear) with the far stem's at 0.08. The
 crest and the correlation of the mix are what the re-measurement and the library's own generator
 have to move next; the engine now carries the cues they need.
 
-**What was left as it was, and why.** Far Width can still narrow the background (the funnel of R6)
--- the guide wants the far layer widest, but the funnel is a measured design of this instrument and a
-preset's choice; with Near Width the near plane is narrower than the far one by default whatever
-Far Width says. The micro-motion amounts (5 cents of drift, 0.7 octaves of filter drift) are larger
+**The presets, moved into the guide's windows (25.09.2026, later the same day).** The engine's
+defaults reach every preset that never names a key; what the generator had written stood in the
+way in twenty places, and one table now holds the guide's window for each of them
+(`Tools/library/guide.py`), applied to every preset the generator makes and, by
+`Tools/library/retrofit_guide.py`, to the 14591 that existed: `depth` under 0.85 mapped from the
+library's 0.4 .. 0.85 onto 0.85 .. 0.9625 so the conductor's deep notes reach the horizon (median
+0.71 before, 0.91 after; the pass is idempotent, which its first version was not -- the packs were
+mapped twice before that was noticed and restored from the commit before);
+`far_highcut` capped at 3 kHz, `far_decay` held to 12 .. 40 s, `near_decay` to 0.6 .. 1.5 s;
+`far_width` never under 1 (the funnel of R6 is now Near Width's, on the source); `presence` at
+least 1 dB; `pad_low_cut` at 70 .. 90 Hz, `bass_mono` at least 100 Hz, `subsonic` 18 Hz;
+`purity` at least 0.9 wherever the scale is not 12-TET; `detune` at most 4 cents and
+`beat_ceiling` 0.5 Hz, so the strands are a warmth and not a cloud; the master's `width` at most
+1.3 (Air was tried as a floor of 0.08 and taken out again the same hour: the guide's one quiet air
+layer is a mix decision, and Air here is band noise per voice, which sixteen voices turn into a floor); the room's pre-delay 10 .. 25 ms and its low-pass at
+most 6 kHz; texture grains at least 80 ms with at most 5 % of position spread, cloud grains at least
+80 ms; the sub two octaves down and mono -- a Binaural offset without Pulse becomes a Beat of
+0.25 Hz in both ears, the offset under a Pulse is kept, since that is the isochronic design of the
+Foundation and not a mixing mistake; and at most one LFO on a bar division, the others freed onto
+their own rates. Counted over the packs afterwards: every window at 100 % except `depth` at or over
+0.9 (the rest between 0.85 and 0.9 by the mapping), `purity` (85 %, the rest the 12-TET presets)
+and the sub's mono (93 % of the sub presets; the rest carry a Pulse). The generator's own ranges in `styles.py` were left; the table is the gate.
+
+**What was left as it was, and why.** Far Width was left as a knob but every preset now stands at 1
+or wider -- the guide wants the far layer widest, and with Near Width the near plane is narrower than
+the far one by default whatever Far Width says. The micro-motion amounts (5 cents of drift, 0.7 octaves of filter drift) are larger
 than the guide's, deliberately: they are what the R-rounds measured as alive. Oversampling of the
 nonlinear stages, a correlation meter in the panel, a mid high-pass on the returns and the spectral
 ducking in six to eight bands are noted as open.

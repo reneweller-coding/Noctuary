@@ -1334,11 +1334,12 @@ void testPresetMap()
         e.prepare(48000.0, 256);
         // Any built-in whose far decay is a long way from where the engine stands: the glide has to
         // be visible to be measured, and naming one preset here tied the test to a library that is
-        // regenerated whole.
+        // regenerated whole. Ten seconds: the library holds every far decay to 12 .. 40 s since the
+        // production guide (25.09.2026), so the farthest a preset stands from the default 25 is 15.
         const float before = e.effectiveParam(ParamId::FarDecay);
         int p = -1;
         for (int i = 1; i < builtinPresetCount() && p < 0; ++i)
-            if (std::fabs(PresetMap::presetValues(i)[static_cast<int>(ParamId::FarDecay)] - before) > 15.0f) p = i;
+            if (std::fabs(PresetMap::presetValues(i)[static_cast<int>(ParamId::FarDecay)] - before) > 10.0f) p = i;
         CHECK(p > 0, "a built-in whose far decay is far from the default exists");
         if (p < 0) p = 1;
         const PresetMeta& m = presetMeta(p);

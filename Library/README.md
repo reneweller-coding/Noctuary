@@ -239,11 +239,11 @@ peak over short-term loudness) under 12 dB, a true peak over -1 dBTP. `measure_p
 preset to -24 .. -18 LUFS integrated over its minute (it used to be an unweighted RMS window) and
 writes `guide-report.json` beside its cache with the presets that fail a gate a gain cannot fix.
 
-`Tools/library/retrofit_guide.py` is the pass that fitted the guide's depth model to the presets
-written before it: the far reverb's own pre-delay to 3 ms in every preset (the gap between a sound
-and its room belongs to the source now and follows its distance), the sub two octaves under the root.
-It has run; after any change of this kind the library is re-measured, because the loudness of every
-preset moves with it.
+`Tools/library/guide.py` is the table of the production guide's windows for a preset's parameters
+(the plane, the rooms, the low end, clarity, the grains, the LFOs' sync), applied to every preset
+`make_presets.py` generates; `Tools/library/retrofit_guide.py` runs the same table over the packs
+and the built-ins that existed before it. It has run over all 14591; after any change of this kind
+the library is re-measured, because the loudness of every preset moves with it.
 
 ## Fitting new features into old presets
 

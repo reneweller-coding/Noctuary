@@ -41,6 +41,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
+import guide  # noqa: E402  -- the production guide's windows, applied to every preset (25.09.2026)
 from styles import STYLES  # noqa: E402
 from wavetable_folders import tables as shelf_tables  # noqa: E402
 
@@ -1870,7 +1871,7 @@ def main():
                                                         SHADES[k % len(SHADES)],
                                                         random.Random(a.seed * 15485863 + si * 7919 + k))
             rows.append({"name": name_for(st, rng, used_names), "params": p, "shade": SHADES[k % len(SHADES)][0],
-                         "settings": settings_string(p),
+                         "settings": guide.apply_to_settings(settings_string(p))[0],   # the production guide's windows (guide.py)
                          # one path, or up to four ';'-separated (one per slot): each non-empty
                          # part gets the folder, an empty part stays empty and means "no clip"
                          # The clip already carries its folder ("Textures/x.wav"), so the

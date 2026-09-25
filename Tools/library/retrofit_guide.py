@@ -1,21 +1,15 @@
 """Fit the production guide's depth model to the presets that were written before it (25.09.2026).
 
 The engine's new parameters (depth_range, depth_predelay, depth_width, send_lowcut, sub_harmonics)
-reach every preset through their defaults, because no preset names them. Two keys the generator DID
-write stand in the guide's way, and this pass rewrites them, in the packs and in the built-ins:
+reach every preset through their defaults, because no preset names them. What the generator DID
+write and what stands in the guide's way is moved into the guide's windows by `guide.apply()` --
+one table for this pass and for make_presets.py, listed in Tools/library/guide.py: the plane
+(depth, presence, far_predelay), the rooms (decays, the far low-pass, far width, the room's
+pre-delay and low-pass), the low end (pad low cut, bass mono, subsonic, the sub's octave and its
+beat), clarity (purity, detune, beat ceiling, air, master width), the grains, and the LFOs' sync.
 
-    far_predelay    20 .. 200 ms in every preset. The gap between a sound and its room now belongs
-                    to the source and follows its distance (Space: Gap, 40 ms at the ear, none on the
-                    horizon); the hall's own pre-delay is set to the new default of 3 ms, so a source
-                    on the horizon has no gap and one at the ear has the source's.
-    sub_octave      -1 where a preset says so. The guide's sub lives at 25 .. 70 Hz; under a C3-B3
-                    root that is two octaves down (33 .. 62 Hz), which is the new default. Presets
-                    that never wrote the key take the default by themselves.
-
-Everything else the guide asks for is a default or a measurement (Tools/library/measure_packs.py
-now holds the loudness window in LUFS and reports the crest, mono-loss and true-peak gates).
-Re-measure after this: the far reverb hears no fundamentals any more and the background stands
-fourteen decibels lower, so every preset's loudness has moved.
+Re-measure after this: the far reverb hears no fundamentals any more, the background stands
+fourteen decibels lower and the plane reaches the horizon, so every preset's loudness has moved.
 
     python Tools/library/retrofit_guide.py            # what it would do
     python Tools/library/retrofit_guide.py --write    # do it
@@ -23,25 +17,29 @@ fourteen decibels lower, so every preset's loudness has moved.
 import argparse
 import glob
 import os
-import re
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import guide  # noqa: E402
+
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 PACKS = os.path.join(ROOT, "Library", "Packs")
 BUILTINS = os.path.join(ROOT, "Core", "src", "Presets.cpp")
 
-FAR_PREDELAY_MS = 3.0
-PREDELAY = re.compile(r"far_predelay=[-+0-9.eE]+")
-SUB_OCTAVE = re.compile(r"sub_octave=-1(?=[;|\"])")
 
-
-def retrofit_text(text):
-    """The two rewrites over one file's text; returns the new text and the two counts."""
-    n_pre = len(PREDELAY.findall(text))
-    text = PREDELAY.sub(f"far_predelay={FAR_PREDELAY_MS:g}", text)
-    n_sub = len(SUB_OCTAVE.findall(text))
-    text = SUB_OCTAVE.sub("sub_octave=-2", text)
-    return text, n_pre, n_sub
+def retrofit_pack(text):
+    """Every preset line of one pack through guide.apply(); returns (text, presets changed)."""
+    out, changed = [], 0
+    for line in text.split("\n"):
+        if line.startswith(("#", "pack ", "format ")) or "|" not in line:
+            out.append(line); continue
+        parts = line.split("|")
+        new, n = guide.apply_to_settings(parts[1])
+        if n:
+            parts[1] = new; changed += 1
+        out.append("|".join(parts))
+    return "\n".join(out), changed
 
 
 def main():
@@ -49,20 +47,23 @@ def main():
     ap.add_argument("--write", action="store_true", help="rewrite the files (default: report only)")
     ap.add_argument("--packs", default=PACKS)
     a = ap.parse_args()
-    files = sorted(glob.glob(os.path.join(a.packs, "*.ambientpack"))) + [BUILTINS]
-    tot_pre = tot_sub = 0
-    for path in files:
+    total = 0
+    for path in sorted(glob.glob(os.path.join(a.packs, "*.ambientpack"))) + [BUILTINS]:
         with open(path, encoding="utf-8", errors="replace", newline="") as f:
             text = f.read()
-        new, n_pre, n_sub = retrofit_text(text)
-        tot_pre += n_pre; tot_sub += n_sub
+        crlf = "\r\n" in text
+        text = text.replace("\r\n", "\n")
+        if path == BUILTINS:
+            new, n = guide.apply_to_builtins(text)
+        else:
+            new, n = retrofit_pack(text)
+        total += n
         if new != text:
-            print(f"{os.path.relpath(path, ROOT)}: far_predelay {n_pre}, sub_octave -1 -> -2 {n_sub}")
+            print(f"{os.path.relpath(path, ROOT)}: {n} preset(s) moved into the guide's windows")
             if a.write:
                 with open(path, "w", encoding="utf-8", newline="") as f:
-                    f.write(new)
-    print(f"{'rewrote' if a.write else 'would rewrite'} far_predelay in {tot_pre} presets and sub_octave in {tot_sub}"
-          + ("" if a.write else " (add --write)"))
+                    f.write(new.replace("\n", "\r\n") if crlf else new)
+    print(f"{'rewrote' if a.write else 'would rewrite'} {total} presets" + ("" if a.write else " (add --write)"))
 
 
 if __name__ == "__main__":
