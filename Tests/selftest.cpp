@@ -1549,6 +1549,7 @@ void testRichCarving()
         e.setParam(ParamId::BrainOn, 0.0f);
         e.setParam(ParamId::SubLevel, 0.8f); e.setParam(ParamId::SubBinaural, 0.0f); e.setParam(ParamId::SubGlide, 0.1f);
         e.setParam(ParamId::SubSource, 1.0f);
+        e.setParam(ParamId::SubOctave, 0.0f);  // one octave under (the default is two since 25.09.2026); the test is about the Difference source
         e.setParam(ParamId::RootNote, 9.0f);   // A
         e.setParam(ParamId::Scale, 1.0f);      // JI Major (Ptolemy)
         e.setParam(ParamId::Air, 0.0f);
@@ -2601,11 +2602,13 @@ void testFeaturesRound7()
         render(e, 2.5);
         CHECK(e.activeVoices() == 0, "hold off releases the latched notes");
     }
-    {   // Foundation: sub follows the root an octave below, binaural offset splits L/R.
+    {   // Foundation: sub follows the root an octave below (Octave -1), binaural offset splits L/R.
         Engine e;
         e.setParam(ParamId::BrainOn, 0.0f);
         e.setParam(ParamId::SubLevel, 0.8f);
         e.setParam(ParamId::SubBinaural, 0.0f);
+        e.setParam(ParamId::SubOctave, 0.0f);     // -1: the default became -2 on 25.09.2026 (testGuideRound covers that)
+        e.setParam(ParamId::SubHarmonics, 0.0f);  // the residue partials would sit exactly where this test looks for leakage
         e.setParam(ParamId::RootNote, 9.0f);      // A
         e.setParam(ParamId::Scale, 0.0f);         // 12-TET
         e.prepare(sr, 256);
@@ -6070,6 +6073,7 @@ void testResearchBatch()
             e.setParam(ParamId::BrainOn, 0.0f);
             e.setParam(ParamId::SubLevel, 1.0f);
             e.setParam(ParamId::SubBinaural, 4.0f);
+            e.setParam(ParamId::SubOctave, 0.0f);   // -1 (65 Hz under C3): at the default -2 the rectified 33 Hz sub's own ripple is what the 15 Hz follower reads
             e.setParam(ParamId::SubPulse, pulse);
             e.setParam(ParamId::OscLevel, 0.0f);   // a silent voice keeps the engine awake; the Foundation is all that sounds
             e.reset();
@@ -6374,6 +6378,7 @@ void testResearchBatch()
             // delay (measured with the render tool: width 0.88 with it, 0.04 without), which
             // would hide what this test is about.
             e.setParam(ParamId::Itd, 0.0f);
+            e.setParam(ParamId::DepthWidth, 1.0f);   // Near Width would take the spread down to 0.35 of itself at the ear (25.09.2026); the mechanism is what is tested
             e.setParam(ParamId::PartialSpread, spread);
             e.setParam(ParamId::Attack, 0.02f);
             e.reset();
@@ -8874,6 +8879,142 @@ static void testNearLayer()
 }
 
 /**
+ * @brief The production guide, built in (25.09.2026): the depth model's three new cues, the high-pass
+ *        in front of every reverb, the sub's register, residue and beat, and the defaults that carry them.
+ *
+ * What it proves, one block each: a note half way into the plane stands Range x 0.5 dB under one at
+ * the ear (the old law gave 3 dB whatever the knob), and switching Range from 6 to 20 moves it by
+ * the 7 dB that predicts; a voice's far send leaves Gap x (1 - d) after its direct sound, measured
+ * as the lag of the far bus against the near bus; a 50 Hz tone into a Reverb with Send Low Cut at
+ * 150 Hz comes back at least 14 dB under the same tone with the cut off (a second-order Butterworth
+ * is 19 dB down there, the tail's own low end a little less); the Foundation sits two octaves under
+ * the root by default, carries its second and third harmonic at -24 and -27 dB at full Harmonics,
+ * and a Beat of 0.5 Hz makes its level swell and fade by more than 10 dB where without it the level
+ * holds within one; and the table's defaults are the guide's -- Range 20, Gap 40, Near Width 0.35,
+ * Send Low Cut 150, Octave -2, far pre-delay near nought -- in the sections the panel shows them in.
+ */
+void testGuideRound()
+{
+    const int sr = 48000;
+    {   // Range: the level law over the plane, through the engine, dry.
+        auto rmsAt = [&](float range, float keysDepth) {
+            Engine e;
+            e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
+            e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
+            e.setParam(ParamId::CloudSend, 0.0f); e.setParam(ParamId::Breath, 0.0f);
+            e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::KeysDepth, keysDepth);
+            e.setParam(ParamId::DepthRange, range);
+            e.prepare(sr, 256);
+            e.noteOn(57, 0.8f);
+            std::vector<float> cap;
+            render(e, 3.0, &cap);
+            double sq = 0.0; long n = 0;
+            for (size_t i = cap.size() / 2; i < cap.size(); ++i) { sq += static_cast<double>(cap[i]) * cap[i]; ++n; }
+            return std::sqrt(sq / std::max<long>(n, 1));
+        };
+        const double atEar = rmsAt(20.0f, 0.0f), half20 = rmsAt(20.0f, 0.5f), half6 = rmsAt(6.0f, 0.5f);
+        const double drop20 = 20.0 * std::log10(half20 / atEar), drop6 = 20.0 * std::log10(half6 / atEar);
+        std::printf("  [probe] depth range: a note half way in stands %.1f dB under one at the ear at Range 20, %.1f dB at Range 6\n", drop20, drop6);
+        // cos(pi/4) of the note reaches the near bus at Depth 0.5 (-3.0 dB) on top of the law's share.
+        CHECK(std::fabs(drop20 - (-10.0 - 3.0)) < 1.0, "Range 20: the law takes 10 dB at half the plane, the crossfade 3");
+        CHECK(std::fabs((drop6 - drop20) - 7.0) < 1.0, "Range 6 against 20: the 7 dB the law predicts");
+    }
+    {   // Gap: the far send lags the direct sound by Gap x (1 - d), per voice.
+        Voice v;
+        v.prepare(sr, 7);
+        VoiceParams p;
+        p.slot[0].type = SourceType::Additive;
+        p.attack = 0.005f; p.unison = 1; p.spread = 0.0f; p.itd = 0.0f; p.breath = 0.0f;
+        p.depthPreDelay = 40.0f; p.depthWidth = 1.0f;
+        v.noteOn(60, 261.63, 0.8f, 0 /* OwnerMidi */, 0.5f, p);
+        const int n = sr / 2;
+        std::vector<float> nl(static_cast<size_t>(n)), nr(static_cast<size_t>(n)), fl(static_cast<size_t>(n)), fr(static_cast<size_t>(n));
+        for (int pos = 0; pos < n; pos += 256) v.render(nl.data() + pos, nr.data() + pos, fl.data() + pos, fr.data() + pos, std::min(256, n - pos), p, nullptr, nullptr);
+        // The lag that lines the far bus up with the near bus: 20 ms at Depth 0.5.
+        int bestLag = 0; double best = -1.0;
+        for (int lag = 0; lag <= sr / 20; lag += 4) {
+            double acc = 0.0;
+            for (int i = sr / 8; i + lag < n; ++i) acc += static_cast<double>(nl[static_cast<size_t>(i)]) * fl[static_cast<size_t>(i + lag)];
+            if (acc > best) { best = acc; bestLag = lag; }
+        }
+        std::printf("  [probe] depth gap: the far send lags the near bus by %.1f ms at Depth 0.5 (Gap 40)\n", 1000.0 * bestLag / sr);
+        CHECK(std::fabs(1000.0 * bestLag / sr - 20.0) < 1.0, "the far send leaves Gap x (1 - d) after the direct sound");
+        double eN = 0.0, eF = 0.0;
+        for (int i = sr / 8; i < n; ++i) { eN += static_cast<double>(nl[static_cast<size_t>(i)]) * nl[static_cast<size_t>(i)]; eF += static_cast<double>(fl[static_cast<size_t>(i)]) * fl[static_cast<size_t>(i)]; }
+        CHECK(std::fabs(10.0 * std::log10(eF / eN)) < 0.5, "and carries the same energy: at Depth 0.5 the two buses share the note equally");
+    }
+    {   // Send Low Cut: the fundamentals stay out of the tail.
+        auto tailEnergy = [&](float lowcut) {
+            Reverb r;
+            r.prepare(sr);
+            r.set(2.0f, 2.0f, 0.3f, 0.0f, false, 1.0f);   // 100 % wet
+            r.setSendLowcut(lowcut);
+            const int n = 3 * sr;
+            std::vector<float> L(static_cast<size_t>(n), 0.0f), R(static_cast<size_t>(n), 0.0f);
+            for (int i = 0; i < sr; ++i) { const float x = 0.3f * std::sin(6.2831853f * 50.0f * static_cast<float>(i) / static_cast<float>(sr)); L[static_cast<size_t>(i)] = x; R[static_cast<size_t>(i)] = x; }
+            r.process(L.data(), R.data(), n);
+            double e = 0.0;
+            for (int i = 0; i < n; ++i) e += static_cast<double>(L[static_cast<size_t>(i)]) * L[static_cast<size_t>(i)] + static_cast<double>(R[static_cast<size_t>(i)]) * R[static_cast<size_t>(i)];
+            return e;
+        };
+        const double open = tailEnergy(20.0f), cut = tailEnergy(150.0f);
+        std::printf("  [probe] send low cut: a 50 Hz tone comes back from the hall %.1f dB lower with the cut at 150 Hz\n", 10.0 * std::log10(cut / open));
+        CHECK(10.0 * std::log10(cut / open) < -14.0, "the send's high-pass keeps a 50 Hz fundamental out of the tail");
+    }
+    {   // The Foundation: two octaves under by default, the residue's partials, the beat.
+        auto sub = [&](float harmonics, float beat, std::vector<float>& cap) {
+            Engine e;
+            e.setParam(ParamId::BrainOn, 0.0f);
+            e.setParam(ParamId::SubLevel, 0.8f); e.setParam(ParamId::SubBinaural, 0.0f); e.setParam(ParamId::SubTone, 0.0f);
+            e.setParam(ParamId::SubHarmonics, harmonics); e.setParam(ParamId::SubBeat, beat);
+            e.setParam(ParamId::RootNote, 9.0f);   // A: root 57 = 220 Hz, two octaves under = 55 Hz
+            e.setParam(ParamId::Scale, 0.0f);      // 12-TET
+            e.prepare(sr, 256);
+            cap.clear();
+            render(e, 10.0, &cap);   // the level glides in over 2 s; the swing is read from 6 s on, where it has settled
+        };
+        std::vector<float> cap;
+        sub(1.0f, 0.0f, cap);
+        std::vector<float> L(static_cast<size_t>(sr));
+        for (int i = 0; i < sr; ++i) L[static_cast<size_t>(i)] = cap[static_cast<size_t>((4 * sr + i) * 2)];
+        const double p55 = goertzel(L.data(), sr, 55.0, sr), p110 = goertzel(L.data(), sr, 110.0, sr), p165 = goertzel(L.data(), sr, 165.0, sr), p220 = goertzel(L.data(), sr, 220.0, sr);
+        const double h2 = 10.0 * std::log10(p110 / p55), h3 = 10.0 * std::log10(p165 / p55);
+        std::printf("  [probe] foundation: 55 Hz under an A root by default; 2nd harmonic %.1f dB, 3rd %.1f dB at full Harmonics\n", h2, h3);
+        CHECK(p55 > 10.0 * p220 && p55 > 10.0 * p110, "the sub sits two octaves under the root by default (Octave -2)");
+        CHECK(std::fabs(h2 + 24.0) < 1.5, "Harmonics 1: the second partial at -24 dB");
+        CHECK(std::fabs(h3 + 27.0) < 1.5, "and the third at -27 dB");
+        auto swing = [&](const std::vector<float>& c) {
+            // The level over quarter-second windows of the last four seconds, in dB, max against min.
+            // A quarter of a second against a two-second beat: the trough window averages the pair
+            // over an eighth of its cycle, which is -13 dB against the crest wherever the windows
+            // happen to fall on the cycle.
+            double lo = 1e30, hi = 0.0;
+            for (int w = 24; w < 40; ++w) {
+                double sq = 0.0;
+                for (int i = w * sr / 4; i < (w + 1) * sr / 4; ++i) sq += static_cast<double>(c[static_cast<size_t>(i * 2)]) * c[static_cast<size_t>(i * 2)];
+                lo = std::min(lo, sq); hi = std::max(hi, sq);
+            }
+            return 10.0 * std::log10(hi / std::max(lo, 1e-30));
+        };
+        const double still = swing(cap);
+        sub(0.0f, 0.5f, cap);
+        const double breathing = swing(cap);
+        std::printf("  [probe] foundation beat: the level swings %.1f dB over quarter seconds without Beat, %.1f dB at Beat 0.5 Hz\n", still, breathing);
+        CHECK(still < 1.0, "without Beat the Foundation holds its level");
+        CHECK(breathing > 8.0, "Beat 0.5 Hz: the pair swells and fades by more than eight decibels every two seconds");
+    }
+    {   // The defaults are the guide's, where the panel shows them.
+        CHECK(paramDesc(ParamId::DepthRange).def == 20.0f && std::string(paramDesc(ParamId::DepthRange).section) == "Space", "Range: 20 dB over the plane, in Space");
+        CHECK(paramDesc(ParamId::DepthPreDelay).def == 40.0f, "Gap: 40 ms at the ear");
+        CHECK(std::fabs(paramDesc(ParamId::DepthWidth).def - 0.35f) < 1e-6f, "Near Width: 0.35 of Spread at the ear");
+        CHECK(paramDesc(ParamId::SendLowcut).def == 150.0f && std::string(paramDesc(ParamId::SendLowcut).section) == "Far Reverb", "Send Low Cut: 150 Hz, beside the far reverb");
+        CHECK(paramDesc(ParamId::SubOctave).def == 1.0f, "Octave: -2 by default");
+        CHECK(paramDesc(ParamId::FarPreDelay).def <= 5.0f, "the far reverb's own pre-delay stands near nought: the horizon has no gap");
+        CHECK(std::fabs(paramDesc(ParamId::SubHarmonics).def - 0.6f) < 1e-6f && paramDesc(ParamId::SubBeat).def == 0.0f, "Harmonics 0.6, Beat off");
+    }
+}
+
+/**
  * @brief Runs every test function in turn and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -8933,6 +9074,7 @@ int main()
     testSourceEnvelopes();
     testBeatSource();
     testDelayDuck();
+    testGuideRound();
     testZModal();
     testZPlaneBank();
     testFilterModels();

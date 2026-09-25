@@ -26,6 +26,7 @@
 #include "Filter.h"
 #include "ZPlane.h"
 #include <cstdint>
+#include <vector>
 
 namespace ambient {
 
@@ -142,6 +143,16 @@ struct VoiceParams {
           itd = 0.6f;        ///< Time Width: 0 .. 1 of the full 0.65 ms interaural delay and of the head shadow
     /// Rich's foreground/background carving inside the voice (see concept.md):
     float presence = 0.0f;      ///< dB bell at 2-5 kHz, full on the near plane, gone on the far plane
+    /// The production guide's depth model (25.09.2026), three more cues hung on the one distance:
+    /// Range is the level a source loses between the ear and the horizon, in dB, so that the
+    /// background really is 20 to 36 dB under the foreground instead of 6; Gap is the pre-delay a
+    /// source at the ear gets before the far reverb, shrinking to nothing on the horizon, which is
+    /// what tells the ear whether a sound stands in front of a room or inside it; Near Width is
+    /// how wide the strands fan out at the ear as a share of their Spread, full on the horizon,
+    /// so that the near plane is a place and the far plane a surround.
+    float depthRange = 20.0f,     ///< @brief dB lost between the ear and the horizon
+          depthPreDelay = 40.0f,  ///< @brief ms of far-send gap at the ear, none on the horizon
+          depthWidth = 0.35f;     ///< the strands' width at the ear, 0 .. 1 of Spread
     float breath = 0.0f,        ///< @brief 0 .. 1, how far the plane breathes
           breathRate = 0.03f;   ///< slow wandering of the distance itself (+-0.35 at 1)
     float lowCut = 0.0f;        ///< Hz; partials below fall 12 dB/oct, keeping the pads out of the sub's register
@@ -633,6 +644,16 @@ private:
     float    itdBufL_[kItdBuffer] = {},   ///< @brief the interaural delay ring, left
              itdBufR_[kItdBuffer] = {};   ///< the interaural delay ring, right
     int      itdW_ = 0;                           ///< the rings' write position
+    /// The far send's gap (Depth Gap): a source at the ear reaches the far reverb this much later
+    /// than its direct sound, a source on the horizon at once -- the pre-delay as a cue of distance,
+    /// per voice, ahead of the far bus. Heap rings sized in prepare() (80 ms at the rate), so a bank
+    /// of engines on a test's stack stays the size it was.
+    std::vector<float> farDlyL_,   ///< @brief the far send's delay ring, left
+                       farDlyR_;   ///< the far send's delay ring, right
+    int      farDlyMask_ = 0,      ///< @brief ring size - 1 (a power of two; 0 until prepare())
+             farDlyW_ = 0;         ///< the rings' write position
+    float    farDly_ = 0.0f,         ///< @brief the far send's delay now, in samples (glided per sample)
+             farDlyTarget_ = 0.0f;   ///< where it is heading: Gap x (1 - distance) at the rate
     float    itdL_ = 0.0f,         ///< @brief the left delay now, in samples (smoothed)
              itdR_ = 0.0f,         ///< @brief the right delay now
              itdLTarget_ = 0.0f,   ///< @brief where the left delay is heading

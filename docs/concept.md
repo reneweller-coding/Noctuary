@@ -3452,6 +3452,124 @@ round trip, then the inverse against the complex inverse on a Hermitian spectrum
 Nebula builds one, so the check does not only ever see spectra the forward has just made, and last
 the aliasing both directions rely on.
 
+## The production guide, built in (25.09.2026)
+
+A guide to mixing dark ambient in the manner of Rich and Lustmord -- three planes, four rooms,
+width by plane, a sub that is an instrument -- was read against the code, then against the
+library. Most of what it asks for the instrument had, often in a more elaborate form than the
+guide describes: one distance per note driving brightness, wet share, presence, the near-field
+level difference and the elevation; three reverb tiers with modulated lines; the unmask; bass mono;
+the mono guard; a dry sub added past every reverb; just intonation as the default; drifters on
+every scale of time; a BS.1770 meter; nothing on the master. What it did not have was the arithmetic
+that makes depth a *distance*: the difference between the planes in every cue at once. Measured on
+stems of six presets before this round, the far bus stood 1 to 12 dB under the near one (the guide:
+20 to 36), a source at the ear reached the far hall at the same instant as its direct sound, the
+strands fanned out as wide wherever a note stood, every hall was fed the fundamentals, and the sub
+sat at 65 to 123 Hz under a C3-B3 root. Six things changed, all of them parameters with the guide's
+numbers as their defaults, so a preset that never heard of them plays by the guide and one that
+wants the old behaviour can ask for it.
+
+**Range** (`depth_range`, Space, 6 .. 36 dB, default 20). The level law over the plane was
+1 - 0.5 d: six decibels at the horizon and linear in between. It is now exponential in d --
+10^(-Range d / 20) -- so every step of the plane costs the same number of decibels and the plane's
+ends are as far apart as the guide's near and far layer: at Range 20 a note at Depth 0.7 stands
+14 dB under one at the ear (the guide's middle plane, -10 to -18), one on the horizon 20 under it.
+The crossfade into the far bus is unchanged, so what the far reverb receives falls with the same law.
+Measured through the engine: a note half way in, Range 20, -13.1 dB against one at the ear (10 from
+the law, 3 from the crossfade); Range 6 against 20, 7.0 dB apart, as the arithmetic says. The
+default patch's stems, before and after: the far bus from +0.8 dB over the near bus to -3.2 under
+it, with the conductor's notes at Depth 0.7 as before -- the far bus still carries the near notes'
+own send, which is what a room does.
+
+**Gap** (`depth_predelay`, Space, 0 .. 80 ms, default 40). The pre-delay had belonged to the halls
+-- the near room's fixed at 5 ms, the far hall's a knob the library drew at 20 to 200 ms -- which is
+the cue upside down: the gap between a sound and its room says how far the source stands from the
+walls, so it belongs to the source and shrinks with its distance. Each voice now delays its far
+send by Gap x (1 - d) through a ring of its own (80 ms at the rate, on the heap, so an engine on a
+test's stack stays the size it was), glided per sample as the plane breathes, and the far hall's
+own pre-delay defaults to 3 ms: a source on the horizon has no gap, one at the ear has Gap. Measured
+as the lag of the far bus against the near bus at Depth 0.5 with Gap 40: 20.0 ms, the two buses
+carrying the note's energy equally. The library's `far_predelay` was rewritten to 3 ms in all 14591
+presets (`Tools/library/retrofit_guide.py`); it had said 20 to 200 in every one, which with the gap
+on top would have given the horizon a pre-delay of its own.
+
+**Near Width** (`depth_width`, Space, 0 .. 1, default 0.35). Width by plane is the guide's second
+strongest cue after level -- the near layer placeable, correlation 0.5 to 0.9; the far layer a
+surround, under 0.2 -- and nothing in the voice read the distance for it. The strands' fan and the
+Partial Spread are now Near Width of themselves at the ear and all of themselves on the horizon.
+Far Width on the far reverb stays: a preset that wants the funnel (the background pulled in, R6)
+still has it, on the tail rather than on the source.
+
+**Send Low Cut** (`send_lowcut`, Far Reverb, 20 .. 400 Hz, default 150). The guide's first rule of
+reverb: a filter before every send, 150 to 300 Hz, because fundamentals fed into a hall come back as
+a low-frequency mass that no filter on the return takes out again -- by then they have recirculated
+for the length of the decay. Every reverb input had a 5 Hz DC blocker and nothing else, and the
+three Low Cut knobs sit on the tails; in the library, none of 14591 presets had a Low Cut at 150 Hz
+or above. One second-order Butterworth now sits on the wet path of the near room, the far hall and
+the convolution room's send, after the DC blocker and before the pre-delay. Measured: a 50 Hz tone
+into the far hall, 100 % wet, comes back 19.1 dB lower with the cut at 150 Hz than with it off.
+The default patch's far stem, 63 Hz octave band: from +2 dB against the loudest band to -19.
+
+**The Foundation**: Octave -2 by default (33 .. 62 Hz under a C3-B3 root; the guide's sub lives at
+25 to 70, under the drone's fundamental rather than inside it -- only 257 of 9043 sub presets had
+asked for it, 255 had asked for -1 and were rewritten); `sub_harmonics` (Foundation, default 0.6),
+the second and third partial at -24 and -27 dB at full, made from the sub's own phase so they alias
+nothing, because a speaker that cannot move at 40 Hz still gives the ear the note from them (the
+residue pitch); `sub_beat` (Foundation, 0 .. 1 Hz, default 0), a second sine Beat Hz above the
+first in both ears alike, so the pair swells and fades once every 1/Beat seconds -- the slow breath
+of a Lustmord sub, a beat on the basilar membrane where Binaural is one between the ears and gone in
+mono. Measured: 55 Hz under an A root by default, the partials at -24.0 and -26.8 dB, the level
+swinging 0.3 dB over half seconds without Beat and more than 10 dB at 0.5 Hz.
+
+**The near events at the guide's pace.** The bank's presets had been written with an event every
+40 to 720 seconds (median 300) and Near Auto's factor on top; the guide wants the ear's reference
+point for "near" every 20 to 90 seconds. `Tools/make_layer_presets.py` maps the designed span onto
+the guide's (40 -> 20, 720 -> 90, the ordering kept), and an arrival or departure of an event that
+already holds for half a minute takes at least a minute, the event lengthened to what its share of
+approach needs, up to 300 s; the longest approach in the bank had been 75 s, now thirty of them are
+60 s and more. Nine-second flute notes keep their design: a note is a note, not a journey.
+
+**Measuring by the guide.** `measure_packs.py` renders with `--loudness` as well, the renderer's
+meter started after the warm-up (`--skip` used to leave it counting the climb), and holds every
+preset to -24 .. -18 LUFS integrated instead of the unweighted -30 .. -17 dBFS RMS window -- the
+target this document has quoted since the meter was built, K-weighted so a bass-heavy bed and a
+bright one are held to the same heard level. The gates a gain cannot fix -- crest under 12 dB, mono
+loss over 3 dB, true peak over -1 dBTP -- are counted and written to `guide-report.json` beside the
+cache; `preset_check.py` fails them, and its mono limit went from 6 dB to the guide's 3.
+
+**What the library needs now.** Every preset's loudness has moved: the background stands lower, the
+halls carry no fundamentals, the sub sits an octave down. The tenth meta token and `master_gain`
+of every pack are from before this round and `rebuild_all.py` from step 4 on brings them back into
+the window. The 256 built-ins, measured before that re-measurement under the pipeline's own
+conditions (60 s after a 45 s warm-up, notes 45/52/59, brain rate 6, hour 21), before and after:
+
+```
+                                            before    after
+LUFS integrated, median                      -25.3    -26.2
+crest (true peak over short-term), median     11.9     11.9   presets at 12 dB and over: 122 of 256, both
+mono loss, median                             2.2      2.2    presets under 3 dB: 192 -> 194
+|L/R correlation| of the mix, median          0.22     0.23   presets in 0.3 .. 0.7: 89 -> 93
+63 Hz octave band under the loudest band      -8.5    -10.1   the halls' low end
+31.5 Hz octave band under the loudest        -19.9    -14.6   the sub an octave down
+wet share of the energy, median               0.24     0.19   the background 14 dB under, per note
+true peak, loudest preset                     -2.6     -3.9
+```
+
+The whole-mix figures move little, as they should: the mix is the near bus, and what changed is
+the far bus under it. The default patch's stems say it: far against near from +0.8 dB to -3.2, the
+far stem's 63 Hz band from +2 dB against the mix's loudest band to -19, the near stem's correlation
+from 0.44 to 0.61 (the strands a third as wide at the ear) with the far stem's at 0.08. The
+crest and the correlation of the mix are what the re-measurement and the library's own generator
+have to move next; the engine now carries the cues they need.
+
+**What was left as it was, and why.** Far Width can still narrow the background (the funnel of R6)
+-- the guide wants the far layer widest, but the funnel is a measured design of this instrument and a
+preset's choice; with Near Width the near plane is narrower than the far one by default whatever
+Far Width says. The micro-motion amounts (5 cents of drift, 0.7 octaves of filter drift) are larger
+than the guide's, deliberately: they are what the R-rounds measured as alive. Oversampling of the
+nonlinear stages, a correlation meter in the panel, a mid high-pass on the returns and the spectral
+ducking in six to eight bands are noted as open.
+
 ## Roadmap
 
 1. **Sound** — done since v0.2: spectral freeze (Nebula), head-shadow

@@ -569,6 +569,11 @@ void Engine::renderChunk(float* L, float* R, int n)
             const int rd = (roomDelayW_ - preDelay) & roomDelayMask_;
             rl[i] = roomDelayL_[static_cast<size_t>(rd)]; rr[i] = roomDelayR_[static_cast<size_t>(rd)];
             roomDelayW_ = (roomDelayW_ + 1) & roomDelayMask_;
+            if (sendLowcut_ > 21.0f) {   // Send Low Cut: the room, like the two halls, is never fed under it
+                float lp, bp, hp;
+                roomSendHpL_.tick(rl[i], lp, bp, hp); rl[i] = hp;
+                roomSendHpR_.tick(rr[i], lp, bp, hp); rr[i] = hp;
+            }
         }
         roomTailLeft_ = roomLevel_ > 0.0005f ? room_.tailSamples() : std::max(0L, roomTailLeft_ - n);
     }
@@ -913,8 +918,31 @@ void Engine::renderChunk(float* L, float* R, int n)
             const float triL = 4.0f * std::fabs(static_cast<float>(subPhaseL_) - 0.5f) - 1.0f;
             const float triR = 4.0f * std::fabs(static_cast<float>(subPhaseR_) - 0.5f) - 1.0f;
             const float g = subLevelCur_ * 0.45f;
-            subL[i] = g * ((1.0f - subTone_) * sin01(subPhaseL_) + subTone_ * triL);
-            subR[i] = g * ((1.0f - subTone_) * sin01(subPhaseR_) + subTone_ * triR);
+            float sL = (1.0f - subTone_) * sin01(subPhaseL_) + subTone_ * triL;
+            float sR = (1.0f - subTone_) * sin01(subPhaseR_) + subTone_ * triR;
+            if (subHarmonics_ > 0.0f) {
+                // The residue (25.09.2026): the second and third harmonic at -24 and -27 dB at
+                // full, from the sub's own phase, so they are exact and alias nothing. A speaker
+                // that cannot move at the fundamental still gives the ear the note from them.
+                const float h2 = 0.0631f * subHarmonics_, h3 = 0.0447f * subHarmonics_;
+                double q = subPhaseL_ * 2.0; q -= std::floor(q); sL += h2 * sin01(q);
+                q = subPhaseL_ * 3.0; q -= std::floor(q);        sL += h3 * sin01(q);
+                q = subPhaseR_ * 2.0; q -= std::floor(q);        sR += h2 * sin01(q);
+                q = subPhaseR_ * 3.0; q -= std::floor(q);        sR += h3 * sin01(q);
+            }
+            if (subBeat_ > 0.0f || subBeatCur_ > 1.0e-4f) {
+                // Beat (25.09.2026): a second sine Beat Hz above the sub, the same in both ears, so
+                // the pair's level swells and fades once every 1/Beat seconds -- the slow breath
+                // of a Lustmord sub, on the basilar membrane rather than between the ears. Half
+                // and half, so the pair peaks where the sub alone did; the second sine fades in
+                // over the first 0.05 Hz of the knob so turning it from 0 does not step.
+                subBeatCur_ += (subBeat_ - subBeatCur_) * levelC;
+                subBeatPhase_ += (f + subBeatCur_) / sr_; if (subBeatPhase_ >= 1.0) subBeatPhase_ -= 1.0;
+                const float s2 = sin01(subBeatPhase_);
+                const float w = 0.5f * std::min(subBeatCur_ / 0.05f, 1.0f);
+                sL = sL * (1.0f - w) + s2 * w; sR = sR * (1.0f - w) + s2 * w;
+            }
+            subL[i] = g * sL; subR[i] = g * sR;
             if (subPulse_ > 0.0f || subPulseCur_ > 1.0e-4f) {
                 // A raised cosine at the Binaural rate: 1 at the top of every cycle, 1 - Pulse at
                 // the bottom, no corner anywhere. With Binaural at zero the phase stands still at

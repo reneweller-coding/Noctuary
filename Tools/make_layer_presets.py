@@ -280,6 +280,28 @@ STRIKE = [
 NEAR_OUT = os.path.join(ROOT, "Core", "src", "NearPresets.inc")
 
 
+def guide_rate(rate):
+    """The production guide's pace for the foreground (25.09.2026): an event every 20 to 90
+    seconds on average, where the bank had been written at 40 to 720. The designed ordering is
+    kept -- a preset that was the rarest is still the rarest -- and the span is mapped onto the
+    guide's: 40 s becomes 20, 720 becomes 90, straight between. Near Auto's factor (0.6 .. 4) still
+    scales it per pack, and the Hawkes clock still clusters the events; what changes is that the
+    ear now gets its reference point for 'near' every minute or so rather than every five."""
+    t = min(max((float(rate) - 40.0) / (720.0 - 40.0), 0.0), 1.0)
+    return round(20.0 + 70.0 * t, 1)
+
+
+def guide_approach(length, approach):
+    """An arrival or a departure takes at least a minute (25.09.2026): the guide's approach -- an
+    element wandering from the horizon to the ear over 60 to 180 seconds -- is the strongest depth
+    cue there is, and the bank's longest took 75 s. Only an event that already holds for half a
+    minute is lengthened for it (a nine-second flute note is a note, not a journey); the approach
+    stays the same share of the event, and the event grows to what that share needs, up to 300 s."""
+    if approach == 0.0 or length < 30.0:
+        return length
+    return min(max(length, 60.0 / abs(approach)), 300.0)
+
+
 def near(kind="Note", rate=180.0, length=8.0, attack=0.3, decay=1.0, sustain=1.0, release=3.0,
          cutoff=8000.0, resonance=0.1, filt="LP 12", fenv=0.0, pitch="Consonant", spread=0.5,
          approach=0.0, distance=0.0, dry=0.0, to_delay2=0.0, to_cosmos=0.0,
@@ -292,6 +314,8 @@ def near(kind="Note", rate=180.0, length=8.0, attack=0.3, decay=1.0, sustain=1.0
     the event ADDED to what the second delay and the Cosmos already hear, so an event can answer
     itself across a minute, or be shifted and smeared into deep space, while the bed stays where
     it is (13.09.2026)."""
+    rate = guide_rate(rate)
+    length = guide_approach(length, approach)
     d = dict(fore_level=level, fore_kind=kind, fore_rate=rate, fore_length=length, fore_pitch=pitch,
              fore_spread=spread, fore_approach=approach, fore_distance=distance, fore_dry=dry,
              fore_delay2=to_delay2, fore_cosmos=to_cosmos,
@@ -694,8 +718,9 @@ def main():
     missing = [kw["__clip__"] for _, ps in NEAR for _, kw in ps
                if kw.get("__clip__") and os.path.isdir(os.path.join(library, "Archive"))
                and not (os.path.isfile(os.path.join(library, kw["__clip__"])) or os.path.isdir(os.path.join(library, kw["__clip__"])))]
-    if missing:
-        sys.exit("near bank: %d clip(s) not found under Library/:\n  %s" % (len(missing), "\n  ".join(missing)))
+    if missing and "--allow-missing-clips" not in sys.argv:
+        sys.exit("near bank: %d clip(s) not found under Library/ (a clone without the archive may pass --allow-missing-clips):\n  %s"
+                 % (len(missing), "\n  ".join(missing)))
     # The measured gain of every near preset (14.09.2026): what brings its loudest moment to the
     # loudness of the background it plays over, as Tools/library/near_loudness.py measured it over
     # several backgrounds. Kept in a file of its own so a preset edited here keeps its measurement

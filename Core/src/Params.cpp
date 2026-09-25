@@ -267,7 +267,7 @@ const std::array<ParamDesc, kNumParams> kTable = {{
     F(ParamId::Src3Drift,       "src3_drift",        "Drift",        "Source 3", 0.f,   30.f,   0.f,    0.6f, "ct"),
 
     F(ParamId::SubLevel,    "sub_level",    "Level",         "Foundation", 0.f,   1.f,    0.f,   1.f,  ""),
-    C(ParamId::SubOctave,   "sub_octave",   "Octave",        "Foundation", kSubOctaveNames, 2, 0),
+    C(ParamId::SubOctave,   "sub_octave",   "Octave",        "Foundation", kSubOctaveNames, 2, 1),   // -2 by default (25.09.2026): 33-62 Hz under a C3-B3 root, where the guide wants a sub
     F(ParamId::SubGlide,    "sub_glide",    "Glide",         "Foundation", 0.1f,  30.f,   8.f,   0.4f, "s"),
     F(ParamId::SubBinaural, "sub_binaural", "Binaural",      "Foundation", 0.f,   12.f,   0.f,   0.6f, "Hz"),
     F(ParamId::SubTone,     "sub_tone",     "Tone",          "Foundation", 0.f,   1.f,    0.2f,  1.f,  ""),
@@ -373,7 +373,7 @@ const std::array<ParamDesc, kNumParams> kTable = {{
     F(ParamId::FarSize,     "far_size",     "Size",      "Far Reverb", 0.5f,  3.f,     2.f,    1.f,  ""),
     F(ParamId::FarDecay,    "far_decay",    "Decay",     "Far Reverb", 1.f,   90.f,    25.f,   0.3f, "s"),
     F(ParamId::FarDamp,     "far_damp",     "Damping",   "Far Reverb", 0.f,   1.f,     0.5f,   1.f,  ""),
-    F(ParamId::FarPreDelay, "far_predelay", "Pre-Delay", "Far Reverb", 0.f,   500.f,   60.f,   0.5f, "ms"),
+    F(ParamId::FarPreDelay, "far_predelay", "Pre-Delay", "Far Reverb", 0.f,   500.f,   3.f,    0.5f, "ms"),   // 3 ms by default (25.09.2026): the horizon has no gap; the near source's gap is Depth Gap
     F(ParamId::FarAsym,     "far_asym",     "Asymmetry", "Far Reverb", 0.f,   1.f,     0.5f,   1.f,  ""),
     F(ParamId::FarHighcut,  "far_highcut",  "Tail Cut",  "Far Reverb", 500.f, 16000.f, 3500.f, 0.3f, "Hz"),
     B(ParamId::FarFreeze,   "far_freeze",   "Freeze",    "Far Reverb", false),
@@ -904,6 +904,17 @@ const std::array<ParamDesc, kNumParams> kTable = {{
     F(ParamId::ForeDelay2,       "fore_delay2",        "To Delay 2",   "Near Events", 0.f,   1.f,   0.f,   1.f,  ""),
     F(ParamId::ForeCosmos,       "fore_cosmos",        "To Cosmos",    "Near Events", 0.f,   1.f,   0.f,   1.f,  ""),
     F(ParamId::ForeGain,         "fore_gain",          "Gain",         "Near Events", -24.f, 36.f,  0.f,   1.f,  "dB"),
+    // The production guide's depth model (25.09.2026): a source loses Range dB between the ear and
+    // the horizon (20 puts a note at Depth 0.7 fourteen decibels under the foreground, the guide's
+    // middle plane, and one on the horizon twenty under it, the near end of its far plane); its
+    // far send waits Gap ms at the ear and nothing on the horizon; its strands fan out to Near
+    // Width of their Spread at the ear and to all of it on the horizon.
+    F(ParamId::DepthRange,       "depth_range",        "Range",        "Space",       6.f,   36.f,  20.f,  1.f,  "dB"),
+    F(ParamId::DepthPreDelay,    "depth_predelay",     "Gap",          "Space",       0.f,   80.f,  40.f,  1.f,  "ms"),
+    F(ParamId::DepthWidth,       "depth_width",        "Near Width",   "Space",       0.f,   1.f,   0.35f, 1.f,  ""),
+    F(ParamId::SendLowcut,       "send_lowcut",        "Send Low Cut", "Far Reverb",  20.f,  400.f, 150.f, 0.5f, "Hz"),
+    F(ParamId::SubHarmonics,     "sub_harmonics",      "Harmonics",    "Foundation",  0.f,   1.f,   0.6f,  1.f,  ""),
+    F(ParamId::SubBeat,          "sub_beat",           "Beat",         "Foundation",  0.f,   1.f,   0.f,   1.f,  "Hz"),
 }};
 } // namespace
 

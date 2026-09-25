@@ -38,7 +38,12 @@ Every note carries a **distance**: 0 at the ear, 1 the infinite background. Brig
 dryness, presence, the interaural time difference and the reverb it reaches all follow from that
 one number, so depth is a landscape rather than an effect. The near plane is dry, bright and close;
 the far plane is 100 % wet, dark, wide, and pulled towards the centre while the foreground stays
-wide — which is what the ear reads as distance.
+wide — which is what the ear reads as distance. Since 25.09.2026 the same number also sets how much level a
+source loses on its way to the horizon (20 dB by default, the production guide's layering), the gap
+between its direct sound and its far reverb (40 ms at the ear, none on the horizon) and how wide its
+strands fan out (a third at the ear, all of it far away); every reverb has a high-pass in front of
+its input, and the Foundation sits two octaves under the root with the residue harmonics that let a
+small speaker hear it.
 
 ## The instrument
 

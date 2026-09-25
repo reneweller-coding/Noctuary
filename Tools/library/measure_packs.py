@@ -43,6 +43,20 @@ RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_rend
 # fails above -12, so the ceiling keeps a margin for a busier chord than the test's three notes.
 TARGET_HI = -17.0
 TARGET_LO = -30.0
+# The loudness window in LUFS (25.09.2026), which replaces the unweighted RMS window above whenever
+# the renderer prints its BS.1770 line (it does since the same day): -24 .. -18 LUFS integrated
+# over the measured minute, the target docs/concept.md has quoted for the instrument's presets
+# since the meter was built, K-weighted so a bass-heavy bed and a bright one are held to the same
+# heard level. The RMS window stays as the fallback and the tenth meta token stays RMS, which is
+# what the plugin's level match reads.
+LUFS_HI = -18.0
+LUFS_LO = -24.0
+# The production guide's gates a gain cannot fix, reported rather than corrected: a crest (true
+# peak over short-term loudness) under 12 dB is a bed without transients, a mono loss over 3 dB a
+# stereo image that folds, a true peak over -1 dBTP a preset that clips a codec.
+GUIDE_CREST_MIN = 12.0
+GUIDE_MONO_MAX = 3.0
+GUIDE_TRUEPEAK_MAX = -1.0
 GAIN_MIN, GAIN_MAX = -40.0, 12.0
 
 
@@ -79,6 +93,7 @@ def write_pack(path, head, rows):
 
 
 MEASURE = re.compile(r"^measure: (.*)$", re.M)
+LOUDNESS = re.compile(r"^loudness: (.*)$", re.M)
 # The mel-cepstral fingerprint: 16 means and 16 spreads. Nine descriptors say what a preset
 # is like; this says what it is, which is the difference between "dark and wide" and "a
 # goods yard" -- two presets can agree on every descriptor and share no material at all.
@@ -121,6 +136,18 @@ def parse_measure(text):
     if not {"rms", "centroid", "flatness", "flux", "bass", "width", "voices"} <= set(d):
         return None
     d["rms_db"] = d.pop("rms")
+    # The BS.1770 line (--loudness), when the renderer printed one: integrated and short-term
+    # LUFS, loudness range, true peak and crest, measured over the same minute as the descriptors
+    # (the renderer starts its meter after the warm-up).
+    lm = LOUDNESS.search(text or "")
+    if lm:
+        for tok in lm.group(1).split():
+            if "=" in tok:
+                k, v = tok.split("=", 1)
+                try:
+                    d[k] = float(v)
+                except ValueError:
+                    continue
     t = TIMBRE.search(text or "")
     if t:
         try:
@@ -143,7 +170,7 @@ def render_batch(names, packs, seconds, tapdir=None, skip=0.0):
         # --hour pins the arc clock: without it the 496 presets that follow the time of day
         # measure differently every run, and the map's axes wander with them.
         cmd = [RENDER, "--packs", packs, "--batch", listing, "--seconds", str(seconds),
-               "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure"]
+               "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure", "--loudness"]
         if tapdir:
             cmd += ["--tap-dir", tapdir]
         if skip > 0.0:
@@ -171,7 +198,7 @@ def render(name, packs, seconds, tapdir=None):
     twenty-three gigabytes written and read for nothing, and every byte stayed in the file cache
     afterwards, which is what made the machine unusable."""
     cmd = [RENDER, "--packs", packs, "--preset", name, "--seconds", str(seconds),
-           "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure"]
+           "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure", "--loudness"]
     if tapdir:
         # A twelve-second mono excerpt beside the numbers, for a learned embedding to listen to.
         safe = re.sub(r"[^A-Za-z0-9]+", "_", name)[:80]
@@ -316,7 +343,7 @@ def main():
         # numbers for them without a word. It happened: a work directory left over from an earlier
         # run held ninety entries, and ninety presets went into the map with the descriptors and
         # the excerpt of a library that no longer existed. So the settings are part of the key.
-        method = f"sec={a.seconds}|notes=45,52,59|hour=21|rate=6"
+        method = f"sec={a.seconds}|notes=45,52,59|hour=21|rate=6|loud=1"
         fps = {r["name"]: _fingerprint(r, method) for r in rows}
         fpfile = a.cache + ".fp" if a.cache else ""
         known = {}
@@ -402,15 +429,25 @@ def main():
     if not good:
         raise SystemExit("nothing rendered")
 
-    # Loudness: move each preset's master gain by exactly the distance to the window.
+    # Loudness: move each preset's master gain by exactly the distance to the window -- the LUFS
+    # window where the renderer measured LUFS (25.09.2026), the RMS window otherwise.
     moved = 0
+    def has_lufs(r):
+        return r["m"].get("lufs_i", -200.0) > -100.0
     for r in [] if a.no_gain else good:
-        rms = r["m"]["rms_db"]
         delta = 0.0
-        if rms > TARGET_HI:
-            delta = TARGET_HI - rms
-        elif rms < TARGET_LO:
-            delta = min(TARGET_LO - rms, 6.0)          # never shout a quiet preset awake
+        if has_lufs(r):
+            lufs = r["m"]["lufs_i"]
+            if lufs > LUFS_HI:
+                delta = LUFS_HI - lufs
+            elif lufs < LUFS_LO:
+                delta = min(LUFS_LO - lufs, 6.0)       # never shout a quiet preset awake
+        else:
+            rms = r["m"]["rms_db"]
+            if rms > TARGET_HI:
+                delta = TARGET_HI - rms
+            elif rms < TARGET_LO:
+                delta = min(TARGET_LO - rms, 6.0)
         if abs(delta) > 0.2:
             r["settings"] = set_gain(r["settings"], get_gain(r["settings"]) + delta)
             r["gain_delta"] = delta       # the meta line stores the loudness after this correction
@@ -418,6 +455,26 @@ def main():
     rmsv = np.array([r["m"]["rms_db"] for r in good])
     print(f"loudness before: median {np.median(rmsv):.1f} dBFS, {int((rmsv > TARGET_HI).sum())} above "
           f"{TARGET_HI:.0f}, {int((rmsv < TARGET_LO).sum())} below {TARGET_LO:.0f}; {moved} gains corrected")
+    withl = [r for r in good if has_lufs(r)]
+    if withl:
+        lv = np.array([r["m"]["lufs_i"] for r in withl])
+        print(f"LUFS before: median {np.median(lv):.1f}, {int((lv > LUFS_HI).sum())} above {LUFS_HI:.0f}, "
+              f"{int((lv < LUFS_LO).sum())} below {LUFS_LO:.0f} (window {LUFS_LO:.0f} .. {LUFS_HI:.0f} LUFS)")
+        # The guide's gates a gain does not fix: listed, counted, written beside the cache.
+        report = {"crest_under_12": [], "mono_loss_over_3": [], "true_peak_over_-1": []}
+        for r in withl:
+            m = r["m"]; g = r.get("gain_delta", 0.0)
+            if m.get("crest", 99.0) < GUIDE_CREST_MIN: report["crest_under_12"].append([r["name"], round(m["crest"], 1)])
+            if m.get("monoloss", 0.0) > GUIDE_MONO_MAX: report["mono_loss_over_3"].append([r["name"], round(m["monoloss"], 2)])
+            if m.get("truepeak", -99.0) + g > GUIDE_TRUEPEAK_MAX: report["true_peak_over_-1"].append([r["name"], round(m["truepeak"] + g, 1)])
+        print("guide gates: crest < %.0f dB: %d, mono loss > %.0f dB: %d, true peak > %.0f dBTP: %d (of %d measured)"
+              % (GUIDE_CREST_MIN, len(report["crest_under_12"]), GUIDE_MONO_MAX, len(report["mono_loss_over_3"]),
+                 GUIDE_TRUEPEAK_MAX, len(report["true_peak_over_-1"]), len(withl)))
+        if a.cache:
+            path = os.path.join(os.path.dirname(os.path.abspath(a.cache)), "guide-report.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(report, f, indent=1)
+            print("guide report:", path)
 
     # Descriptors: rank each measurement across the library, exactly as preset_map.py does.
     raw = np.array([[r["m"]["centroid"], r["m"]["flux"], r["m"]["width"], r["m"]["flatness"],
@@ -453,7 +510,7 @@ def main():
             json.dump({r["name"]: dict(r["m"], rms_db=r["m"]["rms_db"] + r.get("gain_delta", 0.0))
                        for r in rows if r["m"]}, fh)
         with open(a.cache + ".fp", "w", encoding="utf-8") as fh:
-            json.dump({r["name"]: _fingerprint(r, f"sec={a.seconds}|notes=45,52,59|hour=21|rate=6")
+            json.dump({r["name"]: _fingerprint(r, f"sec={a.seconds}|notes=45,52,59|hour=21|rate=6|loud=1")
                        for r in rows if r["m"]}, fh)
     # Report what actually survived the rewrite: dropping a field silently is exactly how the
     # impulses, the matrix and the envelope shapes disappeared from all 5000 presets once.

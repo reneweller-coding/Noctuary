@@ -1118,6 +1118,7 @@ static int runOnce(int argc, char** argv)
             const int n = static_cast<int>(std::min<long>(block, warm - done));
             engine.process(L.data(), R.data(), n);
         }
+        engine.resetLoudness();   // --loudness measures the window that follows, as --measure does
     }
 
     double sumSq[2] = { 0, 0 }; float peak = 0.0f; long nans = 0;

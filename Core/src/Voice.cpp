@@ -30,12 +30,41 @@
 #include "ambient/Simd.h"
 #include "ambient/Params.h"   // kStackRatios
 #include "ambient/Tuning.h"   // intervalConsonance for the portamento gravity
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
 namespace ambient {
 
 namespace {
+/**
+ * @brief The level a source keeps at a distance: Range dB lost between the ear and the horizon.
+ *
+ * Until 25.09.2026 this was 1 - 0.5 d, six decibels at the horizon and linear in between, which
+ * left the background a plane the ear could not place under the foreground: the production guide
+ * (and Zahorik's -6 dB per doubling, taken over a log-distance plane) wants 20 to 36 dB between
+ * the near and the far layer. Exponential in d, so every step of the plane costs the same number
+ * of decibels: at Range 20 a note at Depth 0.7 is 14 dB under one at the ear.
+ * @param d        the perceived distance, 0 at the ear .. 1 on the horizon
+ * @param rangeDb  the dB lost over the whole plane (Depth Range)
+ * @return         the linear gain, 1 at the ear
+ */
+inline float depthLevel(float d, float rangeDb) { return std::pow(10.0f, -clampv(rangeDb, 0.0f, 60.0f) * d / 20.0f); }
+
+/**
+ * @brief The far send's gap at a distance, in samples: Gap ms at the ear, none on the horizon.
+ * @param d      the perceived distance, 0 .. 1
+ * @param gapMs  Depth Gap, the pre-delay a source at the ear gets before the far reverb
+ * @param sr     the sample rate in Hz
+ * @return       the delay in samples, at most what the ring holds (prepare() sized it for 80 ms)
+ */
+inline float depthGapSamples(float d, float gapMs, double sr)
+{
+    return clampv(gapMs, 0.0f, 80.0f) * (1.0f - clampv(d, 0.0f, 1.0f)) * static_cast<float>(sr) * 0.001f;
+}
+
+constexpr float kFarDlyGlide = 0.0005f;   ///< per-sample glide of the far send's gap (about 40 ms at 48 kHz), as the reverbs glide their pre-delay
+
 /**
  * @brief A phasor (cosine, sine) at a phase given in cycles: the voice's name for Simd.h's phasorFrom().
  * @param phase01  the phase in cycles, 0 .. 1 (a rotation per sample is given the same way)
@@ -69,6 +98,15 @@ constexpr float kSqrt2Half = 0.70710678119f;     ///< 1 / sqrt(2): composes the 
 void Voice::prepare(double sampleRate, uint64_t seed)
 {
     sr_ = sampleRate;
+    {
+        // The far send's gap ring: 80 ms (the Gap knob's top) plus room for the interpolation, a
+        // power of two so the read wraps with a mask.
+        int size = 16;
+        while (size < static_cast<int>(0.08 * sr_) + 8) size <<= 1;
+        farDlyL_.assign(static_cast<size_t>(size), 0.0f);
+        farDlyR_.assign(static_cast<size_t>(size), 0.0f);
+        farDlyMask_ = size - 1; farDlyW_ = 0; farDly_ = farDlyTarget_ = 0.0f;
+    }
     // The modal bank derives every mode's angle and radius from its own copy of the rate, and
     // nothing ever set it: at 96 kHz the modes rang an octave high and half as long.
     zModal_.prepare(static_cast<float>(sr_));
@@ -153,7 +191,8 @@ void Voice::noteOn(int note, double freqHz, float velocity, int owner, float dis
     distEff_  = perceivedDistance(distance_, p.depthLaw);
     gNear_  = std::cos(distEff_ * 0.5f * kPi);
     gFar_   = std::sin(distEff_ * 0.5f * kPi);
-    gLevel_ = 1.0f - 0.5f * distEff_;
+    gLevel_ = depthLevel(distEff_, p.depthRange);
+    farDly_ = farDlyTarget_ = depthGapSamples(distEff_, p.depthPreDelay, sr_);   // no glide from zero: the note begins where it stands
     // Which of the five roles this note belongs to, for the matrix and for the plane it stands in.
     // The second conductor is the shadow whatever it plays; everything else is read off the
     // register, because in this music the register IS the role (Rene's table). A near event
@@ -198,6 +237,8 @@ void Voice::noteOn(int note, double freqHz, float velocity, int owner, float dis
         airL_.reset();  airR_.reset();
         std::memset(itdBufL_, 0, sizeof(itdBufL_));
         std::memset(itdBufR_, 0, sizeof(itdBufR_));
+        std::fill(farDlyL_.begin(), farDlyL_.end(), 0.0f);
+        std::fill(farDlyR_.begin(), farDlyR_.end(), 0.0f);
         proxLoL_ = proxLoR_ = proxHiL_ = proxHiR_ = 0.0f;
         // An inherited note has been sounding: its Bloom is open and its sources have entered.
         bloomT_ = ageSeconds;
@@ -345,7 +386,10 @@ void Voice::control(int blockLen, const VoiceParams& p)
     // pattern that turns once every fifty seconds (the golden angle between neighbours, so no
     // two harmonically related partials sit together). Equal power per partial: the pair of
     // weights squares to two, which is what the mono path's identical left and right add up to.
-    spreadAmt_ = clampv(p.partialSpread, 0.0f, 1.0f);
+    // Partial Spread follows the plane like the strands do (Near Width): a share at the ear, all
+    // of it on the horizon.
+    spreadAmt_ = clampv(p.partialSpread, 0.0f, 1.0f)
+               * (clampv(p.depthWidth, 0.0f, 1.0f) + (1.0f - clampv(p.depthWidth, 0.0f, 1.0f)) * distEff_);
     if (spreadAmt_ > 0.0f) {
         spreadPhase_ += static_cast<double>(dt) * 0.02;
         if (spreadPhase_ >= 1.0) spreadPhase_ -= 1.0;
@@ -397,7 +441,8 @@ void Voice::control(int blockLen, const VoiceParams& p)
     prevDist_ = distEff_;
     gNear_  = std::cos(distEff_ * 0.5f * kPi);
     gFar_   = std::sin(distEff_ * 0.5f * kPi);
-    gLevel_ = 1.0f - 0.5f * distEff_;
+    gLevel_ = depthLevel(distEff_, p.depthRange);
+    farDlyTarget_ = depthGapSamples(distEff_, p.depthPreDelay, sr_);
     // Presence: a broad bell in the 2-5 kHz articulation band, only on the near plane. Applied
     // in the additive domain (per partial), so it costs nothing per sample.
     const float presLin = p.presence > 0.0f ? std::pow(10.0f, p.presence * (1.0f - distEff_) / 20.0f) - 1.0f : 0.0f;
@@ -515,6 +560,10 @@ void Voice::control(int blockLen, const VoiceParams& p)
                          * (static_cast<double>(p.pitchMul) * dopplerMul_)   // the tide and the doppler, 1.0 exactly when off
                          * (bend_ != 0.0f ? std::pow(2.0, static_cast<double>(bend_) / 12.0) : 1.0);
     const int stack = clampv(p.stack, 0, kNumStacks - 1);
+    // Near Width (25.09.2026): the fan of strands is a share of Spread at the ear and all of it on
+    // the horizon, so a near source is a place and a far one a surround -- the guide's width by
+    // plane (near 20-40 %, far 90-100 %), read off the same distance as everything else.
+    const float widthD = clampv(p.depthWidth, 0.0f, 1.0f) + (1.0f - clampv(p.depthWidth, 0.0f, 1.0f)) * distEff_;
 
     for (int si = 0; si < unison; ++si) {
         Strand& s = strands_[si];
@@ -540,7 +589,7 @@ void Voice::control(int blockLen, const VoiceParams& p)
         // Stack: the strand sits at a pure ratio to the note (a just chord from one key);
         // detune and drift still apply on top, so Detune 0 makes it beat-free.
         const double f = freq_ * bankMul * kStackRatios[stack][si] * std::pow(2.0, cents / 1200.0);
-        const float pan = clampv(centre + pos * p.spread, -1.0f, 1.0f);
+        const float pan = clampv(centre + pos * p.spread * widthD, -1.0f, 1.0f);
         const float angle = (pan + 1.0f) * 0.25f * kPi;
         s.gainL = std::cos(angle) * norm;
         s.gainR = std::sin(angle) * norm;
@@ -822,6 +871,7 @@ void Voice::render(float* nearL, float* nearR, float* farL, float* farR, int n, 
     const float fmScale = p.fmAmount * 3.0f;   // radians at the fundamental per unit of feedback signal
     fmHpCoef_ = 1.0f - kTwoPi * 10.0f / static_cast<float>(sr_);
     if (!doFm) { fmHpXL_ = fmHpXR_ = fmHpYL_ = fmHpYR_ = 0.0f; }
+    float* fdl = farDlyL_.data(); float* fdr = farDlyR_.data();   // the far send's gap rings (prepare() sized them)
     int pos = 0;
     while (pos < n && (env_.isActive() || ksOn_)) {
         const int len = std::min(kControlBlock, n - pos);
@@ -995,8 +1045,19 @@ void Voice::render(float* nearL, float* nearR, float* farL, float* farR, int n, 
             if (ksOn_) { const float sk = strikeTick(); nearL[pos + i] += sk * ksGainL_; nearR[pos + i] += sk * ksGainR_; }
             nearL[pos + i] += outL * gNear_;
             nearR[pos + i] += outR * gNear_;
-            farL[pos + i]  += outL * gFar_;
-            farR[pos + i]  += outR * gFar_;
+            // The far send through its gap (Depth Gap): written now, read Gap x (1 - d) later, so a
+            // source at the ear reaches the hall after its direct sound and one on the horizon
+            // with it. Linear interpolation, the delay glided per sample as the plane breathes.
+            fdl[farDlyW_ & farDlyMask_] = outL;
+            fdr[farDlyW_ & farDlyMask_] = outR;
+            farDly_ += (farDlyTarget_ - farDly_) * kFarDlyGlide;
+            const int   dI = static_cast<int>(farDly_);
+            const float dF = farDly_ - static_cast<float>(dI);
+            const float fa = fdl[(farDlyW_ - dI) & farDlyMask_], fb = fdl[(farDlyW_ - dI - 1) & farDlyMask_];
+            const float ga = fdr[(farDlyW_ - dI) & farDlyMask_], gb = fdr[(farDlyW_ - dI - 1) & farDlyMask_];
+            ++farDlyW_;
+            farL[pos + i]  += (fa + dF * (fb - fa)) * gFar_;
+            farR[pos + i]  += (ga + dF * (gb - ga)) * gFar_;
         }
         pos += len;
     }

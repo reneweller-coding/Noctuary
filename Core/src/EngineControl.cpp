@@ -794,6 +794,8 @@ void Engine::readParams()
     subBinaural_    = g(ParamId::SubBinaural);
     subPulse_       = g(ParamId::SubPulse);
     subTone_        = g(ParamId::SubTone);
+    subHarmonics_   = g(ParamId::SubHarmonics);
+    subBeat_        = g(ParamId::SubBeat);
     subSource_      = clampv(static_cast<int>(std::lround(g(ParamId::SubSource))), 0, 2);
     vp_.lowCut      = g(ParamId::PadLowCut);
     const bool hold = g(ParamId::Hold) >= 0.5f;
@@ -833,6 +835,9 @@ void Engine::readParams()
     vp_.panDrift    = g(ParamId::PanDrift);
     vp_.itd         = g(ParamId::Itd);
     vp_.presence    = g(ParamId::Presence);
+    vp_.depthRange    = g(ParamId::DepthRange);      // the guide's depth model (25.09.2026): level, gap and width on the one distance
+    vp_.depthPreDelay = g(ParamId::DepthPreDelay);
+    vp_.depthWidth    = g(ParamId::DepthWidth);
     vp_.breath      = g(ParamId::Breath);
     vp_.breathRate  = g(ParamId::BreathRate);
     vp_.phaseWidth  = g(ParamId::PhaseWidth);
@@ -1094,6 +1099,11 @@ void Engine::readParams()
                          static_cast<int>(std::lround(g(ParamId::CloudResNotes))), g(ParamId::CloudResDecay));
     cloudSend_ = g(ParamId::CloudSend);
     cloudToNear_ = g(ParamId::CloudToNear);
+    // Send Low Cut: one high-pass in front of all three reverbs' inputs (25.09.2026).
+    sendLowcut_ = g(ParamId::SendLowcut);
+    nearReverb_.setSendLowcut(sendLowcut_);
+    farReverb_.setSendLowcut(sendLowcut_);
+    if (sendLowcut_ > 21.0f) { roomSendHpL_.setQ(clampv(sendLowcut_, 20.0f, 1000.0f), 0.7071f, static_cast<float>(sr_)); roomSendHpR_.copyCoefficients(roomSendHpL_); }
     nearReverb_.setSpace(0.3f, 20000.0f, g(ParamId::NearLowcut));
     nearReverb_.set(0.6f, g(ParamId::NearDecay), g(ParamId::NearDamp), 5.0f, false, g(ParamId::NearMix));
     unmask_.set(g(ParamId::FarUnmask), g(ParamId::FarUnmaskSpread), g(ParamId::FarUnmaskReturn));

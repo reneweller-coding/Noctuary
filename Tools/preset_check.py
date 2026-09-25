@@ -29,7 +29,11 @@ ROOT = os.path.normpath(os.path.join(HERE, ".."))
 RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
 sys.path.insert(0, HERE)
 
-LIMITS = {"rms_db": -12.0, "peak": 0.98, "jump": 0.30, "dc": 0.02, "silent_db": -60.0, "mono_loss": 6.0}
+# mono_loss 3 dB, crest 12 dB and true peak -1 dBTP are the production guide's gates (25.09.2026);
+# the crest is the renderer's, true peak over short-term loudness, and is read over the render's
+# settled half like everything else here.
+LIMITS = {"rms_db": -12.0, "peak": 0.98, "jump": 0.30, "dc": 0.02, "silent_db": -60.0, "mono_loss": 3.0,
+          "crest_min": 12.0, "truepeak": -1.0}
 
 
 # Renders run below normal priority, so a long batch does not make the machine unusable.
@@ -37,6 +41,7 @@ LOW_PRIORITY = {"creationflags": subprocess.BELOW_NORMAL_PRIORITY_CLASS} if os.n
 
 
 MEASURE = re.compile(r"^measure: (.*)$", re.M)
+LOUDNESS = re.compile(r"^loudness: (.*)$", re.M)
 NONFINITE = re.compile(r"non-finite (\d+)")
 
 
@@ -46,7 +51,7 @@ def check_preset(name, seconds, packs=None):
     cmd = [RENDER]
     if packs:
         cmd += ["--packs", packs]
-    cmd += ["--preset", name, "--seconds", str(seconds), "--notes", "45,52,59", "--set", "brain_rate=6", "--measure"]
+    cmd += ["--preset", name, "--seconds", str(seconds), "--notes", "45,52,59", "--set", "brain_rate=6", "--measure", "--loudness"]
     res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", **LOW_PRIORITY)
     m = MEASURE.search(res.stdout or "")
     if res.returncode != 0 and not m:
@@ -61,6 +66,15 @@ def check_preset(name, seconds, packs=None):
                 d[k] = float(v)
             except ValueError:
                 pass
+    lm = LOUDNESS.search(res.stdout or "")
+    if lm:
+        for tok in lm.group(1).split():
+            if "=" in tok:
+                k, v = tok.split("=", 1)
+                try:
+                    d[k] = float(v)
+                except ValueError:
+                    pass
     nf = NONFINITE.search(res.stdout or "")
     nonfinite = int(nf.group(1)) if nf else 0
     rms_db = d.get("rms", -120.0)
@@ -73,8 +87,12 @@ def check_preset(name, seconds, packs=None):
     if rms_db < LIMITS["silent_db"]: fails.append(f"silent {rms_db:.1f} dBFS")
     if nonfinite: fails.append(f"non-finite {nonfinite}")
     if mono_loss > LIMITS["mono_loss"]: fails.append(f"mono -{mono_loss:.1f} dB")
+    crest, truepeak = d.get("crest"), d.get("truepeak")
+    if crest is not None and rms_db > LIMITS["silent_db"] and crest < LIMITS["crest_min"]: fails.append(f"crest {crest:.1f} dB")
+    if truepeak is not None and truepeak > LIMITS["truepeak"]: fails.append(f"true peak {truepeak:.1f} dBTP")
     return {"name": name, "rms_db": rms_db, "peak": peak, "jump": jump, "dc": dc,
-            "mono_loss": mono_loss, "nonfinite": nonfinite, "fail": fails}
+            "mono_loss": mono_loss, "crest": crest, "truepeak": truepeak, "lufs_i": d.get("lufs_i"),
+            "nonfinite": nonfinite, "fail": fails}
 
 
 def main():

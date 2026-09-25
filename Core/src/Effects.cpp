@@ -568,6 +568,17 @@ void Reverb::setSpace(float asymmetry, float highcutHz, float lowcutHz)
     set(size_, decay_, damp_, preTarget_ * 1000.0f / static_cast<float>(sr_), freeze_, mix_);
 }
 
+void Reverb::setSendLowcut(float hz)
+{
+    sendHpOn_ = hz > 21.0f;
+    if (sendHpOn_) {
+        sendHpL_.setQ(clampv(hz, 20.0f, 1000.0f), 0.7071f, static_cast<float>(sr_));   // Butterworth: -3 dB at the knob, 12 dB/oct below
+        sendHpR_.copyCoefficients(sendHpL_);
+    } else {
+        sendHpL_.reset(); sendHpR_.reset();
+    }
+}
+
 void Reverb::set(float size, float decaySeconds, float damping, float preDelayMs, bool freeze, float mix)
 {
     static const float kBaseMs[kLines] = { 29.7f, 37.1f, 41.1f, 43.7f, 53.3f, 61.9f, 71.3f, 79.9f };
@@ -617,8 +628,13 @@ void Reverb::process(float* L, float* R, int n)
         // -- a recording that carries one, FM at an integer ratio, an asymmetric saturation --
         // would be integrated by the loop for the length of the tail. The dry path below keeps it;
         // the output blocker at the end of the chain takes it there.
-        const float inL = L[i] - dcInX_[0] + dcR_ * dcInY_[0]; dcInX_[0] = L[i]; dcInY_[0] = inL;
-        const float inR = R[i] - dcInX_[1] + dcR_ * dcInY_[1]; dcInX_[1] = R[i]; dcInY_[1] = inR;
+        float inL = L[i] - dcInX_[0] + dcR_ * dcInY_[0]; dcInX_[0] = L[i]; dcInY_[0] = inL;
+        float inR = R[i] - dcInX_[1] + dcR_ * dcInY_[1]; dcInX_[1] = R[i]; dcInY_[1] = inR;
+        if (sendHpOn_) {   // Send Low Cut: the fundamentals stay out of the tail (the dry share above is untouched)
+            float lp, bp, hp;
+            sendHpL_.tick(inL, lp, bp, hp); inL = hp;
+            sendHpR_.tick(inR, lp, bp, hp); inR = hp;
+        }
         pre_[static_cast<size_t>(w_ & mask_)] = inL;
         preR_[static_cast<size_t>(w_ & mask_)] = inR;
         preCur_ += (preTarget_ - preCur_) * glide;

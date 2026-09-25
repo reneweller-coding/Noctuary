@@ -275,6 +275,19 @@ public:
      */
     void setMode(int mode) { mode_ = mode; }
     /**
+     * @brief The high-pass in front of the input (Send Low Cut, 25.09.2026): nothing under it is
+     *        thrown into the tail.
+     *
+     * A second-order Butterworth on the wet path only -- the dry share of an insert passes as it
+     * was -- after the DC blocker and before the pre-delay. The production guide's first rule of
+     * reverb is a filter before every send, 150 to 300 Hz: a hall fed with the fundamentals of a
+     * drone answers with a low-frequency mass that no return filter takes out again, because by
+     * then it has recirculated for the length of the tail. The Low Cut of setSpace() stays what it
+     * was, a filter on the tail. Off at 20 Hz and below.
+     * @param hz  the -3 dB point in Hz; 20 or less switches it off
+     */
+    void setSendLowcut(float hz);
+    /**
      * @brief Runs a block in place, mixing the tail against the dry signal.
      * @param L  left channel, n samples
      * @param R  right channel
@@ -335,6 +348,9 @@ private:
            lcL2_ = 0.0f,   ///< second one-pole, left
            lcR2_ = 0.0f;   ///< second one-pole, right
     bool   freeze_ = false;   ///< whether the loop is held lossless with the input shut
+    Svf    sendHpL_,   ///< @brief the input high-pass (Send Low Cut), left
+           sendHpR_;   ///< the input high-pass, right
+    bool   sendHpOn_ = false;   ///< whether the input high-pass runs (Send Low Cut above 20 Hz)
     int    mode_ = 0;   ///< 0 classic, 1 scattering, 2 colourless, 3 rotating
     std::vector<float> sc_[kLines];   ///< the scattering all-passes, one per line
     int    scLen_[kLines] = {};   ///< their lengths in samples (1.9 .. 7.1 ms, mutually prime)

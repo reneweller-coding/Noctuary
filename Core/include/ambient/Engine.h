@@ -1558,6 +1558,12 @@ private:
     /** @var float roomHpL2_
      *  @brief second stage, left */
     float        roomHpL1_ = 0.0f, roomHpR1_ = 0.0f, roomHpL2_ = 0.0f, roomHpR2_ = 0.0f;   ///< roomHpR2_: second stage, right
+    /// Send Low Cut (25.09.2026) in front of the convolution room: the same second-order high-pass
+    /// the two FDN reverbs carry on their inputs (Reverb::setSendLowcut), here on the room's send
+    /// after its pre-delay, so that no reverb of the three is ever fed under it.
+    Svf          roomSendHpL_,   ///< @brief the room send's high-pass, left
+                 roomSendHpR_;   ///< the room send's high-pass, right
+    float        sendLowcut_ = 150.0f;   ///< Send Low Cut as read this block, Hz; 20 or less is off
     /**
      * @name Subsonic
      * Subsonic: two cascaded one-pole high-passes on the finished output, 24 dB/oct with the
@@ -1820,6 +1826,16 @@ private:
     /** @var float subBinaural_
      *  @brief Hz between the two ears */
     float        subLevel_ = 0.0f, subLevelCur_ = 0.0f, subGlide_ = 8.0f, subBinaural_ = 0.0f, subTone_ = 0.2f;   ///< subTone_: sine (0) to triangle (1)
+    /// The sub's residue and its beat (25.09.2026). Harmonics adds the second and third partial
+    /// at -24 and -27 dB at full: on a small speaker that cannot move at 40 Hz the ear still hears
+    /// the note from them (the residue pitch), which is the difference between "nothing there"
+    /// and "felt on a laptop". Beat sums a second sine Beat Hz above the first, the same in both
+    /// ears, so the level swells and fades over 1/Beat seconds -- the slow breath of a Lustmord
+    /// sub, which the Binaural offset (a different frequency per ear) is not.
+    float        subHarmonics_ = 0.6f,   ///< @brief Harmonics as read this block, 0 .. 1
+                 subBeat_ = 0.0f,        ///< @brief Beat as read this block, Hz
+                 subBeatCur_ = 0.0f;     ///< Beat glided per sample, so the second sine fades in
+    double       subBeatPhase_ = 0.0;    ///< the second sine's phase, 0 .. 1
     /**
      * @brief Pulse: the Foundation amplitude-modulated at the Binaural rate, a raised cosine.
      *

@@ -93,7 +93,7 @@ BASE = {
     "far_size":      (1.4, 3.0),
     "far_decay":     ("log", 12.0, 60.0),
     "far_damp":      (0.3, 0.7),
-    "far_predelay":  ("log", 20.0, 200.0),
+    "far_predelay":  (0.0, 5.0),   # the hall's own gap: the source's is Depth Gap now (25.09.2026)
     "far_asym":      (0.3, 0.8),
     "far_highcut":   ("log", 1800.0, 8000.0),
     "bass_mono":     ("log", 90.0, 200.0),
@@ -272,7 +272,7 @@ STYLES = [
        "cutoff": ("log", 250.0, 1200.0), "far_highcut": ("log", 900.0, 2200.0),
        "far_decay": ("log", 35.0, 85.0), "far_size": (2.2, 3.0), "far_damp": (0.5, 0.85),
        "brain_low": ("int", 24, 34), "brain_high": ("int", 48, 66), "brain_density": ("int", 3, 6),
-       "sub_level": (0.35, 0.7), "sub_octave": ["-1", "-2"], "sub_tone": (0.0, 0.25),
+       "sub_level": (0.35, 0.7), "sub_octave": ["-2"], "sub_tone": (0.0, 0.25),
        "bass_mono": ("log", 130.0, 260.0), "air": (0.0, 0.15), "shimmer": (0.05, 0.3),
        "inharmonic": (0.1, 0.4), "depth": (0.75, 1.0), "pad_low_cut": ("log", 20.0, 45.0),
        "scale": ["JI Minor", "Subharmonic 16-8", "JI 7-limit", "Pythagorean"]},

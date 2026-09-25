@@ -340,6 +340,25 @@ enum class ParamId : int {
     /// one each: Tools/library/near_loudness.py puts every preset's loudest moment at the same
     /// distance from the background, where they had lain eighteen decibels apart.
     ForeGain,   ///< the foreground's own gain in dB
+    /// The production guide's depth model, built in (25.09.2026). Until then a note at the
+    /// horizon was 6 dB quieter than one at the ear, its far send left at the same instant as its
+    /// direct sound, and its strands fanned out as wide wherever it stood -- three cues that said
+    /// "near" while the low-pass and the wet share said "far". Range is the level a source loses
+    /// between the ear and the horizon, in dB; Gap the pre-delay a source at the ear gets before
+    /// the far reverb, shrinking to nothing on the horizon; Near Width how wide the strands fan
+    /// out at the ear as a share of their width on the horizon.
+    DepthRange, DepthPreDelay, DepthWidth,   ///< level drop over the depth (dB); the near source's gap before the far reverb (ms); the strands' width at the ear (0 .. 1 of Spread)
+    /// A high-pass in front of every reverb -- the near room, the far hall and the convolution
+    /// room -- so that nothing under it is ever thrown into a tail (the guide's first rule of
+    /// reverb: 150 to 300 Hz, before the send, not on the return). The Low Cut knobs of the three
+    /// reverbs stay what they were, filters on the tail itself.
+    SendLowcut,   ///< Hz, the second-order high-pass in front of every reverb's input
+    /// The Foundation's harmonics and its beat. Harmonics adds the second and third partial of the
+    /// sub at -24 and -27 dB at full, so the sub is still heard as a note on a small speaker where
+    /// its fundamental is not reproduced (the residue pitch); Beat sums a second sine a fraction of
+    /// a hertz above the first, in both ears alike, so the level breathes over two to ten seconds
+    /// -- the slow swell of a Lustmord sub, which the Binaural offset between the ears is not.
+    SubHarmonics, SubBeat,   ///< the sub's 2nd and 3rd harmonics (0 .. 1); a second sine this many Hz above the sub, beating in mono
     Count   ///< one past the last: kNumParams
 };
 

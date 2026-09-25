@@ -82,7 +82,7 @@ python Tools/library/rebuild_all.py --work build/library-work --jobs 12
 1  presets    make_library.py       the 56 packs and the built-ins' staging packs
 2  verify     verify_packs.py       every key and value actually exists
 3  balance    rebalance_voice.py    the voice above its own noise bed, two renders per preset
-4  measure    measure_packs.py      60 s per preset: descriptors, excerpts, and the loudness window
+4  measure    measure_packs.py      60 s per preset: descriptors, excerpts, the loudness window (LUFS) and the guide's gates
 5  builtins   write_builtins.py     into Core/src/Presets.cpp, rebuilt, then measured from the binary
 6  clap       clap_embed.py         what a model says the excerpts sound like (CPU: see the note there)
 7  map        map_all.py            one layout over the whole library, the groups, the phrases
@@ -234,7 +234,16 @@ python Tools/preset_check.py --packs Library/Packs --sample 300 --jobs 6
 ```
 
 `preset_check.py` renders presets and fails the ones that are too loud, clip, click, carry DC or come
-out silent.
+out silent -- and, since 25.09.2026, the production guide's gates: a mono loss over 3 dB, a crest (true
+peak over short-term loudness) under 12 dB, a true peak over -1 dBTP. `measure_packs.py` holds every
+preset to -24 .. -18 LUFS integrated over its minute (it used to be an unweighted RMS window) and
+writes `guide-report.json` beside its cache with the presets that fail a gate a gain cannot fix.
+
+`Tools/library/retrofit_guide.py` is the pass that fitted the guide's depth model to the presets
+written before it: the far reverb's own pre-delay to 3 ms in every preset (the gap between a sound
+and its room belongs to the source now and follows its distance), the sub two octaves under the root.
+It has run; after any change of this kind the library is re-measured, because the loudness of every
+preset moves with it.
 
 ## Fitting new features into old presets
 
