@@ -1,13 +1,49 @@
+/**
+ * @file PluginEditor.cpp
+ * @brief The editor's core: construction, the cells and sections, the layout, undo, the help page
+ *        and the manual, the timer and the header's painting.
+ *
+ * This is the first and largest of the editor's translation units (the others are EditorViews.cpp,
+ * EditorBrowse.cpp, EditorModStrip.cpp, EditorDrag.cpp, EditorMatrix.cpp and EditorSpectrum.cpp;
+ * PluginEditor.h says which class each holds). What is here:
+ *
+ * - The constructor: the group and tab tables that arrange the sections, the header's buttons and
+ *   boxes, the displays handed to their rows, the pages and the strip, the design size measured
+ *   from the first layout, and the `AMBIENT_*` environment variables that open the panel in a
+ *   given state for a picture or write the manual out.
+ * - The cells: one per parameter, built from ambient::paramTable() (buildCells), plus the extra
+ *   cells -- file loaders, the section preset banks, the morph slots, the journey row.
+ * - The layout: which cells a section shows and whether it is closed (a function of the parameter
+ *   state alone), the Expanded page with its wrapping rows (layoutBody), the tabbed page with every
+ *   page fitted to its column (layoutTabbed), the tab click, and the window that follows the
+ *   design's shape.
+ * - Undo, redo, A/B and the die, all whole-parameter snapshots.
+ * - The help page and the manual: the snapshots of sections, tabs, pages and the strip that both
+ *   are made of, the ManualJob that writes them into a folder step by step, and the signal-flow
+ *   diagram.
+ * - The timer, which keeps the panel in step with the processor, and the cells a slot's type uses.
+ * - The header's painting and the content's: groups, tabs, sections, dice and the notes on them.
+ *
+ * Everything here runs on the message thread and reads the engine only through
+ * NoctuaryProcessor and the APVTS; the displays are the same, each on its own timer.
+ */
 #include "EditorCommon.h"
 
 using namespace ambient;
 
 namespace {
-// The library runs to thousands of presets. As one flat list with headings between the families
-// this was 8596 rows in a single popup -- unreadable, and past some size unusable: the menu opened
-// and a click on a row did nothing at all, the box kept the name it had, and the sound with it.
-// One submenu per family instead. The root holds sixty entries, each of them a few dozen, and the
-// ComboBox still reports the chosen id through onChange exactly as before.
+/**
+ * @brief The library runs to thousands of presets.
+ *
+ * As one flat list with headings between the families
+ * this was 8596 rows in a single popup -- unreadable, and past some size unusable: the menu opened
+ * and a click on a row did nothing at all, the box kept the name it had, and the sound with it.
+ * One submenu per family instead. The root holds sixty entries, each of them a few dozen, and the
+ * ComboBox still reports the chosen id through onChange exactly as before.
+ *
+ * Fills the Sound box in the header and the two morph slot choosers; item id = preset index + 1.
+ * @param box  the chooser to fill (emptied of nothing: called once on a fresh box)
+ */
 void fillPresetBox(juce::ComboBox& box)
 {
     const bool grouped = numPresetMeta() >= numPresets() && numPresetFamilies() > 1;
@@ -788,7 +824,9 @@ void NoctuaryEditor::saveJourneyAs()
     }), false);
 }
 
-// Which parameter sits under a screen point: the drop target for a dragged modulation source.
+/**
+ * Which parameter sits under a screen point: the drop target for a dragged modulation source.
+ */
 int NoctuaryEditor::cellParamAt(juce::Point<int> screenPos) const
 {
     for (const auto& c : cells_) {
@@ -845,9 +883,17 @@ NoctuaryEditor::Section* NoctuaryEditor::findSection(const juce::String& name)
 
 // ---------------------------------------------------------------- layout
 
-// The switches that close a section, and the cells it keeps while closed.
 namespace {
-struct Closer { const char* section; ambient::ParamId sw; std::vector<ambient::ParamId> keep; };
+/** @brief The switches that close a section, and the cells it keeps while closed. */
+struct Closer {
+    const char* section;                  ///< the section's name
+    ambient::ParamId sw;                  ///< the switch: a type of Off, a level at zero, an Active that is not
+    std::vector<ambient::ParamId> keep;   ///< the cells still shown while it is closed
+};
+/**
+ * @brief The closer table, built on first use.
+ * @return one entry per section that closes; a section not in it is always open
+ */
 const std::vector<Closer>& closers()
 {
     using ambient::ParamId;
@@ -873,6 +919,11 @@ const std::vector<Closer>& closers()
     };
     return k;
 }
+/**
+ * @brief The closer of a section.
+ * @param section  the section's name
+ * @return its entry, or null if the section never closes
+ */
 const Closer* closerFor(const juce::String& section)
 {
     for (const auto& c : closers()) if (section == c.section) return &c;
@@ -1024,12 +1075,14 @@ void NoctuaryEditor::resized()
                      std::max(bodyH_, viewport_.getMaximumVisibleHeight()));
 }
 
-// Places every group and section, and records how much room the whole body needs. The design
-// size is measured from this once, in the constructor -- guessing it meant the right-hand column
-// kept falling off the edge. A tabbed row is as wide and as tall as its widest and tallest page,
-// so switching a tab never moves anything else.
-// Compact: the columns are kCompactFactor as wide and every page is refitted into them. The page
-// loses width and gains height; nothing scrolls either way, and the arrangement is otherwise untouched.
+/**
+ * Places every group and section, and records how much room the whole body needs. The design
+ * size is measured from this once, in the constructor -- guessing it meant the right-hand column
+ * kept falling off the edge. A tabbed row is as wide and as tall as its widest and tallest page,
+ * so switching a tab never moves anything else.
+ * Compact: the columns are kCompactFactor as wide and every page is refitted into them. The page
+ * loses width and gains height; nothing scrolls either way, and the arrangement is otherwise untouched.
+ */
 void NoctuaryEditor::applyLayoutMode(int mode)
 {
     mode = juce::jlimit(0, 2, mode);
@@ -1197,7 +1250,9 @@ void NoctuaryEditor::layoutBody()
     }
 }
 
-// The tabbed page: Normal and Compact. See the header for the rule; the pieces are these.
+/**
+ * The tabbed page: Normal and Compact. See the header for the rule; the pieces are these.
+ */
 void NoctuaryEditor::layoutTabbed()
 {
     for (auto& g : expandedGroups_) for (auto* d : g.displays) if (d != nullptr) d->setVisible(false);
@@ -1404,9 +1459,11 @@ void NoctuaryEditor::setSectionVisible(Section& s, bool v)
     }
 }
 
-// The layout's inputs from the parameters: which cells a slot's type uses, which sections are
-// closed. Called from the timer; when anything moved, the page is laid out again -- on the
-// player's own action (a type chosen, a switch thrown), never on the window's.
+/**
+ * The layout's inputs from the parameters: which cells a slot's type uses, which sections are
+ * closed. Called from the timer; when anything moved, the page is laid out again -- on the
+ * player's own action (a type chosen, a switch thrown), never on the window's.
+ */
 bool NoctuaryEditor::refreshLayoutState()
 {
     bool changed = false;
@@ -1557,8 +1614,10 @@ void NoctuaryEditor::doRedo()
     redo_.pop_back();
 }
 
-// A/B: the first click parks what you have in A and leaves you on B (a copy, so nothing is lost);
-// every click after that swaps the two. This is the comparison a sound gets judged by.
+/**
+ * A/B: the first click parks what you have in A and leaves you on B (a copy, so nothing is lost);
+ * every click after that swaps the two. This is the comparison a sound gets judged by.
+ */
 void NoctuaryEditor::swapAB()
 {
     const Snapshot now = takeSnapshot("A/B");
@@ -1571,9 +1630,11 @@ void NoctuaryEditor::swapAB()
     if (abButton_) abButton_->setButtonText(showingB_ ? "B | a" : "A | b");
 }
 
-// The die on a section: every parameter of that section is drawn again. Choices and switches are
-// picked at random, numbers land inside the middle of their range (the ends of a range are
-// usually where a preset stops being usable), and shift keeps them near where they already are.
+/**
+ * The die on a section: every parameter of that section is drawn again. Choices and switches are
+ * picked at random, numbers land inside the middle of their range (the ends of a range are
+ * usually where a preset stops being usable), and shift keeps them near where they already are.
+ */
 void NoctuaryEditor::randomiseSection(const juce::String& name, bool subtle)
 {
     Section* sec = findSection(name);
@@ -1637,10 +1698,12 @@ juce::Image NoctuaryEditor::snapshotSection(const juce::String& name)
     return img;
 }
 
-// One tab of the panel, as it looks when it is open: every section of the page, the tab bar over
-// it, the display beside it and -- on Source 1 -- the strand bank under that display. A picture
-// per section would have been easier and would have shown the manual's reader something that is
-// not on their screen; what they see is a tab.
+/**
+ * One tab of the panel, as it looks when it is open: every section of the page, the tab bar over
+ * it, the display beside it and -- on Source 1 -- the strand bank under that display. A picture
+ * per section would have been easier and would have shown the manual's reader something that is
+ * not on their screen; what they see is a tab.
+ */
 juce::Image NoctuaryEditor::snapshotTab(int rowIndex, int page)
 {
     if (rowIndex < 0 || rowIndex >= static_cast<int>(tabRows_.size())) return {};
@@ -1669,9 +1732,11 @@ juce::Image NoctuaryEditor::snapshotTab(int rowIndex, int page)
     return img;
 }
 
-// A whole page of the instrument -- Perform, Browse, the modulation strip, the help page itself --
-// rather than one section of it. Pages are siblings of the panel and are shown one at a time, so
-// the one being photographed is made visible for the picture and put back afterwards.
+/**
+ * A whole page of the instrument -- Perform, Browse, the modulation strip, the help page itself --
+ * rather than one section of it. Pages are siblings of the panel and are shown one at a time, so
+ * the one being photographed is made visible for the picture and put back afterwards.
+ */
 juce::Image NoctuaryEditor::snapshotPage(juce::Component* page)
 {
     if (page == nullptr || page->getWidth() <= 0 || page->getHeight() <= 0) return {};
@@ -1698,8 +1763,10 @@ juce::Image NoctuaryEditor::snapshotBrowseMap()
     return img;
 }
 
-// The map as it looks once it has been zoomed in: the current preset in the middle at eight
-// times, its neighbours around it, and names on everything that has room for one.
+/**
+ * The map as it looks once it has been zoomed in: the current preset in the middle at eight
+ * times, its neighbours around it, and names on everything that has room for one.
+ */
 juce::Image NoctuaryEditor::snapshotBrowseMapZoomed()
 {
     if (!browse_) return {};
@@ -1774,8 +1841,10 @@ juce::StringArray NoctuaryEditor::tabSectionNames(int rowIndex, int page) const
     return out;
 }
 
-// What a tab is called on its own bar, so the manual's caption is the word the reader will look
-// for on the screen.
+/**
+ * What a tab is called on its own bar, so the manual's caption is the word the reader will look
+ * for on the screen.
+ */
 juce::String NoctuaryEditor::tabName(int rowIndex, int page) const
 {
     if (rowIndex < 0 || rowIndex >= static_cast<int>(tabRows_.size())) return {};
@@ -1879,29 +1948,45 @@ void NoctuaryEditor::HelpView::resized()
 }
 
 // ---------------------------------------------------------------- the manual, as files
-//
-// The help page is the manual, and its pictures are snapshots of the panel itself -- the real
-// sections with their real values, taken as the page is opened. That is what makes them right
-// and what makes them impossible to produce from a script: they only exist while an editor is
-// running. So the export runs in one, writes every topic's pictures and text into a folder, and
-// Tools/make_manual.py turns that folder into an HTML manual and a PDF.
-//
-// It runs as a list of steps a third of a second apart rather than as one function, because
-// some of the pictures need the instrument to have MOVED between two of them: the gallery of
-// source types sets Source 2 to each type in turn, and its display and its greyed-out knobs
-// follow on the next timer tick, not in the same call.
+
+/**
+ * @brief The manual export in progress: the folder, the steps still to run, and what has been written.
+ *
+ * The help page is the manual, and its pictures are snapshots of the panel itself -- the real
+ * sections with their real values, taken as the page is opened. That is what makes them right
+ * and what makes them impossible to produce from a script: they only exist while an editor is
+ * running. So the export runs in one, writes every topic's pictures and text into a folder, and
+ * Tools/make_manual.py turns that folder into an HTML manual and a PDF.
+ *
+ * It runs as a list of steps a third of a second apart rather than as one function, because
+ * some of the pictures need the instrument to have MOVED between two of them: the gallery of
+ * source types sets Source 2 to each type in turn, and its display and its greyed-out knobs
+ * follow on the next timer tick, not in the same call.
+ */
 struct NoctuaryEditor::ManualJob {
-    juce::File dir;
-    std::vector<std::function<void()>> steps;
-    size_t next = 0;
-    std::function<void()> done;
-    // What has been written so far, per topic: the pictures and the tabs with their captions,
-    // their blurbs and the sections whose parameters belong under them.
-    struct Tab { juce::String file, name, caption, blurb; juce::StringArray sections; };
-    struct Pic { juce::String file, caption; };
-    std::vector<std::vector<Pic>> images;
-    std::vector<std::vector<Tab>> tabs;
-    juce::String originalType;    // Source 2's type before the gallery, put back afterwards
+    juce::File dir;   ///< the folder everything is written into
+    std::vector<std::function<void()>> steps;   ///< the steps, run one per 350 ms by runManualStep
+    size_t next = 0;   ///< the step that runs next
+    std::function<void()> done;   ///< called after the last step: puts openAll_ back and quits, when asked to
+    /**
+     * @brief What has been written so far, per topic: the pictures and the tabs with their captions,
+     * their blurbs and the sections whose parameters belong under them.
+     */
+    struct Tab {
+        juce::String file,            ///< the PNG's file name in dir
+        name,                         ///< the tab's name on its bar
+        caption,                      ///< the caption under the picture
+        blurb;                        ///< the tab's own text from ambient::tabHelp
+        juce::StringArray sections;   ///< the sections whose parameters the manual prints under it
+    };
+    /** @brief One section picture of a topic. */
+    struct Pic {
+        juce::String file,   ///< the PNG's file name in dir
+        caption;             ///< the caption under it
+    };
+    std::vector<std::vector<Pic>> images;   ///< per topic: its section pictures
+    std::vector<std::vector<Tab>> tabs;   ///< per topic: its tab pictures
+    juce::String originalType;    ///< Source 2's type before the gallery, put back afterwards
 };
 
 void NoctuaryEditor::exportManual(const juce::File& dir, std::function<void()> onDone)
@@ -2247,7 +2332,9 @@ juce::Rectangle<int> NoctuaryEditor::HelpView::FlowDiagram::drawn() const
     return juce::Rectangle<int>(0, 0, juce::roundToInt(kCanvasW * sc), juce::roundToInt(kCanvasH * sc));
 }
 
-// The signal flow as a picture: the units as boxes in their group colours, the buses as arrows.
+/**
+ * The signal flow as a picture: the units as boxes in their group colours, the buses as arrows.
+ */
 void NoctuaryEditor::HelpView::FlowDiagram::paint(juce::Graphics& g)
 {
     // Drawn on a fixed canvas, scaled to fit whatever the column offers.
@@ -2479,8 +2566,10 @@ int NoctuaryEditor::cellForParam(ParamId id) const
     return -1;
 }
 
-// The Near Source's cells by its type, the way updateSourceCells does it for the four slots: what
-// the chosen type ignores is gone from the strip, not greyed.
+/**
+ * The Near Source's cells by its type, the way updateSourceCells does it for the four slots: what
+ * the chosen type ignores is gone from the strip, not greyed.
+ */
 bool NoctuaryEditor::updateNearCells()
 {
     enum { Off = 0, Harmonic = 1, Fm = 2, Texture = 3, Noise = 4, Additive = 5, Stretch = 6, Bow = 7, Spectral = 8, Wavetable = 9,

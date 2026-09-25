@@ -1,3 +1,21 @@
+/**
+ * @file Cloud.cpp
+ * @brief The granular cloud: onsets, grains, the feedback loop and the tuned resonators.
+ *
+ * Cloud.h says what the cloud is; this is how it runs. process() works in sub-blocks of kSub
+ * samples: the input and what the loop handed back one sub-block ago are written into the history,
+ * spawnSub() draws the onsets (the Poisson stream, or the Hawkes flocks of Swarm), spawn() places
+ * each new grain behind the write head with its length, its rate, the interval drawRatio() gives it
+ * and its pan, renderGrains() runs the live grains through the vector kernel of GrainRing.h onto one
+ * bus per resonator, runResonators() rings the Band or Comb resonators on those buses, and mixSub()
+ * blends dry grains and resonators at Level into the output and sends the same signal through Tone,
+ * a DC blocker, the ADAA saturation and the throttle on its own mean level back into the loop's
+ * ring -- shifted in the spectrum first when Shift is on. setHarmony() and the two build functions
+ * turn the scale and the conductor's root into the interval list the scatter draws from and the
+ * notes the resonators sit on; they are called every block but rebuild only when the harmony has
+ * actually moved. The constants below are the loop's gain structure, with the measurements that
+ * set them.
+ */
 #include "ambient/Cloud.h"
 #include "ambient/Adaa.h"
 #include <algorithm>
@@ -8,17 +26,21 @@ namespace ambient {
 
 namespace {
 
-constexpr double kLn1000 = 6.907755278982137;
-// What the loop multiplies by at Feedback 1. Each channel of the cloud comes out 11.7 dB below the
-// history it reads: 0.6 over the square root of the overlap, a Hann window's three eighths of the
-// power, and an equal-power pan that gives each side half of every grain. A gain of one would
-// never sustain -- measured, 2.9 lost 2.5 dB a pass and was gone within half a minute. 4.2 puts a
-// full turn of the loop 0.8 dB above unity, which the Tone filter's losses bring back towards one
-// and the ceiling holds.
+constexpr double kLn1000 = 6.907755278982137;   ///< ln 1000: the fall to -60 dB, for the resonators' ring times
+/**
+ * @brief What the loop multiplies by at Feedback 1.
+ *
+ * Each channel of the cloud comes out 11.7 dB below the
+ * history it reads: 0.6 over the square root of the overlap, a Hann window's three eighths of the
+ * power, and an equal-power pan that gives each side half of every grain. A gain of one would
+ * never sustain -- measured, 2.9 lost 2.5 dB a pass and was gone within half a minute. 4.2 puts a
+ * full turn of the loop 0.8 dB above unity, which the Tone filter's losses bring back towards one
+ * and the ceiling holds.
+ */
 constexpr float kLoopGain = 4.2f;
-constexpr float kLoopCeiling = 0.15f;   // the loop's mean level at which its feedback reaches zero
-constexpr float kLoopDrive = 1.5f;      // into the saturation, and out of it again by the same factor
-constexpr float kResGain = 4.0f;        // the resonators' makeup against the dry grains
+constexpr float kLoopCeiling = 0.15f;   ///< the loop's mean level at which its feedback reaches zero
+constexpr float kLoopDrive = 1.5f;      ///< into the saturation, and out of it again by the same factor
+constexpr float kResGain = 4.0f;        ///< the resonators' makeup against the dry grains
 
 } // namespace
 

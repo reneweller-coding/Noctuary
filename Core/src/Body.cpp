@@ -1,3 +1,16 @@
+/**
+ * @file Body.cpp
+ * @brief The resonating body: the four materials' mode tables and the bank they tune.
+ *
+ * What lives here and not in Body.h is the data that makes a material a material -- the twelve
+ * mode ratios of wood, plate, bell and string, and how fast each material loses its high modes --
+ * and the two things the class does with it. set() turns the five arguments into twelve resonator
+ * coefficients and the pan of every mode, rebuilt only when something has moved: the brain's root
+ * changes every few minutes, but an LFO on Tone calls it every block. process() runs the bank on
+ * the mono send and adds each mode to its own side of the stereo field, then guards the resonators
+ * once a block. The engine calls prepare() once, set() per block from the parameters and the
+ * brain's root, and process() on the audio thread after the mix it answers is finished.
+ */
 #include "ambient/Body.h"
 #include <cmath>
 
@@ -7,10 +20,14 @@ const char* const kBodyMaterialNames[kNumBodyMaterials] = { "Wood", "Plate", "Be
 
 namespace {
 
-// Mode ratios. Wood: a soundboard's low, irregular modes (measured spruce plates cluster like
-// this). Plate: the stretched series of a flat metal plate. Bell: the classic hum-prime-tierce-
-// quint-nominal of a tuned bell, continued. String: harmonic with a little stiffness, which is
-// what an actual string does.
+/**
+ * @brief Mode ratios.
+ *
+ * Wood: a soundboard's low, irregular modes (measured spruce plates cluster like
+ * this). Plate: the stretched series of a flat metal plate. Bell: the classic hum-prime-tierce-
+ * quint-nominal of a tuned bell, continued. String: harmonic with a little stiffness, which is
+ * what an actual string does.
+ */
 const float kRatios[kNumBodyMaterials][kBodyModes] = {
     { 1.00f, 1.41f, 1.93f, 2.42f, 2.87f, 3.61f, 4.19f, 4.97f, 5.83f, 6.72f, 7.91f, 9.14f },   // Wood
     { 1.00f, 2.01f, 2.98f, 4.02f, 5.44f, 6.79f, 8.11f, 9.98f, 11.7f, 13.9f, 16.2f, 19.1f },   // Plate
@@ -18,8 +35,12 @@ const float kRatios[kNumBodyMaterials][kBodyModes] = {
     { 1.00f, 2.00f, 3.01f, 4.02f, 5.04f, 6.07f, 7.11f, 8.16f, 9.23f, 10.3f, 11.4f, 12.6f },   // String
 };
 
-// How fast each material's higher modes die away relative to the first (a real body loses its
-// high modes first; a bell holds them, which is why a bell rings and a plate clangs).
+/**
+ * @brief How fast each material's higher modes die away relative to the first (a real body loses its
+ *        high modes first; a bell holds them, which is why a bell rings and a plate clangs).
+ *
+ * The exponent on a mode's ratio: mode i rings for decay * ratio^-kDamping of the first mode's time.
+ */
 const float kDamping[kNumBodyMaterials] = { 0.55f, 0.40f, 0.20f, 0.35f };
 
 } // namespace

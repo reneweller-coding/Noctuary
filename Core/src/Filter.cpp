@@ -1,3 +1,16 @@
+/**
+ * @file Filter.cpp
+ * @brief The voice filter's coefficients and its frequency response, model by model.
+ *
+ * The per-sample work of VoiceFilter is inline in Filter.h (one() and tick()); this file holds what
+ * runs once a block or once a display frame. set() turns Cutoff, Resonance and Drive into the
+ * coefficients of whichever model is chosen and resets the state when the model changes, reset()
+ * clears every model's state at once, and magnitude() evaluates |H(f)| of the analogue prototypes
+ * -- the state-variable stages, the one-pole, the four-pole ladder, the comb with its damping, the
+ * three formant band passes -- for the display, without touching a voice. The formant table the
+ * Formant model morphs through lives here as well, since both set() and magnitude() read it: the
+ * one to tune three band passes, the other to draw them.
+ */
 #include "ambient/Filter.h"
 #include <complex>
 #include <cstring>
@@ -9,9 +22,20 @@ const char* const kFilterModelNames[kNumFilterModels] = {
 };
 
 namespace {
-// Formant frequencies of u o a e i (a rising sweep as Cutoff turns), interpolated in log frequency.
+/** @brief Formant frequencies of u o a e i (a rising sweep as Cutoff turns), interpolated in log frequency. */
 const float kFormants[5][3] = { { 325.0f, 700.0f, 2530.0f }, { 450.0f, 800.0f, 2830.0f }, { 800.0f, 1150.0f, 2900.0f },
                                 { 400.0f, 1600.0f, 2700.0f }, { 270.0f, 2300.0f, 3000.0f } };
+/**
+ * @brief The three formant frequencies the Formant model sits on at a Cutoff.
+ *
+ * Cutoff is mapped onto the vowel sweep in log frequency -- 40 Hz is u, 18 kHz is i -- and between
+ * two neighbouring vowels each formant is interpolated in log frequency as well, so the sweep
+ * moves evenly in pitch. Called by set() when the Formant model is chosen and by magnitude() for
+ * the display.
+ *
+ * @param cutoffHz  the filter's Cutoff in Hz; clamped to 40 Hz .. 18 kHz for the sweep
+ * @param out       receives the three formant frequencies in Hz, lowest first
+ */
 void formantsAt(float cutoffHz, float* out)
 {
     const float t = clampv(std::log(cutoffHz / 40.0f) / std::log(18000.0f / 40.0f), 0.0f, 1.0f) * 4.0f;

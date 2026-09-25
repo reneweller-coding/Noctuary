@@ -1,22 +1,25 @@
-// Noctuary -- the spectrum strip along the bottom of the left column.
-//
-// The header carries a small spectrum already, at 1024 points and 96 bands: enough to see that
-// something is loud, not enough to see what it is. This one has the width of the whole left
-// column, and the point of the extra room is resolution rather than size. A drone is stationary
-// for seconds at a time, so a long window costs nothing: 16384 samples is 2.9 Hz at 48 kHz, and
-// the partials of a 40 Hz fundamental land in separate bands instead of in one hump. Measured
-// against the 4096 the tap used to hold: the trough between a 40 Hz tone and its octave is 14 dB
-// down at 4096 and 58 dB down at 16384. That is the difference that matters for an instrument
-// tuned in whole-number ratios -- you can see the fifth sitting exactly on the third partial, and
-// see it come apart when Purity Drift loosens the tuning.
-//
-// Four things are drawn over each other, and they answer different questions.
-//   * the bands -- what is coming out right now, fast up and slow down, like a meter
-//   * the trace -- the loudest each band has been recently, falling about a decibel a second, so
-//     a partial that has just faded is still on the screen: the shape of the piece, not the frame
-//   * the filter -- the response from the voice's own arithmetic on the same decibel axis, so a
-//     resonance sitting between two partials is visible as exactly that
-//   * the ticks -- the fundamental of every sounding note, so a line can be tied to a voice
+/**
+ * @file EditorSpectrum.cpp
+ * @brief The spectrum strip along the bottom of the left column.
+ *
+ * The header carries a small spectrum already, at 1024 points and 96 bands: enough to see that
+ * something is loud, not enough to see what it is. This one has the width of the whole left
+ * column, and the point of the extra room is resolution rather than size. A drone is stationary
+ * for seconds at a time, so a long window costs nothing: 16384 samples is 2.9 Hz at 48 kHz, and
+ * the partials of a 40 Hz fundamental land in separate bands instead of in one hump. Measured
+ * against the 4096 the tap used to hold: the trough between a 40 Hz tone and its octave is 14 dB
+ * down at 4096 and 58 dB down at 16384. That is the difference that matters for an instrument
+ * tuned in whole-number ratios -- you can see the fifth sitting exactly on the third partial, and
+ * see it come apart when Purity Drift loosens the tuning.
+ *
+ * Four things are drawn over each other, and they answer different questions.
+ *   * the bands -- what is coming out right now, fast up and slow down, like a meter
+ *   * the trace -- the loudest each band has been recently, falling about a decibel a second, so
+ *     a partial that has just faded is still on the screen: the shape of the piece, not the frame
+ *   * the filter -- the response from the voice's own arithmetic on the same decibel axis, so a
+ *     resonance sitting between two partials is visible as exactly that
+ *   * the ticks -- the fundamental of every sounding note, so a line can be tied to a voice
+ */
 #include "EditorCommon.h"
 
 using namespace ambient;

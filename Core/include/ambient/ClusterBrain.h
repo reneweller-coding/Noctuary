@@ -1,7 +1,31 @@
-// Noctuary -- Cluster Brain: the generative "sleep concert" conductor.
-// Slowly starts and stops notes of the current scale around a wandering root,
-// weighted by interval consonance. Emits note events; the engine turns them into
-// voices with their long envelopes. Header-only (templated callbacks), no allocation.
+/**
+ * @file ClusterBrain.h
+ * @brief Cluster Brain: the generative "sleep concert" conductor.
+ *
+ * Slowly starts and stops notes of the current scale around a wandering root,
+ * weighted by interval consonance. Emits note events; the engine turns them into
+ * voices with their long envelopes. Header-only (templated callbacks), no allocation.
+ *
+ * Where it sits. The engine owns two conductors (Engine::brain_ for the foreground cluster and
+ * brain2_ for the background one, on the first's root plus an interval) and ticks each of them
+ * once per control block from Engine::process, on the audio thread, through ClusterBrain::update;
+ * the knobs arrive in a BrainParams the engine fills from the parameters (EngineControl.cpp), and
+ * every decision leaves as a BrainEvent that the engine's lambda turns into startNote or stopNote.
+ * The crossfade between two presets is the one place the conductor is touched from the message
+ * thread: soundingNotes() reads the chord out of the engine that leaves and adopt() hands it to
+ * the one that arrives (Engine::adoptCluster).
+ *
+ * What the file holds, in order: the mode and the partial template the conductor judges timbre
+ * with; the psychoacoustic measures it weighs a candidate note by -- Sethares' spectral roughness
+ * and the consonance made of it, the scale a timbre asks for (makeTimbreScale, which is also how
+ * the engine builds its Timbre scale), Terhardt's harmonicity of a whole chord, the
+ * Krumhansl-Kessler key profiles and the key found with them, Tymoczko's evenness; the knobs
+ * (BrainParams); the event; and the conductor itself. Every measure is written so that a knob at
+ * its default changes nothing, down to the random stream, because the library's presets were
+ * rendered and measured before most of the knobs existed. The comments cite the user's rule book
+ * of 12.09.2026 by section (R6.1, Anti 2, G3, table 2): those are the rules the conductor was made
+ * to keep, and the measurements beside them are what it did before and after.
+ */
 #pragma once
 #include "Dsp.h"
 #include "Tuning.h"
@@ -10,31 +34,60 @@
 
 namespace ambient {
 
-// How the conductor works. Free is what it has always done: notes start and stop on their own
-// timers, so the cluster breathes but never really moves. Chords keeps the cluster full and
-// exchanges exactly one voice at a time, choosing the new note for how it sits against the ones
-// that stay and for how far that voice has to travel -- which is voice leading, and it is what
-// makes a drone shift into a new chord instead of merely churning.
+/**
+ * @brief How the conductor works.
+ *
+ * Free is what it has always done: notes start and stop on their own
+ * timers, so the cluster breathes but never really moves. Chords keeps the cluster full and
+ * exchanges exactly one voice at a time, choosing the new note for how it sits against the ones
+ * that stay and for how far that voice has to travel -- which is voice leading, and it is what
+ * makes a drone shift into a new chord instead of merely churning.
+ *
+ * Free is what every preset in the library selects; the same names serve the Autoplay parameter
+ * (Params.cpp, kBrainModeNames).
+ */
 enum class BrainMode : int { Free = 0, Chords, Count };
-constexpr int kNumBrainModes = static_cast<int>(BrainMode::Count);
-extern const char* const kBrainModeNames[kNumBrainModes];
+/** @var BrainMode::Free
+ *  @brief Notes start and stop on their own timers; the cluster breathes around its root. */
+/** @var BrainMode::Chords
+ *  @brief The cluster is kept full and one voice at a time is exchanged for the best-fitting note within its voice-leading allowance. */
+/** @var BrainMode::Count
+ *  @brief Number of modes, for the tables. */
+constexpr int kNumBrainModes = static_cast<int>(BrainMode::Count);   ///< entries of kBrainModeNames
+extern const char* const kBrainModeNames[kNumBrainModes];             ///< "Free", "Chords" -- the choice names of the parameter (Params.cpp)
 
-// The spectrum the conductor judges intervals with when Timbre is up: the partial template of
-// the voice as it stands -- the same tilt, odd/even weight, brightness window and inharmonic
-// stretch the bank renders with -- as frequency ratios to the fundamental and amplitudes.
+/**
+ * @brief The spectrum the conductor judges intervals with when Timbre is up: the partial template of
+ * the voice as it stands -- the same tilt, odd/even weight, brightness window and inharmonic
+ * stretch the bank renders with -- as frequency ratios to the fundamental and amplitudes.
+ *
+ * The engine fills one from the voice parameters whenever they change (EngineControl.cpp,
+ * brainSpec_) and points both conductors' BrainParams::spectrum at it; makeTimbreScale builds the
+ * Timbre scale from the same template, and the editor draws it.
+ */
 struct BrainSpectrum {
-    static constexpr int kMax = 12;
-    int    count = 0;
-    double ratio[kMax] = {};    // f_h / f0, including the stiff-string stretch
-    double amp[kMax] = {};
+    static constexpr int kMax = 12;   ///< the most partials a template holds
+    int    count = 0;                 ///< partials in use, 0 .. kMax; at 0 the conductor falls back to the ratio score
+    double ratio[kMax] = {};    ///< f_h / f0, including the stiff-string stretch
+    double amp[kMax] = {};      ///< amplitude of each partial, linear and relative to one another; the scale does not matter, spectralConsonance normalises
 };
 
-// Roughness of two tones with this template at f1 and f2, after Sethares (1993, 2005), which is
-// Plomp and Levelt's curve for a pair of pure tones summed over every pair of partials:
-//     d(x) = a1 a2 (exp(-b1 s x) - exp(-b2 s x)),  s = d* / (s1 min(f) + s2),
-//     b1 = 3.5, b2 = 5.75, d* = 0.24, s1 = 0.021, s2 = 19
-// so that the peak of the roughness sits at about a quarter of a critical bandwidth whatever the
-// register. Pairs more than a few critical bandwidths apart contribute nothing and are skipped.
+/**
+ * @brief Sethares' sensory roughness of two tones that share this partial template.
+ *
+ * Roughness of two tones with this template at f1 and f2, after Sethares (1993, 2005), which is
+ * Plomp and Levelt's curve for a pair of pure tones summed over every pair of partials:
+ *     d(x) = a1 a2 (exp(-b1 s x) - exp(-b2 s x)),  s = d* / (s1 min(f) + s2),
+ *     b1 = 3.5, b2 = 5.75, d* = 0.24, s1 = 0.021, s2 = 19
+ * so that the peak of the roughness sits at about a quarter of a critical bandwidth whatever the
+ * register. Pairs more than a few critical bandwidths apart contribute nothing and are skipped.
+ *
+ * @param f1  fundamental of the first tone, Hz
+ * @param f2  fundamental of the second tone, Hz
+ * @param sp  the partial template both tones are sounded with
+ * @return    the summed roughness, non-negative, in the square of the template's amplitude units;
+ *            not normalised, so compare only values made with the same template
+ */
 inline double spectralRoughness(double f1, double f2, const BrainSpectrum& sp)
 {
     double d = 0.0;
@@ -53,11 +106,21 @@ inline double spectralRoughness(double f1, double f2, const BrainSpectrum& sp)
     return d;
 }
 
-// The same curve over a spectrum that was measured rather than one that was assumed: n peaks at
-// f[i] with amplitude a[i]. Normalised by the square of the total amplitude, so it describes the
-// shape of the sound and not how loud it is -- 0 for a single tone or a pure octave, and up where
-// partials sit a few tens of hertz apart and beat. The library's map reads a preset's roughness
-// with it; the conductor uses the template form above, and both are the same Plomp-Levelt curve.
+/**
+ * @brief The Plomp-Levelt roughness of a spectrum that was measured: n peaks, normalised to describe
+ *        the shape of the sound rather than its level.
+ *
+ * The same curve over a spectrum that was measured rather than one that was assumed: n peaks at
+ * f[i] with amplitude a[i]. Normalised by the square of the total amplitude, so it describes the
+ * shape of the sound and not how loud it is -- 0 for a single tone or a pure octave, and up where
+ * partials sit a few tens of hertz apart and beat. The library's map reads a preset's roughness
+ * with it; the conductor uses the template form above, and both are the same Plomp-Levelt curve.
+ *
+ * @param f  frequencies of the peaks, Hz, in any order
+ * @param a  their amplitudes, linear, same length as @p f
+ * @param n  how many peaks
+ * @return   the normalised roughness, 0 for no beating at all; 0 as well when the amplitudes sum to nothing
+ */
 inline double peakRoughness(const double* f, const double* a, int n)
 {
     double d = 0.0, sum = 0.0;
@@ -73,24 +136,37 @@ inline double peakRoughness(const double* f, const double* a, int n)
     return sum > 1.0e-12 ? 2.0 * d / (sum * sum) : 0.0;
 }
 
-// The scale a timbre asks for.
-//
-// This is the central claim of Sethares (Tuning, Timbre, Spectrum, Scale, 2005), and it runs the
-// other way round from how an instrument is normally built. A scale is not a thing you choose and
-// then find a sound for; to a given spectrum there BELONGS a set of intervals at which that
-// spectrum, sounded against a transposed copy of itself, is least rough. Play those intervals and
-// the partials line up; play others and they beat. For a harmonic spectrum those intervals are
-// just intonation -- which is why just intonation exists at all, rather than because the numbers
-// are small. For an inharmonic one they are somewhere else entirely, and the ordinary scales are
-// as arbitrary there as a gamelan's would be on a piano.
-//
-// The curve is the roughness of the timbre against itself transposed, swept across the octave;
-// the scale is where it dips. Nothing here is a table: change the Tilt or the Inharmonic knob and
-// the tuning follows the sound.
-//
-// Measured on this instrument's own spectrum: for the plain harmonic setting the minima land on
-// 5/4, 4/3, 3/2, 8/5, 5/3 and 7/4 to within a cent, and on 7/5 and 10/7 in the tritone. Turn
-// Inharmonic up and only 4/3 survives.
+/**
+ * @brief The scale a timbre asks for.
+ *
+ * This is the central claim of Sethares (Tuning, Timbre, Spectrum, Scale, 2005), and it runs the
+ * other way round from how an instrument is normally built. A scale is not a thing you choose and
+ * then find a sound for; to a given spectrum there BELONGS a set of intervals at which that
+ * spectrum, sounded against a transposed copy of itself, is least rough. Play those intervals and
+ * the partials line up; play others and they beat. For a harmonic spectrum those intervals are
+ * just intonation -- which is why just intonation exists at all, rather than because the numbers
+ * are small. For an inharmonic one they are somewhere else entirely, and the ordinary scales are
+ * as arbitrary there as a gamelan's would be on a piano.
+ *
+ * The curve is the roughness of the timbre against itself transposed, swept across the octave;
+ * the scale is where it dips. Nothing here is a table: change the Tilt or the Inharmonic knob and
+ * the tuning follows the sound.
+ *
+ * Measured on this instrument's own spectrum: for the plain harmonic setting the minima land on
+ * 5/4, 4/3, 3/2, 8/5, 5/3 and 7/4 to within a cent, and on 7/5 and 10/7 in the tritone. Turn
+ * Inharmonic up and only 4/3 survives.
+ *
+ * Called by the engine on the message thread whenever the template changes (EngineControl.cpp,
+ * the Timbre scale slot); four hundred roughness evaluations, no allocation.
+ *
+ * @param sp      the partial template to find the scale of
+ * @param out     receives the scale: period 2, ratios ascending from 1.0, named "Timbre (n)"; left as
+ *                an empty FixedScale when the function returns false after reaching it
+ * @param want    how many dips to keep at most (the least rough ones), capped at FixedScale::kMax - 1
+ * @param baseHz  the fundamental the sweep is made at; the curve depends on the register through the
+ *                critical bandwidth, so middle C is the reference
+ * @return        true when a scale of at least two degrees (the unison and one dip) was made
+ */
 inline bool makeTimbreScale(const BrainSpectrum& sp, FixedScale& out, int want = 12,
                             double baseHz = 261.6255653005986)
 {
@@ -147,11 +223,20 @@ inline bool makeTimbreScale(const BrainSpectrum& sp, FixedScale& out, int want =
     return m >= 2;
 }
 
-// The roughness turned into a consonance in 0..1 that sits on the same scale as
-// intervalConsonance(): 1 for a tone against itself, about a tenth for a semitone. The semitone
-// is the yardstick because it is the roughest interval a scale contains, and measuring against
-// it rather than against a fixed number keeps the score meaningful for a soft timbre with few
-// partials and for a bright one alike.
+/**
+ * @brief The spectral roughness turned into a consonance in 0 .. 1, on the scale of intervalConsonance().
+ *
+ * The roughness turned into a consonance in 0..1 that sits on the same scale as
+ * intervalConsonance(): 1 for a tone against itself, about a tenth for a semitone. The semitone
+ * is the yardstick because it is the roughest interval a scale contains, and measuring against
+ * it rather than against a fixed number keeps the score meaningful for a soft timbre with few
+ * partials and for a bright one alike.
+ *
+ * @param f1  the reference tone, Hz; the semitone yardstick is measured above it
+ * @param f2  the tone judged against it, Hz
+ * @param sp  the partial template; an empty one answers 1
+ * @return    consonance 0.05 .. 1 -- floored at 0.05 so that no interval is ever quite impossible
+ */
 inline double spectralConsonance(double f1, double f2, const BrainSpectrum& sp)
 {
     if (sp.count <= 0) return 1.0;
@@ -162,27 +247,39 @@ inline double spectralConsonance(double f1, double f2, const BrainSpectrum& sp)
     return c < 0.05 ? 0.05 : c;
 }
 
-// How strongly a set of tones implies ONE virtual root: harmonicity, in the sense of Terhardt's
-// virtual pitch (1974, 1979) and Parncutt's root support. This is a different question from
-// whether the tones are pairwise consonant, and the difference is not academic.
-//
-// The conductor scores a chord as the MEAN CONSONANCE OVER ALL PAIRS, and measured on the
-// instrument's own function that rule prefers a stack of fifths (4:6:9, mean 0.233) to a just
-// major triad (4:5:6, 0.212) -- and puts a plain segment of the harmonic series (8:9:10:11:12,
-// 0.165) last of all. Adjacent members of one series make complicated ratios pairwise (9/8,
-// 11/10) however perfectly the set as a whole fits together. For a dyad the two measures agree,
-// which is why this went unnoticed; for five voices they invert.
-//
-// The measure: try every fundamental that could hold the set -- the lowest tone divided by one
-// to sixteen -- assign each tone to its nearest harmonic, and score how cleanly it sits there,
-// weighted so that a tone on a low harmonic supports the root far more than one high up.
-//
-// Two rules keep the trivial answers out, and both were put there because the first version gave
-// them. A tone may not share a harmonic number with another: several tones crammed onto one
-// harmonic is a cluster, not a fit. And a candidate root supported by fewer than two tones does
-// not count at all, because every tone is the first harmonic of itself -- without that rule a
-// semitone cluster scored as high as a just major triad, and a bare tritone scored higher than
-// both.
+/**
+ * @brief How strongly a set of tones implies ONE virtual root: harmonicity, in the sense of Terhardt's
+ *        virtual pitch (1974, 1979) and Parncutt's root support.
+ *
+ * This is a different question from
+ * whether the tones are pairwise consonant, and the difference is not academic.
+ *
+ * The conductor scores a chord as the MEAN CONSONANCE OVER ALL PAIRS, and measured on the
+ * instrument's own function that rule prefers a stack of fifths (4:6:9, mean 0.233) to a just
+ * major triad (4:5:6, 0.212) -- and puts a plain segment of the harmonic series (8:9:10:11:12,
+ * 0.165) last of all. Adjacent members of one series make complicated ratios pairwise (9/8,
+ * 11/10) however perfectly the set as a whole fits together. For a dyad the two measures agree,
+ * which is why this went unnoticed; for five voices they invert.
+ *
+ * The measure: try every fundamental that could hold the set -- the lowest tone divided by one
+ * to sixteen -- assign each tone to its nearest harmonic, and score how cleanly it sits there,
+ * weighted so that a tone on a low harmonic supports the root far more than one high up.
+ *
+ * Two rules keep the trivial answers out, and both were put there because the first version gave
+ * them. A tone may not share a harmonic number with another: several tones crammed onto one
+ * harmonic is a cluster, not a fit. And a candidate root supported by fewer than two tones does
+ * not count at all, because every tone is the first harmonic of itself -- without that rule a
+ * semitone cluster scored as high as a just major triad, and a bare tritone scored higher than
+ * both.
+ *
+ * Read by both draws of the conductor when Harmonic is up, once per candidate note with the
+ * chord it would make, so it is written to be cheap: sixteen roots by n tones, no allocation.
+ *
+ * @param freqs  the tones of the chord, Hz, in any order
+ * @param n      how many; fewer than two have no root and score 0
+ * @return       0 .. 1, the best root's mean fit per tone (about 1 for a low, clean harmonic
+ *               segment, near 0 for a set no series can hold); 0 for a non-positive frequency
+ */
 inline double chordHarmonicity(const double* freqs, int n)
 {
     if (n < 2) return 0.0;
@@ -216,36 +313,51 @@ inline double chordHarmonicity(const double* freqs, int n)
     return best;
 }
 
-// The tonal hierarchy: how stable each degree of a key feels.
-//
-// Krumhansl and Kessler (1982) measured it. A listener hears a context that establishes a key,
-// then a single probe tone, and rates how well it fits; averaged over listeners the twelve
-// ratings are these two profiles. The tonic stands highest, then the fifth, then the third, then
-// the rest of the scale, then the notes outside it. It is not a rule anybody wrote down -- it is
-// what a set of listeners reported, and it has held up across four decades of replication.
-//
-// The conductor had no notion of a degree at all. It asked how a candidate sounded against what
-// was already sounding, which is a question about intervals, and never how it sat in a key.
+/**
+ * @name The tonal hierarchy: how stable each degree of a key feels.
+ *
+ * Krumhansl and Kessler (1982) measured it. A listener hears a context that establishes a key,
+ * then a single probe tone, and rates how well it fits; averaged over listeners the twelve
+ * ratings are these two profiles. The tonic stands highest, then the fifth, then the third, then
+ * the rest of the scale, then the notes outside it. It is not a rule anybody wrote down -- it is
+ * what a set of listeners reported, and it has held up across four decades of replication.
+ *
+ * The conductor had no notion of a degree at all. It asked how a candidate sounded against what
+ * was already sounding, which is a question about intervals, and never how it sat in a key.
+ * @{ */
+/**
+ * @brief The Krumhansl-Kessler profile of a major key.
+ * @return twelve ratings on a 1 .. 7 scale, index 0 the tonic and then ascending semitones; a
+ *         static table, valid for ever
+ */
 inline const float* keyProfileMajor()
 {
     static const float p[12] = { 6.35f, 2.23f, 3.48f, 2.33f, 4.38f, 4.09f, 2.52f, 5.19f, 2.39f, 3.66f, 2.29f, 2.88f };
     return p;
 }
+/**
+ * @brief The Krumhansl-Kessler profile of a minor key.
+ * @return twelve ratings on a 1 .. 7 scale, index 0 the tonic and then ascending semitones (the
+ *         minor third at 5.38 is what tells it from the major profile); a static table
+ */
 inline const float* keyProfileMinor()
 {
     static const float p[12] = { 6.33f, 2.68f, 3.52f, 5.38f, 2.60f, 3.53f, 2.54f, 4.75f, 3.98f, 2.69f, 3.34f, 3.17f };
     return p;
 }
+/** @} */
 
-// Which key a distribution of sounding pitch classes is in: the Krumhansl-Schmuckler method.
-// Correlate the distribution against all twenty-four rotated profiles and take the best. The
-// correlation itself is the confidence, and it is worth having: an honest "this is barely a key
-// at all" is exactly what a cluster should report.
-// The pitch class of a frequency, in twelve bins of a hundred cents from an arbitrary anchor.
-// Arbitrary is fine: the key search tries all twelve rotations, so only the intervals matter.
-// Taken from the frequency rather than from the MIDI number because a scale in this instrument
-// need not have twelve degrees -- with consecutive degrees on a nine-tone scale, note % 12 means
-// nothing at all, while cents always mean cents.
+/**
+ * @brief The pitch class of a frequency, in twelve bins of a hundred cents from an arbitrary anchor.
+ *
+ * Arbitrary is fine: the key search tries all twelve rotations, so only the intervals matter.
+ * Taken from the frequency rather than from the MIDI number because a scale in this instrument
+ * need not have twelve degrees -- with consecutive degrees on a nine-tone scale, note % 12 means
+ * nothing at all, while cents always mean cents.
+ *
+ * @param f  frequency in Hz; anything not positive lands in bin 0
+ * @return   0 .. 11, bin 0 at middle C (261.63 Hz) and its octaves, rounded to the nearest semitone
+ */
 inline int pitchClassOf(double f)
 {
     if (!(f > 0.0)) return 0;
@@ -253,16 +365,22 @@ inline int pitchClassOf(double f)
     return ((semis % 12) + 12) % 12;
 }
 
-// How evenly a chord's pitch classes are spread round the octave.
-//
-// Tymoczko (Science, 2006) showed that the chords which can be joined to their transpositions by
-// small voice movements are the nearly even ones -- and that those are, not by coincidence, the
-// chords Western music actually uses. Evenness is therefore not a taste: it is the property that
-// makes a chord able to MOVE. A cluster can only leap.
-//
-// One for a chord whose notes divide the octave equally, zero for one whose notes are all in the
-// same place. Duplicated pitch classes leave a gap of zero, which is exactly right: an octave
-// doubling adds nothing to how the chord is spread.
+/**
+ * @brief How evenly a chord's pitch classes are spread round the octave.
+ *
+ * Tymoczko (Science, 2006) showed that the chords which can be joined to their transpositions by
+ * small voice movements are the nearly even ones -- and that those are, not by coincidence, the
+ * chords Western music actually uses. Evenness is therefore not a taste: it is the property that
+ * makes a chord able to MOVE. A cluster can only leap.
+ *
+ * One for a chord whose notes divide the octave equally, zero for one whose notes are all in the
+ * same place. Duplicated pitch classes leave a gap of zero, which is exactly right: an octave
+ * doubling adds nothing to how the chord is spread.
+ *
+ * @param freqs  the tones, Hz; non-positive ones are skipped, at most sixteen are counted
+ * @param n      how many; fewer than two score 0
+ * @return       0 .. 1 as described, with the pitch classes measured in fractional semitones
+ */
 inline double chordEvenness(const double* freqs, int n)
 {
     if (n < 2) return 0.0;
@@ -291,13 +409,40 @@ inline double chordEvenness(const double* freqs, int n)
     return clampv(1.0 - err / worst, 0.0, 1.0);
 }
 
+/**
+ * @brief The key the conductor hears, and how clearly: the answer of findKey().
+ *
+ * Returned by ClusterBrain::estimatedKey (and Engine::brainKey for the panel) and computed again
+ * inside the draws whenever Key is up; the confidence is the correlation itself, so a passage
+ * with no key in it reports as much and pulls at nothing (ClusterBrain::keyWeightOf).
+ */
 struct KeyEstimate {
-    int   key = -1;            // 0..11 major, 12..23 minor, -1 for nothing heard yet
-    float confidence = 0.0f;   // the correlation, -1..1
+    int   key = -1;            ///< 0..11 major, 12..23 minor, -1 for nothing heard yet
+    float confidence = 0.0f;   ///< the correlation, -1..1
+    /**
+     * @brief Whether the key found is a minor one.
+     * @return true for keys 12 .. 23; false for a major key and for none at all
+     */
     bool  minor() const { return key >= 12; }
+    /**
+     * @brief The tonic of the key found, as a pitch class in pitchClassOf()'s bins.
+     * @return 0 .. 11, or -1 while nothing has been heard
+     */
     int   tonic() const { return key < 0 ? -1 : key % 12; }
 };
 
+/**
+ * @brief Which key a distribution of sounding pitch classes is in: the Krumhansl-Schmuckler method.
+ *
+ * Correlate the distribution against all twenty-four rotated profiles and take the best. The
+ * correlation itself is the confidence, and it is worth having: an honest "this is barely a key
+ * at all" is exactly what a cluster should report.
+ *
+ * @param weights  twelve weights, one per pitch class in pitchClassOf()'s bins -- the conductor's
+ *                 faded histogram of how long each class has been sounding
+ * @return         the best of the twenty-four keys with its correlation; key -1 and confidence 0
+ *                 for silence, or for twelve classes in perfect balance
+ */
 inline KeyEstimate findKey(const float* weights)
 {
     double mean = 0.0;
@@ -327,78 +472,136 @@ inline KeyEstimate findKey(const float* weights)
     return out;
 }
 
+/**
+ * @brief Everything the conductor is told: the knobs of the Cluster Brain and Brain 2 panels, as one
+ *        struct handed to ClusterBrain::update on every tick.
+ *
+ * The engine keeps one per conductor (bp_ and bp2_), fills it from the parameters on the audio
+ * thread (EngineControl.cpp) and passes it by reference; the conductor keeps nothing of it
+ * between ticks, so a knob turned is a knob heard at the next decision. Every knob added after the
+ * first version is an identity at its default -- the comments say so knob by knob -- because the
+ * library's presets were rendered and measured before those knobs existed and must render as they
+ * did, down to the random stream. The three small helpers at the end (erbAt, crowding,
+ * consonanceOf) are the parts of the scoring that depend on the knobs alone, kept here so that
+ * both draws of the conductor ask the same question.
+ */
 struct BrainParams {
-    bool  on = true;
-    BrainMode mode = BrainMode::Free;
-    float voiceLead = 7.0f;       // Chords: how far the exchanged voice may move, in semitones
-    float chordTension = 0.0f;    // 0 = the new note must fit the ones that stay; 1 = anything goes
-    float rootMove = 0.0f;        // Chords: how often the exchange moves the root as well
-    int   density = 5;            // target number of simultaneous notes
-    float rateSeconds = 25.0f;    // mean time between events
-    float holdMin = 30.0f, holdMax = 120.0f;
-    int   low = 36, high = 79;    // MIDI range for chosen notes
-    float consonance = 0.7f;      // 0 = anything goes (clusters), 1 = strictly consonant
-    float wander = 0.3f;          // probability weight for root movement
-    // Timbre: how much of the consonance is judged from the actual spectrum (Sethares) rather
-    // than from the ratio alone. 0 is the ratio score the conductor always had.
+    bool  on = true;              ///< the conductor runs; switched off, update() releases every voice once and then does nothing
+    BrainMode mode = BrainMode::Free;   ///< Free or Chords, see BrainMode
+    float voiceLead = 7.0f;       ///< Chords: how far the exchanged voice may move, in semitones
+    float chordTension = 0.0f;    ///< 0 = the new note must fit the ones that stay; 1 = anything goes
+    float rootMove = 0.0f;        ///< Chords: how often the exchange moves the root as well
+    int   density = 5;            ///< target number of simultaneous notes
+    float rateSeconds = 25.0f;    ///< mean time between events
+    /** @brief Hold Min and Hold Max: the shortest and the longest hold a note may draw, in seconds. */
+    float holdMin = 30.0f, holdMax = 120.0f;   ///< seconds a note is held in Free mode, drawn between the two (the draw shaped by Spread and Bias, the result scaled by the register role)
+    /** @brief Lowest and Highest: the register the conductor may choose from, either order. */
+    int   low = 36, high = 79;    ///< MIDI range for chosen notes
+    float consonance = 0.7f;      ///< 0 = anything goes (clusters), 1 = strictly consonant
+    float wander = 0.3f;          ///< probability weight for root movement
+    /**
+     * @brief Timbre: how much of the consonance is judged from the actual spectrum (Sethares) rather
+     * than from the ratio alone.
+     *
+     * 0 is the ratio score the conductor always had.
+     */
     float timbre = 0.0f;
-    // Even: how strongly the conductor prefers chords whose notes are spread evenly round the
-    // octave. Those are the chords that can be joined to their neighbours by small movements
-    // rather than leaps (Tymoczko 2006), which is what lets a harmony go somewhere at all.
-    // Against Harmonic, which pulls towards low harmonics and octaves, this pulls apart; the two
-    // are meant to be set against each other.
+    /**
+     * @brief Even: how strongly the conductor prefers chords whose notes are spread evenly round the
+     * octave.
+     *
+     * Those are the chords that can be joined to their neighbours by small movements
+     * rather than leaps (Tymoczko 2006), which is what lets a harmony go somewhere at all.
+     * Against Harmonic, which pulls towards low harmonics and octaves, this pulls apart; the two
+     * are meant to be set against each other.
+     */
     float even = 0.0f;
-    // Smooth: which voice moves. The conductor retires the one that has been sounding longest and
-    // then looks for its replacement; with this up it tries every voice and keeps the exchange
-    // that moves the chord the shortest distance -- the voice-leading distance of Tymoczko's
-    // geometry, which for an exchange of one note is exactly the leap that voice makes. In Free
-    // mode it reads as the step size of a wandering voice instead: a candidate is weighted by how
-    // far it stands from the note chosen before it, so the conductor steps oftener than it leaps.
+    /**
+     * @brief Smooth: which voice moves.
+     *
+     * The conductor retires the one that has been sounding longest and
+     * then looks for its replacement; with this up it tries every voice and keeps the exchange
+     * that moves the chord the shortest distance -- the voice-leading distance of Tymoczko's
+     * geometry, which for an exchange of one note is exactly the leap that voice makes. In Free
+     * mode it reads as the step size of a wandering voice instead: a candidate is weighted by how
+     * far it stands from the note chosen before it, so the conductor steps oftener than it leaps.
+     */
     float smooth = 0.0f;
-    // Blend: how a chord arrives. Rasch (1979) measured the onset asynchrony of ensembles at
-    // thirty to fifty milliseconds, and Bregman's rule is that tones starting together are heard
-    // as one object while tones starting apart are heard as separate voices. The conductor
-    // brings its voices in one at a time, minutes apart, so every voice is its own object. With
-    // this up, the notes that fill an empty chord arrive TOGETHER -- within thirty milliseconds
-    // at the top, fused into one sound -- rather than one per tick.
+    /**
+     * @brief Blend: how a chord arrives.
+     *
+     * Rasch (1979) measured the onset asynchrony of ensembles at
+     * thirty to fifty milliseconds, and Bregman's rule is that tones starting together are heard
+     * as one object while tones starting apart are heard as separate voices. The conductor
+     * brings its voices in one at a time, minutes apart, so every voice is its own object. With
+     * this up, the notes that fill an empty chord arrive TOGETHER -- within thirty milliseconds
+     * at the top, fused into one sound -- rather than one per tick.
+     */
     float blend = 0.0f;
-    // Cascade: events that cause events. The conductor's clock is a Poisson process -- every
-    // gap drawn afresh, nothing remembered -- which is the most even a random clock can be, and
-    // nothing in nature is that even: a gust brings gusts, a crack in cooling wood brings more.
-    // A Hawkes process (Hawkes 1971) is the model of that: each event lifts the rate by a jump
-    // that decays away, so events come in clusters that are caused, not scheduled. The jump is
-    // sized so that at full an event breeds 0.65 further events on average (the branching
-    // ratio; above 1 the process explodes), which makes the clock fire about three times as
-    // often as its base rate. 0 is the clock as it always was.
+    /**
+     * @brief Cascade: events that cause events.
+     *
+     * The conductor's clock is a Poisson process -- every
+     * gap drawn afresh, nothing remembered -- which is the most even a random clock can be, and
+     * nothing in nature is that even: a gust brings gusts, a crack in cooling wood brings more.
+     * A Hawkes process (Hawkes 1971) is the model of that: each event lifts the rate by a jump
+     * that decays away, so events come in clusters that are caused, not scheduled. The jump is
+     * sized so that at full an event breeds 0.65 further events on average (the branching
+     * ratio; above 1 the process explodes), which makes the clock fire about three times as
+     * often as its base rate. 0 is the clock as it always was.
+     */
     float cascade = 0.0f;
-    // Surprise and Homeostat: how predictable the music is allowed to become. Predictive-coding
-    // accounts of music (Vuust, Koelsch) put listening between two failures: when nothing is
-    // ever surprising the ear stops attending, and when everything is it gives up. The
-    // conductor keeps a fading histogram of the intervals it has chosen and measures its
-    // entropy in bits; Surprise is the entropy it aims for (0 a machine repeating itself, 1 as
-    // unpredictable as twelve pitch classes can be), and Homeostat is how hard it leans towards
-    // that aim -- when the music has become too predictable the draw is flattened so unlikely
-    // notes get their turn, when it has become too random the draw is sharpened towards the
-    // best-fitting notes. At Homeostat 0 nothing leans and the conductor is as it always was.
-    float surprise = 0.5f;
-    float homeostat = 0.0f;
-    // Deja Vu and Loop: Mutable Instruments' Marbles, in the conductor. A ring of Loop places
-    // holds the last notes chosen; each new choice moves one place round it, and with
-    // probability Deja Vu the note already there is played again instead of the fresh one --
-    // which then does not overwrite it. At 1 the loop plays round and round; below it, new
-    // notes seep into the loop at a rate the knob sets, so a figure comes back and slowly
-    // mutates. A note the ring offers that is still sounding is passed over for the fresh one.
-    // 0 draws nothing from the random stream: the conductor is as it always was.
-    float dejavu = 0.0f;
-    int   loop = 8;
-    // Spread and Bias: the shape of the conductor's random draws (velocity, how long a note
-    // holds), after Marbles again. Spread at 0.5 leaves the draw uniform; towards 0 it gathers
-    // round the middle, towards 1 it is pushed to the extremes -- a bimodal draw, so notes are
-    // soft or loud and short or long, seldom in between. Bias moves the centre: positive draws
-    // higher, negative lower. Both are identities at their defaults.
-    float spread = 0.5f;
-    float bias = 0.0f;
-    // The draw, shaped. Written so that the default returns u untouched, bit for bit.
+    /**
+     * @name Surprise and Homeostat
+     *
+     * Surprise and Homeostat: how predictable the music is allowed to become. Predictive-coding
+     * accounts of music (Vuust, Koelsch) put listening between two failures: when nothing is
+     * ever surprising the ear stops attending, and when everything is it gives up. The
+     * conductor keeps a fading histogram of the intervals it has chosen and measures its
+     * entropy in bits; Surprise is the entropy it aims for (0 a machine repeating itself, 1 as
+     * unpredictable as twelve pitch classes can be), and Homeostat is how hard it leans towards
+     * that aim -- when the music has become too predictable the draw is flattened so unlikely
+     * notes get their turn, when it has become too random the draw is sharpened towards the
+     * best-fitting notes. At Homeostat 0 nothing leans and the conductor is as it always was.
+     * @{ */
+    float surprise = 0.5f;    ///< the interval entropy aimed for, 0 .. 1 of the log2(12) bits twelve classes allow
+    float homeostat = 0.0f;   ///< how hard the draw leans towards that aim, 0 .. 1; 0 is off
+    /** @} */
+    /**
+     * @name Deja Vu and Loop
+     *
+     * Deja Vu and Loop: Mutable Instruments' Marbles, in the conductor. A ring of Loop places
+     * holds the last notes chosen; each new choice moves one place round it, and with
+     * probability Deja Vu the note already there is played again instead of the fresh one --
+     * which then does not overwrite it. At 1 the loop plays round and round; below it, new
+     * notes seep into the loop at a rate the knob sets, so a figure comes back and slowly
+     * mutates. A note the ring offers that is still sounding is passed over for the fresh one.
+     * 0 draws nothing from the random stream: the conductor is as it always was.
+     * @{ */
+    float dejavu = 0.0f;   ///< probability, 0 .. 1, that the ring's note is played instead of the fresh one
+    int   loop = 8;        ///< places in the ring, 1 .. ClusterBrain::kRing (16): the length of the figure that can come back
+    /** @} */
+    /**
+     * @name Spread and Bias
+     *
+     * Spread and Bias: the shape of the conductor's random draws (velocity, how long a note
+     * holds), after Marbles again. Spread at 0.5 leaves the draw uniform; towards 0 it gathers
+     * round the middle, towards 1 it is pushed to the extremes -- a bimodal draw, so notes are
+     * soft or loud and short or long, seldom in between. Bias moves the centre: positive draws
+     * higher, negative lower. Both are identities at their defaults.
+     * @{ */
+    float spread = 0.5f;   ///< 0 .. 1, 0.5 uniform, below gathers round the middle, above pushes to the extremes
+    float bias = 0.0f;     ///< -1 .. 1, moves the centre of the draw up (positive) or down; 0 leaves it
+    /** @} */
+    /**
+     * @brief The draw, shaped.
+     *
+     * Written so that the default returns u untouched, bit for bit.
+     *
+     * @param u  a uniform draw in [0, 1) from the conductor's stream
+     * @return   the draw pushed by Spread towards the middle or the extremes and by Bias up or
+     *           down, still in 0 .. 1
+     */
     float shaped(float u) const
     {
         if (spread == 0.5f && bias == 0.0f) return u;
@@ -410,71 +613,115 @@ struct BrainParams {
         if (bias != 0.0f) w = std::pow(w, std::pow(2.0f, -2.0f * bias));
         return clampv(w, 0.0f, 1.0f);
     }
-    // Key: how strongly the conductor prefers the stable degrees of the key it finds itself in.
-    // Nothing sets that key -- it is measured from what has actually been sounding, weighted by
-    // how long, which for an instrument whose notes last minutes is the only weighting that means
-    // anything. Turn it up and the music acquires a home it keeps returning to; leave it at zero
-    // and the conductor hears intervals and no key at all, as it always did.
+    /**
+     * @brief Key: how strongly the conductor prefers the stable degrees of the key it finds itself in.
+     *
+     * Nothing sets that key -- it is measured from what has actually been sounding, weighted by
+     * how long, which for an instrument whose notes last minutes is the only weighting that means
+     * anything. Turn it up and the music acquires a home it keeps returning to; leave it at zero
+     * and the conductor hears intervals and no key at all, as it always did.
+     */
     float key = 0.0f;
-    // Harmonic: how much the choice is judged by how well the WHOLE resulting chord fits one
-    // harmonic series, rather than only by how its pairs sound. Listeners' preferences track
-    // harmonicity at least as strongly as they track the absence of beating (McDermott, Lehr and
-    // Oxenham 2010), and the two models are combined in the current accounts (Harrison and Pearce
-    // 2020). 0 is the pairwise judgement the conductor always had.
+    /**
+     * @brief Harmonic: how much the choice is judged by how well the WHOLE resulting chord fits one
+     * harmonic series, rather than only by how its pairs sound.
+     *
+     * Listeners' preferences track
+     * harmonicity at least as strongly as they track the absence of beating (McDermott, Lehr and
+     * Oxenham 2010), and the two models are combined in the current accounts (Harrison and Pearce
+     * 2020). 0 is the pairwise judgement the conductor always had.
+     */
     float harmonic = 0.0f;
-    // Spacing: how strongly the conductor avoids putting a note within a critical band of one
-    // that is already sounding. Two tones closer than about an equivalent rectangular bandwidth
-    // excite overlapping regions of the cochlea, and the ear fuses them into one rough sound
-    // instead of hearing two (Glasberg and Moore 1990; Bregman 1990). Negative values seek that
-    // crowding out instead, which is what a cluster is. 0 leaves the choice as it was.
+    /**
+     * @brief Spacing: how strongly the conductor avoids putting a note within a critical band of one
+     * that is already sounding.
+     *
+     * Two tones closer than about an equivalent rectangular bandwidth
+     * excite overlapping regions of the cochlea, and the ear fuses them into one rough sound
+     * instead of hearing two (Glasberg and Moore 1990; Bregman 1990). Negative values seek that
+     * crowding out instead, which is what a cluster is. 0 leaves the choice as it was.
+     */
     float spacing = 0.0f;
     // ---- the register roles, and the intervals that belong to them (12.09.2026)
-    //
-    // A conductor that draws a note from one weighted list treats the bottom of its register like
-    // the top, and the ear does not: two tones a third apart are a chord at C4 and mud at C2,
-    // because the critical band is a fixed fraction of the frequency and therefore an enormous
-    // interval down there. These say so. All of them do nothing at their defaults.
-    float layers = 0.0f;      // 0: the register weight as it was. 1: a voice at the bottom, most
-                              // in the body, few on top -- and at most two notes to an octave, one
-                              // below MIDI 36.
-    float bassHold = 1.0f;    // multiplies the hold of the lowest sounding voice: the foundation
-                              // lies while what stands on it moves.
-    float topSoft = 0.0f;     // velocity falls with height: at 1 the top of the register arrives
-                              // at half the velocity of the bottom.
-    float lowSpacing = 0.0f;  // the minimum interval grows as the register falls: an octave below
-                              // MIDI 36, a fifth to 47, a minor third to 59, a second to 71.
-    int   thirdFloor = 0;     // no third is chosen below this note (0: off). A third in the bass
-                              // is the single most reliable way to make a drone muddy.
-    float leading = 0.0f;     // penalises the semitone under a sounding root: it pulls somewhere,
-                              // and this music has nowhere to go.
-    float thirds = 0.0f;      // -1 avoids thirds, +1 seeks them. Judged against every sounding
-    float seconds = 0.0f;     // note, not against the root alone -- a tone that is a fifth to the
-                              // bass and a second to a middle voice IS a second.
-    float seventh = 0.0f;     // lifts the minor seventh, which in a just scale is 7/4: the one
-                              // interval that fuses with the root instead of pressing against it.
+    /**
+     * @name The register roles, and the intervals that belong to them
+     *
+     * A conductor that draws a note from one weighted list treats the bottom of its register like
+     * the top, and the ear does not: two tones a third apart are a chord at C4 and mud at C2,
+     * because the critical band is a fixed fraction of the frequency and therefore an enormous
+     * interval down there. These say so. All of them do nothing at their defaults.
+     * @{ */
+    float layers = 0.0f;      ///< 0: the register weight as it was. 1: a voice at the bottom, most
+                              ///< in the body, few on top -- and at most two notes to an octave, one
+                              ///< below MIDI 36.
+    float bassHold = 1.0f;    ///< multiplies the hold of the lowest sounding voice: the foundation
+                              ///< lies while what stands on it moves.
+    float topSoft = 0.0f;     ///< velocity falls with height: at 1 the top of the register arrives
+                              ///< at half the velocity of the bottom.
+    float lowSpacing = 0.0f;  ///< the minimum interval grows as the register falls: an octave below
+                              ///< MIDI 36, a fifth to 47, a minor third to 59, a second to 71.
+    int   thirdFloor = 0;     ///< no third is chosen below this note (0: off). A third in the bass
+                              ///< is the single most reliable way to make a drone muddy.
+    float leading = 0.0f;     ///< penalises the semitone under a sounding root: it pulls somewhere,
+                              ///< and this music has nowhere to go.
+    float thirds = 0.0f;      ///< -1 avoids thirds, +1 seeks them. Judged against every sounding
+                              ///< note, not against the root alone -- a tone that is a fifth to the
+                              ///< bass and a second to a middle voice IS a second.
+    float seconds = 0.0f;     ///< the same knob for seconds and ninths, judged against every sounding note as
+                              ///< the thirds are: -1 avoids them (the minor second and the major seventh at full
+                              ///< weight, the major second at a third of it), +1 seeks them, which counts only
+                              ///< above the third floor and MIDI 60 -- a second is a colour up there and mud below.
+    float seventh = 0.0f;     ///< lifts the minor seventh, which in a just scale is 7/4: the one
+                              ///< interval that fuses with the root instead of pressing against it.
+    /** @} */
     // ---- what the clock may and may not do (12.09.2026)
-    float rateBreath = 0.0f;    // the mean gap breathes between half and double on its own curve
-    float breathPeriod = 10.0f; // minutes for one breath
-    float overlap = 0.0f;       // seconds a voice keeps sounding after the one replacing it began
-    bool  onsetGuard = false;   // two onsets are either inside 30 ms or at least 3 s apart
-    float releaseGap = 0.0f;    // seconds between two note-offs
-    float retrigger = 0.0f;     // seconds a pitch must rest before it may be chosen again
-    float densitySlew = 0.0f;   // minutes a change of density is spread over, one voice at a time
-    float silence = 0.0f;       // chance of an empty pause at a root change
-    float silenceLen = 20.0f;   // its length in seconds, give or take a third
+    /**
+     * @name What the clock may and may not do
+     *
+     * The guards on the conductor's timing (rule book sections 5 and 7): what may begin or end
+     * when, and how a change is spread over time. All of them do nothing at their defaults.
+     * @{ */
+    float rateBreath = 0.0f;    ///< the mean gap breathes between half and double on its own curve
+    float breathPeriod = 10.0f; ///< minutes for one breath
+    float overlap = 0.0f;       ///< seconds a voice keeps sounding after the one replacing it began
+    bool  onsetGuard = false;   ///< two onsets are either inside 30 ms or at least 3 s apart
+    float releaseGap = 0.0f;    ///< seconds between two note-offs
+    float retrigger = 0.0f;     ///< seconds a pitch must rest before it may be chosen again
+    float densitySlew = 0.0f;   ///< minutes a change of density is spread over, one voice at a time
+    float silence = 0.0f;       ///< chance of an empty pause at a root change
+    float silenceLen = 20.0f;   ///< its length in seconds, give or take a third
+    /** @} */
     // ---- root and long form (12.09.2026)
-    int   rootSteps = 0;        // 0 Any, 1 Fifths, 2 Diatonic (R6.2 priorities), 3 Falling
-    float rootDown = 0.0f;      // + leans the move downwards, - upwards
-    float pivot = 0.0f;         // seconds of the changeover window: common tone, new root, old goes
-    float home = 0.0f;          // pull back towards the root the night began on
-    float homeTime = 60.0f;     // minutes after which that pull is at its strongest
-    float memory = 0.0f;        // minutes in which a chord already heard may not return
-    float degreeSwap = 0.0f;    // chance a root change also exchanges one degree of the supply
-    const BrainSpectrum* spectrum = nullptr;
-    // The equivalent rectangular bandwidth of the auditory filter at f, in hertz
-    // (Glasberg and Moore 1990): ERB = 24.7 (0.00437 f + 1).
+    /**
+     * @name Root and long form
+     *
+     * Where the root may go, how a change is announced, and the pull back home over the hours
+     * (rule book section 6). All of them do nothing at their defaults.
+     * @{ */
+    int   rootSteps = 0;        ///< 0 Any, 1 Fifths, 2 Diatonic (R6.2 priorities), 3 Falling
+    float rootDown = 0.0f;      ///< the lean of the root's step: + leans the move downwards, - upwards
+    float pivot = 0.0f;         ///< seconds of the changeover window: common tone, new root, old goes
+    float home = 0.0f;          ///< pull back towards the root the night began on
+    float homeTime = 60.0f;     ///< minutes after which that pull is at its strongest
+    float memory = 0.0f;        ///< minutes in which a chord already heard may not return
+    float degreeSwap = 0.0f;    ///< chance a root change also exchanges one degree of the supply
+    /** @} */
+    const BrainSpectrum* spectrum = nullptr;   ///< the voice's partial template for Timbre, owned by the engine (brainSpec_); null or empty means the ratio score alone
+    /**
+     * @brief The equivalent rectangular bandwidth of the auditory filter at f, in hertz
+     * (Glasberg and Moore 1990): ERB = 24.7 (0.00437 f + 1).
+     * @param f  centre frequency, Hz
+     * @return   the bandwidth in Hz (about 25 Hz at the bottom, 130 Hz at 1 kHz)
+     */
     static double erbAt(double f) { return 24.7 * (0.00437 * f + 1.0); }
-    // How much a candidate at fa is discouraged by a sounding tone at fb. 1 leaves it alone.
+    /**
+     * @brief How much a candidate at fa is discouraged by a sounding tone at fb. 1 leaves it alone.
+     * @param fa  the candidate's frequency, Hz
+     * @param fb  the sounding tone's frequency, Hz
+     * @return    a weight to multiply the candidate's by: below 1 (down to 0.05 at the same pitch
+     *            and Spacing 1) when Spacing is positive, above 1 when it is negative, exactly 1
+     *            at Spacing 0 or more than about one ERB apart
+     */
     float crowding(double fa, double fb) const
     {
         if (spacing == 0.0f) return 1.0f;
@@ -484,7 +731,16 @@ struct BrainParams {
         return static_cast<float>(s > 0.0 ? (1.0 - 0.95 * s * closeness) : (1.0 - s * closeness));
     }
 
-    // The consonance of two frequencies, as this conductor currently hears it.
+    /**
+     * @brief The consonance of two frequencies, as this conductor currently hears it.
+     *
+     * The ratio score of intervalConsonance() blended with spectralConsonance() over the voice's
+     * template by Timbre; with Timbre at 0 or no template the ratio score alone, as it always was.
+     *
+     * @param fa  the candidate, Hz
+     * @param fb  the tone it is judged against (the root, or a sounding voice), Hz
+     * @return    0 .. 1, 1 for a unison, about a tenth for a semitone on either scale
+     */
     double consonanceOf(double fa, double fb) const
     {
         const double byRatio = intervalConsonance(fa / fb);
@@ -494,17 +750,71 @@ struct BrainParams {
     }
 };
 
+/**
+ * @brief One decision of the conductor, handed to the engine's emit callback: a note begins or ends.
+ *
+ * The engine's lambdas (Engine::process for the ticks, Engine::adoptCluster for a crossfade) turn
+ * a NoteOn into startNote with the conductor's velocity and the engine's own choice of depth, and
+ * a NoteOff into stopNote, which begins the voice's long release. The note is a MIDI number the
+ * engine's freqOf maps into the current scale, so a scale of nine degrees is addressed with
+ * consecutive numbers like any other.
+ */
 struct BrainEvent {
+    /** @brief What happened: NoteOn -- the note begins with the event's velocity; NoteOff -- it is let go into its release. */
     enum class Type { NoteOn, NoteOff };
-    Type  type;
-    int   note;
-    float velocity;
+    Type  type;       ///< which of the two
+    int   note;       ///< MIDI note number, 0 .. 127, within the conductor's range
+    float velocity;   ///< 0 .. 1 for a NoteOn -- nearness rather than loudness (see BrainParams::topSoft); 0 for a NoteOff
 };
+/** @var BrainEvent::Type::NoteOn
+ *  @brief The note begins, with the event's velocity. */
+/** @var BrainEvent::Type::NoteOff
+ *  @brief The note is let go; velocity is 0. */
 
+/**
+ * @brief The conductor itself: one cluster of up to kSlots notes, its clock, its root and its memory.
+ *
+ * The engine owns two (Engine::brain_ for the foreground cluster, brain2_ for the background one
+ * on the first's root plus an interval) and drives each from Engine::process once per control
+ * block through update(), on the audio thread; everything else here is either a read-out for the
+ * panel and the tests or a request that update() honours at its next tick (requestStep,
+ * requestFill, holdOnsets, holdRoot, setRoot). The one exception is the crossfade between two
+ * engines, where soundingNotes() and adopt() run on the message thread while the incoming engine
+ * is being prepared and has not rendered a block yet.
+ *
+ * Nothing is allocated: the slots, the rings and the memory are fixed arrays, and the random
+ * stream is the conductor's own Rng, seeded by reset(), so a set rendered twice from the same
+ * seed is the same set. That is why so many of the comments below insist that a knob at nought
+ * "draws nothing from the stream": every feature added after the first version is
+ * short-circuited so that the presets which never asked for it render bit for bit as they did.
+ *
+ * Two modes (BrainMode). In Free mode every note has a hold drawn from Hold Min to Hold Max and
+ * leaves when it expires; the clock's decisions add a note while the cluster is under its
+ * density and retire one half of the time when it is full. In Chords mode (updateChords) the
+ * cluster is kept full and every decision exchanges one voice for the best note chooseNote()
+ * finds. Both modes share the clock (tickSeconds, gapDraw, advanceTimer), the root's wandering
+ * (wanderRoot), the register and interval rules (ruleWeight), the constellation memory
+ * (chordKey, rememberChord, constellationHeard) and the guards of the rule book of 12.09.2026,
+ * whose sections the comments cite as R6.1, Anti 2, G3 and table 2.
+ */
 class ClusterBrain {
 public:
-    static constexpr int kSlots = 12;
+    static constexpr int kSlots = 12;   ///< the most notes a cluster holds, and the length the arrays of soundingNotes() and adopt() must have
 
+    /**
+     * @brief Puts the conductor back to silence with a fresh random stream and a root.
+     *
+     * Called by the engine at prepare, when the seed changes and when the tuning's root pitch
+     * class moves (Engine.cpp, EngineControl.cpp); the second conductor is reset with a stream of
+     * its own so that switching it on never moves the first. Emits nothing -- the engine has
+     * already silenced or never started the voices. The guard clocks are set so that the first
+     * note may begin at once, every pitch counts as long rested, and the exposition (settled_)
+     * starts over.
+     *
+     * @param seed      seed of the conductor's own Rng, usually forked from the engine's
+     * @param rootNote  MIDI note the root and the home root begin on (the engine passes its key
+     *                  root an octave down, or 48 plus the pitch class)
+     */
     void reset(uint64_t seed, int rootNote)
     {
         rng_.seed(seed);
@@ -545,50 +855,143 @@ public:
         settled_ = false;
     }
 
-    // Minutes since the last root change, for the matrix source Root Age.
+    /**
+     * @brief Minutes since the last root change, for the matrix source Root Age.
+     * @return the age in seconds, as the name says -- the matrix source divides it by Home Time in
+     *         minutes (EngineControl.cpp), so an hour-long night and a three-hour one read the same
+     */
     double rootAgeSeconds() const { return rootAge_; }
-    // A planned silence (R5.6) is running: the foreground keeps out of it too.
+    /**
+     * @brief A planned silence (R5.6) is running: the foreground keeps out of it too.
+     * @return true while the pause begun at a root change has seconds left
+     */
     bool inSilence() const { return silenceLeft_ > 0.0; }
-    // Seconds since the conductor last began a note.
+    /**
+     * @brief Seconds since the conductor last began a note.
+     * @return the onset clock the guards read; huge after reset(), before anything has sounded
+     */
     double sinceOnset() const { return sinceOn_; }
-    // The foreground's two asks of the background (13.09.2026). Hold Onsets: no new note begins,
-    // but the holds run on, the releases happen, the last voice waits for its replacement as it
-    // always does -- a soloist asks the room to stop moving, not to stop breathing. (Stopping the
-    // clock outright was tried first: a conductor that stands still for six seconds is heard as a
-    // pause button, and it broke the overlap rule.) Hold Root: the root does not move, so a line
-    // that transposes with it is not thrown across a changeover.
+    /**
+     * @name The foreground's asks
+     *
+     * The foreground's two asks of the background (13.09.2026). Hold Onsets: no new note begins,
+     * but the holds run on, the releases happen, the last voice waits for its replacement as it
+     * always does -- a soloist asks the room to stop moving, not to stop breathing. (Stopping the
+     * clock outright was tried first: a conductor that stands still for six seconds is heard as a
+     * pause button, and it broke the overlap rule.) Hold Root: the root does not move, so a line
+     * that transposes with it is not thrown across a changeover.
+     *
+     * Both are set every control block by the engine's near layer (Engine.h, from stepNear) for
+     * both conductors, and read by update() at its next tick.
+     * @{ */
+    /**
+     * @brief Hold Onsets: while set, update() begins no new note (a Chords-mode step asked for by hand still goes through).
+     * @param h  true while a near Note or a Phrase is speaking
+     */
     void holdOnsets(bool h) { onsetHold_ = h; }
+    /**
+     * @brief Hold Root: while set, the root does not wander (an anchor note from the keyboard still sets it).
+     * @param h  true while a sequence is running
+     */
     void holdRoot(bool h)   { rootHold_ = h; }
+    /** @} */
 
-    // What key the conductor finds itself in, and how sure it is. Measured, never set: the
-    // histogram below is what has actually been sounding, weighted by how long.
+    /**
+     * @brief What key the conductor finds itself in, and how sure it is.
+     *
+     * Measured, never set: the
+     * histogram below is what has actually been sounding, weighted by how long.
+     *
+     * @return findKey() over pitchClassWeights(); key -1 while nothing has sounded yet
+     */
     KeyEstimate estimatedKey() const { return findKey(pcWeight_); }
+    /**
+     * @brief The histogram estimatedKey() reads: how long each pitch class has been sounding, faded
+     *        over about three minutes (pcWeight_).
+     * @return twelve weights in faded seconds, in pitchClassOf()'s bins; the pointer stays valid
+     *         for the conductor's lifetime and the values change at every update()
+     */
     const float* pitchClassWeights() const { return pcWeight_; }
 
+    /**
+     * @brief The root the cluster is built around.
+     * @return its MIDI note, 0 .. 127; the engine reads it for the second conductor's root, the
+     *         body's pitch and the panel
+     */
     int  root() const { return root_; }
+    /**
+     * @brief Moves the root without a changeover: the engine's tuning root changed, or the second
+     *        conductor follows the first plus its interval.
+     *
+     * Unlike the private setRoot(int, const BrainParams&) it neither resets the root's age nor
+     * swaps a degree; it is bookkeeping, not a decision.
+     * @param note  the new root, clamped to 0 .. 127
+     */
     void setRoot(int note) { root_ = clampv(note, 0, 127); }
+    /**
+     * @brief How many slots hold a note, sounding or about to (Blend), not counting voices sounding out their overlap.
+     * @return 0 .. kSlots
+     */
     int  activeCount() const { int c = 0; for (auto& s : slots_) if (s.note >= 0) ++c; return c; }
+    /**
+     * @brief Whether a note is in the cluster: in a slot, or exchanged and still sounding out its overlap.
+     * @param note  MIDI note
+     * @return true while the engine has a voice on it that the conductor started
+     */
     bool sounding(int note) const
     {
         for (auto& s : slots_) if (s.note == note) return true;
         for (auto& l : leaving_) if (l.note == note) return true;   // exchanged, still sounding out its overlap
         return false;
     }
-    // For the tests: how often the root moved, and how many of those changeovers were announced
-    // by a tone belonging to both roots. Counting is the only honest answer to "does it happen?".
+    /**
+     * @brief For the tests: how often the root moved, and how many of those changeovers were announced
+     * by a tone belonging to both roots.
+     *
+     * Counting is the only honest answer to "does it happen?".
+     * @return root changes made by wanderRoot() since reset(), announced or not
+     */
     int rootMoves() const  { return rootMoves_; }
+    /**
+     * @brief How many of those root changes found a pivot tone -- one belonging to both roots -- to
+     *        announce themselves with (for the tests; the self test wants four in five).
+     * @return the count since reset(), at most rootMoves()
+     */
     int pivotTones() const { return pivotTones_; }
 
-    // Ask for one exchange at the next opportunity, whatever the timer says: the button on the
-    // panel, a mapped controller, a footswitch. Read and cleared inside update().
+    /**
+     * @brief Ask for one exchange at the next opportunity, whatever the timer says: the button on the
+     * panel, a mapped controller, a footswitch.
+     *
+     * Read and cleared inside update().
+     *
+     * It is Chords mode that acts on it (updateChords): the exchange happens at the next tick,
+     * through Hold Onsets as well. The Free-mode draw does not read the flag. The engine sets it
+     * from the Autoplay step (EngineControl.cpp).
+     */
     void requestStep() { stepRequested_ = true; }
+    /**
+     * @brief Whether a step was asked for and not yet taken.
+     * @return true between requestStep() and the tick that acts on it
+     */
     bool stepPending() const { return stepRequested_; }
 
-    // What the conductor is holding, so another one can take it over. Writes at most
-    // ClusterBrain::kSlots notes -- twelve, NOT the four of ambient::kSlots, which is the number of
-    // source slots and the trap that stands next to this one: both arrays must be twelve long, or
-    // the conductor writes past their end. Returns how many; a slot that has been chosen but has
-    // not started yet counts, because it is about to sound.
+    /**
+     * @brief What the conductor is holding, so another one can take it over.
+     *
+     * Writes at most
+     * ClusterBrain::kSlots notes -- twelve, NOT the four of ambient::kSlots, which is the number of
+     * source slots and the trap that stands next to this one: both arrays must be twelve long, or
+     * the conductor writes past their end. Returns how many; a slot that has been chosen but has
+     * not started yet counts, because it is about to sound.
+     *
+     * Message thread, from Engine::soundingCluster at the start of a crossfade; adopt() on the
+     * arriving engine is its counterpart.
+     *
+     * @param notes  receives the MIDI notes, at least kSlots long
+     * @param vels   receives their velocities, at least kSlots long
+     * @return       how many were written, 0 .. kSlots
+     */
     int soundingNotes(int* notes, float* vels) const
     {
         int n = 0;
@@ -597,14 +1000,28 @@ public:
         return n;
     }
 
-    // Take a cluster over from another conductor and carry on from there.
-    //
-    // A crossfade is meant to change the instrument, not the music. Left to itself the arriving
-    // conductor picks its own notes, so what the listener heard was one chord fading out under a
-    // different chord fading in -- two pieces of music at once for the length of the fade. Here it
-    // inherits the chord instead and goes on with it: what is out of its range or too dense it
-    // lets go of over the next few events, the way it would treat any cluster it was given, and
-    // what is missing it adds at its own pace. Nothing is forced.
+    /**
+     * @brief Take a cluster over from another conductor and carry on from there.
+     *
+     * A crossfade is meant to change the instrument, not the music. Left to itself the arriving
+     * conductor picks its own notes, so what the listener heard was one chord fading out under a
+     * different chord fading in -- two pieces of music at once for the length of the fade. Here it
+     * inherits the chord instead and goes on with it: what is out of its range or too dense it
+     * lets go of over the next few events, the way it would treat any cluster it was given, and
+     * what is missing it adds at its own pace. Nothing is forced.
+     *
+     * Whatever this conductor held is released first (a NoteOff for each), then every inherited
+     * note is placed in a slot with a hold of nought -- due at the next tick, so Free mode lets it
+     * go through the ordinary path when it does not fit -- and emitted as a NoteOn. Message thread,
+     * from Engine::adoptCluster, before the engine has rendered a block; the engine asks for a
+     * fill afterwards (requestFill), because this clears the flag.
+     *
+     * @tparam EmitFn  callable `void(const BrainEvent&)`
+     * @param notes  the inherited MIDI notes, as soundingNotes() wrote them
+     * @param vels   their velocities
+     * @param count  how many; at most kSlots are taken
+     * @param emit   receives the NoteOffs of what was here and the NoteOns of what arrives
+     */
     template <class EmitFn>
     void adopt(const int* notes, const float* vels, int count, EmitFn&& emit)
     {
@@ -622,24 +1039,47 @@ public:
         filling_ = false;
     }
 
-    // Fill the cluster now rather than at the event rate.
-    //
-    // An empty chord grows by one note per tick, which is an entrance when the instrument starts
-    // cold and is the right thing there. After a crossfade it is not: the preset that is leaving
-    // was sounding a full cluster, and the one arriving is heard to fail rather than to enter.
-    // With the library's slower conductors the wait is not a few bars. Measured on Interior Bloom,
-    // which asks for six voices at an event every 98.8 seconds: two voices after one minute, three
-    // after three, four after seven.
-    //
-    // While this is set the tick is a third of a second instead, so the chord walks in over a
-    // second or two rather than landing as a block; it clears itself once the cluster is full.
-    // Nothing else changes -- the notes are chosen the way they always are, by the same draw.
+    /**
+     * @brief Fill the cluster now rather than at the event rate.
+     *
+     * An empty chord grows by one note per tick, which is an entrance when the instrument starts
+     * cold and is the right thing there. After a crossfade it is not: the preset that is leaving
+     * was sounding a full cluster, and the one arriving is heard to fail rather than to enter.
+     * With the library's slower conductors the wait is not a few bars. Measured on Interior Bloom,
+     * which asks for six voices at an event every 98.8 seconds: two voices after one minute, three
+     * after three, four after seven.
+     *
+     * While this is set the tick is a third of a second instead, so the chord walks in over a
+     * second or two rather than landing as a block; it clears itself once the cluster is full.
+     * Nothing else changes -- the notes are chosen the way they always are, by the same draw.
+     *
+     * Also what the conductor asks of itself when a planned silence ends. The standing wait is
+     * cancelled so the first note comes at the next tick.
+     */
     void requestFill() { filling_ = true; timer_ = 0.0; }
+    /**
+     * @brief Whether the cluster is being filled at speed.
+     * @return true from requestFill() until the cluster once reaches its density
+     */
     bool filling() const { return filling_; }
-    // How much the homeostat is leaning right now (+ towards more surprise, - towards less), the
-    // entropy of the recent interval choices in bits, and the cascade's excitation in multiples
-    // of the base rate. For the panel and the tests.
+    /**
+     * @name Read-outs for the panel and the tests
+     *
+     * How much the homeostat is leaning right now (+ towards more surprise, - towards less), the
+     * entropy of the recent interval choices in bits, and the cascade's excitation in multiples
+     * of the base rate. For the panel and the tests.
+     * @{ */
+    /**
+     * @brief The homeostat's lean as of the last decision.
+     * @return -1 .. 1 times Homeostat: positive flattens the draw towards surprise, negative
+     *         sharpens it; 0 with Homeostat off or too little history
+     */
     float lean() const { return lastLean_; }
+    /**
+     * @brief The entropy of the faded interval histogram the homeostat reads.
+     * @return bits, 0 for a conductor repeating one interval up to log2(12) = 3.58 for twelve
+     *         classes in balance; 0 before any interval was made
+     */
     float entropyBits() const
     {
         float total = 0.0f;
@@ -649,12 +1089,50 @@ public:
         for (float w : ic_) if (w > 0.0f) { const double pr = w / total; h -= pr * std::log2(pr); }
         return static_cast<float>(h);
     }
+    /**
+     * @brief The Hawkes clock's excitation.
+     * @return how much faster than its base rate the timer runs, 0 at rest; the engine turns it
+     *         into a matrix source and the sources' activity read it
+     */
     double excitation() const { return excite_; }
+    /**
+     * @brief One place of the deja-vu ring, for the panel's picture of the loop.
+     * @param i  place, 0 .. kRing - 1
+     * @return   the MIDI note held there, or -1 for an empty place or an index out of range
+     */
     int ringNote(int i) const { return (i >= 0 && i < kRing) ? ring_[i] : -1; }
+    /**
+     * @brief Where the deja-vu ring stands.
+     * @return the place the last choice was written to, 0 .. Loop - 1
+     */
     int ringPos() const { return ringPos_; }
+    /** @} */
 
-    // Advance `dt` seconds. `freqOf(int note) -> double`, `emit(const BrainEvent&)`.
-    // `anchorNote` (>= 0) pins the root to a note the player holds on the keyboard.
+    /**
+     * @brief Advance `dt` seconds.
+     *
+     * `freqOf(int note) -> double`, `emit(const BrainEvent&)`.
+     * `anchorNote` (>= 0) pins the root to a note the player holds on the keyboard.
+     *
+     * One tick of the conductor, from Engine::process once per control block on the audio thread
+     * (under Quantize once per note value, with the accumulated time). In order: a conductor
+     * switched off releases everything it holds, once; an anchor that moves the root may begin a
+     * planned silence; the density glide, a changeover in progress and the guard clocks advance;
+     * notes held back by Blend are released as their few milliseconds run out; the key histogram
+     * fades and grows; then the mode's own decision -- updateChords() in Chords mode, else, below,
+     * the hold expiries with their two guards, the memoryless clock with its floor and its guards,
+     * the retirement of a voice when the room is full, the weighted draw with the root's wander
+     * inside it, the constellation memory, the deja-vu ring, and Blend's extra notes.
+     *
+     * @tparam FreqFn  callable `double(int note)`: the frequency of a MIDI note in the engine's current scale
+     * @tparam EmitFn  callable `void(const BrainEvent&)`: receives every NoteOn and NoteOff
+     * @param dt          seconds since the last tick: a control block, or the wait Quantize accumulated
+     * @param p           the knobs as the engine filled them for this block
+     * @param anchorNote  the lowest MIDI note held on the keyboard, or -1; while held it is the root
+     *                    and the root does not wander
+     * @param freqOf      see FreqFn
+     * @param emit        see EmitFn
+     */
     template <class FreqFn, class EmitFn>
     void update(double dt, const BrainParams& p, int anchorNote, FreqFn&& freqOf, EmitFn&& emit)
     {
@@ -1116,18 +1594,49 @@ public:
     }
 
 private:
-    struct Slot { int note = -1; double remaining = 0.0; double startIn = 0.0; float vel = 0.7f; };   // startIn > 0: chosen, not yet sounding
+    /**
+     * @brief One voice of the cluster: the note it holds, how it stands in time, and the velocity it was
+     *        started with.
+     *
+     * startIn > 0: chosen, not yet sounding
+     */
+    struct Slot { int note = -1; double remaining = 0.0; double startIn = 0.0; float vel = 0.7f; };
+    /** @var int ClusterBrain::Slot::note
+     *  @brief MIDI note held, or -1 for an empty slot */
+    /** @var double ClusterBrain::Slot::remaining
+     *  @brief Free mode: seconds of hold left, negative once due and "on its way out"; Chords mode: seconds the voice has been sounding (its age) */
+    /** @var double ClusterBrain::Slot::startIn
+     *  @brief seconds until the NoteOn is emitted, for a Blend note held back so the chord arrives together; 0 once it sounds */
+    /** @var float ClusterBrain::Slot::vel
+     *  @brief the velocity it was, or will be, started with */
 
     // ---------------------------------------------------------------- chords
-    //
-    // The cluster is kept at `density` notes. Every `rateSeconds` -- or the moment someone asks --
-    // one voice is exchanged: the one that has been sounding longest goes, and the note that takes
-    // its place is scored for three things at once. How well it sits against the voices that stay
-    // (the mean consonance with each of them, which is what makes it a chord rather than a heap),
-    // how far it has to travel from the note it replaces (near is better: that is voice leading,
-    // and it is why the change is heard as a shift and not as a cut), and a little dislike of
-    // doubling a pitch class that is already there. Tension loosens the first of the three, so a
-    // progression can be made to lean without becoming random.
+    /**
+     * @brief Chords mode's tick: the cluster is kept full and one voice at a time is exchanged.
+     *
+     * The cluster is kept at `density` notes. Every `rateSeconds` -- or the moment someone asks --
+     * one voice is exchanged: the one that has been sounding longest goes, and the note that takes
+     * its place is scored for three things at once. How well it sits against the voices that stay
+     * (the mean consonance with each of them, which is what makes it a chord rather than a heap),
+     * how far it has to travel from the note it replaces (near is better: that is voice leading,
+     * and it is why the change is heard as a shift and not as a cut), and a little dislike of
+     * doubling a pitch class that is already there. Tension loosens the first of the three, so a
+     * progression can be made to lean without becoming random.
+     *
+     * Called from update() after the bookkeeping the modes share, in its place. In order: the
+     * voices sounding out their overlap are let go when they may; an empty or thin chord is filled
+     * one note per tick (with Blend's extras); then, when the clock or a request says so, the
+     * oldest voice -- or with Smooth the one whose exchange travels least for what it gains -- is
+     * exchanged for chooseNote()'s pick, the allowance doubling until a note is found, and the root
+     * may travel with the chord. Chords mode has no holds: `remaining` counts age here.
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @tparam EmitFn  callable `void(const BrainEvent&)`
+     * @param dt      seconds since the last tick
+     * @param p       the knobs
+     * @param freqOf  frequency of a MIDI note in the engine's current scale
+     * @param emit    receives the NoteOns and NoteOffs
+     */
     template <class FreqFn, class EmitFn>
     void updateChords(double dt, const BrainParams& p, FreqFn&& freqOf, EmitFn&& emit)
     {
@@ -1323,6 +1832,19 @@ private:
         emit(BrainEvent{ BrainEvent::Type::NoteOn, arriving, velocityFor(arriving, low, high, p) });
     }
 
+    /**
+     * @brief Starts a note in the first free slot at once: the pivot tone of a changeover, or the note
+     *        Chords mode adds to a thin chord.
+     *
+     * Draws the hold (Free mode) and the velocity from the stream, resets the onset clock and emits
+     * the NoteOn itself; the callers stamp the constellation memory around it. Nothing happens
+     * when every slot is taken.
+     *
+     * @tparam EmitFn  callable `void(const BrainEvent&)`
+     * @param note  MIDI note to start, already passed admissible() or chooseNote()
+     * @param p     the knobs: the mode decides what `remaining` means, the register and roles the hold and velocity
+     * @param emit  receives the NoteOn
+     */
     template <class EmitFn>
     void startIn(int note, const BrainParams& p, EmitFn&& emit)
     {
@@ -1340,11 +1862,21 @@ private:
         }
     }
 
-    // The wait until the next decision: memoryless (G2), and never under the floor (Anti 2) -- but
-    // SHIFTED past the floor rather than clipped to it. Clipped, every draw that fell under twenty
-    // seconds landed on twenty exactly, and in Chords mode, where every expiry of the clock is an
-    // exchange, that was a third of all gaps: a pulse at the floor, and the density periodic at
-    // twenty seconds (measured, 0.5 at lag 20). The mean is what the rate says either way.
+    /**
+     * @brief The wait until the next decision: memoryless (G2), and never under the floor (Anti 2) -- but
+     * SHIFTED past the floor rather than clipped to it.
+     *
+     * Clipped, every draw that fell under twenty
+     * seconds landed on twenty exactly, and in Chords mode, where every expiry of the clock is an
+     * exchange, that was a third of all gaps: a pulse at the floor, and the density periodic at
+     * twenty seconds (measured, 0.5 at lag 20). The mean is what the rate says either way.
+     *
+     * One draw from the stream.
+     *
+     * @param mean  the mean gap in seconds, as tickSeconds() gives it
+     * @return      seconds to wait: the floor (twenty seconds, or half the mean where that is less)
+     *              plus an exponential draw whose mean makes the whole average out to @p mean
+     */
     double gapDraw(double mean)
     {
         const double floor = std::min(20.0, 0.5 * mean);
@@ -1352,10 +1884,17 @@ private:
         return floor + u * std::max(mean - floor, 0.25 * mean);
     }
 
-    // How likely a decision is to move the root as well: Wander, Root Move, and -- away from home
-    // and ripe -- the way home (R6.4), which asks for the moves that get there, so a piece two
-    // steps out at the fiftieth minute is not left waiting for a chance that comes once in ten
-    // minutes. One formula for both modes.
+    /**
+     * @brief How likely a decision is to move the root as well: Wander, Root Move, and -- away from home
+     * and ripe -- the way home (R6.4), which asks for the moves that get there, so a piece two
+     * steps out at the fiftieth minute is not left waiting for a chance that comes once in ten
+     * minutes.
+     *
+     * One formula for both modes.
+     *
+     * @param p  the knobs: Wander, Root Move, Home and Home Time
+     * @return   a probability 0 .. 1 that the decision at hand asks wanderRoot() to move
+     */
     float moveChanceOf(const BrainParams& p) const
     {
         const float homing = p.home > 0.0f && root_ != homeRoot_
@@ -1363,22 +1902,38 @@ private:
         return clampv(p.wander * 0.35f + p.rootMove * 0.5f + homing * homing * 0.4f, 0.0f, 1.0f);
     }
 
-    // Whether `note`, already in its slot, is the lowest voice sounding.
+    /**
+     * @brief Whether `note`, already in its slot, is the lowest voice sounding.
+     * @param note  the MIDI note asked about
+     * @return      true when no slot holds a lower note -- the voice Bass Hold applies to
+     */
     bool isLowest(int note) const
     {
         for (const auto& o : slots_) if (o.note >= 0 && o.note < note) return false;
         return true;
     }
 
-    // The register and interval rules of the rule book (sections 2 to 4, 12.09.2026), as one weight
-    // on a candidate: the register roles and their ceiling per octave, the minimum interval by
-    // register, the floor under which no third may stand, the leading note against a sounding
-    // root, the interval colours, and the one degree a root change may have swapped. Nought is a
-    // veto. Both draws consult it -- the weighted draw of Free mode, and chooseNote(), which scores
-    // the exchanges of Chords mode and the extra notes of a Blend. Until it was shared, chooseNote()
-    // had none of them: every note a Blend added to a chord, and every note Chords mode chose, was
-    // placed without roles, without the spacing floor, with thirds in the bass and the leading note
-    // under a sounding root. All of it on MIDI numbers, which is what the rules are written in.
+    /**
+     * @brief The register and interval rules of the rule book, as one weight on a candidate; nought is a veto.
+     *
+     * The register and interval rules of the rule book (sections 2 to 4, 12.09.2026), as one weight
+     * on a candidate: the register roles and their ceiling per octave, the minimum interval by
+     * register, the floor under which no third may stand, the leading note against a sounding
+     * root, the interval colours, and the one degree a root change may have swapped. Nought is a
+     * veto. Both draws consult it -- the weighted draw of Free mode, and chooseNote(), which scores
+     * the exchanges of Chords mode and the extra notes of a Blend. Until it was shared, chooseNote()
+     * had none of them: every note a Blend added to a chord, and every note Chords mode chose, was
+     * placed without roles, without the spacing floor, with thirds in the bass and the leading note
+     * under a sounding root. All of it on MIDI numbers, which is what the rules are written in.
+     *
+     * @param c             the candidate MIDI note
+     * @param low           bottom of the register, MIDI
+     * @param high          top of the register, MIDI (the roles are placed between the two)
+     * @param rootSounding  whether the root's pitch class is in the cluster, for the leading-note rule
+     * @param p             the knobs of the register roles section
+     * @param pivotal       true for the pivot tone of a changeover, which may be the leading note
+     * @return              a weight to multiply the candidate's by, 0 for a veto, 1 with every knob at its default
+     */
     float ruleWeight(int c, int low, int high, bool rootSounding, const BrainParams& p, bool pivotal = false) const
     {
         float w = 1.0f;
@@ -1475,8 +2030,18 @@ private:
         return w;
     }
 
-    // Velocity as nearness rather than as loudness: the air is far and quiet, the foundation near
-    // and steady (Rene's table of roles). One draw from the stream, the same one every path made.
+    /**
+     * @brief Velocity as nearness rather than as loudness: the air is far and quiet, the foundation near
+     * and steady (Rene's table of roles).
+     *
+     * One draw from the stream, the same one every path made.
+     *
+     * @param note  the MIDI note being started
+     * @param low   bottom of the register, MIDI
+     * @param high  top of the register, MIDI; the fall of velocity with height runs between the two
+     * @param p     the knobs: Spread and Bias shape the draw, Top Soft narrows it and tilts it
+     * @return      velocity 0 .. 1; 0.5 .. 0.9 uniform with Top Soft at nought
+     */
     float velocityFor(int note, int low, int high, const BrainParams& p)
     {
         const float u = p.shaped(rng_.uniform());
@@ -1491,10 +2056,21 @@ private:
         return vel;
     }
 
-    // The hold a new note is given: Hold Min to Hold Max, shaped, and under Layers scaled to its
-    // role (table 2) -- the colour holds half as long as the body, the air a quarter. The
-    // foundation's multiple is Bass Hold's, applied by the caller, which knows which voice is
-    // lowest. One draw from the stream, the same one as before.
+    /**
+     * @brief The hold a new note is given: Hold Min to Hold Max, shaped, and under Layers scaled to its
+     * role (table 2) -- the colour holds half as long as the body, the air a quarter.
+     *
+     * The
+     * foundation's multiple is Bass Hold's, applied by the caller, which knows which voice is
+     * lowest. One draw from the stream, the same one as before.
+     *
+     * @param note    the MIDI note being started
+     * @param low     bottom of the register, MIDI
+     * @param high    top of the register, MIDI; the roles are placed between the two
+     * @param p       the knobs: Hold Min, Hold Max, Spread, Bias, Layers, Bass Hold
+     * @param lowest  whether this note is the lowest voice (isLowest), which Bass Hold multiplies
+     * @return        seconds the note holds before it is due
+     */
     double holdFor(int note, int low, int high, const BrainParams& p, bool lowest)
     {
         const float hmin = std::min(p.holdMin, p.holdMax), hmax = std::max(p.holdMin, p.holdMax);
@@ -1512,8 +2088,31 @@ private:
         return hold;
     }
 
-    // The best note to bring in, given the ones that stay. `from` is the note being replaced, or
-    // -1 when the chord is still filling up.
+    /**
+     * @brief The best note to bring in, given the ones that stay.
+     *
+     * `from` is the note being replaced, or
+     * -1 when the chord is still filling up.
+     *
+     * The scoring draw of Chords mode and of Blend's extra notes (Free mode's own draw is the
+     * weighted one in update(); the two share ruleWeight, the retrigger rest, the constellation
+     * memory, Key, Even and Harmonic). Every candidate in the register that is free, rested and
+     * not vetoed is scored -- mean consonance with the root and the voices that stay, raised by
+     * Tension; the travel from `from` within the voice-leading allowance; a fading penalty on
+     * notes that left recently; Key, Even, Harmonic; a dislike of doublings -- and a little noise
+     * is added so the best is not always the same; the highest score wins. Draws from the stream
+     * once per candidate.
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param from      the note being replaced, or -1 when adding to the chord
+     * @param low       bottom of the register, MIDI
+     * @param high      top of the register, MIDI
+     * @param p         the knobs
+     * @param freqOf    frequency of a MIDI note in the engine's current scale
+     * @param outScore  receives the winner's score (0 when none was found) when not null; Smooth
+     *                  compares exchanges by it
+     * @return          the MIDI note to bring in, or -1 when no candidate survived
+     */
     template <class FreqFn>
     int chooseNote(int from, int low, int high, const BrainParams& p, FreqFn&& freqOf,
                    double* outScore = nullptr) const
@@ -1597,10 +2196,20 @@ private:
         return best;
     }
 
-    // How stable a frequency is as a degree of the key that was found, on the Krumhansl-Kessler
-    // profile: 1 for the tonic, about a third for a note outside the scale. Weighted by the
-    // confidence of the key estimate, so an uncertain key pulls gently and a clear one pulls
-    // hard -- and a passage with no key in it at all is left alone.
+    /**
+     * @brief How stable a frequency is as a degree of the key that was found, on the Krumhansl-Kessler
+     * profile: 1 for the tonic, about a third for a note outside the scale.
+     *
+     * Weighted by the
+     * confidence of the key estimate, so an uncertain key pulls gently and a clear one pulls
+     * hard -- and a passage with no key in it at all is left alone.
+     *
+     * @param f       the candidate's frequency, Hz
+     * @param k       the key as findKey() found it; no key, or no confidence, answers 1
+     * @param amount  the Key knob, 0 .. 1; 0 answers 1
+     * @return        a weight to multiply the candidate's by, the profile's stability raised by
+     *                amount and confidence; 1 for the tonic whatever the amount
+     */
     static double keyWeightOf(double f, const KeyEstimate& k, float amount)
     {
         if (amount <= 0.0f || k.key < 0 || k.confidence <= 0.0f) return 1.0;
@@ -1610,11 +2219,35 @@ private:
         return std::pow(stability, 2.5 * static_cast<double>(amount) * static_cast<double>(k.confidence));
     }
 
-    // Interval classes a pivot tone may stand at to a root: the perfect consonances, and the
-    // imperfect ones the second tier falls back to.
+    /**
+     * @brief Interval classes a pivot tone may stand at to a root: the perfect consonances, and the
+     * imperfect ones the second tier falls back to.
+     *
+     * This is the first tier: unison, fourth and fifth (the octave is the unison's class).
+     * @param ic  interval class in semitones, 0 .. 11, from the root up to the tone
+     * @return    true for 0, 5 and 7
+     */
     static bool perfectTo(int ic)   { return ic == 0 || ic == 5 || ic == 7; }
+    /**
+     * @brief The second tier of the pivot tone's search: the perfect consonances and the imperfect
+     *        ones, thirds and sixths, major and minor.
+     * @param ic  interval class in semitones, 0 .. 11, from the root up to the tone
+     * @return    true for 0, 3, 4, 5, 7, 8 and 9
+     */
     static bool consonantTo(int ic) { return ic == 0 || ic == 3 || ic == 4 || ic == 5 || ic == 7 || ic == 8 || ic == 9; }
 
+    /**
+     * @brief Whether two frequencies are the same pitch class: within ten cents of a unison or an
+     *        octave, once folded into one octave.
+     *
+     * Asked of frequencies rather than MIDI numbers because the scale need not have twelve degrees,
+     * and used for the doubling rule, the "root is sounding" test and the foundation weight.
+     *
+     * @param fa  one frequency, Hz
+     * @param fb  the other, Hz
+     * @return    true when they are octaves of one another; false, not a hang, for a zero or
+     *            infinite ratio
+     */
     static bool pitchClassEqual(double fa, double fb)
     {
         double r = fa / fb;
@@ -1629,6 +2262,23 @@ private:
         return std::fabs(std::log2(r)) * 1200.0 < 10.0 || std::fabs(std::log2(r) - 1.0) * 1200.0 < 10.0;
     }
 
+    /**
+     * @brief Chooses the root's next home and moves there -- at once, or through a changeover when Pivot is up.
+     *
+     * Called by both modes when a decision's dice (moveChanceOf) or the twelve-minute bound say the
+     * root should move. Keeps R6.1's floor of four minutes between moves unless the way home
+     * overrides it; then scores every note of the register as a candidate root -- the interval the
+     * dice drew from the six just steps, the size and the direction of the step, the key that was
+     * found, the leading-note simultaneity it would make, and the pull home -- and takes the best
+     * when it is worth having. Counts the move in rootMoves_. Draws from the stream once for the
+     * target interval.
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param low     bottom of the register, MIDI: the roots considered
+     * @param high    top of the register, MIDI
+     * @param freqOf  frequency of a MIDI note in the engine's current scale
+     * @param p       the knobs of the root and long form section, and Key and Leading
+     */
     template <class FreqFn>
     void wanderRoot(int low, int high, FreqFn&& freqOf, const BrainParams& p)
     {
@@ -1740,8 +2390,17 @@ private:
         setRoot(best, p);
     }
 
-    // Take the new root, and with it what the change is allowed to carry: a single exchanged degree
-    // of the supply, so the mode wanders instead of being swapped (R4.1).
+    /**
+     * @brief Take the new root, and with it what the change is allowed to carry: a single exchanged degree
+     * of the supply, so the mode wanders instead of being swapped (R4.1).
+     *
+     * The root's age starts over. With Degree Swap the dice may turn a major third or sixth into
+     * the minor one or back (degreeBias_), which ruleWeight() applies from then on. One draw from
+     * the stream when Degree Swap is up, two when it strikes.
+     *
+     * @param note  the new root, MIDI (a candidate wanderRoot() chose, or the destination of a changeover)
+     * @param p     the knobs: Degree Swap
+     */
     void setRoot(int note, const BrainParams& p)
     {
         root_ = note;
@@ -1755,13 +2414,24 @@ private:
         }
     }
 
-    // What a chord is, for the purpose of not hearing it twice: the pitch classes that sound,
-    // together with the octave the bottom of it sits in. Two voicings of the same set in the same
-    // register are the same chord; the same set an octave apart is not. `extra` is added if given. For a candidate (`forNew`) a voice that is on its way out -- exchanged, and
-    // sounding out its overlap, which in Free mode is a negative `remaining` -- is left out: it
-    // will not be in the constellation the candidate makes. Counted in, the memory judged a
-    // four-note chord that lasted ten seconds and never the three-note one that followed, and a
-    // voice could go A, B, A, B between two notes for an hour (Glacier Bloom, measured).
+    /**
+     * @brief What a chord is, for the purpose of not hearing it twice: the pitch classes that sound,
+     * together with the octave the bottom of it sits in.
+     *
+     * Two voicings of the same set in the same
+     * register are the same chord; the same set an octave apart is not. `extra` is added if given. For a candidate (`forNew`) a voice that is on its way out -- exchanged, and
+     * sounding out its overlap, which in Free mode is a negative `remaining` -- is left out: it
+     * will not be in the constellation the candidate makes. Counted in, the memory judged a
+     * four-note chord that lasted ten seconds and never the three-note one that followed, and a
+     * voice could go A, B, A, B between two notes for an hour (Glacier Bloom, measured).
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param extra   a MIDI note to count in as if it sounded (the candidate), or -1
+     * @param freqOf  frequency of a MIDI note in the engine's current scale
+     * @param forNew  true for the constellation a candidate would make, which leaves out the voices
+     *                on their way out; false for the one sounding now, which counts them in
+     * @return        bits 0 .. 11 the pitch classes, bits 12 and up the octave (MIDI / 12) of the lowest note
+     */
     template <class FreqFn>
     uint32_t chordKey(int extra, FreqFn&& freqOf, bool forNew = false) const
     {
@@ -1780,17 +2450,35 @@ private:
         if (extra >= 0) { mask |= 1u << pitchClassOf(freqOf(extra)); lowest = std::min(lowest, extra); }
         return mask | (static_cast<uint32_t>(clampv(lowest, 0, 127) / 12) << 12);
     }
+    /**
+     * @brief Whether a constellation was stamped in the memory within the last Memory minutes.
+     * @param k  a chordKey()
+     * @param p  the knobs: Memory, in minutes
+     * @return   true when an entry with that key is younger than the memory
+     */
     bool heardLately(uint32_t k, const BrainParams& p) const
     {
         const double within = static_cast<double>(p.memory) * 60.0;
         for (const auto& m : memo_) if (m.key == k && now_ - m.at < within) return true;
         return false;
     }
-    // Whether adding `c` would rebuild a constellation heard within the memory. A note that adds no
-    // pitch class and lowers nothing -- an octave or a unison of what sounds -- makes no new
-    // constellation, it thickens the one there is, and R6.6 is about constellations; asked of it,
-    // the memory forbade every doubling, and the octave the rule book's table has at 0.18 came out
-    // at 0.06.
+    /**
+     * @brief Whether adding `c` would rebuild a constellation heard within the memory.
+     *
+     * A note that adds no
+     * pitch class and lowers nothing -- an octave or a unison of what sounds -- makes no new
+     * constellation, it thickens the one there is, and R6.6 is about constellations; asked of it,
+     * the memory forbade every doubling, and the octave the rule book's table has at 0.18 came out
+     * at 0.06.
+     *
+     * Reports its verdict to the trace hook when one is set.
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param c       the candidate MIDI note
+     * @param p       the knobs: Memory; at 0 nothing is ever heard lately
+     * @param freqOf  frequency of a MIDI note in the engine's current scale
+     * @return        true to strike the candidate out
+     */
     template <class FreqFn>
     bool constellationHeard(int c, const BrainParams& p, FreqFn&& freqOf) const
     {
@@ -1804,10 +2492,17 @@ private:
         if (trace) trace(heard ? "veto" : "pass", c, k);
         return heard;
     }
-    // A constellation is remembered from the last moment it sounded, not from the moment it was
-    // made: stamped when it is created and again whenever a note leaves it, so the ten minutes of
-    // R6.6 run from its end. Stamped at creation only, a chord that had lasted eleven minutes
-    // could come straight back.
+    /**
+     * @brief Stamps a constellation in the memory as sounding now.
+     *
+     * A constellation is remembered from the last moment it sounded, not from the moment it was
+     * made: stamped when it is created and again whenever a note leaves it, so the ten minutes of
+     * R6.6 run from its end. Stamped at creation only, a chord that had lasted eleven minutes
+     * could come straight back.
+     *
+     * An entry already there is re-stamped in place; a new one takes the oldest place of the ring.
+     * @param k  a chordKey()
+     */
     void rememberChord(uint32_t k)
     {
         if (trace) trace("stamp", -1, k);
@@ -1817,19 +2512,29 @@ private:
     }
 
 public:
-    // A hook for the audit tool: every stamp of the memory and every verdict it gives, so that a
-    // constellation that comes back can be traced to the check that let it. Off unless set.
+    /**
+     * @brief A hook for the audit tool: every stamp of the memory and every verdict it gives, so that a
+     * constellation that comes back can be traced to the check that let it.
+     *
+     * Off unless set.
+     *
+     * Tools/render/brain_audit.cpp sets it. `what` is "stamp" (rememberChord), "veto" or "pass"
+     * (constellationHeard); `note` is the candidate, or -1 for a stamp; `key` is the chordKey().
+     * One pointer for every conductor in the process.
+     */
     static inline void (*trace)(const char* what, int note, uint32_t key) = nullptr;
 private:
 
-    // The Hawkes clock. Time runs faster for the timer while the excitation is up: an
-    // inhomogeneous Poisson process is a homogeneous one in rescaled time, so the gap is drawn
-    // exactly as before and only consumed faster. The excitation decays with a time constant of
-    // half the mean gap, and each event adds enough that at full Cascade one event breeds 0.65
-    // further ones on average (kick = branching * mean / tau = 0.65 * 2). Short-circuited at
-    // zero and at rest, so a conductor without Cascade subtracts dt as it always did.
-    // How long until the next event. The conductor's own rate, unless the cluster is being
-    // filled on request (see requestFill), in which case it is short enough to arrive as music.
+    /**
+     * @brief How long until the next event.
+     *
+     * The conductor's own rate, unless the cluster is being
+     * filled on request (see requestFill), in which case it is short enough to arrive as music.
+     *
+     * @param p  the knobs: Event Rate, Rate Breath
+     * @return   the mean gap in seconds the next wait is drawn against: 0.35 while filling, else
+     *           the rate (at least half a second) swung by the breath
+     */
     double tickSeconds(const BrainParams& p) const
     {
         // Density is read as a CEILING here, not as a target: the cluster grows by one note an
@@ -1851,6 +2556,22 @@ private:
         return mean;
     }
 
+    /**
+     * @name The Hawkes clock
+     *
+     * The Hawkes clock. Time runs faster for the timer while the excitation is up: an
+     * inhomogeneous Poisson process is a homogeneous one in rescaled time, so the gap is drawn
+     * exactly as before and only consumed faster. The excitation decays with a time constant of
+     * half the mean gap, and each event adds enough that at full Cascade one event breeds 0.65
+     * further ones on average (kick = branching * mean / tau = 0.65 * 2). Short-circuited at
+     * zero and at rest, so a conductor without Cascade subtracts dt as it always did.
+     * @{ */
+    /**
+     * @brief Runs the timer down by `dt`, faster while the excitation is up, and lets the excitation decay.
+     * @param dt    seconds since the last tick
+     * @param p     the knobs: Cascade
+     * @param mean  the mean gap in seconds, whose half is the excitation's time constant
+     */
     void advanceTimer(double dt, const BrainParams& p, double mean)
     {
         if (p.cascade > 0.0f || excite_ > 0.0) {
@@ -1859,11 +2580,24 @@ private:
             timer_ -= dt * (1.0 + excite_);
         } else timer_ -= dt;
     }
+    /**
+     * @brief An event happened: lifts the excitation by 1.3 times Cascade, the jump that gives the branching ratio of 0.65 at full.
+     * @param p  the knobs: Cascade; nothing happens at 0
+     */
     void kick(const BrainParams& p) { if (p.cascade > 0.0f) excite_ += 1.3 * static_cast<double>(p.cascade); }
+    /** @} */
 
-    // The interval histogram the homeostat reads: which of the twelve interval classes the
-    // last choice made against the one before it. It fades by 0.92 per event, so it remembers
-    // the last dozen or so.
+    /**
+     * @brief The interval histogram the homeostat reads: which of the twelve interval classes the
+     * last choice made against the one before it.
+     *
+     * It fades by 0.92 per event, so it remembers
+     * the last dozen or so.
+     *
+     * Called with every note the conductor chooses or inherits; the first note after reset()
+     * only sets the reference.
+     * @param note  the MIDI note just chosen
+     */
     void remember(int note)
     {
         if (lastNote_ >= 0) {
@@ -1872,8 +2606,14 @@ private:
         }
         lastNote_ = note;
     }
-    // Where the homeostat leans: + when the music is more predictable than Surprise asks for,
-    // - when it is less, scaled by Homeostat. Needs a few events of history to say anything.
+    /**
+     * @brief Where the homeostat leans: + when the music is more predictable than Surprise asks for, - when it is less, scaled by Homeostat.
+     *
+     * Needs a few events of history to say anything.
+     *
+     * @param p  the knobs: Surprise, Homeostat
+     * @return   -1 .. 1 times Homeostat; 0 with Homeostat off or fewer than three events of history
+     */
     float leanOf(const BrainParams& p) const
     {
         if (p.homeostat <= 0.0f) return 0.0f;
@@ -1884,13 +2624,24 @@ private:
         return clampv(static_cast<float>((p.surprise - h) * 2.0), -1.0f, 1.0f) * p.homeostat;
     }
 
-    // The deja-vu ring. Moves one place per choice; offers what it holds with probability
-    // Deja Vu, and keeps it when it was taken. Nothing is drawn at zero.
-    // Whether a note may sound at all under the rules that every draw applies: in range, not
-    // resting after its release (R7.4), not rebuilding a constellation heard lately (R6.6), and
-    // not vetoed by the register and interval rules. For the paths that do not draw -- the ring
-    // of Deja Vu offers a PAST note, and until this was asked of it the offer went past every
-    // rule: a second in the bass, a leading note under a sounding root, a pitch inside its rest.
+    /**
+     * @brief Whether a note may sound at all under the rules that every draw applies: in range, not
+     * resting after its release (R7.4), not rebuilding a constellation heard lately (R6.6), and
+     * not vetoed by the register and interval rules.
+     *
+     * For the paths that do not draw -- the ring
+     * of Deja Vu offers a PAST note, and until this was asked of it the offer went past every
+     * rule: a second in the bass, a leading note under a sounding root, a pitch inside its rest.
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param c        the note offered, MIDI
+     * @param low      one end of the register, MIDI (either order)
+     * @param high     the other end
+     * @param p        the knobs
+     * @param freqOf   frequency of a MIDI note in the engine's current scale
+     * @param pivotal  true for the pivot tone of a changeover, which may be the leading note
+     * @return         true when the note may be started
+     */
     template <class FreqFn>
     bool admissible(int c, int low, int high, const BrainParams& p, FreqFn&& freqOf, bool pivotal = false) const
     {
@@ -1902,6 +2653,26 @@ private:
         return ruleWeight(c, std::min(low, high), std::max(low, high), rootSounding, p, pivotal) > 0.0f;
     }
 
+    /**
+     * @brief The deja-vu ring.
+     *
+     * Moves one place per choice; offers what it holds with probability
+     * Deja Vu, and keeps it when it was taken. Nothing is drawn at zero.
+     *
+     * Every path that chooses a note passes its choice through here last. The ring is Loop places
+     * long (at most kRing); the offered note must be free, admissible and not the one being
+     * replaced, else the fresh note plays and is written into the ring in its stead. One draw from
+     * the stream when Deja Vu is up.
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param fresh   the note the draw chose, MIDI, or -1 (returned unchanged)
+     * @param p       the knobs: Deja Vu and Loop
+     * @param avoid   Chords: the note being replaced, which the ring may not offer back; -1 in Free mode
+     * @param low     one end of the register, for admissible()
+     * @param high    the other end
+     * @param freqOf  frequency of a MIDI note in the engine's current scale
+     * @return        the note to play: the ring's when it was offered and allowed, else `fresh`
+     */
     template <class FreqFn>
     int viaDejaVu(int fresh, const BrainParams& p, int avoid, int low, int high, FreqFn&& freqOf)
     {
@@ -1917,66 +2688,96 @@ private:
         return out;
     }
 
-    Slot   slots_[kSlots];
-    mutable Rng rng_;
-    static constexpr int kRing = 16;
-    int    ring_[kRing] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
-    int    ringPos_ = 0;
-    double excite_ = 0.0;         // Cascade: the rate's excitation, in multiples of the base rate
-    float  ic_[12] = {};          // Homeostat: fading histogram of chosen interval classes
-    int    lastNote_ = -1;
-    float  lastLean_ = 0.0f;
-    // The clocks the guards read (12.09.2026). Seconds since the last onset and the last release,
-    // and the moment each of the 128 pitches was last let go. The running clock starts at a
-    // million seconds rather than at zero so that a zeroed stamp reads as "long ago": every pitch
-    // is free before it has ever sounded, without filling 128 entries by hand.
-    double sinceOn_ = 1.0e9, sinceOff_ = 1.0e9;
-    double now_ = 1.0e6;
-    double pitchOffAt_[128] = {};
-    // The breath behind the event rate: two sines whose periods stand in the golden ratio, so the
-    // sum never repeats within a piece and the tide does not become a pulse.
-    double breathPhase_ = 0.0;
-    float  breathValue_ = 0.0f;
-    double densityNow_ = -1.0;    // the density actually in force; negative until the first tick
-    double densityTarget_ = -1.0;
-    double densityStep_ = 0.0;    // voices per second while a change is being carried out
-    double silenceLeft_ = 0.0;    // seconds of planned pause still to run
-    bool   onsetHold_ = false, rootHold_ = false;   // the foreground's asks (holdOnsets, holdRoot)
+    Slot   slots_[kSlots];        ///< the cluster: one voice per slot, note -1 when empty
+    mutable Rng rng_;             ///< the conductor's own random stream, seeded by reset(); mutable so that chooseNote() can add its little life while const
+    static constexpr int kRing = 16;   ///< places in the deja-vu ring; Loop may use fewer
+    int    ring_[kRing] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };   ///< the deja-vu ring: the last notes chosen, -1 for an empty place
+    int    ringPos_ = 0;          ///< the place the last choice was written to
+    double excite_ = 0.0;         ///< Cascade: the rate's excitation, in multiples of the base rate
+    float  ic_[12] = {};          ///< Homeostat: fading histogram of chosen interval classes
+    int    lastNote_ = -1;        ///< the note chosen before this one, for the interval histogram and Smooth; -1 after reset()
+    float  lastLean_ = 0.0f;      ///< the homeostat's lean as of the last decision, for lean() and the Free-mode draw
+    /**
+     * @name The clocks the guards read (12.09.2026)
+     *
+     * The clocks the guards read (12.09.2026). Seconds since the last onset and the last release,
+     * and the moment each of the 128 pitches was last let go. The running clock starts at a
+     * million seconds rather than at zero so that a zeroed stamp reads as "long ago": every pitch
+     * is free before it has ever sounded, without filling 128 entries by hand.
+     * @{ */
+    /** @brief Seconds since the last onset, and seconds since the last release. */
+    double sinceOn_ = 1.0e9, sinceOff_ = 1.0e9;   ///< seconds since the last onset and since the last release; huge until something has happened
+    double now_ = 1.0e6;          ///< the running clock in seconds, from a million at reset()
+    double pitchOffAt_[128] = {}; ///< now_ at the moment each MIDI pitch was last let go, 0 for never
+    /** @} */
+    /**
+     * @name The breath behind the event rate
+     *
+     * The breath behind the event rate: two sines whose periods stand in the golden ratio, so the
+     * sum never repeats within a piece and the tide does not become a pulse.
+     * @{ */
+    double breathPhase_ = 0.0;    ///< phase of the slower sine in cycles of Breath Period; wraps at a million
+    float  breathValue_ = 0.0f;   ///< the breath's current value, -1 .. 1, applied as an exponent of two to the mean gap
+    /** @} */
+    double densityNow_ = -1.0;    ///< the density actually in force; negative until the first tick
+    double densityTarget_ = -1.0; ///< the density the glide is heading for, the knob's value
+    double densityStep_ = 0.0;    ///< voices per second while a change is being carried out
+    double silenceLeft_ = 0.0;    ///< seconds of planned pause still to run
+    /** @brief Hold Onsets and Hold Root, as the near layer last set them. */
+    bool   onsetHold_ = false, rootHold_ = false;   ///< the foreground's asks (holdOnsets, holdRoot)
     // ---- root and long form
-    int    homeRoot_ = 48;        // the root the night began on
-    double age_ = 0.0;            // seconds since the conductor was reset
-    double rootAge_ = 0.0;        // seconds since the root last moved
-    int    pivotTo_ = -1, pivotOld_ = -1;
-    double pivotLeft_ = 0.0;      // seconds left of the changeover window
-    bool   pivotAnnounced_ = false;
-    int    pivotTones_ = 0;       // changeovers that found a tone belonging to both roots
-    int    rootMoves_ = 0;        // times the root was sent somewhere else
-    bool   settled_ = false;      // the cluster has once stood at its density: the exposition is over
-    int    extraHeard_ = -1;      // Chords: the voice being exchanged, out of its slot for the vote, still heard by the rules
-    // Chords: a voice that has been exchanged keeps sounding until the one replacing it has been
-    // in the air for Overlap seconds (R5.4), and only then is let go. Its slot has gone to the
-    // arriving note, so it waits here -- and while it waits it still counts as sounding.
+    int    homeRoot_ = 48;        ///< the root the night began on
+    double age_ = 0.0;            ///< seconds since the conductor was reset
+    double rootAge_ = 0.0;        ///< seconds since the root last moved
+    /** @brief The changeover's destination root, and the root it leaves. */
+    int    pivotTo_ = -1, pivotOld_ = -1;   ///< the changeover's destination root and the root it leaves; -1 when none is running
+    double pivotLeft_ = 0.0;      ///< seconds left of the changeover window
+    bool   pivotAnnounced_ = false;   ///< the changeover's pivot tone has been looked for (found or not)
+    int    pivotTones_ = 0;       ///< changeovers that found a tone belonging to both roots
+    int    rootMoves_ = 0;        ///< times the root was sent somewhere else
+    bool   settled_ = false;      ///< the cluster has once stood at its density: the exposition is over
+    int    extraHeard_ = -1;      ///< Chords: the voice being exchanged, out of its slot for the vote, still heard by the rules
+    /**
+     * @brief Chords: a voice that has been exchanged keeps sounding until the one replacing it has been
+     * in the air for Overlap seconds (R5.4), and only then is let go.
+     *
+     * Its slot has gone to the
+     * arriving note, so it waits here -- and while it waits it still counts as sounding.
+     */
     struct Leaving { int note = -1; double in = 0.0; };
-    Leaving leaving_[kSlots];
-    float  degreeBias_[12] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+    /** @var int ClusterBrain::Leaving::note
+     *  @brief the MIDI note sounding out its overlap, -1 for an empty place */
+    /** @var double ClusterBrain::Leaving::in
+     *  @brief seconds until it may be let go */
+    Leaving leaving_[kSlots];     ///< the voices on their way out, one place per slot at most
+    float  degreeBias_[12] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };   ///< Degree Swap: a weight per interval class over the root, 1 until a root change swaps a third or a sixth (0.25 against 1.6)
+    /** @brief One entry of the constellation memory. */
     struct Memo { uint32_t key; double at; };
-    // One entry per constellation, kept from the last moment it sounded. An hour has a hundred to
-    // two hundred of them, and at 48 the ring overwrote entries younger than the memory: a chord
-    // three minutes gone came back, twice an hour under the rules at full. Thirty minutes of
-    // memory at the rule book's rates want a few hundred.
+    /** @var uint32_t ClusterBrain::Memo::key
+     *  @brief the chordKey() of the constellation */
+    /** @var double ClusterBrain::Memo::at
+     *  @brief now_ when it last sounded */
+    /**
+     * @brief One entry per constellation, kept from the last moment it sounded.
+     *
+     * An hour has a hundred to
+     * two hundred of them, and at 48 the ring overwrote entries younger than the memory: a chord
+     * three minutes gone came back, twice an hour under the rules at full. Thirty minutes of
+     * memory at the rule book's rates want a few hundred.
+     */
     static constexpr int kMemo = 256;
-    Memo   memo_[kMemo] = {};
-    int    memoHead_ = 0;
-    double timer_ = 1.0;
-    double timerMean_ = 0.0;   // the rate the standing wait was drawn against, so it can be rescaled
-    bool   filling_ = false;   // fill the cluster at speed, then go back to the event rate
-    int    root_ = 48;
-    bool   wasOn_ = false;
-    bool   stepRequested_ = false;
-    static constexpr int kRecent = 8;   // Chords: the notes that left, most recent first-ish
-    float  pcWeight_[12] = {};    // how long each pitch class has been sounding, faded
-    int    recent_[kRecent] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-    int    recentHead_ = 0;
+    Memo   memo_[kMemo] = {};     ///< the constellation memory, a ring of kMemo entries
+    int    memoHead_ = 0;         ///< the next place of the ring a new constellation takes
+    double timer_ = 1.0;          ///< seconds until the next decision, run down by advanceTimer()
+    double timerMean_ = 0.0;   ///< the rate the standing wait was drawn against, so it can be rescaled
+    bool   filling_ = false;   ///< fill the cluster at speed, then go back to the event rate
+    int    root_ = 48;            ///< the root the cluster is built around, MIDI
+    bool   wasOn_ = false;        ///< the conductor was on at the last tick, so a switch-off releases the voices once
+    bool   stepRequested_ = false;   ///< requestStep() has asked for an exchange that has not happened yet
+    static constexpr int kRecent = 8;   ///< Chords: the notes that left, most recent first-ish
+    float  pcWeight_[12] = {};    ///< how long each pitch class has been sounding, faded
+    int    recent_[kRecent] = { -1, -1, -1, -1, -1, -1, -1, -1 };   ///< Chords: the notes that left recently, a ring of kRecent, -1 for empty
+    int    recentHead_ = 0;       ///< the next place of that ring
 };
 
 } // namespace ambient

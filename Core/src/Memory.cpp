@@ -1,3 +1,24 @@
+/**
+ * @file Memory.cpp
+ * @brief The drifting sound memory of Memory.h: the pool, the lines, the exchange and the grains.
+ *
+ * Memory.h says what the device is and where each of its knobs comes from; this file is how it is
+ * done, in the order the audio thread meets it. prepare() lays the 90-second pool out, designs the
+ * reading interpolator (an eight-tap Kaiser-windowed sinc in 256 phases) and the fingerprint's window
+ * and bin-to-pitch-class map, and allocates everything -- nothing is allocated after it. The setters
+ * only clamp and store; the work of a changed setting is done in stepControl(), once per control
+ * block of kSub samples, where the number of lines is re-laid, the lengths are found as primes, the
+ * gains follow Hold and Age, the Lorenz attractor is integrated, the tape speed glides, and every
+ * line's slide, pan and anti-alias filter are advanced. process() then runs the lines sample by
+ * sample: the sinc read, the scattering all-pass, the absorption, the DC blocker, the butterfly
+ * exchange, the per-line limiter and saturation, and the splatting write head (tapeWrite()). Recall
+ * runs first in each control block, so its grains read tape this block has not yet written over.
+ *
+ * The fingerprints that Seek listens for are computed one per control block at most (analyse()),
+ * from a queue of pool segments the write heads have just finished, so no block ever pays for more
+ * than one chroma FFT. The anonymous namespace holds the constants that give the lines their
+ * incommensurable periods and the small number-theoretic helpers the layout needs.
+ */
 #include "ambient/Memory.h"
 #include <algorithm>
 #include <climits>
@@ -8,20 +29,36 @@ namespace ambient {
 
 namespace {
 
-constexpr double kLn1000 = 6.907755278982137;
-constexpr double kTau = 6.283185307179586;
-constexpr float  kLimit = 0.7f;              // each line's loop is held under this level
-constexpr int    kPoolMaxCells = 8640000;    // 90 s at 96 kHz, 45 s at 192 kHz
-constexpr int    kQueueMask = 511;
-// The scattering all-passes, in milliseconds: mutually prime, so at full Blur an echo is spread over a
-// tenth to a sixth of a second on every pass, and no two lines spread it alike.
+constexpr double kLn1000 = 6.907755278982137;   ///< ln 1000, the fall to -60 dB: turns a T60 into a gain per pass in gains()
+constexpr double kTau = 6.283185307179586;      ///< two pi in double, for the slide, pan and stage phases
+constexpr float  kLimit = 0.7f;              ///< each line's loop is held under this level
+constexpr int    kPoolMaxCells = 8640000;    ///< 90 s at 96 kHz, 45 s at 192 kHz
+constexpr int    kQueueMask = 511;           ///< the fingerprint queue holds 512 segment indices and wraps by masking
+/**
+ * @brief The scattering all-passes, in milliseconds: mutually prime, so at full Blur an echo is spread over a
+ * tenth to a sixth of a second on every pass, and no two lines spread it alike.
+ */
 constexpr float kApMs[Memory::kMaxLines] = { 41.1f, 53.3f, 67.9f, 79.3f, 97.1f, 113.3f, 131.9f, 149.3f };
-// The slides and the pans: periods between 19 and 83 seconds, none a multiple of another.
+/**
+ * @brief The slides and the pans: periods between 19 and 83 seconds, none a multiple of another.
+ *
+ * This table is the slides: the rate, in Hz, of the sine each line's read head rides on before the
+ * attractor bends it (stepControl()). kPanHz and kStageHz complete the set of periods.
+ */
 constexpr double kDriftHz[Memory::kMaxLines] = { 1.0 / 23.0, 1.0 / 29.0, 1.0 / 31.0, 1.0 / 37.0, 1.0 / 41.0, 1.0 / 47.0, 1.0 / 53.0, 1.0 / 61.0 };
+/** @brief The pans: the rate, in Hz, of each line's wander across the stereo field (see kDriftHz). */
 constexpr double kPanHz[Memory::kMaxLines]   = { 1.0 / 67.0, 1.0 / 59.0, 1.0 / 43.0, 1.0 / 71.0, 1.0 / 49.0, 1.0 / 79.0, 1.0 / 57.0, 1.0 / 83.0 };
+/** @brief The rates, in Hz, of the sines on which the three stages of the exchange lean off the common angle. */
 constexpr double kStageHz[3] = { 1.0 / 19.0, 1.0 / 27.0, 1.0 / 35.0 };
 
-// The modified Bessel function of the first kind, order zero: the Kaiser window's shape.
+/**
+ * @brief The modified Bessel function of the first kind, order zero: the Kaiser window's shape.
+ *
+ * The power series, summed until a term falls below 1e-16 of the sum; for the arguments a window of
+ * beta 5 asks for that is well within the forty terms allowed.
+ * @param x  the argument, non-negative where it is used
+ * @return   I0(x), which is 1 at x = 0 and grows like exp(x)
+ */
 double besselI0(double x)
 {
     double sum = 1.0, term = 1.0;
@@ -34,8 +71,18 @@ double besselI0(double x)
     return sum;
 }
 
+/**
+ * @brief The smallest power of two not below @p n: the all-pass rings are sized so that a mask can wrap them.
+ * @param n  the length that has to fit; 1 or less gives 1
+ * @return   the power of two, at least @p n
+ */
 int pow2At(int n) { int p = 1; while (p < n) p <<= 1; return p; }
 
+/**
+ * @brief Whether @p n is prime, by trial division up to its square root.
+ * @param n  any integer; anything below 2 is not prime
+ * @return   true for a prime
+ */
 bool isPrime(int n)
 {
     if (n < 2) return false;
@@ -45,6 +92,14 @@ bool isPrime(int n)
     return true;
 }
 
+/**
+ * @brief The largest prime not above @p n: every line's length is one, so no two lines share a period.
+ *
+ * Counts down from @p n testing each candidate, which near two million is a few thousand divisions
+ * per line; lengths() therefore asks only when the size has really moved.
+ * @param n  the upper bound, in cells
+ * @return   the prime, or 2 when @p n is below 3
+ */
 int primeAtMost(int n)
 {
     for (int x = n; x > 2; --x)
@@ -52,8 +107,13 @@ int primeAtMost(int n)
     return 2;
 }
 
-// Each line's place in the stereo field before it drifts: the left input's lines on the left, the
-// right's on the right, the longest furthest out.
+/**
+ * @brief Each line's place in the stereo field before it drifts: the left input's lines on the left, the
+ * right's on the right, the longest furthest out.
+ * @param k      the line, 0 .. lines - 1; even lines take the left input, odd ones the right
+ * @param lines  how many lines are laid out, 2, 4 or 8
+ * @return       the pan, -1 (left) .. 1 (right), between +-0.15 and +-0.85
+ */
 float panBase(int k, int lines)
 {
     const float side = (k & 1) ? 1.0f : -1.0f;

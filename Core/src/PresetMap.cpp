@@ -1,3 +1,23 @@
+/**
+ * @file PresetMap.cpp
+ * @brief The preset map's engine room: the cached parameter table, the neighbour search and the
+ *        blend.
+ *
+ * The map needs every preset's full parameter vector at hand, because a cursor between presets is
+ * a weighted mean of its neighbours' parameters. Those vectors are not stored anywhere: a preset is
+ * a "key=value" string over the defaults, so warmup() applies every preset once (applyPreset over
+ * paramTable) into one flat table of numPresets() x kNumParams floats. With a library of eight
+ * thousand presets that is the 1.75 s that used to be paid at every prepare(), which is why it now
+ * runs on a thread of its own (warmupAsync) and why the map simply does nothing until ready().
+ *
+ * The table is handed to the audio thread through an atomic pointer, and a table that has been
+ * replaced is retired rather than freed, so a reader that is halfway through blend() when a pack
+ * load rebuilds the table keeps reading valid memory. neighbours() and blend() run at control
+ * rate on the audio thread and allocate nothing: the six nearest presets are kept in a small
+ * sorted list, the Gaussian radius follows the local density of the map, and the blend of every
+ * parameter respects its kind -- floats in the skew domain, integers rounded, choices and
+ * switches taken from the strongest neighbour.
+ */
 #include "ambient/PresetMap.h"
 #include "ambient/PresetMeta.h"
 #include "ambient/Presets.h"
@@ -12,17 +32,22 @@
 namespace ambient {
 
 namespace {
-// The table the audio thread reads, published as a pointer: a rebuild fills a new one and swaps
-// it in, and the one it replaces is kept rather than freed. Keeping it costs a few megabytes at
-// most (a rebuild happens when packs are loaded, which is once) and it is the only way a reader
-// that is already inside blend() cannot have the ground taken from under it.
+/**
+ * @brief Every table ever built, the published one included, so that a replaced table is kept
+ *        rather than freed.
+ *
+ * The table the audio thread reads, published as a pointer: a rebuild fills a new one and swaps
+ * it in, and the one it replaces is kept rather than freed. Keeping it costs a few megabytes at
+ * most (a rebuild happens when packs are loaded, which is once) and it is the only way a reader
+ * that is already inside blend() cannot have the ground taken from under it.
+ */
 std::vector<std::unique_ptr<std::vector<float>>> g_retired;
-std::atomic<const float*> g_table { nullptr };
-std::atomic<int>          g_count { 0 };       // presets in the published table
-std::atomic<bool>         g_building { false };
-std::thread               g_thread;
-std::mutex                g_threadLock;
-std::mutex                g_buildLock;
+std::atomic<const float*> g_table { nullptr };  ///< the published table (numPresets() x kNumParams floats), nullptr until the first warmup
+std::atomic<int>          g_count { 0 };       ///< presets in the published table
+std::atomic<bool>         g_building { false };   ///< set while a warmupAsync() thread is running, so only one runs at a time
+std::thread               g_thread;             ///< the warmup thread of warmupAsync(); joined by shutdown() and before a new one starts
+std::mutex                g_threadLock;         ///< guards g_thread between warmupAsync() and shutdown()
+std::mutex                g_buildLock;          ///< serialises warmup() itself, whichever thread calls it
 }
 
 void PresetMap::warmup()

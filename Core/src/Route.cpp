@@ -1,3 +1,20 @@
+/**
+ * @file Route.cpp
+ * @brief The route over the preset map: the built-in route presets, the text form, and the walk.
+ *
+ * Route.h says what a route is; this file holds the twelve routes that ship (kRoutes), the parser
+ * and writer of the text form, and Route::update(), the walk itself. parse() resolves a waypoint
+ * given by preset name to that preset's measured map position at parse time (presetMeta), which
+ * is why the built-in routes are written as names: when the map is re-measured they follow the
+ * presets rather than pointing at where the presets used to be. A waypoint given as `x,y` is a
+ * fixed place on the map and stays where it was written.
+ *
+ * The walk runs at control rate on the audio thread: update() is given the time that passed
+ * (already multiplied by the route's speed) and moves the cursor -- position and blend radius --
+ * along a smoothstep from where it started to the next waypoint over that waypoint's travel time,
+ * then holds it there for the hold time, then goes on to the next point, looping or stopping at
+ * the end. Nothing here allocates; parse() works in a fixed buffer of Route::kMaxPoints waypoints.
+ */
 #include "ambient/Route.h"
 #include "ambient/Presets.h"
 #include "ambient/PresetMeta.h"
@@ -9,8 +26,13 @@
 namespace ambient {
 
 namespace {
-// Twelve routes over the map, given by preset names so they follow the measured positions.
-// travel | hold in seconds; a whole route is a 20-40 minute set at speed 1.
+/**
+ * @brief Twelve routes over the map, given by preset names so they follow the measured positions.
+ *
+ * travel | hold in seconds; a whole route is a 20-40 minute set at speed 1.
+ * The last route, "Wide Wander", is written as map coordinates with a radius per point instead:
+ * it visits the four corners of the map and ends in the middle, wherever the presets happen to be.
+ */
 const RoutePreset kRoutes[] = {
     { "Night Descent",
       "Just Passage|30|90;Init|90|120;Season Expanse|120|180;Bedrock Floor|150|240;Trench Reach|180|300" },

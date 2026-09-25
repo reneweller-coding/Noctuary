@@ -1,3 +1,28 @@
+/**
+ * @file Engine.cpp
+ * @brief The engine's life cycle and its outward face: construction and prepare, the preset loaders,
+ *        morph and map, the tuning arithmetic, the textures, the display taps and the notes.
+ *
+ * Engine.h declares the one class that owns the whole instrument -- the voices, the two conductors,
+ * the near layer, both planes of effects and the master -- and its definitions are spread over three
+ * files. This one holds what happens off the audio thread and at the edges of it: the constructor
+ * and prepare(), which build every table, ring and effect before a block is rendered; the preset
+ * loaders; the morph slots, the route and the preset map's blend; the user scale, the user wavetable
+ * and the textures, which cross from the message thread into the audio thread through double
+ * buffers and waitForQuiet(); the tuning arithmetic (frequencyOf, matchedPartialRatio and
+ * adaptiveOffset); the read-only taps the panel draws from; and the note handling -- allocation,
+ * the register places for the slot roles, the near events and the keys. EngineControl.cpp holds
+ * what the engine decides once per block (the modulation sources, the clock, readParams) and
+ * EngineRender.cpp what it renders (process and renderChunk); both were split out of this file when
+ * it had grown past fourteen hundred lines.
+ *
+ * Threads matter in every function here. What is called set..., apply... or load... runs on the
+ * message thread and publishes through an atomic version or a double buffer; what the conductors
+ * and the near scheduler call back into (startNote, stopNote, nearEmit) runs on the audio thread
+ * inside renderChunk. The comments above the texture setters and above waitForQuiet() explain the
+ * one rule that keeps the two apart: a buffer is only written once every block that could still be
+ * holding it has ended.
+ */
 #include <chrono>
 #include <thread>
 #include "ambient/Engine.h"
@@ -10,13 +35,27 @@
 #if defined(_M_X64) || defined(__x86_64__) || defined(_M_IX86) || defined(__i386__)
   #include <xmmintrin.h>
   #include <pmmintrin.h>
+  /**
+   * @brief 1 on x86: the SSE control register (MXCSR) exists, and Engine::process() in EngineRender.cpp
+   *        sets its flush-to-zero and denormals-are-zero bits for the length of a block and restores
+   *        it afterwards.
+   */
   #define AMBIENT_HAS_MXCSR 1
 #else
+  /**
+   * @brief 0 on every other architecture: there is no MXCSR to set, so the denormal control in
+   *        Engine::process() is compiled out (on 64-bit ARM it is FPCR's, see AMBIENT_HAS_FPCR).
+   */
   #define AMBIENT_HAS_MXCSR 0
 #endif
 #if defined(__aarch64__) || defined(_M_ARM64)
+  /**
+   * @brief 1 on 64-bit ARM: Engine::process() sets bit 24 of FPCR (flush-to-zero) for the length of a
+   *        block, which is what keeps the Quest's decaying tails and envelopes out of denormals.
+   */
   #define AMBIENT_HAS_FPCR 1
 #else
+  /** @brief 0 on every other architecture: there is no FPCR to set. */
   #define AMBIENT_HAS_FPCR 0
 #endif
 
@@ -370,16 +409,19 @@ void Engine::setUserCycles(const CycleTable& t)
     cyclesActive_.store(target, std::memory_order_release);
 }
 
-// Message thread: returns once every block that had begun by the time it was called has ended.
-// After that, any block still running began later and therefore read whatever this thread had
-// already published -- which is what makes the other half of a double buffer safe to write.
-//
-// There is no guess in it. When the audio thread is not running the two counters are equal on the
-// first look and it returns at once, which is a host with its transport stopped; when a block is
-// in flight it waits for that block and no longer, whether that block is 16 samples or 2048. The
-// version before this one counted finished blocks and gave up after two milliseconds of seeing
-// none, on the theory that nothing was rendering -- which is also what a slow block looks like
-// from outside, and a 2048-sample block at 44.1 kHz is 46 milliseconds long.
+/**
+ * @brief Message thread: returns once every block that had begun by the time it was called has ended.
+ *
+ * After that, any block still running began later and therefore read whatever this thread had
+ * already published -- which is what makes the other half of a double buffer safe to write.
+ *
+ * There is no guess in it. When the audio thread is not running the two counters are equal on the
+ * first look and it returns at once, which is a host with its transport stopped; when a block is
+ * in flight it waits for that block and no longer, whether that block is 16 samples or 2048. The
+ * version before this one counted finished blocks and gave up after two milliseconds of seeing
+ * none, on the theory that nothing was rendering -- which is also what a slow block looks like
+ * from outside, and a 2048-sample block at 44.1 kHz is 46 milliseconds long.
+ */
 void Engine::waitForQuiet()
 {
     const unsigned long long begun = blocksBegun_.load(std::memory_order_acquire);
@@ -389,11 +431,23 @@ void Engine::waitForQuiet()
     }
 }
 
-// A recording's offset, taken out where it comes in. A field recording, a rendered texture, a
-// phrase cut from a radio play: a few of them carry a direct current of a few per cent, which no
-// grain window removes and which every long loop downstream -- the far hall above all -- would
-// integrate until the master's clipper rails on it (three presets of the 2.0 library went silent
-// that way). Subtracting the mean changes nothing anyone hears and keeps a seamless clip seamless.
+/**
+ * @brief A recording's offset, taken out where it comes in.
+ *
+ * A field recording, a rendered texture, a
+ * phrase cut from a radio play: a few of them carry a direct current of a few per cent, which no
+ * grain window removes and which every long loop downstream -- the far hall above all -- would
+ * integrate until the master's clipper rails on it (three presets of the 2.0 library went silent
+ * that way). Subtracting the mean changes nothing anyone hears and keeps a seamless clip seamless.
+ *
+ * Message thread, on a copy that is not yet published. The mean is summed in double and taken out
+ * in place; a mean under a millionth is left alone, so a clip that is already centred is not touched.
+ *
+ * @param p       the first sample of the run; a null pointer or a count of zero does nothing
+ * @param count   how many samples the run holds, `stride` apart
+ * @param stride  the step between two samples of the run: 1 for a mono buffer, 2 for one channel
+ *                of an interleaved stereo pair
+ */
 static void removeOffset(float* p, size_t count, size_t stride)
 {
     if (p == nullptr || count == 0) return;
@@ -404,6 +458,16 @@ static void removeOffset(float* p, size_t count, size_t stride)
     for (size_t i = 0; i < count; ++i) p[i * stride] -= mean;
 }
 
+/**
+ * @brief The offset taken out of every channel a texture holds: the mono sum, and where the clip is
+ *        stereo the left and the right of the interleaved pair, each on its own.
+ *
+ * Called by every texture setter and by makeTexture(), on the buffer that is about to be published
+ * and before Texture::measure(), so the audio thread never plays a clip with a direct current in it
+ * and the measurements describe the clip as it will be heard.
+ *
+ * @param t  the texture whose mono and lr buffers are corrected in place
+ */
 static void removeOffset(Texture& t)
 {
     removeOffset(t.mono.data(), t.mono.size(), 1);
@@ -536,12 +600,16 @@ void Engine::setNearTextures(std::vector<Texture> pool)
     nearPoolActive_.store(target, std::memory_order_release);
 }
 
-// Where Match would put partial h: on the degree of the current scale nearest to it, counted in
-// periods of that scale from the fundamental. For a twelve-tone scale the seventh partial moves
-// from 3369 cents to 3400 and the fifth from 2786 to 2800 -- small moves, and after them a chord
-// in that scale does not beat. The timbre scale is excluded, because it is itself computed from
-// the spectrum: a scale that follows the partials and partials that follow the scale would chase
-// each other round in a circle, and neither would mean anything.
+/**
+ * @brief Where Match would put partial h: on the degree of the current scale nearest to it, counted in
+ *        periods of that scale from the fundamental.
+ *
+ * For a twelve-tone scale the seventh partial moves
+ * from 3369 cents to 3400 and the fifth from 2786 to 2800 -- small moves, and after them a chord
+ * in that scale does not beat. The timbre scale is excluded, because it is itself computed from
+ * the spectrum: a scale that follows the partials and partials that follow the scale would chase
+ * each other round in a circle, and neither would mean anything.
+ */
 double Engine::matchedPartialRatio(int h) const
 {
     if (h < 1) return 1.0;
@@ -588,13 +656,17 @@ double Engine::frequencyOf(int note) const
     return f;
 }
 
-// The pure offset for a note arriving into a chord. Against every sounding voice the interval
-// is reduced to an octave and matched to the nearest small-integer ratio (5-limit and the
-// septimal tritone); the offset that would make that interval exact is weighted by the ratio's
-// simplicity -- the fifth speaks louder than the minor seventh -- and the weighted mean is the
-// answer, capped at thirty cents so a note that fits nothing is not thrown across a quarter tone.
-// The sounding voices' frequencies come through frequencyOf, so they carry their own offsets
-// and the shared comma, and a note tuned against them lands pure in the world as it is now.
+/**
+ * @brief The pure offset for a note arriving into a chord.
+ *
+ * Against every sounding voice the interval
+ * is reduced to an octave and matched to the nearest small-integer ratio (5-limit and the
+ * septimal tritone); the offset that would make that interval exact is weighted by the ratio's
+ * simplicity -- the fifth speaks louder than the minor seventh -- and the weighted mean is the
+ * answer, capped at thirty cents so a note that fits nothing is not thrown across a quarter tone.
+ * The sounding voices' frequencies come through frequencyOf, so they carry their own offsets
+ * and the shared comma, and a note tuned against them lands pure in the world as it is now.
+ */
 float Engine::adaptiveOffset(int note) const
 {
     if (note < 0 || note > 127) return 0.0f;
@@ -803,9 +875,13 @@ void Engine::stopNote(int note, int owner)
     if (rolesUsed_) updatePlaces();   // a note letting go hands its place on
 }
 
-// Every sounding note's place in its group, for the slot roles. Releasing notes hand theirs on:
-// they are left out of the reckoning, so the note above a bass that is fading becomes the lowest
-// while the bass is still audible, which is when the ear wants the cello to move up to it.
+/**
+ * @brief Every sounding note's place in its group, for the slot roles.
+ *
+ * Releasing notes hand theirs on:
+ * they are left out of the reckoning, so the note above a bass that is fading becomes the lowest
+ * while the bass is still audible, which is when the ear wants the cello to move up to it.
+ */
 void Engine::updatePlaces()
 {
     int lo[3] = { 128, 128, 128 }, hi[3] = { -1, -1, -1 };
@@ -822,8 +898,10 @@ void Engine::updatePlaces()
     }
 }
 
-// A near event's note: on the near source, with the event's shape, never a strike unless the
-// section has one, and placed by the scheduler rather than by the dice.
+/**
+ * @brief A near event's note: on the near source, with the event's shape, never a strike unless the
+ *        section has one, and placed by the scheduler rather than by the dice.
+ */
 void Engine::startNearNote(const NearNote& e)
 {
     if (e.note < 0 || e.note > 127) return;

@@ -1,3 +1,22 @@
+/**
+ * @file Score.cpp
+ * @brief The score: parsing and writing the timed-ramp text, and the ramp arithmetic.
+ *
+ * Score.h holds the player (step() is a template and lives there); this file holds everything
+ * around it. parseScoreTime() and writeScoreTime() are the clock notation -- h:mm:ss, m:ss or plain
+ * seconds -- that the score shares with nothing else in the program. Score::parse() reads the text
+ * line by line, tokenises on blanks, strips '#' comments, resolves the parameter by its key
+ * (findParam), accepts a choice by name and a switch as on/off, clamps the value into the
+ * parameter's range and refuses the whole text on the first bad line, so a piece is either
+ * loaded entirely or not at all. Score::write() is the inverse and produces text that parse()
+ * reads back to the same events.
+ *
+ * Score::rampValue() is where a ramp gets its shape: a float travels in the parameter's skewed
+ * domain, the one the knob, the morph and the map blend use, so a logarithmic cutoff sweeps the
+ * way the hand would sweep it; a choice, a switch or an integer does not travel at all and flips
+ * when the ramp is over. load() and save() are the file forms and allocate, so they belong on the
+ * message thread; parse() and write() work on memory the caller owns.
+ */
 #include "ambient/Score.h"
 #include <cmath>
 #include <cstdio>

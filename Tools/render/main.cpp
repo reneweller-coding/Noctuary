@@ -1,17 +1,28 @@
-// ambient_render -- offline renderer for Noctuary (no JUCE, deterministic).
-// Renders the engine to a 32-bit float WAV and prints measurements, so a patch
-// can be judged by numbers instead of by ear.
-//
-//   ambient_render [--out file.wav] [--seconds 60] [--sr 48000] [--block 256]
-//                  [--preset "name"] [--set key=value]... [--notes 45,52,59]
-//                  [--scl file.scl] [--stats] [--list] [--list-presets]
-//                  [--texture file.wav [baseHz]] [--wavetable file.wav]
-//                  [--mod "lfo1>cutoff:0.4;..."] [--env 1 "0:0/2:1/8:0"] [--src-env 2 "0:0/1:1"]
-//                  [--map x y [radius]] (render the preset-map blend at a cursor) [--dump] (print all parameters)
-//                  [--ir impulse.wav] (convolution room impulse, mono or stereo) [--ir-b impulse.wav] (Room Morph's second)
-//                  [--write-default-ir file.wav] (the Room's built-in hall as a WAV at --sr, then exit)
-//                  [--route "name or text" [speed]] (walk a route over the map; --list-routes)
-//                  [--set-file set.ambientset] (replay a recorded set; length = set + 20 s unless --seconds)
+/**
+ * @file main.cpp
+ * @brief ambient_render -- offline renderer for Noctuary (no JUCE, deterministic).
+ *
+ * Renders the engine to a 32-bit float WAV and prints measurements, so a patch
+ * can be judged by numbers instead of by ear.
+ *
+ * @code
+ *   ambient_render [--out file.wav] [--seconds 60] [--sr 48000] [--block 256]
+ *                  [--preset "name"] [--set key=value]... [--notes 45,52,59]
+ *                  [--scl file.scl] [--stats] [--list] [--list-presets]
+ *                  [--texture file.wav [baseHz]] [--wavetable file.wav]
+ *                  [--mod "lfo1>cutoff:0.4;..."] [--env 1 "0:0/2:1/8:0"] [--src-env 2 "0:0/1:1"]
+ *                  [--map x y [radius]] (render the preset-map blend at a cursor) [--dump] (print all parameters)
+ *                  [--ir impulse.wav] (convolution room impulse, mono or stereo) [--ir-b impulse.wav] (Room Morph's second)
+ *                  [--write-default-ir file.wav] (the Room's built-in hall as a WAV at --sr, then exit)
+ *                  [--route "name or text" [speed]] (walk a route over the map; --list-routes)
+ *                  [--set-file set.ambientset] (replay a recorded set; length = set + 20 s unless --seconds)
+ * @endcode
+ *
+ * The usage line is the tool as it started; runOnce() reads the whole list, which has grown to
+ * include the measurement modes (--measure, --bands, --tonal, --loudness, --tap, --skip, --hour),
+ * the stems, a score, a journey, the near layer's options, the pack loader and --bench, and main()
+ * adds --batch. Each option is described where it is parsed.
+ */
 #include "ambient/Engine.h"
 #include "ambient/Params.h"
 #include "ambient/Presets.h"
@@ -41,8 +52,17 @@ using namespace ambient;
 
 namespace {
 
-// The near source's clip from a file, or a pool of them from a folder (sorted by name, up to 48,
-// each kept to twenty seconds -- phrases, not beds): the render's twin of the plugin's loader.
+/**
+ * @brief The near source's clip from a file, or a pool of them from a folder (sorted by name, up to 48,
+ *        each kept to twenty seconds -- phrases, not beds): the render's twin of the plugin's loader.
+ *
+ * A file goes in through Engine::setNearTexture, a folder through Engine::setNearTextures; the
+ * base pitch is middle C unless the name says otherwise, and a "loop" in the name makes the clip
+ * seamless (loopFromName). Prints what it loaded on stdout.
+ * @param engine  the engine to hand the clip or the pool to; may be called before or after prepare
+ * @param path    a WAV/FLAC/AIFF file, or a folder of them
+ * @return        false when nothing readable was found at @p path
+ */
 bool loadNearClips(Engine& engine, const std::string& path)
 {
     std::error_code ec;
@@ -83,6 +103,14 @@ bool loadNearClips(Engine& engine, const std::string& path)
     return true;
 }
 
+/**
+ * @brief Writes interleaved samples as a 32-bit float WAV (RIFF, format 3), the way the plugin reads them back.
+ * @param path         the file to create or overwrite
+ * @param interleaved  the samples, frame by frame, channels interleaved
+ * @param channels     channels per frame (1 for a tap, 2 for the mix and the stems)
+ * @param sampleRate   sample rate in Hz for the header
+ * @return             false when the file could not be opened or the write failed
+ */
 bool writeWav(const std::string& path, const std::vector<float>& interleaved, int channels, int sampleRate)
 {
     std::ofstream f(path, std::ios::binary);
@@ -102,14 +130,24 @@ bool writeWav(const std::string& path, const std::vector<float>& interleaved, in
 } // namespace
 
 // ---------------------------------------------------------------- --measure
-//
-// Renders and prints the descriptors instead of writing a file. The measurement pass over the
-// library used to render each preset to a temporary WAV and read it straight back: five thousand
-// presets times twelve seconds of stereo float is twenty-three gigabytes written and read again
-// for nothing, and all of it stayed in the file cache afterwards.
 namespace {
+/**
+ * @name The `--measure` mode
+ *
+ * Renders and prints the descriptors instead of writing a file. The measurement pass over the
+ * library used to render each preset to a temporary WAV and read it straight back: five thousand
+ * presets times twelve seconds of stereo float is twenty-three gigabytes written and read again
+ * for nothing, and all of it stayed in the file cache afterwards.
+ * @{
+ */
 
-// In-place radix-2 FFT on interleaved real/imag, n a power of two.
+/**
+ * @brief In-place radix-2 FFT on interleaved real/imag, n a power of two.
+ *
+ * Forward transform, no scaling; the two arrays are the real and imaginary parts, each of length n.
+ * @param re  real parts in, real parts of the spectrum out
+ * @param im  imaginary parts in (zeros for a real signal), imaginary parts of the spectrum out
+ */
 void fft(std::vector<float>& re, std::vector<float>& im)
 {
     const int n = static_cast<int>(re.size());
@@ -137,18 +175,36 @@ void fft(std::vector<float>& re, std::vector<float>& im)
     }
 }
 
-// Centroid, flatness, flux, low-band share, stereo width and level of the settled half -- and,
-// for the preset map, three descriptors that say what a drone is like rather than what a note is
-// like: how much it changes over a minute, how rough its spectrum is, and how wet it stands.
-// stemE holds the energy of the four buses (near, far, cosmos, room) or is null.
-// --bands (14.09.2026): with --measure, one more line -- the settled half's energy in ten octave bands,
-// 31.5 Hz to 16 kHz, in dB of mean power per frame. For asking whether every source of a preset can be
-// heard: rendered one source at a time in a batch, the bands say which source carries which part of
-// the spectrum, without writing tens of thousands of files to read them back. The two channels are
-// measured apart and their powers averaged, as loudness adds them: through the mono sum the other
-// descriptors use, a wide texture loses up to 3 dB against a centred source it is compared with.
+/**
+ * @brief --bands (14.09.2026): with --measure, one more line -- the settled half's energy in ten octave bands,
+ *        31.5 Hz to 16 kHz, in dB of mean power per frame.
+ *
+ * For asking whether every source of a preset can be
+ * heard: rendered one source at a time in a batch, the bands say which source carries which part of
+ * the spectrum, without writing tens of thousands of files to read them back. The two channels are
+ * measured apart and their powers averaged, as loudness adds them: through the mono sum the other
+ * descriptors use, a wide texture loses up to 3 dB against a centred source it is compared with.
+ *
+ * Set once by runOnce() while it reads the command line; read by printMeasurements().
+ */
 bool g_printBands = false;
 
+/**
+ * @brief Centroid, flatness, flux, low-band share, stereo width and level of the settled half -- and,
+ *        for the preset map, three descriptors that say what a drone is like rather than what a note is
+ *        like: how much it changes over a minute, how rough its spectrum is, and how wet it stands.
+ *
+ * stemE holds the energy of the four buses (near, far, cosmos, room) or is null.
+ *
+ * Prints the `measure:` line (descriptors, peak, click, DC, mono loss, evolution, roughness, wet and
+ * the sample hash), then the `timbre:` line of sixteen cepstral means and sixteen spreads, and with
+ * g_printBands the `bands:` line. A render shorter than 4096 samples prints a silent measure line.
+ * @param L       the left channel of the whole render; the settled half is its second half
+ * @param R       the right channel, the same length
+ * @param sr      sample rate in Hz
+ * @param voices  the voice count to print, averaged over the settled half by the caller
+ * @param stemE   energies of the four stems over the settled half, or null (wet is then 0)
+ */
 void printMeasurements(const std::vector<float>& L, const std::vector<float>& R, int sr, double voices,
                        const double* stemE = nullptr)
 {
@@ -385,31 +441,55 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
     }
 }
 
+/** @} */
 } // namespace
 
-// One render, exactly as the command line asks for it. main() below calls this once, or once
-// per preset when --batch is given.
 // ---------------------------------------------------------------- does it follow the note?
-//
-// Plays the same two-note chord twice, a tritone apart, and asks how much of the sound moved with
-// it. Everything a preset makes divides into two: material that is pitched to what is played -- the
-// slots that follow the note, their partials, the filters riding on them -- and material that is
-// not: the Foundation on the conductor's root, a Free sample bed, noise, the tail of a reverb. Only
-// the first can be heard as harmony. A listener who plays a chord, then another, and hears the same
-// thing both times is hearing a preset whose second kind drowns out its first.
-//
-// The overlap of the two normalised spectra is exactly that share: what sits at the same place in
-// both is what did not move. 0 % means everything followed, 100 % means nothing did.
-//
-// The second number is where the weight is. The Foundation lives under about 130 Hz and the played
-// material mostly above 150; their ratio in decibels says whether the bass is a foundation under
-// the music or a lid on top of it.
-//
-// A tritone because it is the largest move in pitch class that keeps the register: a chord an
-// octave up would leave a register-folded bass exactly where it was and look like a preset that
-// does not follow, which is how the first version of this measurement fooled its author.
+/**
+ * @brief What the tonal probe measured: how much of a preset stays put when the chord moves, and where its weight is.
+ *
+ * Plays the same two-note chord twice, a tritone apart, and asks how much of the sound moved with
+ * it. Everything a preset makes divides into two: material that is pitched to what is played -- the
+ * slots that follow the note, their partials, the filters riding on them -- and material that is
+ * not: the Foundation on the conductor's root, a Free sample bed, noise, the tail of a reverb. Only
+ * the first can be heard as harmony. A listener who plays a chord, then another, and hears the same
+ * thing both times is hearing a preset whose second kind drowns out its first.
+ *
+ * The overlap of the two normalised spectra is exactly that share: what sits at the same place in
+ * both is what did not move. 0 % means everything followed, 100 % means nothing did.
+ *
+ * The second number is where the weight is. The Foundation lives under about 130 Hz and the played
+ * material mostly above 150; their ratio in decibels says whether the bass is a foundation under
+ * the music or a lid on top of it.
+ *
+ * A tritone because it is the largest move in pitch class that keeps the register: a chord an
+ * octave up would leave a register-folded bass exactly where it was and look like a preset that
+ * does not follow, which is how the first version of this measurement fooled its author.
+ */
 struct TonalProbe { double staticShare = 0.0, bassDb = 0.0, rms = -120.0; };
+/** @var TonalProbe::staticShare
+ *  the overlap of the two normalised spectra in percent: 0 everything followed the note, 100 nothing did
+ */
+/** @var TonalProbe::bassDb
+ *  energy in 20 .. 130 Hz against 150 .. 5000 Hz over both passes, in dB: positive means the bass sits on top
+ */
+/** @var TonalProbe::rms
+ *  mean power of the settled parts of both passes (mono sum), in dBFS; -120 when nothing was measured
+ */
 
+/**
+ * @brief Renders the probe's two passes and compares their Welch spectra bin by bin.
+ *
+ * Each pass resets the engine (allNotesOff, reset), holds a fifth -- A3 + E4, then D#4 + A#4 --
+ * for @p seconds, and keeps the last two thirds as the settled part, as every other measurement
+ * here. The spectrum is 32768-point Hann windows at half overlap, averaged. The engine is left
+ * reset and silent.
+ * @param engine   the engine with its preset applied and prepared at @p sr
+ * @param sr       sample rate in Hz
+ * @param seconds  length of each pass; the first third is discarded
+ * @return         the three numbers, or a default-constructed TonalProbe when a pass was too short
+ *                 for one window or came out silent
+ */
 TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
 {
     constexpr int kFft = 1 << 15;
@@ -480,6 +560,23 @@ TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
     return out;
 }
 
+/**
+ * @brief One render, exactly as the command line asks for it.
+ *
+ * main() below calls this once, or once
+ * per preset when --batch is given.
+ *
+ * Reads every option in order, sets the engine up as the plugin would (packs, preset and its
+ * media, near auto, scale, map or route, rooms after prepare), renders the seconds asked block by
+ * block -- a recorded set, a score, a route or a journey moving the parameters as it goes, a
+ * journey's steps crossfaded on a second engine -- and then writes the WAV and the stems, or with
+ * --measure prints the descriptors instead. --tonal prints its line and returns before rendering;
+ * the --list-* options and --bench print and return without an engine run.
+ * @param argc  argument count
+ * @param argv  the options of the file header and the ones parsed below; main() has taken --batch out
+ * @return 0 on success, 1 when a file could not be written or a sample came out non-finite, 2 for a
+ *         command-line error (unknown option, preset, parameter or unreadable file)
+ */
 static int runOnce(int argc, char** argv)
 {
     std::string out = "ambient.wav";
@@ -1193,14 +1290,22 @@ static int runOnce(int argc, char** argv)
     return nans == 0 ? 0 : 1;
 }
 
-// --batch <file>: render every preset named in the file (one name per line, '#' comments), one
-// after another, in this one process.
-//
-// It is not a second code path: the command line is used exactly as it stands, with the name
-// after --preset replaced for each line, and runOnce does the rest. So a batch of eight thousand
-// measures every preset the same way eight thousand separate calls would -- checked by comparing
-// the measure lines of both -- while paying the fixed cost of starting a process and reading the
-// pack files once instead of eight thousand times. On this machine that was 0.7 s a preset.
+/**
+ * @brief --batch \<file\>: render every preset named in the file (one name per line, '#' comments), one
+ *        after another, in this one process.
+ *
+ * It is not a second code path: the command line is used exactly as it stands, with the name
+ * after --preset replaced for each line, and runOnce does the rest. So a batch of eight thousand
+ * measures every preset the same way eight thousand separate calls would -- checked by comparing
+ * the measure lines of both -- while paying the fixed cost of starting a process and reading the
+ * pack files once instead of eight thousand times. On this machine that was 0.7 s a preset.
+ *
+ * Without --batch this is runOnce() and nothing else.
+ * @param argc  argument count, as the runtime hands it over
+ * @param argv  the options; --batch FILE is taken out here, the rest goes to runOnce()
+ * @return runOnce()'s code; in a batch the last non-zero code of any preset, 2 when the list
+ *         could not be read or names nothing
+ */
 int main(int argc, char** argv)
 {
     std::string batchFile;

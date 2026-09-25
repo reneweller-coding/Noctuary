@@ -1,3 +1,37 @@
+/**
+ * @file Presets.cpp
+ * @brief The 256 built-in presets, the four section banks, and the accessors that read them.
+ *
+ * A preset is a name and a "key=value;key=value" string over the parameter table (Presets.h); the
+ * whole of this file is data of that kind and the handful of functions that hand it out. The
+ * built-ins are the DAW's programs 0 .. 255: sixteen families of sixteen, in the order the
+ * "// ---- N..M name" dividers give, which Tools/preset_map.py reads to make the browser's families
+ * and Tools/library/write_builtins.py writes. That tool regenerates the whole array from the
+ * staging packs make_library.py produced (Library/README.md, "How a preset is made") and leaves
+ * everything outside the array -- this head, the included banks, the functions below -- exactly as
+ * it is; so nothing in the table is edited by hand, and a preset that sounds wrong is fixed in the
+ * generator and measured again, not here.
+ *
+ * A built-in has to sound right on a machine where the sample library was never installed: not one
+ * of them names a texture, a wavetable or an impulse (the three file fields are nullptr, and the
+ * rooms are the synthetic reverbs, since the convolution Room would keep whatever impulse was
+ * loaded before). What a built-in does carry beyond its settings is its modulation -- the matrix
+ * rows and the envelope shapes -- in the two string fields after the files (Modulation.h).
+ *
+ * The four section banks (Cosmos, Z-plane, Strike, Near) are layers: each touches one section only
+ * and lands on top of whatever sound is loaded. They are generated too (Tools/make_layer_presets.py,
+ * Tools/make_zplane_bank.py) into the `*Presets.inc` files of Core/src and included here into the
+ * anonymous namespace, each with its per-preset family index and its family names. Entry 0 of every
+ * bank is its Off entry, which belongs to no family (255), and it is also what an out-of-range index
+ * yields, so a stale selector in a saved state falls back to "nothing" rather than to a random sound.
+ *
+ * Only the compiled-in part lives here. The list the rest of the program sees -- numPresets(),
+ * preset(), presetPack() -- is the built-ins followed by every loaded pack and is assembled in
+ * PresetPacks.cpp; the generated descriptions and cards are in PresetText.cpp and the measured
+ * metadata in PresetMeta.cpp. Everything here is plain constant data, readable from any thread;
+ * paramValueFromText is the one piece of logic and is what applyPreset (Presets.h), the editor's
+ * paste of a settings string and the tests use to turn a value's text into a parameter value.
+ */
 #include <cmath>
 #include "ambient/Presets.h"
 #include <cstring>
@@ -8,6 +42,17 @@ namespace ambient {
 namespace {
 
 
+/**
+ * @brief The compiled-in presets: "Init" (the empty preset, every parameter at its default) followed
+ *        by sixteen families of sixteen, 256 in all, in the order of the section dividers.
+ *
+ * Index = DAW program number. Each row is a Preset aggregate: the name, the settings string (one
+ * string literal per line, split after ';' so it stays readable), then -- where the preset has
+ * modulation -- three nullptr file fields, the matrix rows and the envelope shapes. A row that stops
+ * after the settings means the default modulation. The table is written in full by
+ * Tools/library/write_builtins.py, which finds it by its opening line and replaces everything up to
+ * the closing brace, so nothing inside it is edited by hand; builtinPresetCount() is its length.
+ */
 const Preset kPresets[] = {
 
     // ---------------------------------------------------------------- 0..15 Just Drones
@@ -11262,6 +11307,18 @@ const Preset kPresets[] = {
 };
 }
 
+/**
+ * @brief The four section banks, generated into the `*Presets.inc` files of Core/src and included
+ *        here so they live in this translation unit's anonymous namespace next to the built-ins.
+ *
+ * Each .inc defines a `const Preset k<Bank>Presets[]` table, a `const unsigned char
+ * k<Bank>PresetCategory[]` with the family of every entry (255 for the Off entry at index 0, which
+ * has none) and, for the banks with named families, a `const char* const
+ * k<Bank>PresetsFamilyNames[]`.
+ * Cosmos, Strike and Near come from Tools/make_layer_presets.py, the Z-plane bank (one preset per
+ * filter shape, in the shapes' own families) from Tools/make_zplane_bank.py; none of them is edited
+ * by hand. The accessors below are the only way out of this namespace.
+ */
 namespace {
 #include "CosmosPresets.inc"
 #include "ZPlanePresets.inc"
@@ -11269,7 +11326,17 @@ namespace {
 #include "NearPresets.inc"
 }
 
+/**
+ * @brief How many presets the Near bank holds, the Off entry included.
+ * @return the length of kNearPresets (108 at the time of writing)
+ */
 int numNearPresets() { return static_cast<int>(sizeof(kNearPresets) / sizeof(kNearPresets[0])); }
+/**
+ * @brief One preset of the Near bank: the Near Source and Near Events sections, nothing else.
+ *
+ * An index outside 0 .. numNearPresets() - 1 yields entry 0, Near Off. The reference points into the
+ * compiled-in table and stays valid for the life of the program.
+ */
 const Preset& nearPreset(int index)
 {
     const int n = numNearPresets();
@@ -11277,17 +11344,40 @@ const Preset& nearPreset(int index)
     return kNearPresets[index];
 }
 int nearPresetCategory(int i) { return (i >= 0 && i < numNearPresets()) ? kNearPresetCategory[i] : 255; }
+/**
+ * @brief How many families the Near bank's list is divided into.
+ * @return the length of kNearPresetsFamilyNames (12 at the time of writing)
+ */
 int numNearPresetFamilies() { return static_cast<int>(sizeof(kNearPresetsFamilyNames) / sizeof(kNearPresetsFamilyNames[0])); }
 const char* nearPresetFamily(int f) { return (f >= 0 && f < numNearPresetFamilies()) ? kNearPresetsFamilyNames[f] : ""; }
 
 
 
+/**
+ * @brief How many presets the Cosmos bank holds, the Off entry included.
+ * @return the length of kCosmosPresets (257 at the time of writing: Off and sixteen families of
+ *         sixteen)
+ */
 int numCosmosPresets() { return static_cast<int>(sizeof(kCosmosPresets) / sizeof(kCosmosPresets[0])); }
 int cosmosPresetCategory(int i) { return (i >= 0 && i < numCosmosPresets()) ? kCosmosPresetCategory[i] : 255; }
+/**
+ * @brief How many families the Cosmos bank's list is divided into.
+ * @return the length of kCosmosPresetsFamilyNames (16 at the time of writing)
+ */
 int numCosmosPresetFamilies() { return static_cast<int>(sizeof(kCosmosPresetsFamilyNames) / sizeof(kCosmosPresetsFamilyNames[0])); }
 const char* cosmosPresetFamily(int f) { return (f >= 0 && f < numCosmosPresetFamilies()) ? kCosmosPresetsFamilyNames[f] : ""; }
 
+/**
+ * @brief How many presets the Z-plane bank holds: one per filter shape, plus the Off entry.
+ * @return the length of kZPresets (155 at the time of writing)
+ */
 int numZPresets() { return static_cast<int>(sizeof(kZPresets) / sizeof(kZPresets[0])); }
+/**
+ * @brief One preset of the Z-plane bank: the ZPlane section set to one filter shape, nothing else.
+ *
+ * An index outside 0 .. numZPresets() - 1 yields entry 0, Z-plane Off. The reference points into the
+ * compiled-in table and stays valid for the life of the program.
+ */
 const Preset& zPreset(int index)
 {
     const int n = numZPresets();
@@ -11296,7 +11386,17 @@ const Preset& zPreset(int index)
 }
 int zPresetCategory(int i) { return (i >= 0 && i < numZPresets()) ? kZPresetCategory[i] : 255; }
 
+/**
+ * @brief How many presets the Strike bank holds, the Off entry included.
+ * @return the length of kStrikePresets (41 at the time of writing)
+ */
 int numStrikePresets() { return static_cast<int>(sizeof(kStrikePresets) / sizeof(kStrikePresets[0])); }
+/**
+ * @brief One preset of the Strike bank: the Karplus-Strong pluck's section, nothing else.
+ *
+ * An index outside 0 .. numStrikePresets() - 1 yields entry 0, Strike Off. The reference points into the
+ * compiled-in table and stays valid for the life of the program.
+ */
 const Preset& strikePreset(int index)
 {
     const int n = numStrikePresets();
@@ -11304,8 +11404,18 @@ const Preset& strikePreset(int index)
     return kStrikePresets[index];
 }
 int strikePresetCategory(int i) { return (i >= 0 && i < numStrikePresets()) ? kStrikePresetCategory[i] : 255; }
+/**
+ * @brief How many families the Strike bank's list is divided into.
+ * @return the length of kStrikePresetsFamilyNames (4 at the time of writing)
+ */
 int numStrikePresetFamilies() { return static_cast<int>(sizeof(kStrikePresetsFamilyNames) / sizeof(kStrikePresetsFamilyNames[0])); }
 const char* strikePresetFamily(int f) { return (f >= 0 && f < numStrikePresetFamilies()) ? kStrikePresetsFamilyNames[f] : ""; }
+/**
+ * @brief One preset of the Cosmos bank: the Cosmos section (the feedback network), nothing else.
+ *
+ * An index outside 0 .. numCosmosPresets() - 1 yields entry 0, Cosmos Off. The reference points into the
+ * compiled-in table and stays valid for the life of the program.
+ */
 const Preset& cosmosPreset(int index)
 {
     const int n = numCosmosPresets();
@@ -11313,7 +11423,21 @@ const Preset& cosmosPreset(int index)
     return kCosmosPresets[index];
 }
 
+/**
+ * @brief How many presets are compiled in: the length of kPresets, and the index at which the
+ *        loaded packs begin in the list numPresets() counts (PresetPacks.cpp).
+ * @return 256 as generated; never depends on what packs are loaded
+ */
 int builtinPresetCount() { return static_cast<int>(sizeof(kPresets) / sizeof(kPresets[0])); }
+/**
+ * @brief One of the compiled-in presets, by DAW program number.
+ *
+ * Only PresetPacks.cpp's preset() and the plugin's program count should need this directly;
+ * everything that walks presets goes through preset(), which sees the packs as well.
+ *
+ * An index outside 0 .. builtinPresetCount() - 1 yields entry 0, "Init". The reference points into
+ * kPresets and stays valid for the life of the program.
+ */
 const Preset& builtinPreset(int index)
 {
     const int n = builtinPresetCount();
@@ -11321,6 +11445,20 @@ const Preset& builtinPreset(int index)
     return kPresets[index];
 }
 
+/**
+ * @brief Turns the text of one "key=value" pair into the parameter's float value.
+ *
+ * The order of attempts: a Choice parameter's value may be the choice's name, which wins over
+ * anything numeric; a Bool accepts "on"/"true"/"yes" and "off"/"false"/"no"; anything else -- and a
+ * choice or bool given as a number -- goes through atof and is clamped to the parameter's range.
+ * The result is what applyPreset hands to the engine's set function, so the clamp here is what
+ * keeps a mistyped pack line from putting a parameter outside its range.
+ *
+ * The descriptor supplies the kind, the choice names, the range and the default; the text is the
+ * value as it stands in the settings string, or nullptr. The result is in the parameter's own units,
+ * clamped to [d.min, d.max]; it is d.def for nullptr and for text that is not a number at all ("nan"
+ * included, see the comment in the body).
+ */
 float paramValueFromText(const ParamDesc& d, const char* text)
 {
     if (text == nullptr) return d.def;

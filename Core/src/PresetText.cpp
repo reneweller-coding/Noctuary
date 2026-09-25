@@ -1,10 +1,13 @@
-// Noctuary -- a sentence about a preset.
-//
-// Six thousand eight hundred names tell you nothing. u-he's browsers put a line of prose under
-// every patch, and the reason it works is that the line says what the thing IS, not what it is
-// called. Ours is not written by hand and not invented: the first half comes from what the preset
-// measured (the same ranks the map is laid out from), the second from what its settings actually
-// switch on. Nothing here is a guess -- if the line says "the Cosmos is open", cosmos_send is up.
+/**
+ * @file PresetText.cpp
+ * @brief A sentence about a preset.
+ *
+ * Six thousand eight hundred names tell you nothing. u-he's browsers put a line of prose under
+ * every patch, and the reason it works is that the line says what the thing IS, not what it is
+ * called. Ours is not written by hand and not invented: the first half comes from what the preset
+ * measured (the same ranks the map is laid out from), the second from what its settings actually
+ * switch on. Nothing here is a guess -- if the line says "the Cosmos is open", cosmos_send is up.
+ */
 #include "ambient/Presets.h"
 #include "ambient/PresetMeta.h"
 #include "ambient/Params.h"
@@ -20,8 +23,17 @@
 namespace ambient {
 namespace {
 
-// The settings string is "key=value;key=value". Only a handful of keys are ever asked for, so it
-// is walked rather than parsed into a map.
+/**
+ * @brief The value written for one key in a preset's settings, or an empty string when the preset
+ *        does not mention it.
+ *
+ * The settings string is "key=value;key=value". Only a handful of keys are ever asked for, so it
+ * is walked rather than parsed into a map.
+ *
+ * @param settings  the preset's settings string; nullptr is treated as empty
+ * @param key       the parameter key to look for, matched whole (not as a prefix)
+ * @return          the text between '=' and the next ';', or "" when the key is absent
+ */
 std::string valueOf(const char* settings, const char* key)
 {
     if (settings == nullptr || key == nullptr) return {};
@@ -38,6 +50,14 @@ std::string valueOf(const char* settings, const char* key)
     return {};
 }
 
+/**
+ * @brief The value written for one key, read as a number.
+ * @param settings  the preset's settings string
+ * @param key       the parameter key to look for
+ * @param fallback  what to answer when the preset does not mention the key -- the caller passes
+ *                  the parameter's default where the question depends on it
+ * @return          the value as atof reads it, or @p fallback when the key is absent
+ */
 float numberOf(const char* settings, const char* key, float fallback = 0.0f)
 {
     const std::string v = valueOf(settings, key);
@@ -46,7 +66,12 @@ float numberOf(const char* settings, const char* key, float fallback = 0.0f)
 }
 
 
-// "a, b and c" out of a list -- the last comma is what makes a sentence read as English.
+/**
+ * @brief "a, b and c" out of a list -- the last comma is what makes a sentence read as English.
+ * @param v  the items in the order they are said
+ * @return   the items joined with ", " and a final " and "; empty for an empty list, the item alone
+ *           for one
+ */
 std::string listOf(const std::vector<std::string>& v)
 {
     std::string out;
@@ -57,6 +82,15 @@ std::string listOf(const std::vector<std::string>& v)
     return out;
 }
 
+/**
+ * @brief What a source type is called in a sentence: "an additive bank", "a grain texture", "noise".
+ *
+ * The names are the choice names of the source slots (kSourceTypeNames, Sources.h) as they stand
+ * in a preset's settings; "Wavetable" is the pre-format-2 spelling of "Table" and reads the same.
+ *
+ * @param type  the source type as written in the settings, e.g. "Additive" or "Clip"
+ * @return      a noun phrase with its article, or nullptr for "Off" and for a type without a word
+ */
 const char* sourceWord(const std::string& type)
 {
     if (type == "Additive") return "an additive bank";
@@ -88,7 +122,9 @@ const char* sourceWord(const std::string& type)
 
 }   // namespace
 
-// One or two sentences: what it sounds like, then what is in it.
+/**
+ * One or two sentences: what it sounds like, then what is in it.
+ */
 std::string presetDescription(int index)
 {
     if (index < 0 || index >= numPresets()) return {};
@@ -178,11 +214,13 @@ std::string presetDescription(int index)
     return out;
 }
 
-// The whole card, in the manner of u-he's PRESET INFO: what it is, what it sounds like, what it
-// is filed under, and last what your hands do in it. That order is not taste: the panel paints
-// until it runs out of height, and on the map side it has 240 pixels, so what identifies a preset
-// stands above the list of its routes. Longer than the one-line description, and put together from the same
-// three sources -- the measurements, the settings, and the preset's own modulation matrix.
+/**
+ * The whole card, in the manner of u-he's PRESET INFO: what it is, what it sounds like, what it
+ * is filed under, and last what your hands do in it. That order is not taste: the panel paints
+ * until it runs out of height, and on the map side it has 240 pixels, so what identifies a preset
+ * stands above the list of its routes. Longer than the one-line description, and put together from the same
+ * three sources -- the measurements, the settings, and the preset's own modulation matrix.
+ */
 std::string presetInfoText(int index)
 {
     if (index < 0 || index >= numPresets()) return {};

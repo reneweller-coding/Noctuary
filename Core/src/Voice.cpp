@@ -1,3 +1,31 @@
+/**
+ * @file Voice.cpp
+ * @brief One voice of the instrument: its strand bank, its sources, its place in the room, and the
+ *        two planes it renders into.
+ *
+ * A Voice (Voice.h) is one sounding note. Its own sound is a bank of up to kMaxStrands strands,
+ * each a phasor bank of kMaxPartials partials (Simd.h) fed by the additive formula -- tilt,
+ * brightness window, odd/even, inharmonic stretch, shimmer, presence -- and beside the bank stand
+ * the kSlots source slots (Sources.cpp), which render into the same filter, envelope and
+ * placement. What this file adds to the sources is everything that makes the note a note in a
+ * room: the envelope, the strike (a Karplus-Strong burst on the near plane), portamento with a
+ * gravity towards the just ratios, the breathing distance and the depth law, Bloom and the slots'
+ * own entrances, the slot roles, the filter and the z-plane, air and its Ghost mode, and the whole
+ * of the binaural placement -- interaural time difference, the head shadow (a one-pole, or Brown
+ * and Duda's spherical head), the near field's low shelf, the pinna notch and shoulder reflection
+ * that externalise and give height, the phase field -- ending in the split between the near plane
+ * and the far one that the Engine sends into its reverbs.
+ *
+ * Two entry points do the work. control() runs once per control block (kControlBlock samples) and
+ * turns the parameters and the drifters into per-block targets: envelope times, the strands'
+ * frequencies and partial amplitudes with their per-sample steps, filter coefficients, ITD
+ * targets, shadow and shelf coefficients. render() then runs the samples: it calls control(),
+ * renders the slots, steps the phasor banks, and takes each sample through the filters, the
+ * wavefolder, the air, the delay and the head, adding the result into the four buffers it is
+ * given. Both run on the audio thread; prepare() runs on the message thread once per sample rate
+ * and seeds every random stream -- and the order of those seeds is load-bearing, because every
+ * preset's random phases and drifts depend on it (the oracle test hears a changed draw).
+ */
 #include "ambient/Voice.h"
 #include "ambient/Simd.h"
 #include "ambient/Params.h"   // kStackRatios
@@ -8,26 +36,34 @@
 namespace ambient {
 
 namespace {
+/**
+ * @brief A phasor (cosine, sine) at a phase given in cycles: the voice's name for Simd.h's phasorFrom().
+ * @param phase01  the phase in cycles, 0 .. 1 (a rotation per sample is given the same way)
+ * @param c        receives the cosine
+ * @param s        receives the sine
+ */
 inline void phasorFromPhase(double phase01, float& c, float& s) { phasorFrom(phase01, c, s); }
 
-// log2 of the harmonic numbers, so the presence bell needs one log2 per strand, not per partial.
+/** @brief log2 of the harmonic numbers, so the presence bell needs one log2 per strand, not per partial. */
 struct Log2Harmonics {
-    float v[kMaxPartials + 1];
+    float v[kMaxPartials + 1];   ///< v[h] = log2(h) for h = 1 .. kMaxPartials; v[0] is 0 and unused
+    /** @brief Fills the table once, at static initialisation. */
     Log2Harmonics() { v[0] = 0.0f; for (int h = 1; h <= kMaxPartials; ++h) v[h] = std::log2(static_cast<float>(h)); }
 };
-const Log2Harmonics kLog2H;
-constexpr float kPresenceCentreLog2 = 11.64386f;   // log2(3200 Hz): the bell spans about 1.8-5.6 kHz
-constexpr float kPresenceHalfWidth  = 0.8f;        // octaves to the bell's zero
+const Log2Harmonics kLog2H;   ///< the one table, read by control() for the presence bell
+constexpr float kPresenceCentreLog2 = 11.64386f;   ///< log2(3200 Hz): the bell spans about 1.8-5.6 kHz
+constexpr float kPresenceHalfWidth  = 0.8f;        ///< octaves to the bell's zero
 
-// Harmonic numbers as floats: phase modulation of the waveform by θ moves partial h by h·θ.
+/** @brief Harmonic numbers as floats: phase modulation of the waveform by θ moves partial h by h·θ. */
 struct HarmonicNumbers {
-    float v[kMaxPartials];
+    float v[kMaxPartials];   ///< v[i] = i + 1, the harmonic number of partial i, as the FM bank step wants it
+    /** @brief Fills the table once, at static initialisation. */
     HarmonicNumbers() { for (int h = 0; h < kMaxPartials; ++h) v[h] = static_cast<float>(h + 1); }
 };
-const HarmonicNumbers kHf;
-constexpr float kFmMaxStep = 0.4f;   // per-sample deviation clamp (tan of the angle): keeps the two-step normalisation exact
-constexpr float kSqrt2 = 1.41421356237f;
-constexpr float kSqrt2Half = 0.70710678119f;
+const HarmonicNumbers kHf;   ///< the one table, handed to phasorBankStepFm() every sample of a modulated voice
+constexpr float kFmMaxStep = 0.4f;   ///< per-sample deviation clamp (tan of the angle): keeps the two-step normalisation exact
+constexpr float kSqrt2 = 1.41421356237f;         ///< sqrt(2): a partial's whole weight on one ear when Partial Spread stops it there
+constexpr float kSqrt2Half = 0.70710678119f;     ///< 1 / sqrt(2): composes the spread's sum and difference with the strand's pan angle
 }
 
 void Voice::prepare(double sampleRate, uint64_t seed)
@@ -85,11 +121,19 @@ void Voice::prepare(double sampleRate, uint64_t seed)
     note_ = -1;
 }
 
-// The plane as the ear would rank it. Heard distance grows with physical distance as roughly a
-// power of a half (Zahorik 2002, 2005: the pooled exponent is about 0.54), so a knob that is
-// linear in the model's distance spends most of its perceptual travel in its near half. Depth
-// Law bends it back: d^(1 + 0.85 law), which at 1 is d^1.85, the inverse of that exponent. The
-// ends stay where they are -- 0 is still the ear and 1 is still the horizon.
+/**
+ * @brief The plane as the ear would rank it.
+ *
+ * Heard distance grows with physical distance as roughly a
+ * power of a half (Zahorik 2002, 2005: the pooled exponent is about 0.54), so a knob that is
+ * linear in the model's distance spends most of its perceptual travel in its near half. Depth
+ * Law bends it back: d^(1 + 0.85 law), which at 1 is d^1.85, the inverse of that exponent. The
+ * ends stay where they are -- 0 is still the ear and 1 is still the horizon.
+ *
+ * @param d    the model's distance, 0 (the ear) .. 1 (the horizon)
+ * @param law  the Depth Law amount, 0 .. 1; at 0 the distance is returned as it is
+ * @return     the distance the placement works from, 0 .. 1
+ */
 static inline float perceivedDistance(float d, float law)
 {
     return law > 0.0f ? std::pow(clampv(d, 0.0f, 1.0f), 1.0f + 0.85f * clampv(law, 0.0f, 1.0f)) : d;
@@ -170,10 +214,14 @@ void Voice::noteOn(int note, double freqHz, float velocity, int owner, float dis
     if (p.strikeLevel > 0.0f && allowStrike && (owner == 0 || p.strikeBrain)) { strikeStart(freqHz, p); ++strikes_; }
 }
 
-// The strike: a burst of noise into a delay loop with a damping low pass (Karplus-Strong). String
-// rings at the note; Wood is two octaves up, short and dull; Metal puts an all-pass in the loop,
-// which stretches the partials into something clangorous. It plays on the near plane whatever
-// the voice's distance -- the intimate impulse that makes the background behind it vast.
+/**
+ * @brief The strike: a burst of noise into a delay loop with a damping low pass (Karplus-Strong).
+ *
+ * String
+ * rings at the note; Wood is two octaves up, short and dull; Metal puts an all-pass in the loop,
+ * which stretches the partials into something clangorous. It plays on the near plane whatever
+ * the voice's distance -- the intimate impulse that makes the background behind it vast.
+ */
 void Voice::strikeStart(double hz, const VoiceParams& p)
 {
     const int type = clampv(p.strikeType, 0, 2);
@@ -213,8 +261,10 @@ inline float Voice::strikeTick()
 }
 
 void Voice::noteOff() { env_.noteOff(); }
-// Silence at once, and that includes a strike still ringing on its own physics: the render loop
-// now runs while EITHER the envelope or the strike is going, and a reset has to stop both.
+/**
+ * @brief Silence at once, and that includes a strike still ringing on its own physics: the render loop
+ *        now runs while EITHER the envelope or the strike is going, and a reset has to stop both.
+ */
 void Voice::kill()    { env_.kill(); note_ = -1; portaLeft_ = 0.0f; ksOn_ = false; }
 
 void Voice::glideFrom(double fromHz, float seconds, float gravity)

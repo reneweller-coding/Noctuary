@@ -1,3 +1,25 @@
+/**
+ * @file Loudness.cpp
+ * @brief The loudness meter: K-weighting, BS.1770 gating, Zwicker's sones and the true peak.
+ *
+ * Four things live here, in the order the header declares them. KFilter::prepare() derives the two
+ * K-weighting stages from the analogue prototypes BS.1770 names, so they hold at any sample rate
+ * rather than only at 48 kHz. ZwickerLoudness turns a Hann-windowed FFT of the mid signal into
+ * third-octave levels, spreads them along the Bark scale into an excitation pattern, applies
+ * Zwicker's compressive law and integrates -- the ISO 532-1 chain -- and pins the result to the
+ * definition of the sone. LoudnessMeter drives both, keeps the 400 ms blocks and the 3 s short-term
+ * values that the gating and the range are computed from, and tracks the inter-sample peak. The
+ * functions in the two anonymous namespaces are the small pieces of arithmetic those three share:
+ * the Bark scale both ways, the mean-square-to-LUFS formula and the four-point interpolator of the
+ * true peak.
+ *
+ * Everything but read() runs on the audio thread and allocates nothing after prepare(); read() runs
+ * on whoever asks and works from snapshots of the two logs (LoudnessLog, Loudness.h). The Fft comes
+ * from Cosmos.h, which is what its include is for.
+ *
+ * kPi arrives from Dsp.h by way of Cosmos.h. A second one in an anonymous namespace here is not
+ * private to this file, it is ambiguous with that one, and the compiler says so.
+ */
 #include "ambient/Loudness.h"
 #include "ambient/Cosmos.h"   // Fft
 #include <algorithm>
@@ -5,9 +27,6 @@
 #include <cstring>
 
 namespace ambient {
-
-// kPi arrives from Dsp.h by way of Cosmos.h. A second one in an anonymous namespace here is not
-// private to this file, it is ambiguous with that one, and the compiler says so.
 
 void KFilter::prepare(double sr)
 {
@@ -47,23 +66,35 @@ float KFilter::process(float x) { return hp_.process(shelf_.process(x)); }
 // ---------------------------------------------------------------- meter
 
 // ---------------------------------------------------------------- loudness in sones
-//
-// The centre frequencies of the third octaves, 25 Hz to 12.5 kHz.
+
 namespace {
 
+/** @brief The centre frequencies of the third octaves, 25 Hz to 12.5 kHz. */
 const float kThirdOctave[ZwickerLoudness::kBands] = {
     25.0f, 31.5f, 40.0f, 50.0f, 63.0f, 80.0f, 100.0f, 125.0f, 160.0f, 200.0f,
     250.0f, 315.0f, 400.0f, 500.0f, 630.0f, 800.0f, 1000.0f, 1250.0f, 1600.0f, 2000.0f,
     2500.0f, 3150.0f, 4000.0f, 5000.0f, 6300.0f, 8000.0f, 10000.0f, 12500.0f,
 };
 
-// Frequency to critical-band rate: Zwicker and Terhardt's analytic fit to the Bark scale.
+/**
+ * @brief Frequency to critical-band rate: Zwicker and Terhardt's analytic fit to the Bark scale.
+ * @param hz  frequency in Hz
+ * @return    the critical-band rate in Bark, 0 at 0 Hz and about 24 at the top of hearing
+ */
 inline float barkOf(float hz)
 {
     const float k = hz * 0.001f;
     return 13.0f * std::atan(0.76f * k) + 3.5f * std::atan((k / 7.5f) * (k / 7.5f));
 }
 
+/**
+ * @brief The inverse of barkOf(): the frequency at a critical-band rate.
+ *
+ * Asked once per 0.1 Bark step of the excitation pattern in rawLoudness(), which is why it can
+ * afford the forty bisection steps in its body.
+ * @param z  critical-band rate in Bark
+ * @return   frequency in Hz, bracketed between 10 Hz and 20 kHz
+ */
 inline float hzOfBark(float z)
 {
     // Inverted by bisection, which is exact enough and needs no second fit that could disagree
@@ -78,9 +109,11 @@ inline float hzOfBark(float z)
 
 } // namespace
 
-// Terhardt's approximation of the absolute threshold of hearing, in dB SPL. Computed rather than
-// tabulated: the standard's table lists the twenty critical bands, and this gives the same curve
-// at whatever centre frequency it is asked about.
+/**
+ * Terhardt's approximation of the absolute threshold of hearing, in dB SPL. Computed rather than
+ * tabulated: the standard's table lists the twenty critical bands, and this gives the same curve
+ * at whatever centre frequency it is asked about.
+ */
 float ZwickerLoudness::thresholdInQuiet(float hz)
 {
     const float k = std::max(0.02f, hz * 0.001f);
@@ -134,17 +167,19 @@ float ZwickerLoudness::rawLoudness(const float* levelsDb)
     return static_cast<float>(total);
 }
 
-// The scale, pinned where the unit itself is defined: one sone IS a one-kilohertz tone at 40 dB
-// SPL, heard from the front in a free field. The model above reproduces every RELATIVE property
-// of loudness -- the doubling every ten decibels, the threshold, the growth with bandwidth -- and
-// then sits about a third above that anchor, because it works from third-octave levels where
-// Zwicker's own method works from grouped critical bands and adds a free-field correction.
-//
-// So the anchor is applied, and it is computed rather than written down: the model is asked what
-// it makes of that tone, once, and everything it says afterwards is divided by the answer. If the
-// model is ever changed the constant follows it, and the value that has to be checked against the
-// standard is not this one but the next one along -- 60 dB, which should come out at four sones
-// and does, to within a few per cent, with nothing pinning it there.
+/**
+ * The scale, pinned where the unit itself is defined: one sone IS a one-kilohertz tone at 40 dB
+ * SPL, heard from the front in a free field. The model above reproduces every RELATIVE property
+ * of loudness -- the doubling every ten decibels, the threshold, the growth with bandwidth -- and
+ * then sits about a third above that anchor, because it works from third-octave levels where
+ * Zwicker's own method works from grouped critical bands and adds a free-field correction.
+ *
+ * So the anchor is applied, and it is computed rather than written down: the model is asked what
+ * it makes of that tone, once, and everything it says afterwards is divided by the answer. If the
+ * model is ever changed the constant follows it, and the value that has to be checked against the
+ * standard is not this one but the next one along -- 60 dB, which should come out at four sones
+ * and does, to within a few per cent, with nothing pinning it there.
+ */
 float ZwickerLoudness::fromBandLevels(const float* levelsDb)
 {
     static const float k = [] {
@@ -263,18 +298,30 @@ void LoudnessMeter::reset()
 }
 
 namespace {
-// Loudness of a mean-square pair, the standard's formula with both channel weights at one.
+/**
+ * @brief Loudness of a mean-square pair, the standard's formula with both channel weights at one.
+ * @param msL  mean square of the K-weighted left channel over the block
+ * @param msR  the same for the right channel
+ * @return     the loudness in LUFS, or -120 when both are as good as zero
+ */
 inline float lufs(double msL, double msR)
 {
     const double s = msL + msR;
     return s > 1.0e-12 ? static_cast<float>(-0.691 + 10.0 * std::log10(s)) : -120.0f;
 }
 
-// Four-phase interpolation for the inter-sample peak. Not the standard's 48-tap filter -- a
-// four-point Lagrange, which is honest about being an estimate and catches the overshoot a
-// resampler would produce. It reads within a couple of tenths of a decibel of the long filter on
-// material like this, and it is the difference between "0.0 dBFS, fine" and "this will clip in an
-// mp3 decoder" that matters here.
+/**
+ * @brief Four-phase interpolation for the inter-sample peak.
+ *
+ * Not the standard's 48-tap filter -- a
+ * four-point Lagrange, which is honest about being an estimate and catches the overshoot a
+ * resampler would produce. It reads within a couple of tenths of a decibel of the long filter on
+ * material like this, and it is the difference between "0.0 dBFS, fine" and "this will clip in an
+ * mp3 decoder" that matters here.
+ * @param h  the last four samples of one channel, oldest first; the interval looked at is the one
+ *           between h[1] and h[2]
+ * @return   the largest magnitude among h[1] and the three points interpolated after it
+ */
 inline double interPeak(const float* h)
 {
     double peak = std::fabs(static_cast<double>(h[1]));

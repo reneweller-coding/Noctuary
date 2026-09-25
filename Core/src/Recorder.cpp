@@ -1,3 +1,22 @@
+/**
+ * @file Recorder.cpp
+ * @brief The framework-free WAV recorder: a lock-free ring fed by the audio thread, drained to disk
+ *        by a thread of its own.
+ *
+ * Two threads meet here and never wait for each other. The audio thread calls write() once per
+ * block and only ever touches the ring and its head index; if the ring is full the block is
+ * counted as dropped and the thread moves on, because a stall there is a click in the room. The
+ * writer thread started by start() sleeps in 20 ms steps, copies whatever has arrived into an
+ * 8192-float chunk and hands it to fwrite, and runs until stop() asks it to and the ring is empty.
+ * The ring holds half a million floats, about 5.4 s of stereo at 48 kHz, which is far more than any
+ * disk hiccup the recorder has met.
+ *
+ * The file is 32-bit float WAV (format tag 3). The RIFF header is written with a zero data length
+ * when the file is opened and patched in stop(), once the frame count is known; a recording that
+ * outgrows the 32-bit length fields is capped at 0xFFFFFFFF there, which is what every other WAV
+ * writer does and what readWavChannels (WavFile.cpp) knows to expect. The Quest app and any host
+ * without a writer of its own record through this; the desktop plugin records through JUCE.
+ */
 #include "ambient/Recorder.h"
 #include <chrono>
 #include <cstring>

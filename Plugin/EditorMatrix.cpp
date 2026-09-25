@@ -1,16 +1,19 @@
-// Noctuary -- the modulation matrix as a table of routes.
-//
-// The MATRIX tab used to be a text box: one route per line, "lfo1>cutoff:0.4", with an Apply
-// button. Exact, scriptable, and the wrong thing to put in front of a musician -- somebody who
-// opens a tab called Matrix expects to see the routes, not their spelling. A grid of every source
-// against every parameter is not the answer either: thirty-odd sources by four hundred targets
-// is a wall with a dozen live cells in it. What a Pigments or a Bitwig shows is what this shows:
-// one row per route, each row a source, a target, a depth you can drag, an optional second
-// source that scales it, and whether the source is read as 0..1 or -1..1.
-//
-// The table edits a copy and hands the whole matrix back to the engine as the same text the box
-// used to, so the parser and the presets see nothing new -- and dragging a card onto a knob
-// still adds a row here, because it goes through the same door.
+/**
+ * @file EditorMatrix.cpp
+ * @brief The modulation matrix as a table of routes.
+ *
+ * The MATRIX tab used to be a text box: one route per line, "lfo1>cutoff:0.4", with an Apply
+ * button. Exact, scriptable, and the wrong thing to put in front of a musician -- somebody who
+ * opens a tab called Matrix expects to see the routes, not their spelling. A grid of every source
+ * against every parameter is not the answer either: thirty-odd sources by four hundred targets
+ * is a wall with a dozen live cells in it. What a Pigments or a Bitwig shows is what this shows:
+ * one row per route, each row a source, a target, a depth you can drag, an optional second
+ * source that scales it, and whether the source is read as 0..1 or -1..1.
+ *
+ * The table edits a copy and hands the whole matrix back to the engine as the same text the box
+ * used to, so the parser and the presets see nothing new -- and dragging a card onto a knob
+ * still adds a row here, because it goes through the same door.
+ */
 #include "EditorCommon.h"
 
 using namespace ambient;
@@ -18,13 +21,41 @@ using namespace ambient;
 namespace edt {
 
 namespace {
-constexpr int kRowH = 26, kHeadH = 18, kGap = 4;
+constexpr int kRowH = 26,    ///< height of a route row, px
+              kHeadH = 18,   ///< height of the column heads
+              kGap = 4;      ///< gap between two columns
 
-int sourceItemId(ModSource s) { return static_cast<int>(s) + 1; }   // combo ids start at 1
+/**
+ * @brief The combo-box item id that stands for a modulation source: combo ids start at 1, so it is
+ *        the source's index plus one.
+ * @param s  the source
+ * @return   its item id in the source and via combos (ModSource::None is 1)
+ */
+int sourceItemId(ModSource s) { return static_cast<int>(s) + 1; }
+/**
+ * @brief The modulation source a combo's selected item stands for: the inverse of sourceItemId().
+ * @param id  the selected item id, 0 when nothing is selected
+ * @return    the source, clamped into 0 .. kNumModSources - 1 so a stray id reads as None or as the
+ *            last source rather than as garbage
+ */
 ModSource sourceFromItem(int id) { return static_cast<ModSource>(juce::jlimit(0, kNumModSources - 1, id - 1)); }
 }
 
+/**
+ * @brief One row of the table: the six controls of a single route, and the index of the route they show.
+ *
+ * A row owns nothing but its widgets. Every change in them is reported to the table (changed()),
+ * which reads all rows back with get() and hands the whole matrix to the engine as text; the index
+ * is rewritten by RouteTable::pull() whenever rows above it come or go, so the remove button always
+ * names the right route.
+ */
 struct RouteTable::Row : juce::Component {
+    /**
+     * @brief Builds the six controls and fills the combos: every source but None, the targets grouped
+     *        by section in the parameter table's order, the performance parameters left out.
+     * @param t      the table this row reports to
+     * @param index  the row's position, which is the route's index in the engine's matrix
+     */
     Row(RouteTable& t, int index) : table(t), idx(index)
     {
         for (int s = 1; s < kNumModSources; ++s) source.addItem(modSourceName(static_cast<ModSource>(s)), sourceItemId(static_cast<ModSource>(s)));
@@ -60,6 +91,10 @@ struct RouteTable::Row : juce::Component {
         depth.onValueChange = [this] { table.changed(); };
         remove.onClick  = [this] { table.removeRow(idx); };
     }
+    /**
+     * @brief Shows a route in the controls, without firing their callbacks.
+     * @param r  the route as the engine holds it
+     */
     void set(const ModRoute& r)
     {
         source.setSelectedId(sourceItemId(r.source), juce::dontSendNotification);
@@ -68,6 +103,11 @@ struct RouteTable::Row : juce::Component {
         via.setSelectedId(sourceItemId(r.via), juce::dontSendNotification);
         uni.setToggleState(r.unipolar, juce::dontSendNotification);
     }
+    /**
+     * @brief Reads the controls back as a route.
+     * @return the route the controls describe: source and via clamped to valid ModSource values, the
+     *         target to a valid ParamId, the depth as the slider stands
+     */
     ModRoute get() const
     {
         ModRoute r;
@@ -78,6 +118,11 @@ struct RouteTable::Row : juce::Component {
         r.unipolar = uni.getToggleState();
         return r;
     }
+    /**
+     * @brief Places the controls in their columns: source 96 wide, target 210, the remove button,
+     *        the 0..1 toggle and the via combo cut from the right, the depth slider taking the rest.
+     *        RouteTable::resized makes the same cuts for the heads.
+     */
     void resized() override
     {
         auto a = getLocalBounds().reduced(2, 2);
@@ -88,12 +133,14 @@ struct RouteTable::Row : juce::Component {
         via.setBounds(a.removeFromRight(96));    a.removeFromRight(kGap);
         depth.setBounds(a);
     }
-    RouteTable& table;
-    int idx;
-    juce::ComboBox source, target, via;
-    juce::Slider depth;
-    juce::ToggleButton uni;
-    juce::TextButton remove;
+    RouteTable& table;   ///< the table that owns this row and takes its changes
+    int idx;             ///< the route's index in the matrix, kept in step by RouteTable::pull()
+    juce::ComboBox source,   ///< the route's source, any but None
+                   target,   ///< the target parameter
+                   via;      ///< the second source that scales the depth, "-" for none
+    juce::Slider depth;        ///< -1 .. 1 of the target's range; double-click returns it to 0.25
+    juce::ToggleButton uni;    ///< "0..1": read the source unipolar, so an LFO only adds
+    juce::TextButton remove;   ///< "x": takes this row out of the matrix
 };
 
 RouteTable::RouteTable(NoctuaryProcessor& p, std::function<void()> onChanged)

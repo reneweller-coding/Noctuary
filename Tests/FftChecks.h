@@ -1,15 +1,20 @@
-// The real-input FFT (RealFft in Cosmos.h) against the complex one it is meant to replace, which
-// is the right oracle here: the complex transform has been in the instrument since the Cosmos was
-// built and every spectral check in the self test rests on it, so what has to be shown is that
-// the cheaper route lands in the same place -- not that the arithmetic is a Fourier transform.
-//
-// Checked at every length the instrument uses, on signals chosen to catch what the folding gets
-// wrong: an impulse (all bins equal, so a misplaced rotation shows everywhere), a single bin at
-// and around the middle (where k and n/2-k are the same bin and the pair formula degenerates),
-// noise, and a constant (all the energy in bin 0). Then the round trip, which is what the effects
-// actually do: forward, touch nothing, inverse, and the samples have to come back.
-//
-// Include after a CHECK(cond, msg) macro is defined.
+/**
+ * @file FftChecks.h
+ * @brief The real-input FFT (RealFft in Cosmos.h) against the complex one it is meant to replace.
+ *
+ * The real-input FFT (RealFft in Cosmos.h) against the complex one it is meant to replace, which
+ * is the right oracle here: the complex transform has been in the instrument since the Cosmos was
+ * built and every spectral check in the self test rests on it, so what has to be shown is that
+ * the cheaper route lands in the same place -- not that the arithmetic is a Fourier transform.
+ *
+ * Checked at every length the instrument uses, on signals chosen to catch what the folding gets
+ * wrong: an impulse (all bins equal, so a misplaced rotation shows everywhere), a single bin at
+ * and around the middle (where k and n/2-k are the same bin and the pair formula degenerates),
+ * noise, and a constant (all the energy in bin 0). Then the round trip, which is what the effects
+ * actually do: forward, touch nothing, inverse, and the samples have to come back.
+ *
+ * Include after a CHECK(cond, msg) macro is defined.
+ */
 #pragma once
 #include "ambient/Cosmos.h"
 #include "ambient/Dsp.h"
@@ -17,8 +22,18 @@
 #include <cstdio>
 #include <vector>
 
+/** @brief The real FFT's checks, kept out of the global namespace so that the selftest's own helpers cannot collide with them. */
 namespace fftchecks {
 
+/**
+ * @brief Holds RealFft against the complex Fft at every length the effects use.
+ *
+ * Per length: the forward transform of seven test signals against the complex one, bin by bin over
+ * the whole array (mirror included), within 4e-5 of the largest bin; the round trip back to the
+ * samples within 4e-5 of the peak; the inverse of a random Hermitian spectrum against the complex
+ * inverse, which must also come back real; and the in-place use the callers rely on (the input
+ * array as the output array), which must be bit-identical to the out-of-place result.
+ */
 inline void fftChecks()
 {
     // The lengths the effects use: the Nebula and the shifter at 2048, the Memory smaller, the
@@ -127,4 +142,5 @@ inline void fftChecks()
 
 }   // namespace fftchecks
 
+/** @brief The one call the selftest makes: runs fftchecks::fftChecks(). */
 inline void fftChecks() { fftchecks::fftChecks(); }

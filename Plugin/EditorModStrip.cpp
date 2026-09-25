@@ -1,11 +1,39 @@
+/**
+ * @file EditorModStrip.cpp
+ * @brief The modulation strip along the bottom: the cards, the LFO and envelope editors, the matrix.
+ *
+ * NoctuaryEditor::ModView (PluginEditor.h) is the strip Pigments taught everyone to want under a
+ * synth: a lane of every modulation source as a small card with its live shape, a row of tabs, and
+ * under them the full editors of whichever group is open -- the eight LFOs, the envelopes (the six
+ * modulation envelopes on one page, the four sources' own on the other), or the matrix as a table
+ * of routes (EditorMatrix.cpp). The editor owns it as mod_ inside modPort_ and builds it once. It
+ * runs on the message thread, reads the parameters through apvts and the live values -- LFO phases,
+ * envelope times, the sources' outputs this instant -- through engine() getters, and writes back
+ * through the parameter attachments, Engine::setEnvShape and the matrix text.
+ *
+ * Three gestures start here and end elsewhere. A card dragged out of the lane onto a knob becomes a
+ * route: the drawing of that flight and the depth knob that appears where it lands are the editor's
+ * (EditorDrag.cpp), the route itself is added by addRoute(), as the same text every other door into
+ * the matrix uses. A breakpoint of an envelope dragged, added, removed or given a shape from the
+ * right-click menu is written to the engine as the envelope's text, with an undo point taken first
+ * (envCommit). And a right click on a card lists what that source drives and lets a route go.
+ *
+ * The envelope editor's arithmetic is in one place on purpose: envGeom() gives the geometry of a
+ * row, envToXY() and envFromXY() map through it in both directions, and paintEnv() and the mouse
+ * handlers use nothing else, so what is grabbed is what is seen.
+ */
 #include "EditorCommon.h"
 
 using namespace ambient;
 
-// The modulation strip along the bottom: the cards, the LFO and envelope editors, the matrix.
-
 
 namespace edt {
+/**
+ * LFOs in the accent colour, envelopes in the foreground colour, macros in the morph colour, the
+ * Kuramoto oscillators in the conductor's; everything else -- amp, note, velocity, distance, the
+ * per-note random, beat, cascade and the rest -- in the cosmos colour. The cards, the drag overlay and the
+ * depth popup all take their colour from here, so a route reads as its source wherever it shows.
+ */
 juce::Colour sourceColour(ambient::ModSource s)
 {
     using MS = ambient::ModSource;
@@ -170,7 +198,7 @@ void NoctuaryEditor::ModView::setEnvPage(int page)
     setTab(tab);
 }
 
-// Rows 0..5 are the six modulation envelopes, 6..9 the sources' own; one page shows either.
+/** Rows 0..5 are the six modulation envelopes, 6..9 the sources' own; one page shows either. */
 bool NoctuaryEditor::ModView::envVisible(int env) const
 {
     return (env < ambient::kNumModEnvs) == (envPage == 0);
@@ -181,7 +209,7 @@ const ambient::ModEnv& NoctuaryEditor::ModView::shapeOf(int env) const
     return env < ambient::kNumModEnvs ? proc.engine().envShape(env) : proc.engine().srcEnvShape(env - ambient::kNumModEnvs);
 }
 
-// "env3_depth" for the six, "src2_env_depth" for the sources' own.
+/** "env3_depth" for the six, "src2_env_depth" for the sources' own. */
 juce::String NoctuaryEditor::ModView::envKey(int env, const char* field) const
 {
     return env < ambient::kNumModEnvs ? "env" + juce::String(env + 1) + "_" + field
@@ -195,7 +223,8 @@ void NoctuaryEditor::ModView::pullMatrix()
     matrixInfo.setText(juce::String(proc.engine().modMatrix().count()) + " of 32 routes", juce::dontSendNotification);
 }
 
-NoctuaryEditor::ModView::~ModView() = default;   // here, where RouteTable is a complete type
+/** here, where RouteTable is a complete type */
+NoctuaryEditor::ModView::~ModView() = default;
 
 bool NoctuaryEditor::ModView::addRoute(ambient::ModSource src, ParamId target)
 {
@@ -237,7 +266,19 @@ ambient::LfoSpec NoctuaryEditor::ModView::specOf(int i) const
 // ---------------------------------------------------------------- strip: drawing
 
 namespace {
-// The line is the zero of the curve: the middle for a bipolar shape, the floor (lineY) for a level.
+/**
+ * @brief The frame every LFO and envelope curve is drawn in: the dark card, its edge lit in the row's
+ *        colour when the row is in use, and the zero line across it.
+ *
+ * The line is the zero of the curve: the middle for a bipolar shape, the floor (lineY) for a level.
+ *
+ * @param g      the strip's graphics context
+ * @param r      the row's curve rectangle, in the strip's pixels
+ * @param lit    whether the row does anything (a depth above zero; a source's envelope that is heard):
+ *               lit rows get their edge in @p c, unlit ones the plain card edge
+ * @param c      the row's family colour, the accent for an LFO and the foreground colour for an envelope
+ * @param lineY  the y of the zero line, or negative for the rectangle's vertical centre
+ */
 void curveFrame(juce::Graphics& g, juce::Rectangle<int> r, bool lit, juce::Colour c, float lineY = -1.0f)
 {
     g.setColour(ui::bg0.withAlpha(0.6f));
@@ -470,16 +511,20 @@ void NoctuaryEditor::ModView::mouseMove(const juce::MouseEvent& e)
 }
 
 // ---------------------------------------------------------------- editing an envelope
-//
-// The engine has always had proper envelopes: up to sixteen breakpoints, a curve on every
-// segment, a sustain point and a loop. What it did not have was any way to reach them. The four
-// knobs under each curve set the mode, the time scale, the depth and the sync -- the SHAPE could
-// only arrive from a preset, so on the panel the curve was a picture of something you could not
-// touch, and the instrument looked as though it could not manage an ADSR.
-//
-// Now: drag a point, double-click to add or remove one, right-click for the sustain point, the
-// loop, the curvature of a segment, and a handful of shapes to start from.
 
+/**
+ * The engine has always had proper envelopes: up to sixteen breakpoints, a curve on every
+ * segment, a sustain point and a loop. What it did not have was any way to reach them. The four
+ * knobs under each curve set the mode, the time scale, the depth and the sync -- the SHAPE could
+ * only arrive from a preset, so on the panel the curve was a picture of something you could not
+ * touch, and the instrument looked as though it could not manage an ADSR.
+ *
+ * Now: drag a point, double-click to add or remove one, right-click for the sustain point, the
+ * loop, the curvature of a segment, and a handful of shapes to start from.
+ *
+ * envAt is the door to all of that: every mouse handler of the strip asks it first which row is
+ * under the pointer and, if one is, which of its breakpoints lies within nine pixels of it.
+ */
 int NoctuaryEditor::ModView::envAt(juce::Point<int> pos, int* pointOut) const
 {
     if (tab != 1) return -1;
@@ -501,10 +546,12 @@ int NoctuaryEditor::ModView::envAt(juce::Point<int> pos, int* pointOut) const
     return -1;
 }
 
-// The same mapping paintEnv draws with, so what is grabbed is what is seen.
-// The geometry of one envelope row, in one place. The drawing and the mouse must agree to the
-// pixel or a point is grabbed next to where it is seen -- which is what the first version did,
-// with 8/16/0.34 against the drawing's 5/10/0.36, and Depth left out of the vertical entirely.
+/**
+ * The same mapping paintEnv draws with, so what is grabbed is what is seen.
+ * The geometry of one envelope row, in one place. The drawing and the mouse must agree to the
+ * pixel or a point is grabbed next to where it is seen -- which is what the first version did,
+ * with 8/16/0.34 against the drawing's 5/10/0.36, and Depth left out of the vertical entirely.
+ */
 NoctuaryEditor::ModView::EnvGeom NoctuaryEditor::ModView::envGeom(int env) const
 {
     const auto r = envs[static_cast<size_t>(env)].curve;
@@ -669,8 +716,10 @@ void NoctuaryEditor::ModView::mouseDown(const juce::MouseEvent& e)
     }
 }
 
-// Double click: on a point, remove it; on the curve, put one there. Sixteen is the engine's
-// limit, and past it the click does nothing rather than silently dropping a point somewhere else.
+/**
+ * Double click: on a point, remove it; on the curve, put one there. Sixteen is the engine's
+ * limit, and past it the click does nothing rather than silently dropping a point somewhere else.
+ */
 void NoctuaryEditor::ModView::mouseDoubleClick(const juce::MouseEvent& e)
 {
     int point = -1;

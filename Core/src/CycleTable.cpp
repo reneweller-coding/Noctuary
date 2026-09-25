@@ -1,3 +1,17 @@
+/**
+ * @file CycleTable.cpp
+ * @brief Building the cycle stacks: analysis, resynthesis at ten levels, and the built-in tables.
+ *
+ * The playing side of the classic wavetable -- reading a stored cycle with a phase accumulator and a
+ * four-point interpolation -- is inline in CycleTable.h. This file is the building side, which never
+ * runs on the audio thread. build() takes a file's frames apart into Fourier coefficients
+ * (analyseCycle), buildFromHarmonics() puts every frame back together at each of the ten levels
+ * with only the harmonics that level keeps (synthesise) and scales the whole table so its loudest
+ * frame sits at kTargetRms; cycleLevelFor() chooses the level a note reads, with hysteresis;
+ * detectCycleLength() guesses the layout of a file that does not say; and BuiltinCycles writes the
+ * five built-in tables from their spectra on first use. Sources.h supplies the spectra of the
+ * built-in tables (builtinTable) and Cosmos.h the Fft.
+ */
 #include "ambient/CycleTable.h"
 #include "ambient/Sources.h"   // the spectra of the built-in tables
 #include "ambient/Cosmos.h"    // Fft
@@ -10,12 +24,25 @@ namespace ambient {
 
 namespace {
 
+/** @brief One frame's harmonics: element h-1 is harmonic h as the complex amplitude of a cosine. */
 using Coeffs = std::vector<std::complex<double>>;
-constexpr double kPiD = 3.14159265358979323846;
+constexpr double kPiD = 3.14159265358979323846;   ///< pi in double, for the plain Fourier sums
 
-// The harmonics of one cycle of `len` samples, as complex amplitudes of cosines. A power of two goes
-// through the FFT; any other length through the plain sum, which for a single cycle of a few hundred
-// samples costs nothing worth a second code path.
+/**
+ * @brief The harmonics of one cycle of `len` samples, as complex amplitudes of cosines.
+ *
+ * A power of two goes
+ * through the FFT; any other length through the plain sum, which for a single cycle of a few hundred
+ * samples costs nothing worth a second code path.
+ *
+ * @param x    the cycle's samples, `len` of them
+ * @param len  the cycle length in samples
+ * @param fft  a transform of size `len`, or nullptr when `len` is no power of two
+ * @param re   scratch of at least `len` floats, used only with @p fft
+ * @param im   scratch of at least `len` floats, used only with @p fft
+ * @return     harmonics 1 .. top, top being the finest level's count or the cycle's own Nyquist,
+ *             whichever is lower; empty for a cycle too short to hold a harmonic
+ */
 Coeffs analyseCycle(const float* x, int len, const Fft* fft, std::vector<float>& re, std::vector<float>& im)
 {
     // Below the cycle's own Nyquist, and no more than the finest level keeps.
@@ -40,8 +67,20 @@ Coeffs analyseCycle(const float* x, int len, const Fft* fft, std::vector<float>&
     return c;
 }
 
-// One stored cycle at a level: the harmonics the level keeps, placed in a spectrum of its length and
-// transformed back. `out` points at sample 0; the guards either side are written as well.
+/**
+ * @brief One stored cycle at a level: the harmonics the level keeps, placed in a spectrum of its length and
+ *        transformed back.
+ *
+ * `out` points at sample 0; the guards either side are written as well.
+ *
+ * @param c      the frame's harmonics, as analyseCycle() or the built-in spectra give them
+ * @param gain   the table's scale: kTargetRms over the RMS of its loudest frame
+ * @param level  0 .. kLevels - 1, the resolution to write
+ * @param fft    a transform of size levelLength(level)
+ * @param re     scratch of at least levelLength(level) floats
+ * @param im     scratch of at least levelLength(level) floats
+ * @param out    where sample 0 of the cycle goes; out[-1] and out[len], out[len + 1] are written too
+ */
 void synthesise(const Coeffs& c, double gain, int level, const Fft& fft, std::vector<float>& re, std::vector<float>& im, float* out)
 {
     const int len = CycleTable::levelLength(level);
@@ -163,8 +202,16 @@ int detectCycleLength(const float* x, int n)
 
 namespace {
 
+/**
+ * @brief The five built-in tables, made once from their spectra behind builtinCycleTable().
+ *
+ * A function-local static of this type is built on the first call -- a few FFTs per frame, paid
+ * once, off the audio thread: the Classic table from the Fourier series of the real waveforms with
+ * their phases, the other four from the Harmonic type's spectra written out with sine phases.
+ */
 struct BuiltinCycles {
-    CycleTable t[kNumTables - 1];
+    CycleTable t[kNumTables - 1];   ///< index 0 Classic, then Organ, Vocal, Glass and Metal
+    /** @brief Writes all five tables; every frame is brought to the same RMS first. */
     BuiltinCycles()
     {
         const int H = CycleTable::levelHarmonics(0);

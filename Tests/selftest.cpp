@@ -1,5 +1,31 @@
-// Noctuary self test: parameter table, tuning, envelope, engine render,
-// cluster brain, determinism. Exit code 0 = all passed.
+/**
+ * @file selftest.cpp
+ * @brief Noctuary self test: parameter table, tuning, envelope, engine render,
+ * cluster brain, determinism. Exit code 0 = all passed.
+ *
+ * This is the instrument measured against what it claims, part by part, in one program: the
+ * parameter table and the presets, the tunings and the conductor's rule book, every source type,
+ * filter model and Z-plane shape, the effects and the rooms, the modulation system, the OSC and
+ * gesture layer, the recorder and the file formats, and finally the whole engine rendering --
+ * finite, inside the clipper, deterministic for a seed, and the same in seconds and hertz at every
+ * sample rate a host uses. Almost nothing here is asserted from a drone: each check builds the one
+ * signal that can show the property (a tone where the pitch matters, a burst where a transient
+ * does, an anti-phase pair where a mono sum would hide the fault) and measures it with a Goertzel,
+ * an FFT, a zero-crossing count or an RMS over a window, with a stated pass criterion. Wherever a
+ * check has a history -- a preset that fell silent, a meter that was invisibly off, a rule the
+ * conductor broke -- the comment above it says what went wrong and why the bound is where it is.
+ * Lines beginning `[probe]` print the measured figures beside the checks so a failure can be read
+ * without a debugger.
+ *
+ * Built as `ambient_selftest` (Tests/CMakeLists.txt) and run by ctest as `selftest`; it takes no
+ * arguments. Every check goes through the CHECK macro, which prints `FAIL: <what> (file:line)` and
+ * counts; main() runs every test function and returns 0 only when nothing failed. Three groups of
+ * checks are shared with the dedicated test programs and included as headers: the convolver's
+ * (ConvolverChecks.h, also ambient_convtest), the partial bank's (BankChecks.h, also
+ * ambient_banktest) and the real-input FFT's (FftChecks.h). Some tests need the measured preset
+ * map (Tools/preset_map.py) and say so and return when it is the stub. The near-layer test
+ * switches stdout to unbuffered first so that a crash leaves its probes behind.
+ */
 #include "ambient/Engine.h"
 #include "ambient/Params.h"
 #include "ambient/Tuning.h"
@@ -55,7 +81,17 @@
 
 using namespace ambient;
 
+/** @brief How many checks have failed so far; main() turns it into the exit code. */
 static int failures = 0;
+/**
+ * @brief One check: prints `FAIL: msg (file:line)` and counts the failure when @p cond is false.
+ *
+ * A failed check never aborts the run -- every test function carries on, so one run reports every
+ * failure in the program. The shared check headers below use the same macro.
+ *
+ * @param cond  the condition that has to hold
+ * @param msg   what was being checked, as a C string, printed only on failure
+ */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 #include "ConvolverChecks.h"   // the convolver's checks, shared with ambient_convtest
 #include "BankChecks.h"        // the partial bank's, shared with ambient_banktest
@@ -63,8 +99,25 @@ static int failures = 0;
 
 namespace {
 
-struct Stats { double rms = 0; float peak = 0; long nonFinite = 0; };
+/** @brief What render() measures over a stretch of engine output: the level, the peak and the health of the samples. */
+struct Stats {
+    double rms = 0;       ///< RMS over both channels (the mean of the two channels' squares), linear
+    float peak = 0;       ///< the largest absolute sample on either channel
+    long nonFinite = 0;   ///< how many samples were NaN or infinite; must be 0
+};
 
+/**
+ * @brief Renders @p seconds of the engine in blocks of 256 and measures what came out.
+ *
+ * The engine must have been prepared; the block count is derived from its own sample rate. Nearly
+ * every engine-level check in this file is built on this: render, then compare the Stats, or
+ * capture the samples and take a Goertzel of a window.
+ *
+ * @param e        the engine to run, prepared, with whatever notes and parameters the test set
+ * @param seconds  how long to render, in seconds of the engine's sample rate
+ * @param capture  if not null, every rendered sample is appended, interleaved left, right
+ * @return         RMS, peak and the count of non-finite samples over the whole stretch
+ */
 Stats render(Engine& e, double seconds, std::vector<float>* capture = nullptr)
 {
     const int block = 256;
@@ -87,6 +140,12 @@ Stats render(Engine& e, double seconds, std::vector<float>* capture = nullptr)
     return s;
 }
 
+/**
+ * @brief Self test: the parameter table's shape.
+ *
+ * Every row's id equals its position, every default lies inside its range, and no two rows share a
+ * key. A row out of order would make every parameter after it read as its neighbour.
+ */
 void testParams()
 {
     const auto& t = paramTable();
@@ -97,6 +156,16 @@ void testParams()
     }
 }
 
+/**
+ * @brief Self test: the built-in scales, the Scala parser and the consonance measure.
+ *
+ * Every built-in table starts at 1/1 and ascends inside its period; 12-TET gives A4 = 440 Hz;
+ * the seven-note JI major maps consecutively (7 keys = octave) and snapped (the E key on 5/4, the
+ * G key on 3/2); Bohlen-Pierce falls back to consecutive mapping (13 keys = tritave); Scala text
+ * parses with ratios and cents, an empty description line and a comment after a value, and
+ * rejects garbage; parameter text that is not a number is the default, never NaN; and the
+ * consonance ranks unison and octave at 1, then fifth, third, semitone.
+ */
 void testTuning()
 {
     // Only the tables. The last two choices are not tables: one is whatever Scala file was
@@ -166,6 +235,14 @@ void testTuning()
     CHECK(intervalConsonance(2.0) == 1.0, "octave consonance 1");
 }
 
+/**
+ * @brief Self test: the voice envelope, and a note handed over with an age.
+ *
+ * Attack reaches 1 in its time, decay settles on the sustain, release ends the voice; and
+ * noteOnAged() enters at the level the envelope would have reached had it run for that long
+ * (checked against one actually run), at the sustain when older than its attack, and as a plain
+ * note-on at age zero.
+ */
 void testEnvelope()
 {
     Envelope env;
@@ -210,6 +287,13 @@ void testEnvelope()
     }
 }
 
+/**
+ * @brief Self test: the engine played from MIDI.
+ *
+ * Silent before any note; a note makes sound that ramps up through the attack, stays under a peak
+ * of 1 and finite, counts as one voice, and is gone (voice freed, tail below -60 dB) after release
+ * and reverb; forty notes at once stay capped at Engine::kMaxVoices and stable.
+ */
 void testEngineMidi()
 {
     Engine e;
@@ -244,6 +328,12 @@ void testEngineMidi()
     e.allNotesOff();
 }
 
+/**
+ * @brief Self test: the cluster brain inside the engine.
+ *
+ * After twenty seconds the conductor has several notes sounding, audible and finite, the
+ * sounding-note mask reports them, and switching the brain off releases every one of them.
+ */
 void testBrain()
 {
     Engine e;
@@ -267,6 +357,12 @@ void testBrain()
     CHECK(e.activeVoices() == 0, "all brain notes released when switched off");
 }
 
+/**
+ * @brief Self test: determinism.
+ *
+ * Two engines with the same seed and parameters, prepared at 44.1 kHz with 128-sample blocks,
+ * render four seconds that are identical byte for byte.
+ */
 void testDeterminism()
 {
     std::vector<float> a, b;
@@ -280,6 +376,12 @@ void testDeterminism()
     CHECK(a.size() == b.size() && std::memcmp(a.data(), b.data(), a.size() * sizeof(float)) == 0, "same seed -> identical output");
 }
 
+/**
+ * @brief Self test: a user scale in the engine.
+ *
+ * A two-degree Scala scale (3/2, 2/1) set as the user scale with consecutive key mapping puts key
+ * 61 a fifth above key 60 and wraps key 62 to the octave.
+ */
 void testUserScale()
 {
     Engine e;
@@ -296,6 +398,13 @@ void testUserScale()
     CHECK(std::fabs(e.frequencyOf(62) / c - 2.0) < 1e-9, "user scale wraps after 2 degrees");
 }
 
+/**
+ * @brief Self test: the stereo delay's times.
+ *
+ * An impulse comes back after 100 ms on the left and 150 ms on the right (asymmetric), within
+ * half a millisecond, and at nearly full level once the two samples of the fractional read are
+ * summed.
+ */
 void testDelay()
 {
     StereoDelay d;
@@ -313,6 +422,13 @@ void testDelay()
     CHECK(echo > 0.9f, "echo level");
 }
 
+/**
+ * @brief Self test: the mid/side stage.
+ *
+ * Side content at 50 Hz collapses to mono (more than 12 dB down) while 2 kHz passes; Side Air at
+ * 6 dB lifts a 3 kHz side signal by four to seven decibels; and the mono guard narrows an all-side
+ * signal by a quarter at most while leaving a centred one completely alone.
+ */
 void testMidSide()
 {
     auto sideRatio = [](float hz) {
@@ -356,6 +472,14 @@ void testMidSide()
     }
 }
 
+/**
+ * @brief Self test: the built-in preset library.
+ *
+ * Exactly 256 built-ins, opened by Init, with unique names; every setting refers to a known
+ * parameter, every parameter has a help text, and a preset sets every parameter except the
+ * performance state and the near layer (which no built-in touches at all); a choice may be written
+ * by name (and the library does write its scales so); an out-of-range index is rejected.
+ */
 void testPresets()
 {
     CHECK(builtinPresetCount() == 256, "exactly 256 built-in presets");
@@ -403,6 +527,13 @@ void testPresets()
     CHECK(!e.applyPreset(999), "out of range preset rejected");
 }
 
+/**
+ * @brief Self test: the spatial engine.
+ *
+ * With Depth at 1 the conductor's notes render audibly and finite, every sounding note reports a
+ * distance in 0..1 with at least one in the background plane, and a MIDI note takes the Keys
+ * Depth as its distance.
+ */
 void testSpace()
 {
     Engine e;
@@ -425,6 +556,20 @@ void testSpace()
     CHECK(std::fabs(e.noteDistance(100) - 0.9f) < 1e-5f, "keys depth applied to MIDI note");
 }
 
+/**
+ * @brief The power of one frequency in a signal, by the Goertzel recurrence.
+ *
+ * The measuring instrument of most tests below: it asks "how much is there at exactly this
+ * frequency", which is what a pitch, a partial or a sideband check needs, and only that. The value
+ * is a power proportional to N times the energy at the bin, so it is compared against another
+ * goertzel() of the same length and never read in absolute terms.
+ *
+ * @param x   the samples (one channel)
+ * @param n   how many of them
+ * @param hz  the frequency to measure, in hertz
+ * @param sr  the sample rate of @p x, in hertz
+ * @return    the power at @p hz, unnormalised (compare, do not read)
+ */
 double goertzel(const float* x, int n, double hz, double sr)
 {
     const double w = 2.0 * 3.14159265358979 * hz / sr;
@@ -434,7 +579,16 @@ double goertzel(const float* x, int n, double hz, double sr)
     return s1 * s1 + s2 * s2 - c * s1 * s2;
 }
 
-// Source slots: wavetable of spectra, FM pair, texture grains; WAV reader round trip.
+/**
+ * @brief Source slots: wavetable of spectra, FM pair, texture grains; WAV reader round trip.
+ *
+ * Each slot type is measured alone on a quiet voice: the Classic wavetable is a sine at position 0
+ * and a saw (1/h partials) at 0.5, and ratio 3/2 with octave +1 lands at 660 Hz; FM index 0 is a
+ * pure carrier, index 3 has sidebands, and ratio 1 carries no DC; a 440 Hz texture plays at its
+ * own pitch when Free and pitched to the key when Note, and an empty texture slot is silent; a
+ * two-frame user table is analysed into a sine and a square; the base pitch is read from a
+ * TextureGen file name; and a float WAV written by the recorder reads back as mono.
+ */
 void testSources()
 {
     const int sr = 48000;
@@ -550,7 +704,16 @@ void testSources()
     }
 }
 
-// Tuning purity, freeze, sleep and the rest zone.
+/**
+ * @brief Tuning purity, freeze, sleep and the rest zone.
+ *
+ * Purity 0 is 12-TET, 1 the scale, 0.5 the geometric middle, and a sounding voice glides there;
+ * Freeze holds the partials still where shimmer would move them, but does not stop a delayed slot
+ * from entering; an offset in a texture no longer silences the instrument (the hall blocks DC at
+ * its input, a texture loses its mean as it is loaded, and the whole recipe is still audible after
+ * thirty seconds); the engine sleeps after silence and a note wakes it; and with both hands low the
+ * gesture layer rests and writes nothing until a hand is raised.
+ */
 void testPurityFreezeSleep()
 {
     const int sr = 48000;
@@ -713,7 +876,15 @@ void testPurityFreezeSleep()
     }
 }
 
-// Ghost air, portamento with gravity, inertia, tape in the loop, coherence.
+/**
+ * @brief Ghost air, portamento with gravity, inertia, tape in the loop, coherence.
+ *
+ * Noise alone through the Air resonators sings the note's just harmonics; a two-second glide from
+ * A3 to E4 is between the two half-way and has arrived at the end, and gravity makes it linger
+ * near the start; effectiveParam() reports the target under inertia; a hot feedback loop with tape
+ * stays bounded and DC-free; and full coherence locks the four oscillators (Kuramoto order above
+ * 0.9) where no coupling leaves them drifting apart.
+ */
 void testGhostPortaInertiaTapeCoherence()
 {
     const int sr = 48000;
@@ -802,7 +973,13 @@ void testGhostPortaInertiaTapeCoherence()
     }
 }
 
-// Set timeline: record, write, parse, play back in order.
+/**
+ * @brief Set timeline: record, write, parse, play back in order.
+ *
+ * Events added out of order come back sorted by time, the text form round-trips a parameter event
+ * by key, step() emits only the events inside its window and finishes on the last note-off, an
+ * unknown parameter key is rejected, and comments and blank lines are skipped.
+ */
 void testTimeline()
 {
     SetTimeline t;
@@ -827,7 +1004,15 @@ void testTimeline()
     CHECK(u.parse("# comment\n0.0 on 60 0.5\n\n1.5 off 60\n") && u.size() == 2, "comments and blank lines are skipped");
 }
 
-// Z-plane filter: the corners of the Vowels shape move the formants, replace mode bypasses the SVF.
+/**
+ * @brief Z-plane filter: the corners of the Vowels shape move the formants, replace mode bypasses the SVF.
+ *
+ * The interpolation reproduces the corner frames and puts the centre between them; a resonator
+ * has unity gain at its peak; every shape at its four corners and centre is finite, below a peak of
+ * 2 and not silent, with the same section count at every corner; and in the engine the "a" corner
+ * favours 700 Hz against the "i" corner's 2300 Hz, and replace mode shapes the spectrum against
+ * the plain bank.
+ */
 void testZPlane()
 {
     const int sr = 48000;
@@ -902,7 +1087,15 @@ void testZPlane()
     CHECK(aRatio > 2.0 * offRatio, "replace mode shapes the spectrum against the plain bank");
 }
 
-// Route over the map: parsing, timing, and the engine walking it.
+/**
+ * @brief Route over the map: parsing, timing, and the engine walking it.
+ *
+ * Needs the measured map and returns early without it. Every route preset parses, has at least
+ * three points and round-trips through text; a coordinate route sits at the smoothstep midpoint
+ * half-way through a travel, holds at its points and ends at the last one when not looping; and in
+ * the engine a route switches the map on, reaches its second point in the time its speed says, and
+ * switches itself off when finished.
+ */
 void testRoute()
 {
     if (numPresetMeta() == 0) { std::printf("  (route test needs the measured map)\n"); return; }
@@ -949,7 +1142,14 @@ void testRoute()
     }
 }
 
-// Convolution room: partitioned convolution against known impulses, then in the engine.
+/**
+ * @brief Convolution room: partitioned convolution against known impulses, then in the engine.
+ *
+ * Runs the three shared check sets -- the convolver's (ConvolverChecks.h), the partial bank's
+ * (BankChecks.h) and the real-input FFT's (FftChecks.h) -- and then, in the engine, shows that
+ * Room level 0 leaves silence after a note where level 1 leaves a tail twenty times its energy,
+ * both finite.
+ */
 void testRoom()
 {
     // The convolver on its own (Tests/ConvolverChecks.h, which ambient_convtest runs once per
@@ -985,9 +1185,14 @@ void testRoom()
     }
 }
 
-// Preset map: neighbours, blend, and the engine's map mode.
-// A line of prose for every preset (Core/src/PresetText.cpp): the browser shows it, so it has to
-// exist for all of them, say something, and never claim a section that the preset does not use.
+/**
+ * @brief Every preset's line of prose exists, is short, and tells the truth about its settings.
+ *
+ * A line of prose for every preset (Core/src/PresetText.cpp): the browser shows it, so it has to
+ * exist for all of them, say something, and never claim a section that the preset does not use.
+ * A description that mentions the Cosmos needs a cosmos send in the settings, one that says
+ * "played from the keys" needs the conductor off; none may be empty or run to a paragraph.
+ */
 void testPresetText()
 {
     int empty = 0, longest = 0;
@@ -1008,6 +1213,18 @@ void testPresetText()
     CHECK(longest < 300, "and none of them is a paragraph");
 }
 
+/**
+ * @brief Preset map: neighbours, blend, and the engine's map mode.
+ *
+ * Needs the measured map (Tools/preset_map.py) and returns early when it is the stub. Every
+ * preset's position and descriptors lie in 0..1 with a valid family; the measured groups cover the
+ * presets (all of them with the whole library loaded, several with the built-ins alone) and the
+ * plane is a cloud rather than a grid (nearest-neighbour distances vary by more than 35 %); a
+ * cursor in empty space still blends something; on a preset that stands clear of its neighbours
+ * the blend is that preset and reproduces its parameters; half-way between two presets a float
+ * lies between their values; and in the engine map mode glides to the blend, reports it through
+ * blendValue(), and can be left again.
+ */
 void testPresetMap()
 {
     PresetMap::warmup();
@@ -1142,7 +1359,12 @@ void testPresetMap()
     }
 }
 
-// Stack: strands at pure ratios; Rate Wander: the movement rates themselves move.
+/**
+ * @brief Stack: strands at pure ratios; Rate Wander: the movement rates themselves move.
+ *
+ * A Major stack of three one-partial strands on A3 puts energy at 220, 330 and 275 Hz and nothing
+ * at 261.6 or 440 Hz; Rate Wander at 1 renders finite and differs from the same seed at 0.
+ */
 void testStackAndWander()
 {
     const int sr = 48000;
@@ -1184,7 +1406,13 @@ void testStackAndWander()
     }
 }
 
-// The feedback loop: mix -> (tone, drive, throttle) -> near bus and/or partial phase modulation.
+/**
+ * @brief The feedback loop: mix -> (tone, drive, throttle) -> near bus and/or partial phase modulation.
+ *
+ * Feedback alone makes no sound; a held drone with the bus and drive at 1 stays bounded under a
+ * peak of 0.95 (throttled) and carries more energy than the dry voice; and phase modulation from
+ * the loop moves at least thirty per cent of the energy off the exact harmonics.
+ */
 void testFeedback()
 {
     const int sr = 48000;
@@ -1233,8 +1461,17 @@ void testFeedback()
     }
 }
 
-// Rich's foreground/background carving inside the voice: presence bell, pad low cut,
-// breathing distance, and the ghost-tone source of the foundation.
+/**
+ * @brief The carving of foreground against background inside the voice.
+ *
+ * Rich's foreground/background carving inside the voice: presence bell, pad low cut,
+ * breathing distance, and the ghost-tone source of the foundation.
+ * Presence at +6 dB lifts the 2-5 kHz partials of a near voice by 80 % and does nothing on the far
+ * plane; a 300 Hz pad low cut takes the fundamental of a C3 down fivefold against its third
+ * partial; Breath moves the distance by more than a tenth without a jump per 100 ms where no breath
+ * leaves it fixed; and with Source = Difference the foundation follows the folded difference tone
+ * of the two lowest voices and falls back to the root when one is left.
+ */
 void testRichCarving()
 {
     const int sr = 48000;
@@ -1333,6 +1570,14 @@ void testRichCarving()
     }
 }
 
+/**
+ * @brief Self test: the Cosmos layer's building blocks and the whole path.
+ *
+ * The frequency shifter moves 440 Hz to 540 Hz as a single sideband, the pitch shifter at +12
+ * doubles the frequency, the Nebula reproduces the input's level and spectrum and keeps sounding
+ * when frozen without input, and the whole Cosmos path with shimmer and resonator feedback stays
+ * finite, clipped safely, audible, and does not run away.
+ */
 void testCosmos()
 {
     const int sr = 48000;
@@ -1391,9 +1636,18 @@ void testCosmos()
     }
 }
 
-// The spectral shifter (12.09.2026): a tone and a chord land where they should, a steady tone comes out
-// steady where the granular shifter modulates it, a loop through it stays bounded, and the shimmer and
-// the cloud's loop use it.
+/**
+ * @brief The spectral shifter: on pitch, steady, bounded in a loop, and in use by the shimmer and the cloud.
+ *
+ * The spectral shifter (12.09.2026): a tone and a chord land where they should, a steady tone comes out
+ * steady where the granular shifter modulates it, a loop through it stays bounded, and the shimmer and
+ * the cloud's loop use it.
+ * Pass criteria: an octave up puts 440 Hz on 880 Hz thirty decibels above what is left behind,
+ * within two cents, with a level swing under half a decibel; a chord a fifth up moves every note;
+ * twenty seconds of a near-unity loop stay finite under a peak of 2; the engine's shimmer is
+ * spectral by default and stays inside the clipper; and the cloud's loop shifted an octave grows
+ * the octave where the unshifted one does not.
+ */
 void testSpectralShifter()
 {
     const int sr = 48000;
@@ -1521,8 +1775,18 @@ void testSpectralShifter()
     }
 }
 
-// The memory (12.09.2026): the lossless exchange, the decay, the two sides, the tape, freeze and erase,
-// the harmonic recall, and the engine around it.
+/**
+ * @brief The Memory: exchange, decay, sides, tape, freeze and erase, recall, and the engine around it.
+ *
+ * The memory (12.09.2026): the lossless exchange, the decay, the two sides, the tape, freeze and erase,
+ * the harmonic recall, and the engine around it.
+ * Pass criteria: at Hold 1 turning the matrix changes the circulating energy by less than 0.1 dB;
+ * Hold 0.3 takes 23 to 31 dB off in ten seconds (27 expected); a left input stays left without
+ * Blur and spreads right with it; run backwards a rising sweep comes back falling, at half speed a
+ * 1 kHz tone plays at 500 Hz; a frozen memory neither fades nor records, Erase empties it and it
+ * records again afterwards; Seek makes the grains prefer the stretches that fit the scale; and a
+ * memory with everything on stays finite inside the clipper.
+ */
 void testMemory()
 {
     const int sr = 48000;
@@ -1728,8 +1992,19 @@ void testMemory()
     }
 }
 
-// The cloud as a granular feedback instrument (12.09.2026): the ring kernel's vector path against its
-// scalar one, the loop, the scatter's intervals, the resonators and the flocks.
+/**
+ * @brief The grain cloud as a feedback instrument: kernel, loop, scatter, resonators, flocks.
+ *
+ * The cloud as a granular feedback instrument (12.09.2026): the ring kernel's vector path against its
+ * scalar one, the loop, the scatter's intervals, the resonators and the flocks.
+ * Pass criteria: the vector and scalar ring-grain kernels agree to 1e-10 of the signal across the
+ * seam of a ring that is not a power of two; without feedback the cloud falls silent after its
+ * input, at 1 it holds and never exceeds a peak of 1.5; the scatter's intervals come most
+ * consonant first and follow the conductor's root, with 90 % of the energy on unison, octaves and
+ * fifths at a tenth of scatter; the resonators sit on the chord and ring at their decay; swarm turns
+ * a Poisson onset stream into flocks at the same mean density; and every control at full stays
+ * finite inside the clipper.
+ */
 void testCloudAether()
 {
     const int sr = 48000;
@@ -1944,6 +2219,14 @@ void testCloudAether()
     }
 }
 
+/**
+ * @brief Self test: the cloud's pitch control and the independence of the sound and Cosmos layers.
+ *
+ * A cloud without pitch keeps 440 Hz and with pitch adds the octave; a sound preset leaves the
+ * Cosmos layer alone and resets sound parameters to the preset's values from either side; every
+ * cosmos preset parses, stays in its layer and changes something, Cosmos Off resets the layer; and
+ * delay 2 with the cloud renders finite and audible.
+ */
 void testCloudAndLayers()
 {
     const int sr = 48000;
@@ -2019,6 +2302,14 @@ void testCloudAndLayers()
     }
 }
 
+/**
+ * @brief Self test: the morph between two parameter slots.
+ *
+ * Morph off plays the live parameter; position 0 plays slot A, 1 plays slot B, ints and choices
+ * follow; half-way a cutoff sits between in the skewed domain, an int rounds, a choice and a switch
+ * flip at 0.5; a ten-second glide moves the position 0.1 per second; presets leave the morph state
+ * alone; capture copies the live values into a slot; and the render is finite.
+ */
 void testMorph()
 {
     Engine e;
@@ -2068,17 +2359,50 @@ void testMorph()
     CHECK(s.nonFinite == 0, "morph render finite");
 }
 
+/**
+ * @brief An OscSink that records what the OSC dispatcher writes, so the tests can read it back.
+ *
+ * Stands in for the engine behind dispatchOsc() and OscServer: parameter writes land in a table
+ * by id, control events are counted and the last one kept.
+ */
 struct TestSink : OscSink {
-    float last[kNumParams] = {};
-    bool  set[kNumParams] = {};
-    int   events = 0;
-    ControlEvent lastEvent{ ControlEvent::Type::NoteOn, 0, 0.0f };
+    float last[kNumParams] = {};   ///< the last value written to each parameter, in the parameter's own units
+    bool  set[kNumParams] = {};    ///< whether each parameter has been written at all
+    int   events = 0;              ///< how many control events arrived
+    ControlEvent lastEvent{ ControlEvent::Type::NoteOn, 0, 0.0f };   ///< the most recent control event
+    /**
+     * @brief Records a parameter written in its own units.
+     * @param id  which parameter
+     * @param v   the value, as the dispatcher resolved it
+     */
     void setParam(ParamId id, float v) override { last[static_cast<int>(id)] = v; set[static_cast<int>(id)] = true; }
+    /**
+     * @brief Records a parameter written normalised, mapped linearly onto its range so the tests compare one table.
+     * @param id  which parameter
+     * @param n   the value in 0..1
+     */
     void setParamNormalised(ParamId id, float n) override { const ParamDesc& d = paramDesc(id); last[static_cast<int>(id)] = d.min + (d.max - d.min) * n; set[static_cast<int>(id)] = true; }
+    /**
+     * @brief Counts a control event and keeps it as the last one.
+     * @param e  the event (note, preset, cosmos preset ...)
+     */
     void event(const ControlEvent& e) override { ++events; lastEvent = e; }
 };
 
-// Build an OSC message the way a sender would (big-endian, 4-byte padded).
+/**
+ * @brief Build an OSC message the way a sender would (big-endian, 4-byte padded).
+ *
+ * Writes the address, the type-tag string (a comma followed by @p tags) and the arguments in
+ * order, each padded to a multiple of four bytes; used both for the parser checks and for the real
+ * UDP loopback through OscServer.
+ *
+ * @param out      the buffer to write into; the caller guarantees room for the message
+ * @param address  the OSC address, e.g. "/ambient/param/cutoff"
+ * @param tags     the type tags without the leading comma: 'f' float, 'i' int32, 's' string
+ * @param floats   the numeric arguments, one per 'f' or 'i' tag in order (an 'i' is truncated from the float); may be null when there are none
+ * @param strings  the string arguments, one per 's' tag in order; may be null when there are none
+ * @return         how many bytes of @p out the message occupies
+ */
 static size_t oscBuild(char* out, const char* address, const char* tags, const float* floats, const char* const* strings)
 {
     size_t pos = 0;
@@ -2094,6 +2418,17 @@ static size_t oscBuild(char* out, const char* address, const char* tags, const f
     return pos;
 }
 
+/**
+ * @brief Self test: the OSC parser and dispatcher, the gesture mappings, and a real UDP loopback.
+ *
+ * A float, two ints and a string decode from a hand-built packet, a bundle of two unpacks and
+ * garbage is rejected; dispatch writes a parameter by value, normalised and by choice name, feeds
+ * both hands and the head into the gesture layer, turns a note and a cosmos preset by name into
+ * control events, and rejects an unknown address; a mapping waits for its clutch, ignores jitter
+ * inside the dead-zone, holds when the clutch opens, primes without a glide and then smooths with
+ * its time constant; the default mappings drive depth, width and morph as the simulator would and
+ * round-trip through text; and a message sent over UDP to the running server reaches the sink.
+ */
 void testOscAndGestures()
 {
     // Parser
@@ -2232,6 +2567,15 @@ void testOscAndGestures()
     }
 }
 
+/**
+ * @brief Self test: the features of round 7 -- Hold, the Foundation, Bloom and the macros.
+ *
+ * Hold latches a key, a second press releases it, and Hold off releases everything; the sub sits an
+ * octave below the conductor's root and a binaural offset puts the left ear 3 Hz below and the
+ * right 3 Hz above; with Bloom a voice starts with far fewer high partials than it has after the
+ * bloom time, without it the spectrum is steady from the start; and a macro at rest writes nothing
+ * while a moved one drives far level and depth to their maxima.
+ */
 void testFeaturesRound7()
 {
     const int sr = 48000;
@@ -2331,6 +2675,16 @@ void testFeaturesRound7()
     }
 }
 
+/**
+ * @brief Self test: gesture calibration, the hand menu, the WAV recorder and the per-note level.
+ *
+ * Calibration writes no parameter while it runs, finishes after its time, takes its height and
+ * distance ranges from the explored extremes with a margin, round-trips through text and rejects
+ * an inverted range; the hand menu opens on the left pinch with mappings suspended, chooses by right
+ * height, fires once on the right pinch, closes with the left, and ignores a pinch held from before
+ * it opened; the recorder writes one second of float stereo with the right header and sizes and
+ * drops nothing; and noteLevel() follows the sounding note's envelope and is zero for a silent key.
+ */
 void testCalibrationMenuRecorder()
 {
     {   // Calibration: the ranges follow the explored extremes; nothing moves meanwhile.
@@ -2419,6 +2773,17 @@ void testCalibrationMenuRecorder()
 
 } // namespace
 
+/**
+ * @brief Self test: preset packs loaded from a text file at runtime.
+ *
+ * A pack of two presets grows the list by exactly two and registers one pack and one family with
+ * the pack's name; its presets apply (density, cutoff, a choice by name, and a reset of what they
+ * do not name); the texture, wavetable, impulse and impulse-B paths resolve absolutely next to the
+ * pack file and a preset without files reports none; the pack's modulation matrix and envelope
+ * shapes travel with the preset and a preset without modulation clears them; the map metadata
+ * (position, tags, family) is read; the preset map notices the list grew; a malformed line or a
+ * missing file is rejected whole; and clearPresetPacks() restores the built-in list and families.
+ */
 void testPresetPacks()
 {
     // A pack is a text file loaded at runtime; the preset list must grow by exactly its entries,
@@ -2504,6 +2869,24 @@ void testPresetPacks()
 }
 
 
+/**
+ * @brief Self test: the modulation system's parts -- LFO shapes, envelopes, the matrix -- and the source slots' finer points.
+ *
+ * LFO shapes: sine, triangle and ramps hit their marks, every shape moves continuously at the
+ * control rate, one cycle in twenty minutes is reachable, and a wavetable frame reads as an LFO
+ * curve. Envelopes: breakpoints parse, interpolate linearly, hold past the end and round-trip;
+ * curve, sustain point and loop are read; a Sustain Loop let go by the engine does not jump; a
+ * route on an LFO's rate really moves it; the loudness meter reads -16.99 LUFS for the BS.1770
+ * reference signal and finds the true peak between samples; the Stretch type sounds at the clip's
+ * pitch when Free and at the note when Note and changes with its factor; a grain cloud is as dense
+ * as asked (Density to two hundred, 128 grains a slot); Root puts a fundamental under a table that
+ * has none by moving weight, not level; Hermite keeps more top than linear interpolation, growing
+ * with frequency; a stereo clip keeps its image and an identical-channel clip its level; grains
+ * that run off the end of a short clip stay finite; a delayed slot is silent before its Delay and at
+ * its level afterwards. Matrix: four routes with via and unipolar flags parse and round-trip,
+ * unknown sources and targets are rejected, depth is a fraction of the target's own range, and a
+ * via source at zero shuts the route.
+ */
 void testModulation()
 {
     // --- LFO shapes -----------------------------------------------------------------------
@@ -3057,15 +3440,16 @@ void testModulation()
 }
 
 
-// Per-note expression, the resonating body, the master's patina, the unmasking background and
-// the second conductor: each one measured through the engine, not merely compiled.
-// Everything in this instrument is written in seconds and hertz, and the engine turns those into
-// samples with the rate it was prepared at. That only stays true if it is checked: until this
-// test existed every single check ran at 48 kHz, so a coefficient that had quietly become a
-// number of samples would never have shown up. Three rates, the ones a host actually uses.
-// The parameter table's own invariants. Both of these would otherwise fail silently: a slot field
-// added to one of the two id tables and not the other used to be a real hazard (there were two
-// tables), and a mistyped section name makes a predicate answer no forever.
+/**
+ * @brief The parameter table's own invariants: slot fields, sections, enumerator order, source names.
+ *
+ * The parameter table's own invariants. Both of these would otherwise fail silently: a slot field
+ * added to one of the two id tables and not the other used to be a real hazard (there were two
+ * tables), and a mistyped section name makes a predicate answer no forever.
+ * Every slot has a field table of real, distinct parameters that line up field for field with slot
+ * 1 (Level and the spectrum excepted), every section name is known, the row at position i is
+ * parameter i, and every modulation source's name round-trips.
+ */
 void testParamTable()
 {
     CHECK(kSourceSlots == kSlots, "the parameter table and the engine agree on how many slots there are");
@@ -3104,10 +3488,19 @@ void testParamTable()
     }
 }
 
-// The voicing rules (Rene's rule book, 12.09.2026). Each of these drives the conductor directly
-// and counts what it did, because a descriptor averaged over a minute cannot show whether a
-// single rule was kept. Every one is checked at its default first: the whole point of these
-// parameters is that a preset written before them plays exactly as it did.
+/**
+ * @brief The conductor's voicing rules, each driven directly and counted.
+ *
+ * The voicing rules (Rene's rule book, 12.09.2026). Each of these drives the conductor directly
+ * and counts what it did, because a descriptor averaged over a minute cannot show whether a
+ * single rule was kept. Every one is checked at its default first: the whole point of these
+ * parameters is that a preset written before them plays exactly as it did.
+ * Covered: reproducibility at the defaults; Retrigger (no pitch returns inside its rest); Onset
+ * Guard (no onset between 30 ms and 3 s, with and without Blend); Release Gap; Rate Breath; Density
+ * Slew; Root Steps and Anti 8 (the root never climbs a semitone, under Any either); Memory; Bass
+ * Hold; Low Spacing; Third Floor from either draw; Pivot (four changeovers in five announced); and
+ * Overlap in Chords mode.
+ */
 void testVoicingRules()
 {
     auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
@@ -3423,14 +3816,17 @@ void testVoicingRules()
     }
 }
 
-// Stems: the four planes have to add up to what comes out, or they are not stems. They are taken
-// where each plane joins the mix, so what they sum to is the mix *before* the master stage --
-// the mid/side split, the output DC blocker and the soft clipper come after them. The mid
-// channel is what the master stage leaves alone (its side high-pass is the whole difference, and
-// it lives below 50 Hz), so that is what this compares.
-// A score: the text form, the ramp in the parameter's own domain, and what it does when played.
-// Autoplay: the conductor in Chords mode. Descriptors cannot show whether a chord is voice-led --
-// they are averages over a minute -- so this drives the brain directly and looks at the events.
+/**
+ * @brief Autoplay: the conductor in Chords mode, driven directly and judged by its events.
+ *
+ * Autoplay: the conductor in Chords mode. Descriptors cannot show whether a chord is voice-led --
+ * they are averages over a minute -- so this drives the brain directly and looks at the events.
+ * The chord fills one note at a time and stays full, every exchange is one voice out and one in
+ * within the Voice Lead allowance (and a wider allowance really travels further), a Step exchanges
+ * a voice at once while the timer would not, Free mode still starts and stops notes on its own,
+ * and over an hour the harmony is a chain rather than a pendulum: dozens of exchanges, never back
+ * to the chord two exchanges ago, nearly every one a new chord, and the whole moving in pitch.
+ */
 void testAutoplay()
 {
     auto freqOf = [](int note) { return 440.0 * std::pow(2.0, (note - 69) / 12.0); };
@@ -3543,6 +3939,14 @@ void testAutoplay()
     CHECK(hi - lo > 2.0, "the chord travels in pitch over the hour rather than circling one voicing");
 }
 
+/**
+ * @brief A score: the text form, the ramp in the parameter's own domain, and what it does when played.
+ *
+ * A four-line score parses, keeps every line, knows it ends at two minutes, refuses an unknown
+ * parameter or an unreadable line and takes a good text again afterwards, writes itself back and
+ * parses what it wrote; played, a ramp is on its way at half time and arrives at its end, and a
+ * switch has not fired before its time and has after it.
+ */
 void testScore()
 {
     Score sc;
@@ -3582,6 +3986,17 @@ void testScore()
     CHECK(!brain, "a switch flips when its time comes");
 }
 
+/**
+ * @brief Stems: the four planes sum to the mix, taken before the master stage.
+ *
+ * Stems: the four planes have to add up to what comes out, or they are not stems. They are taken
+ * where each plane joins the mix, so what they sum to is the mix *before* the master stage --
+ * the mid/side split, the output DC blocker and the soft clipper come after them. The mid
+ * channel is what the master stage leaves alone (its side high-pass is the whole difference, and
+ * it lives below 50 Hz), so that is what this compares.
+ * Pass criterion: from the defaults with a quiet oscillator, the stems' mid channel differs from
+ * the mix's by less than -30 dB relative, once the reverbs have filled.
+ */
 void testStems()
 {
     const int sr = 48000, block = 256;
@@ -3623,6 +4038,17 @@ void testStems()
     e.setStemBuffers(nullptr);
 }
 
+/**
+ * @brief Seconds are seconds and hertz are hertz at 44.1, 48 and 96 kHz.
+ *
+ * Everything in this instrument is written in seconds and hertz, and the engine turns those into
+ * samples with the rate it was prepared at. That only stays true if it is checked: until this
+ * test existed every single check ran at 48 kHz, so a coefficient that had quietly become a
+ * number of samples would never have shown up. Three rates, the ones a host actually uses.
+ * At each: a whole preset renders finite, under full scale, without a step and audibly; a 250 ms
+ * delay returns after 250 ms; the 12 dB low pass is a few decibels down at its own corner; A4 is
+ * 440 Hz; and a 2 Hz LFO crosses zero upwards about four times in two seconds.
+ */
 void testSampleRates()
 {
     for (double sr : { 44100.0, 48000.0, 96000.0 }) {
@@ -3737,6 +4163,16 @@ void testSampleRates()
     }
 }
 
+/**
+ * @brief Expression, body, patina, unmask and the second conductor, each heard through the engine.
+ *
+ * Per-note expression, the resonating body, the master's patina, the unmasking background and
+ * the second conductor: each one measured through the engine, not merely compiled.
+ * Pressure raises the voice's level by half when its depth is up and by nothing at depth zero; a
+ * full-range bend with a twelve-semitone range moves A4 an octave up; the body adds to the mix;
+ * patina at full changes the master by more than two per cent; and the second conductor plays
+ * voices of its own.
+ */
 void testExpressionBodyPatina()
 {
     const int sr = 48000, block = 256;
@@ -3834,13 +4270,19 @@ void testExpressionBodyPatina()
     }
 }
 
-// Each source's own envelope. A slot's Env could only borrow one of the six modulation envelopes,
-// so a preset whose sources entered on shapes had that many fewer left for modulation; Own reads
-// a shape of the slot's own, as a level from silence to the slot's written level. Measured through
-// the engine, on the gain the sounding voice gives each slot: the shape is followed from the note,
-// Depth and Delay do what they say, the six are left alone, the text form carries the four after
-// the six, and a Sustain Loop let go carries on from where it was held -- in a source's own shape,
-// in a borrowed one, and in a modulation envelope held inside its loop.
+/**
+ * @brief Each source's own envelope: followed from the note, with Depth and Delay, and let go without a jump.
+ *
+ * Each source's own envelope. A slot's Env could only borrow one of the six modulation envelopes,
+ * so a preset whose sources entered on shapes had that many fewer left for modulation; Own reads
+ * a shape of the slot's own, as a level from silence to the slot's written level. Measured through
+ * the engine, on the gain the sounding voice gives each slot: the shape is followed from the note,
+ * Depth and Delay do what they say, the six are left alone, the text form carries the four after
+ * the six, and a Sustain Loop let go carries on from where it was held -- in a source's own shape,
+ * in a borrowed one, and in a modulation envelope held inside its loop.
+ * The text form also has to carry a sixteen-point shape with long numbers, which the old
+ * 256-character field dropped without a word.
+ */
 void testSourceEnvelopes()
 {
     CHECK(kNumSlotEnvs == kNumModEnvs + 2 && std::strcmp(kSlotEnvNames[kNumSlotEnvs - 1], "Own") == 0,
@@ -3966,16 +4408,16 @@ void testSourceEnvelopes()
     }
 }
 
-// Every filter model must do what its own magnitude curve promises: the display is drawn from
-// that function, so a model whose audio path disagrees with it would lie to the eye.
-// The Z-plane bank: 155 shapes, and no ear is going to check them one at a time. Three things
-// have to be true of every one of them at every corner of its cube, and all three have been
-// wrong at some point in a filter bank somewhere: the sections must be stable, the cascade must
-// come out at a sane level, and moving the point must actually change the sound. A shape whose
-// corners are all the same is not a filter you can morph, it is a filter with three dead knobs.
-// The ten shapes the envelope menu offers. A shape string with a typo in it does not fail
-// loudly: parse returns false, the menu item does nothing, and the only symptom is a user
-// clicking ADSR and watching the curve not change.
+/**
+ * @brief The envelope menu's shapes all parse, start at zero, and survive a round trip.
+ *
+ * The ten shapes the envelope menu offers. A shape string with a typo in it does not fail
+ * loudly: parse returns false, the menu item does nothing, and the only symptom is a user
+ * clicking ADSR and watching the curve not change.
+ * Every shape parses into at least two points of positive length, starts at time zero, never goes
+ * backwards, sustains only on a point it has, and writes and reads back with the same count and
+ * sustain; and the first of them, ADSR, is four points with the third sustaining.
+ */
 void testEnvShapePresets()
 {
     int bad = 0;
@@ -4005,18 +4447,17 @@ void testEnvShapePresets()
           "the ADSR shape is an attack, a decay, a sustain point and a release");
 }
 
-// The modal bank rings, and rings for as long as it says. A resonator bank is not a filter with
-// a long name: its defining property is that it keeps sounding after the input has stopped, and
-// the number on the knob is a T60 -- sixty decibels of decay. Both are checked here rather than
-// guessed at from a drone, where the drone drowns them.
-// The delay's Duck: while the input is loud the loop's high cut drops, so the echoes are darker
-// during an attack and open again as it decays. Measured on a burst, because a drone has no
-// transients and on one the feature correctly does almost nothing -- which is not evidence.
-// The Beat modulation source: the chord listening to how far out of tune it is. Its rate is the
-// beat between the harmonics that would coincide if the interval were just, so a fifth played in
-// just intonation should barely turn it and the same fifth in equal temperament -- two cents
-// narrow, which is what equal temperament does to a fifth -- should turn it about half a hertz.
-// The promise is comparative, and so is the test.
+/**
+ * @brief The Beat modulation source: still on an exact octave, about half a hertz on a tempered fifth.
+ *
+ * The Beat modulation source: the chord listening to how far out of tune it is. Its rate is the
+ * beat between the harmonics that would coincide if the interval were just, so a fifth played in
+ * just intonation should barely turn it and the same fifth in equal temperament -- two cents
+ * narrow, which is what equal temperament does to a fifth -- should turn it about half a hertz.
+ * The promise is comparative, and so is the test.
+ * Pass criteria: the source reports a rate, an octave in equal temperament leaves it under
+ * 0.05 Hz, and the tempered fifth turns it between 0.2 and 1 Hz.
+ */
 void testBeatSource()
 {
     auto rateFor = [](int high) {
@@ -4045,6 +4486,16 @@ void testBeatSource()
     CHECK(fifth > 0.2f && fifth < 1.0f, "a tempered fifth turns it about half a hertz, which is what two cents at this pitch is");
 }
 
+/**
+ * @brief The delay's Duck darkens the echoes of an attack.
+ *
+ * The delay's Duck: while the input is loud the loop's high cut drops, so the echoes are darker
+ * during an attack and open again as it decays. Measured on a burst, because a drone has no
+ * transients and on one the feature correctly does almost nothing -- which is not evidence.
+ * Pass criterion: with Duck at 0.9 the absolute high-frequency energy of the echoes just after the
+ * last pluck is at least ten per cent below what it is without Duck (measured about fifteen); the
+ * reopening of the loop is deliberately not asserted, and the body says why.
+ */
 void testDelayDuck()
 {
     const int sr = 48000;
@@ -4114,6 +4565,17 @@ void testDelayDuck()
                 100.0 * (1.0 - gapEarly), gapLate);
 }
 
+/**
+ * @brief The modal bank rings, for as long as its decay says, and damping darkens its tail.
+ *
+ * The modal bank rings, and rings for as long as it says. A resonator bank is not a filter with
+ * a long name: its defining property is that it keeps sounding after the input has stopped, and
+ * the number on the knob is a T60 -- sixty decibels of decay. Both are checked here rather than
+ * guessed at from a drone, where the drone drowns them.
+ * Pass criteria, for decays of 0.5, 2 and 8 s on the Tubular Bell frame: an impulse produces
+ * something, the bank is still above -45 dB at half its decay, between -35 and -95 dB at the decay
+ * time and quieter still after twice it; and with damping up the tail holds less energy.
+ */
 void testZModal()
 {
     const float sr = 48000.0f;
@@ -4167,6 +4629,18 @@ void testZModal()
     CHECK(eb < ea, "damping leaves less energy in the tail than no damping");
 }
 
+/**
+ * @brief Every Z-plane shape is stable, sane in level, and alive across X, Y and Transform.
+ *
+ * The Z-plane bank: 155 shapes, and no ear is going to check them one at a time. Three things
+ * have to be true of every one of them at every corner of its cube, and all three have been
+ * wrong at some point in a filter bank somewhere: the sections must be stable, the cascade must
+ * come out at a sane level, and moving the point must actually change the sound. A shape whose
+ * corners are all the same is not a filter you can morph, it is a filter with three dead knobs.
+ * Pass criteria: every shape belongs to a family, every section satisfies the two-pole stability
+ * conditions at every corner, every cascade is finite and peaks no more than 32 dB above unity, and
+ * the response moves by at least 1 dB across X/Y and 0.5 dB along Transform.
+ */
 void testZPlaneBank()
 {
     const float sr = 48000.0f;
@@ -4209,6 +4683,15 @@ void testZPlaneBank()
     CHECK(deadZ == 0, "every shape's sound actually changes along Transform");
 }
 
+/**
+ * @brief Every filter model's audio path matches its own magnitude curve.
+ *
+ * Every filter model must do what its own magnitude curve promises: the display is drawn from
+ * that function, so a model whose audio path disagrees with it would lie to the eye.
+ * Pass criterion: at 200, 800 and 3000 Hz the settled amplitude of a sine through each model at
+ * 800 Hz cutoff and 0.3 resonance is within 12 % of VoiceFilter::magnitude() (50 % for the comb
+ * and the formant bank, whose caveats are noted in the code).
+ */
 void testFilterModels()
 {
     const float sr = 48000.0f;
@@ -4239,6 +4722,15 @@ void testFilterModels()
     }
 }
 
+/**
+ * @brief Self test: the modulation matrix inside the engine, read through modAmount().
+ *
+ * An LFO on the cutoff swings by depth times the parameter's range both ways; no matrix means no
+ * modulation; a unipolar route only ever adds and still reaches its depth; one source drives three
+ * targets; performance state (the morph position) is never moved; an envelope route climbs, peaks
+ * at its time and comes back down; and matrix and shapes round-trip through the text form the
+ * presets and the plugin state use.
+ */
 void testModulationEngine()
 {
     const int sr = 48000, block = 256;
@@ -4344,12 +4836,19 @@ void testModulationEngine()
 }
 
 // ---------------------------------------------------------------- the mixing desk's five
-//
-// Five things a dark-ambient mixing engineer does that the instrument could not do by itself:
-// the wavefolder, the background's own width, the microshift, the band-limited Haas, and the
-// hands as modulation sources. Each is measured for the thing it claims to do AND for being
-// neutral at its default, because every one of them was added to an instrument with six thousand
-// finished presets and none of them may move a single one.
+
+/**
+ * @brief The mixing desk's five: wavefolder, background width, microshift, band-limited Haas, hands as modulators.
+ *
+ * Five things a dark-ambient mixing engineer does that the instrument could not do by itself:
+ * the wavefolder, the background's own width, the microshift, the band-limited Haas, and the
+ * hands as modulation sources. Each is measured for the thing it claims to do AND for being
+ * neutral at its default, because every one of them was added to an instrument with six thousand
+ * finished presets and none of them may move a single one.
+ * The folder is the identity at zero, fills the spectrum and is asymmetric (even harmonics) when
+ * up, with its makeup holding the level; the other four are each checked for the effect they
+ * claim at full and for changing nothing at their default.
+ */
 void testMixDeskFive()
 {
     const int sr = 48000;
@@ -4615,9 +5114,18 @@ void testMixDeskFive()
 }
 
 // ---------------------------------------------------------------- after the classics: four more
-//
-// The stretched octave, the scattering reverb, the upward-spreading unmask and the headphone
-// binaural mode. Each measured for what it claims and for being neutral at its default.
+
+/**
+ * @brief Four more after the classics: stretched octave, scattering reverb, upward unmask, headphone binaural.
+ *
+ * The stretched octave, the scattering reverb, the upward-spreading unmask and the headphone
+ * binaural mode. Each measured for what it claims and for being neutral at its default.
+ * The octave is exactly 2:1 at a stretch of 0; at 12 it is twelve cents wider above and below the
+ * unmoved reference, twice that over two octaves (a slope, not an offset), and a held note retunes
+ * to the stretched pitch. The reverb's scattering, the unmask's upward spread and the binaural head
+ * are each shown to do what their name says at full and to leave the render untouched at their
+ * default.
+ */
 void testAfterTheClassics()
 {
     const int sr = 48000;
@@ -4822,10 +5330,18 @@ void testAfterTheClassics()
 }
 
 // ---------------------------------------------------------------- the conductor's ear for timbre
-//
-// Sethares' claim, measured: for a harmonic timbre the roughness curve has its dips at the just
-// ratios, and for an inharmonic one the dips move. And the blend must be the ratio score exactly
-// at Timbre 0, which is what lets it into an instrument full of finished presets.
+
+/**
+ * @brief The conductor's ear for timbre: spectral consonance after Sethares, blended into the ratio score.
+ *
+ * Sethares' claim, measured: for a harmonic timbre the roughness curve has its dips at the just
+ * ratios, and for an inharmonic one the dips move. And the blend must be the ratio score exactly
+ * at Timbre 0, which is what lets it into an instrument full of finished presets.
+ * Pass criteria: unison scores 1, the octave above 0.9, fifth above tritone above semitone with the
+ * semitone at about a tenth; the consonant fifth is 3:2 for a harmonic timbre and wider for a
+ * stretched one; Timbre 0 equals intervalConsonance() bit for bit, Timbre 1 the spectral score,
+ * 0.5 lies between; and the parameter sits in the Cluster Brain section, off by default.
+ */
 void testBrainTimbre()
 {
     auto harmonic = [](double B) {
@@ -4880,10 +5396,28 @@ void testBrainTimbre()
 }
 
 // ---------------------------------------------------------------- the eight after the classics
-//
-// Velvet decorrelation, the colourless reverb mode, the spherical head, critical-band spacing,
-// the early-reflection room and the bowed string. Each measured for what it claims and for being
-// neutral at its default.
+
+/**
+ * @brief The research batch: every feature taken from the literature, measured for its claim and for neutrality at its default.
+ *
+ * Velvet decorrelation, the colourless reverb mode, the spherical head, critical-band spacing,
+ * the early-reflection room and the bowed string. Each measured for what it claims and for being
+ * neutral at its default.
+ * The batch has grown well past eight; the sections, each headed in the body, are: velvet-noise
+ * decorrelation; the colourless reverb mode; critical-band spacing; the early-reflection room;
+ * harmonicity and the bias it corrects; the cascade (a Hawkes clock); surprise and homeostat (the
+ * entropy of the choices); adaptive intonation and the comma; blend through the engine;
+ * comodulation; the rotating network; the near field; transport (the morph that slides); pulse
+ * (the Foundation breathing at the binaural rate); bias (the shaper that remembers the bass);
+ * Lenia (motion caused by neighbours); deja vu (figures that come back); spread and bias of the
+ * draw; the attractors; the one-euro filter; transposition; partial spread; the strike's chance
+ * and clustering; the Cosmos swelling with the cascade; the clock-locked arc (checked against the
+ * real hour); the depth law; height; envelopment; blend (how a chord arrives); match (partials on
+ * the scale); the arc leaning on the harmony; the fluctuation guard; the scale a timbre asks for;
+ * evenness and the distance a chord travels; the tonal hierarchy and finding the key; loudness in
+ * sones; the spectral model; and the bowed string (sounds, in tune, falls silent at rest). Each
+ * section states its own bounds beside its checks and prints its figures as probes.
+ */
 void testResearchBatch()
 {
     const int sr = 48000;
@@ -7050,10 +7584,18 @@ void testResearchBatch()
 }
 
 // ---- the halls, the cloud and the early room hear both channels
-//
-// All three used to take the mono sum of what reached them. The test signal is the one the sum
-// destroys completely -- the same noise in both channels with opposite signs -- set against identical
-// channels, and a source on the left alone, which a stereo input has to keep on the left.
+
+/**
+ * @brief The halls, the cloud and the early room hear both channels, not the mono sum.
+ *
+ * All three used to take the mono sum of what reached them. The test signal is the one the sum
+ * destroys completely -- the same noise in both channels with opposite signs -- set against identical
+ * channels, and a source on the left alone, which a stereo input has to keep on the left.
+ * Pass criteria: the hall hears the anti-phase pair within 3 dB of identical channels and a left
+ * source enters it left (twice the energy in the first 150 ms); the cloud, with the same grains in
+ * both runs, hears it within 0.5 dB; the early room hears it at a tenth or more and returns a left
+ * source at least a decibel left of right.
+ */
 void testStereoInputs()
 {
     const int sr = 48000;
@@ -7134,6 +7676,19 @@ void testStereoInputs()
 }
 
 // ---- the classic wavetable (CycleTable.h): single cycles read as samples, one copy per octave
+
+/**
+ * @brief The classic wavetable: single cycles read as samples, one band-limited copy per octave.
+ *
+ * A 2048-sample frame builds a table of one frame whose finest copy is the waveform itself --
+ * phases kept, DC dropped, at the target level, with guard samples wrapping the cycle for the
+ * four-point read -- and whose poorer copies are the same wave without the harmonics above their
+ * limit; a table of silence is refused. cycleLevelFor() picks the copy a note reads, leaves a copy
+ * that would alias at once and does not flip on a pitch hovering at a boundary. The cycle length is
+ * detected in files that do not say (a WaveEdit bank of 64 x 256, eight real frames, a single
+ * cycle of 600) and any length builds. Finally, unison places the copies across the stereo field
+ * (correlation under 0.9) while keeping it centred within a decibel.
+ */
 void testCycleTable()
 {
     const double pi = 3.14159265358979323846;
@@ -7356,11 +7911,26 @@ void testCycleTable()
 }
 
 // ---------------------------------------------------------------- the near layer (13.09.2026)
-//
-// The near sources, the slot roles, the near events' scheduler on its own and inside the engine,
-// and the layer's scope. Each source is held to what it claims: that it sounds, stays bounded,
-// comes out near the level every other type comes out at, and -- where it has a pitch -- is in
-// tune with the instrument's own tuning across the register.
+
+/**
+ * @brief The near layer: its sources, the slot roles, the event scheduler alone and in the engine, and its scope.
+ *
+ * The near sources, the slot roles, the near events' scheduler on its own and inside the engine,
+ * and the layer's scope. Each source is held to what it claims: that it sounds, stays bounded,
+ * comes out near the level every other type comes out at, and -- where it has a pitch -- is in
+ * tune with the instrument's own tuning across the register.
+ * Pitch is measured by autocorrelation with a parabolic peak, in cents; levels against the
+ * harmonic table's. The sections: the flute (in tune across the register, overblows to its
+ * octave); the bowl (builds, rings at the note, beats); the ice; the murmur (syllables at a
+ * syllable's pace, a radio that is a band); the drops (at Density, each a rising bubble); the
+ * cicadas; the slot roles (Highest falls silent when a higher note arrives); the scheduler on its
+ * own (rates, floors, rules, sequence); the conductor beginning no note while a near note speaks;
+ * the events sounding on the near source, near; the near source's own clip played straight once;
+ * the nine signals each alone in a slot; Journeys (text round trip, ranges, cycles); Auto (the
+ * foreground a pack preset brings); a full preset leaving the near layer standing; Gain as a gain
+ * and nothing else; Distance and Dry and the two sends; and the layer's scope. Runs first in main()
+ * with stdout unbuffered so a crash leaves its probes behind.
+ */
 static void testNearLayer()
 {
     std::setvbuf(stdout, nullptr, _IONBF, 0);   // a crash in here should leave its probes behind, not its buffer
@@ -8303,6 +8873,15 @@ static void testNearLayer()
     }
 }
 
+/**
+ * @brief Runs every test function in turn and reports.
+ *
+ * The order is deliberate only in that the near layer goes first (it switches stdout to
+ * unbuffered); every test is independent and none reads another's state. Prints
+ * `selftest: all checks passed` or the number of failures.
+ *
+ * @return 0 when every check passed, 1 otherwise
+ */
 int main()
 {
     testNearLayer();

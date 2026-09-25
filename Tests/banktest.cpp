@@ -1,11 +1,16 @@
-// The partial bank's checks on their own (BankChecks.h, which the selftest runs as well), so that
-// every vector path of the bank is run and not only the one the desktop core is built with.
-// Tests/CMakeLists.txt builds this file three ways on x86 -- AVX2, through the NEON path on the
-// x86 shim, and scalar -- and the Android build of it is the real NEON path. Each variant says
-// which path it expects, and a variant that did not get it fails.
-//
-// The bank lives entirely in a header, so unlike the convolver's test there is no .cpp to compile
-// beside it: the variants differ only in what they are allowed to define and include.
+/**
+ * @file banktest.cpp
+ * @brief ambient_banktest: the partial bank's checks, once per vector path.
+ *
+ * The partial bank's checks on their own (BankChecks.h, which the selftest runs as well), so that
+ * every vector path of the bank is run and not only the one the desktop core is built with.
+ * Tests/CMakeLists.txt builds this file three ways on x86 -- AVX2, through the NEON path on the
+ * x86 shim, and scalar -- and the Android build of it is the real NEON path. Each variant says
+ * which path it expects, and a variant that did not get it fails.
+ *
+ * The bank lives entirely in a header, so unlike the convolver's test there is no .cpp to compile
+ * beside it: the variants differ only in what they are allowed to define and include.
+ */
 #include "ambient/Simd.h"
 #include "ambient/GrainRing.h"
 #include <cstdio>
@@ -13,11 +18,24 @@
 
 using namespace ambient;
 
-static int failures = 0;
+static int failures = 0;   ///< how many CHECKs failed so far; decides the exit code
+
+/**
+ * @brief Records one check: prints a FAIL line with the file and line and counts it when @p cond is false.
+ *
+ * BankChecks.h is written against this macro and is included right after it is defined.
+ * @param cond  the condition that has to hold
+ * @param msg   what was measured, as the FAIL line prints it
+ */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 
 #include "BankChecks.h"
 
+/**
+ * @brief Names the vector path this build took, checks it is the one CMake asked for (AMBIENT_EXPECT_PATH),
+ *        and runs the bank's and the grain ring's checks.
+ * @return 0 when every check passed, 1 otherwise
+ */
 int main()
 {
 #if AMBIENT_HAS_AVX

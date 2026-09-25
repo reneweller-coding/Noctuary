@@ -1,30 +1,33 @@
-// Noctuary -- the near events: what the instrument plays close to the ear, on a clock of its
-// own (13.09.2026).
-//
-// The conductor makes the background; nothing in the instrument made a foreground except the
-// Strike, which decorates a note the conductor was playing anyway. This is a second, small
-// conductor for the foreground: every so often -- the gap drawn the way the conductor draws its
-// own, a shifted exponential so that there is never a pulse -- it plays one thing near, from the
-// Near Source (a slot of its own, Engine.h), and then waits. Three kinds of thing:
-//
-//   Note      one tone, held for Length, with the source's own attack and release.
-//   Phrase    one tone that slides to a second degree part-way, on the voice's portamento with
-//             its consonance gravity -- the singing string, the flute bending into its note.
-//   Sequence  a Berlin-school line: a ring of Steps notes on a clock of eighths, transposed
-//             with the conductor's root, mutating one step at a time (the Turing machine's shift
-//             register), ghost notes and far accents scattered through it, the filter breathing
-//             open and shut over its run -- and it arrives out of the far plane and leaves into it.
-//
-// What it plays is chosen against the harmony, never by a die alone: Consonant takes a degree of
-// the tuning that is consonant with the root AND with every note sounding -- the fifth, the ninth,
-// the pure third first -- and avoids what already sounds. The rules it keeps, all of them measured
-// by the selftest and the audit: never during the conductor's planned silence, never within six
-// seconds of a root change, never two events at once, never into nothing at all; and while a Note
-// or a Phrase sounds the conductor may be asked to hold its decisions (Hold Brain), so the
-// background stands still under the soloist.
-//
-// Nothing here renders: it emits NearNotes, and the engine turns them into voices (or the audit
-// into lines). Its dice are its own stream, so switching it on moves nothing else in a preset.
+/**
+ * @file Near.h
+ * @brief The near events: what the instrument plays close to the ear, on a clock of its
+ *        own (13.09.2026).
+ *
+ * The conductor makes the background; nothing in the instrument made a foreground except the
+ * Strike, which decorates a note the conductor was playing anyway. This is a second, small
+ * conductor for the foreground: every so often -- the gap drawn the way the conductor draws its
+ * own, a shifted exponential so that there is never a pulse -- it plays one thing near, from the
+ * Near Source (a slot of its own, Engine.h), and then waits. Three kinds of thing:
+ *
+ *   Note      one tone, held for Length, with the source's own attack and release.
+ *   Phrase    one tone that slides to a second degree part-way, on the voice's portamento with
+ *             its consonance gravity -- the singing string, the flute bending into its note.
+ *   Sequence  a Berlin-school line: a ring of Steps notes on a clock of eighths, transposed
+ *             with the conductor's root, mutating one step at a time (the Turing machine's shift
+ *             register), ghost notes and far accents scattered through it, the filter breathing
+ *             open and shut over its run -- and it arrives out of the far plane and leaves into it.
+ *
+ * What it plays is chosen against the harmony, never by a die alone: Consonant takes a degree of
+ * the tuning that is consonant with the root AND with every note sounding -- the fifth, the ninth,
+ * the pure third first -- and avoids what already sounds. The rules it keeps, all of them measured
+ * by the selftest and the audit: never during the conductor's planned silence, never within six
+ * seconds of a root change, never two events at once, never into nothing at all; and while a Note
+ * or a Phrase sounds the conductor may be asked to hold its decisions (Hold Brain), so the
+ * background stands still under the soloist.
+ *
+ * Nothing here renders: it emits NearNotes, and the engine turns them into voices (or the audit
+ * into lines). Its dice are its own stream, so switching it on moves nothing else in a preset.
+ */
 #pragma once
 #include "Dsp.h"
 #include "Clock.h"
@@ -33,63 +36,83 @@
 
 namespace ambient {
 
+/** @brief The Near Events section's settings, as the engine reads them from the parameter table once per block. */
 struct NearParams {
-    float level = 0.0f;          // 0: off
-    int   kind = 0;              // 0 Note, 1 Phrase, 2 Sequence
-    float rate = 120.0f;         // mean seconds from the end of one event to the start of the next
-    float chance = 1.0f;         // the coin at each due moment
-    float cluster = 0.0f;        // the coin weighted by the conductor's excitation
-    float length = 6.0f;         // seconds an event lasts; a sequence's whole run
-    int   pitch = 0;             // 0 Consonant, 1 Highest, 2 Lowest, 3 Root, 4 Cluster
-    float spread = 0.5f;         // how far from the centre an event may sit
-    float approach = 0.0f;       // fraction of the event spent arriving from the far plane (and leaving into it); negative: leaving from the start
-    float distance = 0.0f;       // where the event sits, 0 at the ear .. 1 on the horizon (what Approach arrives at)
-    float dry = 0.0f;            // the share of the event's voice that goes past every reverb and delay
-    float toDelay2 = 0.0f;       // an extra share into the second delay's input (a send, added, not taken away)
-    float toCosmos = 0.0f;       // ... and into the Cosmos send, likewise
-    float proximity = 0.6f;      // the near field's low lift on the event's voice
-    bool  hold = true;           // the conductor waits while a Note or a Phrase sounds
-    float glide = 0.0f;          // Phrase: seconds of the slide (0: two fifths of the length)
-    int   steps = 7;             // Sequence: the ring
-    float stepSeconds = 0.4f;    // Sequence: a step, when not synced
-    int   stepSync = 0;          // Sequence: kSyncDivNames index, 0 = free
-    float mutation = 0.12f;      // Sequence: chance per cycle that one step changes
-    float scatter = 0.3f;        // Sequence: ghost notes between the steps, accents sent far
-    float bloom = 0.5f;          // Sequence: the filter opening over the run and closing again
-    float attack = 0.3f, release = 2.0f;   // the source's, for the gates
+    float level = 0.0f;          ///< 0: off
+    int   kind = 0;              ///< 0 Note, 1 Phrase, 2 Sequence
+    float rate = 120.0f;         ///< mean seconds from the end of one event to the start of the next
+    float chance = 1.0f;         ///< the coin at each due moment
+    float cluster = 0.0f;        ///< the coin weighted by the conductor's excitation
+    float length = 6.0f;         ///< seconds an event lasts; a sequence's whole run
+    int   pitch = 0;             ///< 0 Consonant, 1 Highest, 2 Lowest, 3 Root, 4 Cluster
+    float spread = 0.5f;         ///< how far from the centre an event may sit
+    float approach = 0.0f;       ///< fraction of the event spent arriving from the far plane (and leaving into it); negative: leaving from the start
+    float distance = 0.0f;       ///< where the event sits, 0 at the ear .. 1 on the horizon (what Approach arrives at)
+    float dry = 0.0f;            ///< the share of the event's voice that goes past every reverb and delay
+    float toDelay2 = 0.0f;       ///< an extra share into the second delay's input (a send, added, not taken away)
+    float toCosmos = 0.0f;       ///< ... and into the Cosmos send, likewise
+    float proximity = 0.6f;      ///< the near field's low lift on the event's voice
+    bool  hold = true;           ///< the conductor waits while a Note or a Phrase sounds
+    float glide = 0.0f;          ///< Phrase: seconds of the slide (0: two fifths of the length)
+    int   steps = 7;             ///< Sequence: the ring
+    float stepSeconds = 0.4f;    ///< Sequence: a step, when not synced
+    int   stepSync = 0;          ///< Sequence: kSyncDivNames index, 0 = free
+    float mutation = 0.12f;      ///< Sequence: chance per cycle that one step changes
+    float scatter = 0.3f;        ///< Sequence: ghost notes between the steps, accents sent far
+    float bloom = 0.5f;          ///< Sequence: the filter opening over the run and closing again
+    float attack = 0.3f,    ///< @brief the source's attack in seconds
+          release = 2.0f;   ///< the source's, for the gates
 };
 
-// One thing the engine should do.
+/** @brief One thing the engine should do. */
 struct NearNote {
-    enum class Type { On, Off, Glide, Move };
-    Type  type = Type::On;
-    int   note = 60;
-    float velocity = 0.7f;
-    float distance = 0.0f;       // On: the plane the note starts on; Move: where to go
-    float pan = 0.0f;            // On: -1 .. 1
-    float releaseMul = 1.0f;     // On: the gate, as a share of the source's release
-    float cutoffMul = 1.0f;      // On: the bloom, a factor on the near filter's cutoff
-    float seconds = 0.0f;        // Glide, Move: how long
-    float detune = 0.0f;         // Glide: semitones off the note (a flute's meri bend, a quarter tone down)
+    /** @brief What to do: start a note, end it, slide it to another degree, or move its plane. */
+    enum class Type {
+        On,      ///< @brief start `note` at `velocity` on plane `distance`, panned `pan`, shaped by releaseMul and cutoffMul
+        Off,     ///< @brief let `note` go
+        Glide,   ///< @brief slide the sounding note to `note` (plus `detune`) over `seconds`
+        Move     ///< @brief move the sounding note's plane to `distance` over `seconds`
+    };
+    Type  type = Type::On;       ///< which of the four
+    int   note = 60;             ///< the MIDI note it concerns (On, Off: the note; Glide: the destination; Move: the sounding note)
+    float velocity = 0.7f;       ///< On: 0 .. 1
+    float distance = 0.0f;       ///< On: the plane the note starts on; Move: where to go
+    float pan = 0.0f;            ///< On: -1 .. 1
+    float releaseMul = 1.0f;     ///< On: the gate, as a share of the source's release
+    float cutoffMul = 1.0f;      ///< On: the bloom, a factor on the near filter's cutoff
+    float seconds = 0.0f;        ///< Glide, Move: how long
+    float detune = 0.0f;         ///< Glide: semitones off the note (a flute's meri bend, a quarter tone down)
 };
 
-// What the scheduler is told about the piece at each step.
+/** @brief What the scheduler is told about the piece at each step. */
 struct NearInputs {
-    int    root = 50;
-    int    cluster[12] = {};     // the conductor's sounding notes
-    int    count = 0;
-    double excitation = 0.0;     // the cascade's, in multiples of the base rate
-    bool   silence = false;      // the conductor's planned pause
-    double rootAge = 1.0e9;      // seconds since the root last moved
-    double bpm = 90.0;
-    double sinceOnset = 1.0e9;   // seconds since the conductor last began a note
-    bool   releasing = false;    // a conductor's voice is letting go right now
+    int    root = 50;            ///< the conductor's root, as a MIDI note
+    int    cluster[12] = {};     ///< the conductor's sounding notes
+    int    count = 0;            ///< how many of cluster are sounding
+    double excitation = 0.0;     ///< the cascade's, in multiples of the base rate
+    bool   silence = false;      ///< the conductor's planned pause
+    double rootAge = 1.0e9;      ///< seconds since the root last moved
+    double bpm = 90.0;           ///< the clock's tempo, for a synced step
+    double sinceOnset = 1.0e9;   ///< seconds since the conductor last began a note
+    bool   releasing = false;    ///< a conductor's voice is letting go right now
 };
 
+/**
+ * @brief The foreground's scheduler: decides when an event is due, what it plays and how it
+ *        unfolds, and emits NearNotes for the engine to carry out.
+ *
+ * Header-only and templated on its callbacks, so the engine hands it its tuning and its ear and the
+ * audit hands it a logger. Control rate, audio thread; no allocation.
+ */
 class NearEvents {
 public:
-    static constexpr int kMaxSteps = 16;
+    static constexpr int kMaxSteps = 16;   ///< the longest sequence ring
 
+    /**
+     * @brief Puts the scheduler at the beginning of a piece: nothing sounding, counters at zero, the first event
+     *        due in twenty to forty seconds, and the dice seeded.
+     * @param seed  the scheduler's own random stream (part of the preset's seed)
+     */
     void reset(uint64_t seed)
     {
         rng_.seed(seed);
@@ -105,22 +128,54 @@ public:
         tempoDrift_.init(rng_); timingDrift_.init(rng_); densityPhase_ = static_cast<double>(rng_.uniform());
     }
 
+    /** @return whether an event is sounding right now */
     bool  active() const   { return active_; }
-    // The conductor is asked to begin no new note: while a Note or a Phrase sounds, and for ten
-    // seconds after it, so the horizon's return is heard before the background moves again.
+    /**
+     * @brief The conductor is asked to begin no new note: while a Note or a Phrase sounds, and for ten
+     *        seconds after it, so the horizon's return is heard before the background moves again.
+     * @return true while the conductor should hold its decisions (only with Hold Brain on)
+     */
     bool  holding() const  { return hold_ && ((active_ && kind_ != 2) || holdTail_ > 0.0); }
-    // A sequence is running: the conductor keeps its root and halves its pace under it.
+    /**
+     * @brief A sequence is running: the conductor keeps its root and halves its pace under it.
+     * @return true while a Sequence event is active
+     */
     bool  sequenceRunning() const { return active_ && kind_ == 2; }
+    /** @return how far through the current event, 0 .. 1 (0 when none) */
     float progress() const { return active_ && length_ > 0.0 ? static_cast<float>(elapsed_ / length_) : 0.0f; }
+    /** @return events begun since reset() */
     int   events() const   { return events_; }
+    /** @return due moments that were refused by a rule or the coin since reset() */
     int   refused() const  { return refused_; }
+    /** @return sequence steps mutated since reset() */
     int   mutations() const { return mutations_; }
+    /** @return the kind of the current (or last) event: 0 Note, 1 Phrase, 2 Sequence */
     int   kind() const     { return kind_; }
+    /** @return seconds until the next event is due (may be negative while waiting for stillness) */
     double nextIn() const  { return timer_; }
+    /** @return the MIDI note sounding (a Note or Phrase's, or a sequence's last step), -1 for none */
     int   currentNote() const { return note_; }
 
-    // Advance `dt`. `freqOf(int) -> double`, `consonance(double fa, double fb) -> double` (the
-    // conductor's own ear), `emit(const NearNote&)`.
+    /**
+     * @brief Advance `dt`. `freqOf(int) -> double`, `consonance(double fa, double fb) -> double` (the
+     *        conductor's own ear), `emit(const NearNote&)`.
+     *
+     * Called once per control block. With Level at 0 an event still sounding is ended and nothing
+     * new is begun. Otherwise a running event is advanced (run()); when none is running the timer
+     * counts down and, once due, the rules are asked (no silence, six seconds since the root moved,
+     * something sounding), stillness is waited for (up to half the rate), and the coin, weighted by
+     * the cascade's excitation against its own average, decides whether begin() is called.
+     *
+     * @tparam FreqFn      callable as double(int midiNote): the instrument's tuning
+     * @tparam ConsFn      callable as double(double fa, double fb): consonance of two frequencies, 0 .. 1
+     * @tparam EmitFn      callable as void(const NearNote&)
+     * @param dt           seconds since the last call
+     * @param p            the section's settings
+     * @param in           what the piece is doing right now
+     * @param freqOf       the tuning
+     * @param consonance   the ear
+     * @param emit         receives every NearNote
+     */
     template <class FreqFn, class ConsFn, class EmitFn>
     void update(double dt, const NearParams& p, const NearInputs& in, FreqFn&& freqOf, ConsFn&& consonance, EmitFn&& emit)
     {
@@ -153,19 +208,35 @@ public:
     }
 
 private:
-    struct Step { int offset = 7; int octave = 0; float velocity = 0.7f; bool open = true; bool accent = false; bool rest = false; };
+    /** @brief One step of the sequence ring. */
+    struct Step {
+        int offset = 7;          ///< @brief semitones over the root
+        int octave = 0;          ///< @brief 0, or 12 for a step an octave up
+        float velocity = 0.7f;   ///< @brief 0.55 .. 1
+        bool open = true;        ///< @brief a long gate (half a step) rather than a short one
+        bool accent = false;     ///< @brief sent far: played on the horizon
+        bool rest = false;       ///< @brief a silent step
+    };
 
-    // The gap the conductor draws: exponential, shifted so the floor is a floor and not a peak.
+    /**
+     * @brief The gap the conductor draws: exponential, shifted so the floor is a floor and not a peak.
+     * @param mean  the mean gap in seconds
+     * @return      a gap of at least a fifth of the mean (capped at five seconds), exponentially distributed above it
+     */
     double gap(double mean) const
     {
         const double floor = std::min(5.0, 0.2 * mean);
         const double u = -std::log(1.0 - static_cast<double>(rng_.uniform()) + 1e-9);
         return floor + u * std::max(mean - floor, 0.25 * mean);
     }
-    mutable Rng rng_;
+    mutable Rng rng_;   ///< the scheduler's own dice (mutable so gap() can draw from a const method)
 
-    // How welcome an interval to the root is, by the ear of this music: the fifth first, then
-    // the ninth and the pure third, the octave, the sixth and the fourth, the harmonic seventh.
+    /**
+     * @brief How welcome an interval to the root is, by the ear of this music: the fifth first, then
+     *        the ninth and the pure third, the octave, the sixth and the fourth, the harmonic seventh.
+     * @param ratio  the frequency ratio to the root, folded into one octave here
+     * @return       a weight 0.12 .. 1 (0.12 for an interval within 25 cents of none of the table's)
+     */
     static float intervalWeight(double ratio)
     {
         while (ratio >= 2.0) ratio *= 0.5;
@@ -178,7 +249,24 @@ private:
         return 0.12f;
     }
 
-    // A degree for the foreground, against the root and everything sounding.
+    /**
+     * @brief A degree for the foreground, against the root and everything sounding.
+     *
+     * The fixed rules (Highest, Lowest, Root, Cluster) answer at once. Consonant weighs every key in
+     * a window from a fifth under the cluster's middle to a twelfth over its top by intervalWeight()
+     * to the root, by the consonance with each sounding note (a doubling and anything inside a
+     * critical band of a sounding voice are all but excluded), and by the register (a fifth above
+     * the top is favoured, inside the chord discouraged), then draws by weight.
+     *
+     * @tparam FreqFn     the tuning (see update)
+     * @tparam ConsFn     the ear (see update)
+     * @param p           the settings (pitch rule)
+     * @param in          the root and the cluster
+     * @param freqOf      the tuning
+     * @param consonance  the ear
+     * @param avoid       a MIDI note to weight down (the previous note), or -1
+     * @return            the MIDI note chosen (the cluster's middle when nothing has weight)
+     */
     template <class FreqFn, class ConsFn>
     int choose(const NearParams& p, const NearInputs& in, FreqFn&& freqOf, ConsFn&& consonance, int avoid)
     {
@@ -231,6 +319,24 @@ private:
         return centre;
     }
 
+    /**
+     * @brief Begins an event of the kind the settings say.
+     *
+     * A Sequence fills its ring (every step a degree chosen against the harmony, some an octave
+     * up, a few rests, most open, a handful accented) and lets runSequence() play it. A Note or a
+     * Phrase chooses its note, decides how many slides a phrase gets (two to four, the last home)
+     * and emits the On -- on the horizon when it is to arrive -- followed by the Move that brings it
+     * to its place (or, with a negative approach, sends it out from the first moment).
+     *
+     * @tparam FreqFn     the tuning (see update)
+     * @tparam ConsFn     the ear (see update)
+     * @tparam EmitFn     the sink (see update)
+     * @param p           the settings
+     * @param in          the root and the cluster
+     * @param freqOf      the tuning
+     * @param consonance  the ear
+     * @param emit        receives the NearNotes
+     */
     template <class FreqFn, class ConsFn, class EmitFn>
     void begin(const NearParams& p, const NearInputs& in, FreqFn&& freqOf, ConsFn&& consonance, EmitFn&& emit)
     {
@@ -282,6 +388,24 @@ private:
         }
     }
 
+    /**
+     * @brief Advances a running event by @p dt.
+     *
+     * A Sequence is handed to runSequence(). A Phrase emits its slides at k/n of the length (the
+     * last one home) and its closing meri -- a quarter tone down at 88 % and back at 95 %; an
+     * arriving Note or Phrase is sent back to the horizon over its last stretch. At the end of the
+     * length the event is ended.
+     *
+     * @tparam FreqFn     the tuning (see update)
+     * @tparam ConsFn     the ear (see update)
+     * @tparam EmitFn     the sink (see update)
+     * @param dt          seconds since the last call
+     * @param p           the settings
+     * @param in          the root and the cluster
+     * @param freqOf      the tuning
+     * @param consonance  the ear
+     * @param emit        receives the NearNotes
+     */
     template <class FreqFn, class ConsFn, class EmitFn>
     void run(double dt, const NearParams& p, const NearInputs& in, FreqFn&& freqOf, ConsFn&& consonance, EmitFn&& emit)
     {
@@ -323,9 +447,13 @@ private:
         if (elapsed_ >= length_) end(emit);
     }
 
-    // Where the sequence stands between the planes at progress q: out of the far, at its place
-    // for the middle, back into the far. Its place is Distance; the run's approach is symmetric
-    // whichever sign it carries.
+    /**
+     * @brief Where the sequence stands between the planes at progress q: out of the far, at its place
+     *        for the middle, back into the far. Its place is Distance; the run's approach is symmetric
+     *        whichever sign it carries.
+     * @param q  progress through the run, 0 .. 1
+     * @return   the plane, home_ .. 1
+     */
     float trajectory(double q) const
     {
         const double a = std::fabs(static_cast<double>(approach_));
@@ -337,6 +465,27 @@ private:
         return home_ + (1.0f - home_) * outward;
     }
 
+    /**
+     * @brief Advances a Sequence by @p dt: ends the sounding step's gate when it is up and, when the
+     *        next half-step is due, plays a ghost or the next step of the ring.
+     *
+     * The tempo breathes on a drifter (three per cent), every step lands a few milliseconds early
+     * or late on another, and a slow density gate between a third and one decides whether a step
+     * plays at all. Between two steps a quiet, dark ghost of the step just gone may sound (Scatter).
+     * At the start of each cycle one step may mutate (Mutation): its degree, octave, gate, velocity
+     * or accent.
+     *
+     * @tparam FreqFn     the tuning (see update)
+     * @tparam ConsFn     the ear (see update)
+     * @tparam EmitFn     the sink (see update)
+     * @param dt          seconds since the last call
+     * @param q           progress through the run, 0 .. 1
+     * @param p           the settings
+     * @param in          the root and the cluster
+     * @param freqOf      the tuning
+     * @param consonance  the ear
+     * @param emit        receives the NearNotes
+     */
     template <class FreqFn, class ConsFn, class EmitFn>
     void runSequence(double dt, double q, const NearParams& p, const NearInputs& in, FreqFn&& freqOf, ConsFn&& consonance, EmitFn&& emit)
     {
@@ -389,6 +538,23 @@ private:
         ghostDue_ = true;
     }
 
+    /**
+     * @brief Plays one step (or a ghost of one): ends the previous gate, emits the On with the step's
+     *        place, gate and bloom, and arms the gate.
+     *
+     * An accented step is sent to the horizon (0.8 or further); every other one stands where
+     * trajectory() puts the run. The bloom is two octaves under the cutoff as the run begins, an
+     * octave over it at its height, and back.
+     *
+     * @tparam EmitFn    the sink (see update)
+     * @param st         the step
+     * @param root       the conductor's root, as a MIDI note
+     * @param q          progress through the run, 0 .. 1
+     * @param p          the settings (spread, bloom)
+     * @param velocity   0 .. 1
+     * @param gateShare  how long the gate stays open, as a share of a step
+     * @param emit       receives the NearNotes
+     */
     template <class EmitFn>
     void play(const Step& st, int root, double q, const NearParams& p, float velocity, float gateShare, EmitFn&& emit)
     {
@@ -410,6 +576,12 @@ private:
         note_ = e.note;
     }
 
+    /**
+     * @brief Ends the current event: lets its note go, draws the gap to the next one and, after a Note or
+     *        a Phrase, holds the conductor for ten more seconds so the horizon's return is heard.
+     * @tparam EmitFn  the sink (see update)
+     * @param emit     receives the Off
+     */
     template <class EmitFn>
     void end(EmitFn&& emit)
     {
@@ -422,22 +594,40 @@ private:
     }
 
 private:
-    bool   active_ = false, hold_ = true, glided_ = false, moved_ = false;
-    int    kind_ = 0;
-    double elapsed_ = 0.0, length_ = 0.0, timer_ = 30.0, rate_ = 120.0, stepSec_ = 0.4, waited_ = 0.0, holdTail_ = 0.0;
-    float  approach_ = 0.0f;
-    float  home_ = 0.0f;         // the event's place between the planes (NearParams::distance)
-    int    note_ = -1, lastNote_ = -1, firstNote_ = -1;
-    int    phraseNotes_ = 0, phraseDone_ = 0, bent_ = 0;
-    int    events_ = 0, refused_ = 0, mutations_ = 0;
-    double excAvg_ = 0.0;
-    Drifter tempoDrift_, timingDrift_;
-    double densityPhase_ = 0.0;
-    Step   steps_[kMaxSteps];
-    int    stepsUsed_ = 0, stepPos_ = 0;
-    double stepLeft_ = 0.0, gateLeft_ = 0.0;
-    int    gateNote_ = -1;
-    bool   ghostDue_ = false;
+    bool   active_ = false,   ///< @brief an event is sounding
+           hold_ = true,      ///< @brief Hold Brain, as of the last update()
+           glided_ = false,   ///< @brief (kept from an earlier phrase model; reset with the event)
+           moved_ = false;    ///< the arriving event has been sent back out
+    int    kind_ = 0;            ///< the current event's kind: 0 Note, 1 Phrase, 2 Sequence
+    double elapsed_ = 0.0,    ///< @brief seconds into the current event
+           length_ = 0.0,     ///< @brief the event's length in seconds
+           timer_ = 30.0,     ///< @brief seconds until the next event is due
+           rate_ = 120.0,     ///< @brief the mean gap, at least ten seconds
+           stepSec_ = 0.4,    ///< @brief a sequence step in seconds, synced or free
+           waited_ = 0.0,     ///< @brief seconds spent waiting for stillness
+           holdTail_ = 0.0;   ///< seconds the conductor is still held after a Note or Phrase
+    float  approach_ = 0.0f;     ///< the event's approach, -0.45 .. 0.45 of its length
+    float  home_ = 0.0f;         ///< the event's place between the planes (NearParams::distance)
+    int    note_ = -1,        ///< @brief the note sounding, -1 for none
+           lastNote_ = -1,    ///< @brief the previous event's note, to be avoided next time
+           firstNote_ = -1;   ///< a phrase's first note, where its last slide returns
+    int    phraseNotes_ = 0,   ///< @brief notes in the phrase (2 .. 4; 1 for a Note)
+           phraseDone_ = 0,    ///< @brief notes of the phrase begun so far
+           bent_ = 0;          ///< the meri's stage: 0 not yet, 1 bent down, 2 back
+    int    events_ = 0,      ///< @brief events begun since reset()
+           refused_ = 0,     ///< @brief due moments refused since reset()
+           mutations_ = 0;   ///< steps mutated since reset()
+    double excAvg_ = 0.0;        ///< the running average of the cascade's excitation, what the coin is weighted against
+    Drifter tempoDrift_,    ///< @brief the sequence tempo's slow wander
+            timingDrift_;   ///< each step's small early-or-late
+    double densityPhase_ = 0.0;  ///< the density gate's phase, 0 .. 1
+    Step   steps_[kMaxSteps];    ///< the sequence ring
+    int    stepsUsed_ = 0,   ///< @brief steps in the ring, 3 .. kMaxSteps
+           stepPos_ = 0;     ///< the next step to play
+    double stepLeft_ = 0.0,   ///< @brief seconds until the next half-step
+           gateLeft_ = 0.0;   ///< seconds until the sounding step is let go
+    int    gateNote_ = -1;       ///< the sequence note whose gate is open, -1 for none
+    bool   ghostDue_ = false;    ///< the next half-step is a ghost's, not a step's
 };
 
 } // namespace ambient

@@ -1,7 +1,21 @@
+/**
+ * @file PluginProcessor.cpp
+ * @brief Implementation of the Noctuary processor: parameters, the audio block, presets and their
+ *        files, the two-engine transition, journeys, favourites, MIDI and state.
+ *
+ * The order of the file follows the life of the instrument: the parameter layout and the crash
+ * log, construction and the standalone's session recall, the OSC sink, the audio block, the
+ * recorder, programs and preset layers, file loading, the set timeline, preset files, the
+ * travelling preset change, journeys, favourites, the engine handshake (ensureEngine,
+ * beginTransition, servePendingPreset), notes, MIDI learn, and the state last. The threads each
+ * function runs on are said at the function; the rules behind them are in PluginProcessor.h.
+ *
+ * The standalone's own headers are included under `JucePlugin_Build_Standalone` right below.
+ * For the standalone's settings file: the same one JUCE saves the state into when the window is
+ * closed. Reaching it here is what lets the session be written while the app is still running.
+ */
 #include "PluginProcessor.h"
 #include "ambient/WavFile.h"
-// For the standalone's settings file: the same one JUCE saves the state into when the window is
-// closed. Reaching it here is what lets the session be written while the app is still running.
 #if JucePlugin_Build_Standalone
  #include <juce_audio_utils/juce_audio_utils.h>
  #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
@@ -60,18 +74,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout NoctuaryProcessor::createLay
     return layout;
 }
 
-// A crash writes a stack trace where the instrument can be asked for it.
-//
-// The occasion: the instrument disappeared while a preset was picked off the map, and Windows had
-// written nothing at all -- no report in the event log, no minidump in CrashDumps, because local
-// dumps are off on most machines and switching them on means the registry. So the instrument keeps
-// its own account: a line with the version and the time, then the backtrace, appended to
-// Documents/Noctuary/crash.log. Appended, because the second crash is the one that shows which
-// part of the first was the accident.
-//
-// A handler runs in a process that has already lost, so it does the least it can: JUCE's backtrace
-// (which walks the stack itself) and C file I/O. No allocation of ours, no locks, no JUCE objects
-// built here.
+/**
+ * @brief A crash writes a stack trace where the instrument can be asked for it.
+ *
+ * The occasion: the instrument disappeared while a preset was picked off the map, and Windows had
+ * written nothing at all -- no report in the event log, no minidump in CrashDumps, because local
+ * dumps are off on most machines and switching them on means the registry. So the instrument keeps
+ * its own account: a line with the version and the time, then the backtrace, appended to
+ * Documents/Noctuary/crash.log. Appended, because the second crash is the one that shows which
+ * part of the first was the accident.
+ *
+ * A handler runs in a process that has already lost, so it does the least it can: JUCE's backtrace
+ * (which walks the stack itself) and C file I/O. No allocation of ours, no locks, no JUCE objects
+ * built here.
+ *
+ * Standalone only, and once per process (std::call_once); called first thing in the processor's
+ * constructor. Installs JUCE's crash handler and a std::terminate handler, both writing the same
+ * line and backtrace.
+ */
 static void installCrashLog()
 {
     // Standalone only. Both of these are process-wide hooks, and a plugin that reaches into a
@@ -150,9 +170,11 @@ NoctuaryProcessor::~NoctuaryProcessor()
     saveSession();
 }
 
-// The standalone's settings, or nothing at all when this is a plugin: there the host owns the
-// state, saves it with the project and hands it back, and a synth that quietly loaded somebody
-// else's last session into a fresh instance would be a bug, not a feature.
+/**
+ * The standalone's settings, or nothing at all when this is a plugin: there the host owns the
+ * state, saves it with the project and hands it back, and a synth that quietly loaded somebody
+ * else's last session into a fresh instance would be a bug, not a feature.
+ */
 juce::PropertySet* NoctuaryProcessor::standaloneSettings()
 {
    #if JucePlugin_Build_Standalone
@@ -174,9 +196,11 @@ void NoctuaryProcessor::setSessionRecall(bool on)
     if (auto* file = dynamic_cast<juce::PropertiesFile*>(settings)) file->saveIfNeeded();
 }
 
-// Writes the state only when it has actually changed, so an instrument left running all night
-// touches the disk once. Hashing the block is cheaper than deciding what counts as a change:
-// every knob, the matrix, the tuning and the loaded files are in there already.
+/**
+ * Writes the state only when it has actually changed, so an instrument left running all night
+ * touches the disk once. Hashing the block is cheaper than deciding what counts as a change:
+ * every knob, the matrix, the tuning and the loaded files are in there already.
+ */
 void NoctuaryProcessor::saveSession()
 {
     auto* settings = standaloneSettings();
@@ -217,8 +241,10 @@ void NoctuaryProcessor::event(const ControlEvent& e)
     else presetEvents_.push(e);
 }
 
-// Message thread, from the pump: the preset changes OSC asked for, and the parameters the map
-// left behind when it was switched off.
+/**
+ * Message thread, from the pump: the preset changes OSC asked for, and the parameters the map
+ * left behind when it was switched off.
+ */
 void NoctuaryProcessor::servePresetRequests()
 {
     if (mapExit_.exchange(false, std::memory_order_acq_rel)
@@ -705,9 +731,11 @@ void NoctuaryProcessor::applySoundPreset(int index)
     applyNearAuto(index);
 }
 
-// The foreground a pack preset brings, while Auto is on: the artist's table by the preset's
-// name (nearAutoPick), the near preset applied like one chosen by hand, and its Every scaled by
-// the class's factor. A built-in, or a pack without a table, leaves the foreground as it is.
+/**
+ * The foreground a pack preset brings, while Auto is on: the artist's table by the preset's
+ * name (nearAutoPick), the near preset applied like one chosen by hand, and its Every scaled by
+ * the class's factor. A built-in, or a pack without a table, leaves the foreground as it is.
+ */
 void NoctuaryProcessor::applyNearAuto(int soundIndex)
 {
     if (soundIndex < 0 || soundIndex >= numPresets()) return;
@@ -729,9 +757,12 @@ void NoctuaryProcessor::applyNearAuto(int soundIndex)
     }
 }
 
-// The loudness of every preset was measured from a twelve-second render (Tools/preset_map.py
-// for the built-ins, measure_packs.py for the library). A preset that was never measured has
-// none, and is then left alone rather than guessed at.
+/**
+ * The loudness of every preset was measured from a twelve-second render (Tools/preset_map.py
+ * for the built-ins, measure_packs.py for the library). A preset that was never measured has
+ * none, and is then left alone rather than guessed at.
+ * @param index  the preset just loaded, whose measured loudness (ambient::presetMeta) is matched
+ */
 void NoctuaryProcessor::applyLevelMatch(int index)
 {
     if (!levelMatch_ || index < 0 || index >= numPresetMeta()) return;
@@ -874,9 +905,11 @@ bool NoctuaryProcessor::readMono(const juce::File& file, std::vector<float>& mon
     return true;
 }
 
-// The same read, both channels kept. A texture slot plays the recording's own image now, so the
-// fold to mono that readMono does would throw away what it is there to play; readMono stays for
-// the wavetable loader, which really does want one signal.
+/**
+ * The same read, both channels kept. A texture slot plays the recording's own image now, so the
+ * fold to mono that readMono does would throw away what it is there to play; readMono stays for
+ * the wavetable loader, which really does want one signal.
+ */
 bool NoctuaryProcessor::readStereo(const juce::File& file, std::vector<float>& left,
                                        std::vector<float>& right, double& sampleRate)
 {
@@ -1039,8 +1072,10 @@ bool NoctuaryProcessor::loadPresetFile(const juce::File& file)
     return true;
 }
 
-// Choosing a preset as a journey rather than a cut: the old one plays on while the new one comes
-// up under it, and the map draws the crossing from one to the other while it happens.
+/**
+ * Choosing a preset as a journey rather than a cut: the old one plays on while the new one comes
+ * up under it, and the map draws the crossing from one to the other while it happens.
+ */
 void NoctuaryProcessor::selectPreset(int index, bool viaMorph)
 {
     if (index < 0 || index >= numPresets()) return;
@@ -1183,8 +1218,10 @@ juce::File NoctuaryProcessor::userJourneyFolder()
     return dir;
 }
 
-// The user's own first, then the templates wherever the library lies (the installer's folders,
-// the source tree's Library): every *.journey, each folder once, sorted by name.
+/**
+ * The user's own first, then the templates wherever the library lies (the installer's folders,
+ * the source tree's Library): every *.journey, each folder once, sorted by name.
+ */
 juce::Array<juce::File> NoctuaryProcessor::journeyFiles()
 {
     juce::Array<juce::File> out;
@@ -1204,8 +1241,10 @@ juce::Array<juce::File> NoctuaryProcessor::journeyFiles()
     return out;
 }
 
-// The pump's tick: the seconds since the last, and the step the player hands over when one
-// begins -- the preset by name, brought up over the drawn fade, and the foreground it asks for.
+/**
+ * The pump's tick: the seconds since the last, and the step the player hands over when one
+ * begins -- the preset by name, brought up over the drawn fade, and the foreground it asks for.
+ */
 void NoctuaryProcessor::journeyTick()
 {
     const double now = juce::Time::getMillisecondCounterHiRes() * 0.001;
@@ -1229,8 +1268,10 @@ void NoctuaryProcessor::journeyTick()
             if (st.nearPreset == nearPreset(i).name) { setNearAuto(false); applyNearPreset(i); break; }
 }
 
-// Message thread: the engine at `i`, built and prepared if it is not there. Allocating a hundred
-// megabytes and generating a room impulse is fine here and nowhere near the audio thread.
+/**
+ * Message thread: the engine at `i`, built and prepared if it is not there. Allocating a hundred
+ * megabytes and generating a room impulse is fine here and nowhere near the audio thread.
+ */
 ambient::Engine& NoctuaryProcessor::ensureEngine(int i)
 {
     if (engines_[i] == nullptr) {
@@ -1244,12 +1285,14 @@ ambient::Engine& NoctuaryProcessor::ensureEngine(int i)
     return *engines_[i];
 }
 
-// What the player loaded by hand, into an engine that has just been built. A preset brings its own
-// sample, wavetable and impulse and overwrites these a moment later; what it does NOT bring is a
-// Scala scale a player tuned the instrument to, or a wavetable, clip or room they opened
-// themselves. Those live in the engine and nowhere else, and a fresh engine starts without them --
-// so a preset change silently retuned the instrument to twelve-tone equal temperament and put the
-// built-in table back. Copied from the engine that is playing, not read from disk again.
+/**
+ * What the player loaded by hand, into an engine that has just been built. A preset brings its own
+ * sample, wavetable and impulse and overwrites these a moment later; what it does NOT bring is a
+ * Scala scale a player tuned the instrument to, or a wavetable, clip or room they opened
+ * themselves. Those live in the engine and nowhere else, and a fresh engine starts without them --
+ * so a preset change silently retuned the instrument to twelve-tone equal temperament and put the
+ * built-in table back. Copied from the engine that is playing, not read from disk again.
+ */
 void NoctuaryProcessor::carryUserData(ambient::Engine& e)
 {
     ambient::Engine& from = live();
@@ -1277,8 +1320,10 @@ void NoctuaryProcessor::carryUserData(ambient::Engine& e)
     }
 }
 
-// Message thread: the engine nobody is using goes back. Only when nothing is fading and no change
-// is on its way, which is exactly when the audio thread touches the live one and nothing else.
+/**
+ * Message thread: the engine nobody is using goes back. Only when nothing is fading and no change
+ * is on its way, which is exactly when the audio thread touches the live one and nothing else.
+ */
 void NoctuaryProcessor::releaseIdleEngine()
 {
     // swapTo_ FIRST, then fading_. The audio thread writes fading_ before it clears swapTo_, so
@@ -1292,8 +1337,10 @@ void NoctuaryProcessor::releaseIdleEngine()
     engines_[live_.load(std::memory_order_relaxed) ^ 1].reset();
 }
 
-// Message thread. Runs when neither engine is being rendered but one: the one that is not live is
-// then ours to build on.
+/**
+ * Message thread. Runs when neither engine is being rendered but one: the one that is not live is
+ * then ours to build on.
+ */
 void NoctuaryProcessor::servePendingPreset()
 {
     if (pendingPreset_ < 0) { releaseIdleEngine(); return; }
@@ -1385,7 +1432,9 @@ void NoctuaryProcessor::beginTransition(int index)
     swapTo_.store(incoming, std::memory_order_release);   // the audio thread takes it from here
 }
 
-// Notes go to the live engine and are remembered, so a transition can hand them on.
+/**
+ * Notes go to the live engine and are remembered, so a transition can hand them on.
+ */
 void NoctuaryProcessor::noteOn(int note, float vel)
 {
     if (note < 0 || note >= 128) return;
@@ -1616,6 +1665,10 @@ void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
     }
 }
 
+/**
+ * @brief JUCE's entry point: one processor per instance, for every format and for the standalone.
+ * @return the new processor; the host (or the standalone holder) owns and deletes it
+ */
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new NoctuaryProcessor();

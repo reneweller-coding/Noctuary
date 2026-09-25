@@ -1,27 +1,32 @@
-// Noctuary -- the handovers between threads, under load.
-//
-// The self test measures the instrument and the host test measures the plugin around it, and both
-// of them ask their questions one at a time. This one asks only one question, and asks it of two
-// threads at once: while the engine is rendering, everything a player can change from a window is
-// changed underneath it, as fast as it can be changed.
-//
-// It exists because of what a day of reading found. Nearly every serious fault in this instrument
-// has been a handover between the thread that renders and the thread that answers the mouse: a
-// buffer swapped while it was being read, a matrix announced before it was written, a flag that
-// said "in use" but meant "used last", an engine freed while the audio thread was still inside it.
-// Reading found them one at a time, and reading is the only tool that works on Windows: the
-// sanitizer that finds a data race by watching one happen exists for Linux and macOS and not for
-// this compiler. The core builds on Linux without a framework, though, so this program is the
-// workload that makes that sanitizer worth running:
-//
-//   cmake -S . -B build-tsan -DAMBIENT_BUILD_PLUGIN=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-//         -DCMAKE_CXX_FLAGS="-fsanitize=thread -g -O1" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
-//   cmake --build build-tsan -j
-//   setarch $(uname -m) -R ./build-tsan/Tests/ambient_racetest        # -R: the sanitizer needs the
-//                                                                     # address space left alone
-//
-// On Windows it still earns its place: it is a stress test, and it says whether the sound survives
-// having everything changed under it and whether the audio thread keeps up while that happens.
+/**
+ * @file racetest.cpp
+ * @brief The handovers between threads, under load.
+ *
+ * The self test measures the instrument and the host test measures the plugin around it, and both
+ * of them ask their questions one at a time. This one asks only one question, and asks it of two
+ * threads at once: while the engine is rendering, everything a player can change from a window is
+ * changed underneath it, as fast as it can be changed.
+ *
+ * It exists because of what a day of reading found. Nearly every serious fault in this instrument
+ * has been a handover between the thread that renders and the thread that answers the mouse: a
+ * buffer swapped while it was being read, a matrix announced before it was written, a flag that
+ * said "in use" but meant "used last", an engine freed while the audio thread was still inside it.
+ * Reading found them one at a time, and reading is the only tool that works on Windows: the
+ * sanitizer that finds a data race by watching one happen exists for Linux and macOS and not for
+ * this compiler. The core builds on Linux without a framework, though, so this program is the
+ * workload that makes that sanitizer worth running:
+ *
+ * @code
+ *   cmake -S . -B build-tsan -DAMBIENT_BUILD_PLUGIN=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+ *         -DCMAKE_CXX_FLAGS="-fsanitize=thread -g -O1" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+ *   cmake --build build-tsan -j
+ *   setarch $(uname -m) -R ./build-tsan/Tests/ambient_racetest        # -R: the sanitizer needs the
+ *                                                                     # address space left alone
+ * @endcode
+ *
+ * On Windows it still earns its place: it is a stress test, and it says whether the sound survives
+ * having everything changed under it and whether the audio thread keeps up while that happens.
+ */
 #include "ambient/Engine.h"
 #include "ambient/Params.h"
 #include "ambient/Tuning.h"
@@ -38,14 +43,27 @@ using namespace ambient;
 
 namespace {
 
-int failures = 0;
+int failures = 0;   ///< how many checks failed; decides the exit code
+
+/**
+ * @brief Records one check: prints a FAIL line and counts it when @p ok is false.
+ * @param ok    the condition that has to hold
+ * @param what  what was measured, as the FAIL line prints it
+ */
 void check(bool ok, const char* what)
 {
     if (!ok) { std::printf("FAIL: %s\n", what); ++failures; }
 }
 
-// A short clip to hand to the sampler slots. Different lengths on purpose: the slot's buffers are
-// reassigned when the length changes, which is the moment that used to be unsafe.
+/**
+ * @brief A short clip to hand to the sampler slots.
+ *
+ * Different lengths on purpose: the slot's buffers are
+ * reassigned when the length changes, which is the moment that used to be unsafe.
+ * @param n   length in samples
+ * @param hz  the sine's frequency at 48 kHz
+ * @return    n samples of a sine at 0.3 peak
+ */
 std::vector<float> clip(int n, float hz)
 {
     std::vector<float> v(static_cast<size_t>(n));
@@ -55,6 +73,17 @@ std::vector<float> clip(int n, float hz)
 
 } // namespace
 
+/**
+ * @brief Runs the two threads against one Engine for the seconds asked and reports.
+ *
+ * The audio thread renders 128-sample blocks at 48 kHz with notes coming and going; the control
+ * thread cycles through every handover a window can make (all knobs, clips into slots, the matrix,
+ * envelope shapes, a user scale, a user wavetable). Passes when both threads ran and no sample was
+ * ever non-finite; the real-time factor is printed, not judged.
+ * @param argc  argument count, as the runtime hands it over
+ * @param argv  argv[1], if given: how many seconds to run (default 6; ctest runs it with 4)
+ * @return 0 when every check passed, 1 otherwise
+ */
 int main(int argc, char** argv)
 {
     const double seconds = argc > 1 ? std::atof(argv[1]) : 6.0;

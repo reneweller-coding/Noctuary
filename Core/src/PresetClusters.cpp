@@ -1,6 +1,16 @@
-// The measured groups of the preset library. The centroids are generated (PresetClusters.inc);
-// which group a preset belongs to is worked out here from its own descriptors, so a built-in
-// measured by one tool and a pack preset measured by another are judged by the same yardstick.
+/**
+ * @file PresetClusters.cpp
+ * @brief The measured groups of the preset library.
+ *
+ * The centroids are generated (PresetClusters.inc);
+ * which group a preset belongs to is worked out here from its own descriptors, so a built-in
+ * measured by one tool and a pack preset measured by another are judged by the same yardstick.
+ *
+ * The same translation unit carries the phrase vocabulary (PresetPhrases.inc): the written list
+ * CLAP chose a preset's "sounds like" phrases from (PresetMeta::phrase), handed out by index to the
+ * browser's info card (PresetText.cpp). Both tables are written by Tools/library/map_all.py and
+ * never by hand; this file only answers the questions PresetMeta.h declares over them.
+ */
 #include "ambient/PresetMeta.h"
 #include <cmath>
 
@@ -29,6 +39,11 @@ const char* presetPhrase(int index)
     return (index >= 0 && index < kPhraseCount) ? kPhrases[index] : "";
 }
 
+/**
+ * @param m  the measured metadata of one preset; only its cluster field is read
+ * @return   the stored cluster when it is valid, else the nearest centroid, else -1 when no
+ *           clusters were generated at all
+ */
 int presetClusterOf(const PresetMeta& m)
 {
     if (kClusterCount <= 0) return -1;

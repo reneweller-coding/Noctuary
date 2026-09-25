@@ -1,9 +1,14 @@
-// The convolution room's own checks, without an engine: known impulses, the direct sum through all
-// three stages (stereo, mono, morph), independence from the host's block sizes, the band limits and
-// the trimmed end, the length cap, resampling and the generated hall. The selftest runs them, and
-// ambient_convtest runs them once for every vector path the convolver has (see convtest.cpp).
-//
-// Include after a CHECK(cond, msg) macro is defined.
+/**
+ * @file ConvolverChecks.h
+ * @brief The convolution room's own checks, without an engine.
+ *
+ * The convolution room's own checks, without an engine: known impulses, the direct sum through all
+ * three stages (stereo, mono, morph), independence from the host's block sizes, the band limits and
+ * the trimmed end, the length cap, resampling and the generated hall. The selftest runs them, and
+ * ambient_convtest runs them once for every vector path the convolver has (see convtest.cpp).
+ *
+ * Include after a CHECK(cond, msg) macro is defined.
+ */
 #pragma once
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
@@ -12,6 +17,18 @@
 #include <cstdio>
 #include <vector>
 
+/**
+ * @brief Runs every check of the Convolver at 48 kHz, in six blocks.
+ *
+ * In order: a unit impulse comes back one latency late at unity and a second tap in a later
+ * partition lands where it should; a 1.25 s random stereo impulse through all three stages matches
+ * the direct sum to better than -80 dB (stereo, mono and a 0.3 morph), bit for bit whatever block
+ * sizes the host sends, and so do morphs between impulses that pack differently; silent partitions
+ * are not stored, the trimmed end, the length cap and a 44.1 kHz file keep their lengths; the
+ * generated hall is four seconds, decays, is decorrelated and dark; an impulse over the limit is
+ * faded to -60 dB at the end rather than cut; and a forgotten impulse B leaves the room as A alone.
+ * Every criterion is in the CHECK message beside it; the [probe] lines print the measured numbers.
+ */
 inline void convolverChecks()
 {
     using ambient::Convolver;

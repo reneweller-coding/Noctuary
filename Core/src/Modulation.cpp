@@ -1,3 +1,18 @@
+/**
+ * @file Modulation.cpp
+ * @brief The LFO shapes, the breakpoint envelope and the matrix behind Modulation.h.
+ *
+ * Modulation.h says what the section is and why it replaced the soldered drifters; this file is the
+ * arithmetic and the parsers. The name tables the header declares extern are defined at the top, with
+ * the ten envelope shape presets in their text form. The anonymous namespaces hold the LFO's shape
+ * functions -- a wrap, a smoothstep, the ramped square and the wavetable reader -- the envelope's
+ * segment curve, and the text names of the sources. Lfo::step() and ModEnv::at() run at control rate
+ * (one step per 64 samples, Modulation.h) on the audio thread and allocate nothing; ModEnv::parse(),
+ * ModMatrix::parse() and the two write() methods are the text forms that travel in the preset string
+ * and the plugin state, and run on the message thread. ModMatrix::apply() is the one place where a
+ * route's depth meets a parameter's range. The Wavetable of Sources.h is included for the Table
+ * shape, which resynthesises a frame's spectrum rather than reading samples.
+ */
 #include "ambient/Modulation.h"
 #include "ambient/Sources.h"   // Wavetable, for the Table shape
 #include <cmath>
@@ -13,8 +28,10 @@ const char* const kLfoShapeNames[kNumLfoShapes] = {
 const char* const kLfoModeNames[kNumLfoModes] = { "Global", "Per Voice", "Retrigger" };
 const char* const kEnvModeNames[kNumEnvModes] = { "One Shot", "Loop", "Sustain Loop" };
 
-// Written over about four time units, which the Time knob scales; at Time = 1 that is four
-// seconds. ADSR is first because it is what anybody looks for first.
+/**
+ * Written over about four time units, which the Time knob scales; at Time = 1 that is four
+ * seconds. ADSR is first because it is what anybody looks for first.
+ */
 const char* const kEnvShapePresetNames[kNumEnvShapePresets] = {
     "ADSR", "AD (percussive)", "AR (swell)", "Ramp up", "Ramp down",
     "Pulse", "Slow swell", "Two peaks", "Stepped", "Bipolar sweep",
@@ -34,17 +51,33 @@ const char* const kEnvShapePresetTexts[kNumEnvShapePresets] = {
 
 namespace {
 
+/**
+ * @brief The fractional part of a phase, so that any value lands in 0 .. 1.
+ * @param x  a phase in cycles, of any sign
+ * @return   x - floor(x)
+ */
 inline float wrap01(float x) { return x - std::floor(x); }
 
+/**
+ * @brief The cubic 3t^2 - 2t^3 with its input clamped: a ramp with no corner at either end.
+ * @param t  0 .. 1; anything outside is clamped
+ * @return   0 at 0, 1 at 1, zero slope at both
+ */
 inline float smoothstep(float t)
 {
     t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
     return t * t * (3.0f - 2.0f * t);
 }
 
-// A square whose edges are ramped over 7 % of a cycle. The standing rule of this instrument is
-// that a modulator may not step -- a hard edge on a cutoff is a click -- and the width is chosen
-// so that even at the fastest rate the change per control block stays small.
+/**
+ * @brief A square whose edges are ramped over 7 % of a cycle.
+ *
+ * The standing rule of this instrument is
+ * that a modulator may not step -- a hard edge on a cutoff is a click -- and the width is chosen
+ * so that even at the fastest rate the change per control block stays small.
+ * @param p  phase in 0 .. 1, already wrapped
+ * @return   -1 .. 1, high in the first half of the cycle
+ */
 inline float softSquare(float p)
 {
     const float w = 0.035f;
@@ -55,6 +88,16 @@ inline float softSquare(float p)
     return -1.0f + 2.0f * smoothstep((p - (1.0f - w)) / (2.0f * w));             // other half of the rising edge
 }
 
+/**
+ * @brief The Table shape: one frame of a wavetable read as an LFO cycle.
+ *
+ * Without a table, or with an empty one, it falls back to a sine, so a preset that names a table the
+ * host has not loaded still moves.
+ * @param table    the user wavetable, or null
+ * @param frame    which frame of it, wrapped into the table's frame count
+ * @param phase01  phase in 0 .. 1
+ * @return         the shape at that phase, about -1 .. 1 after the normalisation in the body
+ */
 float tableAt(const Wavetable* table, int frame, float phase01)
 {
     if (table == nullptr || table->frames <= 0) return std::sin(kTwoPi * phase01);
@@ -150,7 +193,12 @@ bool ModEnv::set(const EnvPoint* points, int count)
 }
 
 namespace {
-// A segment with a curve: 0 is linear, positive dwells at the start, negative at the end.
+/**
+ * @brief A segment with a curve: 0 is linear, positive dwells at the start, negative at the end.
+ * @param t      position in the segment, 0 .. 1; clamped
+ * @param curve  EnvPoint::curve of the segment's first point, -1 .. 1
+ * @return       the shaped position, 0 .. 1, a power of @p t
+ */
 float shape(float t, float curve)
 {
     t = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
@@ -275,6 +323,10 @@ int ModEnv::write(char* buf, size_t cap) const
 // ---------------------------------------------------------------- matrix
 
 namespace {
+/**
+ * @brief The text-form names of the sources, in the order of ModSource: modSourceName() and
+ * modSourceFromName() read this table both ways, so a row of the matrix survives in a preset string.
+ */
 const char* const kSourceNames[kNumModSources] = {
     "none",
     "lfo1", "lfo2", "lfo3", "lfo4", "lfo5", "lfo6", "lfo7", "lfo8",

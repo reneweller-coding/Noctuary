@@ -1,11 +1,18 @@
-// The convolution room's cost, measured by hand: CPU time per second of audio, and the worst and
-// the 99.9th-percentile callback, for impulse lengths from 4 s to a minute -- stereo, mono, and a
-// stereo morph between two rooms. Release build only; nothing here passes or fails.
-//
-//   ambient_convbench [callback samples = 128] [seconds of audio = 20] [longest impulse = 60]
-//
-// Every case first runs one impulse length untimed, so the frequency-domain delay lines are full
-// and the cost is the steady one, not the cheap start.
+/**
+ * @file convbench.cpp
+ * @brief ambient_convbench: the convolution room's cost, measured by hand.
+ *
+ * The convolution room's cost, measured by hand: CPU time per second of audio, and the worst and
+ * the 99.9th-percentile callback, for impulse lengths from 4 s to a minute -- stereo, mono, and a
+ * stereo morph between two rooms. Release build only; nothing here passes or fails.
+ *
+ * @code
+ *   ambient_convbench [callback samples = 128] [seconds of audio = 20] [longest impulse = 60]
+ * @endcode
+ *
+ * Every case first runs one impulse length untimed, so the frequency-domain delay lines are full
+ * and the cost is the steady one, not the cheap start.
+ */
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
 #include <algorithm>
@@ -22,8 +29,17 @@ using namespace ambient;
 
 namespace {
 
-// A room-like impulse: three bands of decorrelated noise, each with its own decay, so the top is
-// gone long before the bottom as in a real hall. rt60 is the low band's; the others are shorter.
+/**
+ * @brief A room-like impulse: three bands of decorrelated noise, each with its own decay, so the top is
+ *        gone long before the bottom as in a real hall.
+ *
+ * rt60 is the low band's; the others are shorter.
+ * @param seed  seeds the noise, so that the same seed is the same room every run
+ * @param n     length in samples
+ * @param sr    sample rate in Hz, for the band splits at 300 and 3000 Hz and the decays
+ * @param rt60  decay to -60 dB of the low band in seconds; the mid band gets 0.6 of it, the top 0.25
+ * @return      the n samples, unnormalised (the Convolver normalises the energy itself)
+ */
 std::vector<float> makeImpulse(uint64_t seed, int n, float sr, float rt60)
 {
     Rng rng; rng.seed(seed);
@@ -42,9 +58,33 @@ std::vector<float> makeImpulse(uint64_t seed, int n, float sr, float rt60)
     return h;
 }
 
+/** @brief What one case measured: the three numbers of one row of the table. */
 struct Result { double cpuPercent, worstMs, p999Ms; };
+/** @var Result::cpuPercent
+ *  CPU time spent in the callbacks as a percentage of the audio time they rendered
+ */
+/** @var Result::worstMs
+ *  the slowest single callback, in milliseconds
+ */
+/** @var Result::p999Ms
+ *  the 99.9th-percentile callback, in milliseconds
+ */
 
-// kind 0: stereo impulse, 1: mono impulse, 2: stereo morph halfway between two stereo impulses
+/**
+ * @brief Times one case: an impulse of @p len seconds through a Convolver, callback by callback.
+ *
+ * kind 0: stereo impulse, 1: mono impulse, 2: stereo morph halfway between two stereo impulses
+ *
+ * The convolver is first run for one impulse length plus four callbacks untimed (see the file
+ * header), then for @p seconds of audio with every callback timed by the steady clock.
+ * @param kind        the case, as above
+ * @param len         impulse length in seconds; the rooms decay with rt60 = len / 2
+ * @param maxSeconds  the longest impulse the Convolver is prepared for (what the Room keeps)
+ * @param block       samples per callback
+ * @param seconds     seconds of audio to time
+ * @param sr          sample rate in Hz
+ * @return            CPU percentage, worst and 99.9th-percentile callback of the timed part
+ */
 Result run(int kind, float len, float maxSeconds, int block, double seconds, float sr)
 {
     const int n = static_cast<int>(len * sr);
@@ -86,6 +126,14 @@ Result run(int kind, float len, float maxSeconds, int block, double seconds, flo
 
 } // namespace
 
+/**
+ * @brief Runs the three cases for every impulse length up to the longest asked and prints the table.
+ * @param argc  argument count, as the runtime hands it over
+ * @param argv  optional, in order: callback samples (at least 16, default 128), seconds of audio per
+ *              case (default 20), longest impulse in seconds (default 60; the 4, 8, 12, 30, 60 s rows
+ *              beyond it are skipped)
+ * @return 0 always; the numbers are the result
+ */
 int main(int argc, char** argv)
 {
 #if defined(_M_X64) || defined(__x86_64__)

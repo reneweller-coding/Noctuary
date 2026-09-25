@@ -1,3 +1,25 @@
+/**
+ * @file Params.cpp
+ * @brief The parameter table: every knob of the instrument, described once.
+ *
+ * Params.h names the parameters (ParamId) and says what a description is (ParamDesc); this file
+ * holds the descriptions. kTable is the one place a parameter's stable key, display name, section,
+ * kind, range, default, skew and unit are written down, in ParamId order (the self test checks
+ * that), built from four small constexpr factories -- F for a float, I for an integer, B for a
+ * switch, C for a choice -- so that a row reads as one line. Everything that treats parameters
+ * generically reads it: the host's automation list, the preset reader (applyPreset), the map's
+ * blend, the score's ramps, the modulation matrix, the editor's panels. A parameter's position in
+ * the table is its identity in a host's saved state, so rows are only ever appended at the end,
+ * and the section comments inside the table say when and why each run of rows arrived.
+ *
+ * Around the table sit the things the table needs and the questions asked of it: the name lists
+ * of the choice parameters that have no home elsewhere (kScaleNames, kRootNames, the stack ratios
+ * and so on -- the source, filter, clock and modulation names come from their own headers), the
+ * slot-to-field map that says which ParamId is field N of source slot S (kSlotIds), the
+ * section-name-to-enum table behind sectionOf(), the per-parameter section cache behind
+ * sectionTable(), and findParam(), the sorted index that turns a preset's key into a description
+ * in nine string comparisons instead of a hundred and forty-six.
+ */
 #include "ambient/Params.h"
 #include "ambient/Filter.h"
 #include "ambient/Clock.h"
@@ -30,21 +52,25 @@ const char* const kScaleNames[kNumScaleChoices] = {
 };
 
 const char* const kRootNames[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-// Where a new root may come from. Any is the draw the conductor always made; Fifths keeps it to
-// the fourth and the fifth; Diatonic weights the steps the way this music moves (a fifth or a
-// fourth down before anything else); Falling allows only downward steps, the semitone included,
-// which is the dark profiles' walk.
+/**
+ * Where a new root may come from. Any is the draw the conductor always made; Fifths keeps it to
+ * the fourth and the fifth; Diatonic weights the steps the way this music moves (a fifth or a
+ * fourth down before anything else); Falling allows only downward steps, the semitone included,
+ * which is the dark profiles' walk.
+ */
 const char* const kRootStepNames[4] = { "Any", "Fifths", "Diatonic", "Falling" };
 const char* const kKeyMapNames[2] = { "Snap to 12 keys", "Consecutive degrees" };
 const char* const kShimmerPitchNames[kNumShimmerPitches] = { "+12", "+7", "+5", "+19", "-12", "+24" };
 const char* const kSubOctaveNames[2] = { "-1", "-2" };
 const char* const kSubSourceNames[3] = { "Root", "Difference", "Lowest" };
-// A slot's own amplitude contour: none, one of the six shapes the preset carries for modulation
-// (read with that envelope's own Mode and Time, so Env 3 used here is the same Env 3 the matrix
-// uses), or the slot's own shape. Own is last because it came last: a choice travels as its index
-// in a host's state, and a slot that named Env 3 must go on naming Env 3.
+/**
+ * A slot's own amplitude contour: none, one of the six shapes the preset carries for modulation
+ * (read with that envelope's own Mode and Time, so Env 3 used here is the same Env 3 the matrix
+ * uses), or the slot's own shape. Own is last because it came last: a choice travels as its index
+ * in a host's state, and a slot that named Env 3 must go on naming Env 3.
+ */
 const char* const kSlotEnvNames[kNumSlotEnvs] = { "Off", "Env 1", "Env 2", "Env 3", "Env 4", "Env 5", "Env 6", "Own" };
-// Between two samples of a clip: a straight line, or a curve through four points (Catmull-Rom).
+/** Between two samples of a clip: a straight line, or a curve through four points (Catmull-Rom). */
 const char* const kInterpNames[kNumInterp] = { "Linear", "Hermite" };
 const char* const kRoomSourceNames[2] = { "Far", "Near" };
 const char* const kAirModeNames[2] = { "Band", "Ghost" };
@@ -65,7 +91,7 @@ const char* const kStrikeWhoNames[2] = { "Keys", "Keys + Brain" };
 const char* const kNearKindNames[3] = { "Note", "Phrase", "Sequence" };
 const char* const kNearPitchNames[5] = { "Consonant", "Highest", "Lowest", "Root", "Cluster" };
 const char* const kStackNames[kNumStacks] = { "Detune", "Octaves", "Fifths", "Major", "Minor", "Seventh", "Harmonics", "Subharmonics" };
-// Strand ratios, ordered so that fewer strands still make sense (2 = root + fifth, 3 = a triad...).
+/** Strand ratios, ordered so that fewer strands still make sense (2 = root + fifth, 3 = a triad...). */
 const double kStackRatios[kNumStacks][6] = {
     { 1.0, 1.0,       1.0,       1.0,       1.0,       1.0       },   // Detune (classic unison)
     { 1.0, 2.0,       0.5,       4.0,       0.25,      1.0       },   // Octaves
@@ -79,19 +105,73 @@ const double kStackRatios[kNumStacks][6] = {
 const float kShimmerPitchSemitones[kNumShimmerPitches] = { 12.0f, 7.0f, 5.0f, 19.0f, -12.0f, 24.0f };
 
 namespace {
-using K = ParamKind;
+using K = ParamKind;   ///< short for the kind column, so that a table row stays on one line
+/**
+ * @brief A float parameter's row of the table.
+ * @param id    the parameter
+ * @param key   the stable identifier presets and automation use (never renamed)
+ * @param name  the display name on the panel
+ * @param sec   the section name the editor groups it under (sectionOf() turns it into a ParamSection)
+ * @param mn    the lowest value, in the parameter's unit
+ * @param mx    the highest value
+ * @param def   the value a new instance and an unmentioning preset get
+ * @param skew  1 for a linear knob, below 1 for more resolution at the low end (the domain the
+ *              morph, the map blend and the score ramp in)
+ * @param unit  the unit shown after the value ("Hz", "s", "dB", "ct", "" for a plain 0 .. 1)
+ * @return      the description, with no choices
+ */
 constexpr ParamDesc F(ParamId id, const char* key, const char* name, const char* sec,
                       float mn, float mx, float def, float skew, const char* unit)
 { return { id, key, name, sec, K::Float, mn, mx, def, skew, unit, nullptr, 0 }; }
+/**
+ * @brief An integer parameter's row: linear, stepped, rounded by whoever reads it.
+ * @param id    the parameter
+ * @param key   the stable identifier presets and automation use
+ * @param name  the display name
+ * @param sec   the section name
+ * @param mn    the lowest value
+ * @param mx    the highest value
+ * @param def   the default
+ * @param unit  the unit shown after the value; most integers have none
+ * @return      the description, skew 1 and no choices
+ */
 constexpr ParamDesc I(ParamId id, const char* key, const char* name, const char* sec,
                       float mn, float mx, float def, const char* unit = "")
 { return { id, key, name, sec, K::Int, mn, mx, def, 1.0f, unit, nullptr, 0 }; }
+/**
+ * @brief A switch's row: 0 or 1, written "off" / "on" in a preset.
+ * @param id    the parameter
+ * @param key   the stable identifier
+ * @param name  the display name
+ * @param sec   the section name
+ * @param def   whether the switch is on by default
+ * @return      the description, range 0 .. 1
+ */
 constexpr ParamDesc B(ParamId id, const char* key, const char* name, const char* sec, bool def)
 { return { id, key, name, sec, K::Bool, 0.0f, 1.0f, def ? 1.0f : 0.0f, 1.0f, "", nullptr, 0 }; }
+/**
+ * @brief A choice's row: an index into a list of names, which a preset may write by name.
+ * @param id       the parameter
+ * @param key      the stable identifier
+ * @param name     the display name
+ * @param sec      the section name
+ * @param choices  the names, one per index; the pointer is kept, so the list must be static
+ * @param n        how many names there are; the range becomes 0 .. n - 1
+ * @param def      the default index
+ * @return         the description, with the choices attached
+ */
 constexpr ParamDesc C(ParamId id, const char* key, const char* name, const char* sec,
                       const char* const* choices, int n, int def)
 { return { id, key, name, sec, K::Choice, 0.0f, static_cast<float>(n - 1), static_cast<float>(def), 1.0f, "", choices, n }; }
 
+/**
+ * @brief Every parameter's description, in ParamId order -- the table paramTable() hands out.
+ *
+ * The rows are grouped by section as the panels show them, but the order is the enum's, and the
+ * enum only ever grows at the end: the runs of rows after the Clock section are the parameters
+ * added since the first release, each run under a comment saying what it brought. The self test
+ * checks that row i describes ParamId i.
+ */
 const std::array<ParamDesc, kNumParams> kTable = {{
     F(ParamId::MasterGain,  "master_gain",  "Master",        "Master",     -40.f, 12.f,   -6.f,  1.f,  "dB"),
 
@@ -830,6 +910,14 @@ const std::array<ParamDesc, kNumParams> kTable = {{
 const std::array<ParamDesc, kNumParams>& paramTable() { return kTable; }
 
 namespace {
+/**
+ * @brief Which ParamId is field f of source slot s, for the kSlotFields fields every slot has.
+ *
+ * The four rows are identical field for field except for the ids: Source 1's level and additive
+ * spectrum are the classic Oscillator parameters (OscLevel, Partials, Tilt ...), the other slots
+ * have their own. slotParamIds() hands a row out; the engine and the editor both index through it
+ * instead of each keeping a copy, and the self test checks the rows against Sources.h.
+ */
 const ParamId kSlotIds[kSourceSlots][kSlotFields] = {
     // Source 1: its type and its slot fields, then the Oscillator parameters that are its level
     // and its additive spectrum, then its grain-density sync and its pitch drift.
@@ -871,7 +959,18 @@ const ParamId kSlotIds[kSourceSlots][kSlotFields] = {
       ParamId::Src4Unison, ParamId::Src4UniDetune, ParamId::Src4UniWidth, ParamId::Src4Root, ParamId::Src4Role },
 };
 
-struct SectionName { const char* name; ParamSection section; };
+/** @brief One section as the table spells it, and the enum value sectionOf() answers for it. */
+struct SectionName {
+    const char* name;       ///< the section string of the table rows, e.g. "Far Reverb"
+    ParamSection section;   ///< the ParamSection it stands for
+};
+/**
+ * @brief The section names of the table and their ParamSection, for sectionOf(const char*).
+ *
+ * The numbered sections -- "LFO 3", "Env 5", "Src Env 2" -- are not listed; sectionOf() matches
+ * them by prefix. "Early Room" maps onto Room, since the early reflections belong to that panel.
+ * A name the table uses that is missing here comes out as Unknown, which the self test catches.
+ */
 const SectionName kSections[] = {
     { "Master", ParamSection::Master }, { "Source 1", ParamSection::Source1 }, { "Strands", ParamSection::Strands },
     { "Vector", ParamSection::Vector },

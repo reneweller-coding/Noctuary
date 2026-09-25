@@ -1,6 +1,11 @@
-// Noctuary -- what the engine decides once per block: the modulation sources and the matrix,
-// the clock, and readParams, which turns the parameter atomics into the structures the voices and
-// the effects are given. Split out of Engine.cpp, which had grown past fourteen hundred lines.
+/**
+ * @file EngineControl.cpp
+ * @brief What the engine decides once per block: the modulation sources and the matrix,
+ *        the clock, and readParams, which turns the parameter atomics into the structures the voices and
+ *        the effects are given.
+ *
+ * Split out of Engine.cpp, which had grown past fourteen hundred lines.
+ */
 #include "ambient/Engine.h"
 #include "ambient/PresetMap.h"
 #include "ambient/PresetMeta.h"
@@ -11,13 +16,27 @@
 #if defined(_M_X64) || defined(__x86_64__) || defined(_M_IX86) || defined(__i386__)
   #include <xmmintrin.h>
   #include <pmmintrin.h>
+  /**
+   * @brief 1 on x86: the SSE control register (MXCSR) exists, and Engine::process() in EngineRender.cpp
+   *        sets its flush-to-zero and denormals-are-zero bits for the length of a block and restores
+   *        it afterwards.
+   */
   #define AMBIENT_HAS_MXCSR 1
 #else
+  /**
+   * @brief 0 on every other architecture: there is no MXCSR to set, so the denormal control in
+   *        Engine::process() is compiled out (on 64-bit ARM it is FPCR's, see AMBIENT_HAS_FPCR).
+   */
   #define AMBIENT_HAS_MXCSR 0
 #endif
 #if defined(__aarch64__) || defined(_M_ARM64)
+  /**
+   * @brief 1 on 64-bit ARM: Engine::process() sets bit 24 of FPCR (flush-to-zero) for the length of a
+   *        block, which is what keeps the Quest's decaying tails and envelopes out of denormals.
+   */
   #define AMBIENT_HAS_FPCR 1
 #else
+  /** @brief 0 on every other architecture: there is no FPCR to set. */
   #define AMBIENT_HAS_FPCR 0
 #endif
 
@@ -27,13 +46,15 @@ namespace ambient {
 
 // ---------------------------------------------------------------- modulation
 
-// Clears the pending matrix and shapes WITHOUT announcing them: the announcement is what makes
-// the audio thread copy, and it must not do that while the rest is still being written.
-// Takes the pending matrix and shapes for the message thread. Everything that writes into them
-// has to hold this, not merely announce afterwards that it has finished: the audio thread copies
-// the very bytes the parser writes, so an edit that begins while a copy is running is a race on
-// the matrix itself. That was the shape of it -- announcing was guarded, writing was not, and the
-// thread sanitizer found it in four seconds once there was a workload that did both at once.
+/**
+ * @brief Takes the pending matrix and shapes for the message thread.
+ *
+ * Everything that writes into them
+ * has to hold this, not merely announce afterwards that it has finished: the audio thread copies
+ * the very bytes the parser writes, so an edit that begins while a copy is running is a race on
+ * the matrix itself. That was the shape of it -- announcing was guarded, writing was not, and the
+ * thread sanitizer found it in four seconds once there was a workload that did both at once.
+ */
 void Engine::lockModulation()
 {
     // The message thread may wait; the copy it waits for is a few hundred bytes.
@@ -42,6 +63,10 @@ void Engine::lockModulation()
 
 void Engine::unlockModulation() { modLock_.clear(std::memory_order_release); }
 
+/**
+ * @brief Clears the pending matrix and shapes WITHOUT announcing them: the announcement is what makes
+ *        the audio thread copy, and it must not do that while the rest is still being written.
+ */
 void Engine::clearPendingModulation()
 {
     matrixPending_.clear();
@@ -60,8 +85,12 @@ void Engine::resetModulation()
     unlockModulation();
 }
 
-// Hand the finished matrix and shapes over: the audio thread copies them at the top of a block
-// once it can take the lock. Called with the lock held.
+/**
+ * @brief Hand the finished matrix and shapes over: the audio thread copies them at the top of a block
+ *        once it can take the lock.
+ *
+ * Called with the lock held.
+ */
 void Engine::publishModulation()
 {
     modVersion_.fetch_add(1, std::memory_order_release);
@@ -144,23 +173,23 @@ int Engine::writeSrcEnvShape(int slot, char* buf, size_t cap) const
     return srcEnvPending_[slot].write(buf, cap);
 }
 
-// One step of every modulator, then the matrix summed into modOut_. Called once per block, before
-// readParams, so the values the parameters are read with already carry the modulation.
 // ---------------------------------------------------------------- the Beat source
-//
-// The instrument listening to its own harmonic friction.
-//
-// The Foundation's ghost tone already takes the two lowest sounding voices and uses their
-// frequency difference as a bass note. That difference is only half the story: what the ear
-// actually reacts to in a sustained chord is not the combination tone itself but whether the
-// interval is IN TUNE -- two voices a fifth apart beat at |2*f2 - 3*f1|, which is silent when
-// the fifth is just and gets quicker the further it has drifted. That is the rate this source
-// runs at.
-//
-// So a chord sitting exactly on its just ratios makes this oscillator stand still, and as Purity
-// Drift loosens the tuning it starts to turn, in time with the roughness you can already hear.
-// Route it at a filter, at the Nebula's smear, at anything: the sound then breathes at the rate
-// of its own mistuning rather than at a rate somebody typed into an LFO.
+
+/**
+ * @brief The instrument listening to its own harmonic friction.
+ *
+ * The Foundation's ghost tone already takes the two lowest sounding voices and uses their
+ * frequency difference as a bass note. That difference is only half the story: what the ear
+ * actually reacts to in a sustained chord is not the combination tone itself but whether the
+ * interval is IN TUNE -- two voices a fifth apart beat at |2*f2 - 3*f1|, which is silent when
+ * the fifth is just and gets quicker the further it has drifted. That is the rate this source
+ * runs at.
+ *
+ * So a chord sitting exactly on its just ratios makes this oscillator stand still, and as Purity
+ * Drift loosens the tuning it starts to turn, in time with the roughness you can already hear.
+ * Route it at a filter, at the Nebula's smear, at anything: the sound then breathes at the rate
+ * of its own mistuning rather than at a rate somebody typed into an LFO.
+ */
 float Engine::updateBeat(float dt)
 {
     // The two lowest distinct pitches, exactly as the ghost tone finds them.
@@ -203,6 +232,12 @@ float Engine::updateBeat(float dt)
     return std::sin(beatPhase_);
 }
 
+/**
+ * @brief One step of every modulator, then the matrix summed into modOut_.
+ *
+ * Called once per block, before
+ * readParams, so the values the parameters are read with already carry the modulation.
+ */
 void Engine::stepModulation(float dt)
 {
     // Pick up matrix or shape edits made on the message thread (fixed-size objects, no allocation).
@@ -374,15 +409,20 @@ void Engine::stepModulation(float dt)
 }
 
 // ---------------------------------------------------------------- Lenia
-//
-// Lenia (Chan 2019) is Conway's Life taken to the continuum: cells hold a value in 0..1, each
-// looks at a ring-shaped neighbourhood -- a bell around half the radius, normalised -- and grows
-// or shrinks by a smooth growth function of what it sees, 2 exp(-(u - mu)^2 / 2 sigma^2) - 1, so
-// a cell in the right company grows and one in too little or too much decays. The field is
-// updated a tenth of the way per step. On a large grid this breeds the gliders and rotors the
-// literature shows; on thirty-two cells it breeds blobs that drift, pulse, split and sometimes
-// die, which is what is wanted from a modulator. Four readings, each the mean of a three-by-
-// three patch near a corner, glide to their new values with the step's own time constant.
+
+/**
+ * @brief One block of the Lenia field: the rows due at Lenia Rate are stepped, a field that has died
+ *        or filled up is seeded again, and the four readings glide to their new means.
+ *
+ * Lenia (Chan 2019) is Conway's Life taken to the continuum: cells hold a value in 0..1, each
+ * looks at a ring-shaped neighbourhood -- a bell around half the radius, normalised -- and grows
+ * or shrinks by a smooth growth function of what it sees, 2 exp(-(u - mu)^2 / 2 sigma^2) - 1, so
+ * a cell in the right company grows and one in too little or too much decays. The field is
+ * updated a tenth of the way per step. On a large grid this breeds the gliders and rotors the
+ * literature shows; on thirty-two cells it breeds blobs that drift, pulse, split and sometimes
+ * die, which is what is wanted from a modulator. Four readings, each the mean of a three-by-
+ * three patch near a corner, glide to their new values with the step's own time constant.
+ */
 void Engine::stepLenia(float dt)
 {
     constexpr int S = kLeniaSize, R = kLeniaRadius, K = 2 * R + 1;
@@ -440,14 +480,19 @@ void Engine::stepLenia(float dt)
 }
 
 // ---------------------------------------------------------------- the attractors
-//
-// Lorenz (sigma 10, rho 28, beta 8/3) and Roessler (a = b = 0.2, c = 5.7), stepped by fourth-order
-// Runge-Kutta in their own time, which is scaled so that Chaos Period is about the time between
-// the Lorenz system's lobe changes and about one turn of the Roessler spiral. The readings are
-// the coordinates scaled by the attractors' known extents and clamped -- the Roessler z climbs
-// higher now and then than the scale allows, and that is what its z is for. The time step in
-// natural units is kept below a hundredth by substepping, so the integration is the same
-// whatever the block size.
+
+/**
+ * @brief One block of the two attractors, integrated in their own time and read into chaosOut_ as
+ *        six bipolar values; a state that has left the finite world is seeded again.
+ *
+ * Lorenz (sigma 10, rho 28, beta 8/3) and Roessler (a = b = 0.2, c = 5.7), stepped by fourth-order
+ * Runge-Kutta in their own time, which is scaled so that Chaos Period is about the time between
+ * the Lorenz system's lobe changes and about one turn of the Roessler spiral. The readings are
+ * the coordinates scaled by the attractors' known extents and clamped -- the Roessler z climbs
+ * higher now and then than the scale allows, and that is what its z is for. The time step in
+ * natural units is kept below a hundredth by substepping, so the integration is the same
+ * whatever the block size.
+ */
 void Engine::stepChaos(float dt)
 {
     auto rk4 = [](double* s, double h, auto&& f) {
@@ -484,7 +529,7 @@ void Engine::stepChaos(float dt)
     ++chaosSteps_;
 }
 
-// A few soft blobs on an empty torus. From the field's own random stream, so the sound's is not touched.
+/** @brief A few soft blobs on an empty torus. From the field's own random stream, so the sound's is not touched. */
 void Engine::seedLenia()
 {
     constexpr int S = kLeniaSize;

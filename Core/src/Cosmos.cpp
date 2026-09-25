@@ -1,3 +1,20 @@
+/**
+ * @file Cosmos.cpp
+ * @brief The Cosmos processors and the two transforms the instrument shares.
+ *
+ * Cosmos.h lists the processors; this file is their inner loops. FreqShifter runs Niemitalo's
+ * Hilbert pair (the tables below) on each channel and rotates the analytic signal by a phasor, the
+ * right ear three per cent slower than the left; CombResonator is a stereo feedback comb with a
+ * one-pole in the loop and glided delays, the right a hair longer than the left; VowelFilter
+ * re-tunes three band passes every 64 samples along a drifting path through a-e-i-o-u; PitchShifter
+ * is the two-head granular shifter of the shimmer loop. Fft is the plain radix-2 complex transform
+ * with precomputed twiddles and bit reversal, and RealFft the real-signal transform built on half
+ * of one -- its derivation and the in-place hazards are in the header, the step-by-step index
+ * bookkeeping in the bodies here. Nebula takes a Hann frame of kN every kHop samples, smooths each
+ * bin's magnitude with the Smear coefficient, gives every bin a fresh random phase and overlap-adds
+ * the real inverse. Everything here runs on the audio thread except the constructors and prepare(),
+ * which allocate. ringRead() and sin01() come from Effects.h and Dsp.h.
+ */
 #include "ambient/Cosmos.h"
 #include "ambient/Effects.h"
 #include <cmath>
@@ -6,10 +23,22 @@
 namespace ambient {
 
 namespace {
+/**
+ * @brief The smallest power of two that is at least @p n: the ring sizes, so a mask can wrap them.
+ * @param n  the number of samples a ring has to hold
+ * @return   the first power of two >= n (1 for n <= 1)
+ */
 int pow2At(int n) { int p = 1; while (p < n) p <<= 1; return p; }
-// Olli Niemitalo's 90-degree phase-splitting all-pass pair (coefficients squared).
-const float kHilbertA[4] = { 0.6923878f, 0.9360654322959f, 0.9882295226860f, 0.9987488452737f };
-const float kHilbertB[4] = { 0.4021921162426f, 0.8561710882420f, 0.9722909545651f, 0.9952884791278f };
+/**
+ * @name Hilbert pair
+ * Olli Niemitalo's 90-degree phase-splitting all-pass pair (coefficients squared).
+ * Two chains of four second-order all-passes whose outputs are 90 degrees apart across the band;
+ * FreqShifter::Hilbert::tick() runs both on one input and takes chain A a sample late as the real
+ * part and chain B as the imaginary part.
+ * @{ */
+const float kHilbertA[4] = { 0.6923878f, 0.9360654322959f, 0.9882295226860f, 0.9987488452737f };   ///< chain A, the real part (one sample delayed)
+const float kHilbertB[4] = { 0.4021921162426f, 0.8561710882420f, 0.9722909545651f, 0.9952884791278f };   ///< chain B, the imaginary part
+/** @} */
 }
 
 // ---------------------------------------------------------------- FreqShifter

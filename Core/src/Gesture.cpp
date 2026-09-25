@@ -1,3 +1,15 @@
+/**
+ * @file Gesture.cpp
+ * @brief The gesture layer off the audio thread: names, poses, calibration and the mapping table.
+ *
+ * update(), the per-block part that runs on the audio thread, is a template in Gesture.h. What
+ * stands here is everything that runs on the message thread or from the tracker's callback: the
+ * input names and their parser, the raw hand and head poses turned into normalised inputs (with the
+ * calibration ranges applied and the extremes collected while a calibration runs), the calibration
+ * gesture and its text form, the default vocabulary of mappings and the eight macros, and the
+ * mapping text format the settings file keeps. Nothing here allocates, and every change to the
+ * mapping table publishes its count last, so the audio thread never acts on a half-written entry.
+ */
 #include "ambient/Gesture.h"
 #include <cmath>
 #include "ambient/Dsp.h"
@@ -8,15 +20,25 @@
 namespace ambient {
 
 namespace {
+/** @brief The inputs' names in GestureInput order: what the mapping file and the OSC receiver use. */
 const char* const kInputNames[kNumGestureInputs] = {
     "HandDistance", "LeftHeight", "RightHeight", "LeftForward", "RightForward",
     "LeftTilt", "RightTilt", "LeftPinch", "RightPinch", "HeadYaw", "HeadPitch", "HeadRoll",
     "Custom0", "Custom1", "Custom2", "Custom3", "Custom4", "Custom5", "Custom6", "Custom7",
 };
-// A calibration that collected no range at all leaves lo == hi, and the division then makes a
-// NaN -- which this function used to hand on, straight into the host's parameters, because a
-// comparison against NaN is false and clampv lets it through. An empty range means nothing was
-// measured: the input reads as the bottom of it.
+/**
+ * @brief A raw value's place in a calibrated range, 0 .. 1.
+ *
+ * A calibration that collected no range at all leaves lo == hi, and the division then makes a
+ * NaN -- which this function used to hand on, straight into the host's parameters, because a
+ * comparison against NaN is false and clampv lets it through. An empty range means nothing was
+ * measured: the input reads as the bottom of it.
+ *
+ * @param v   the raw value (a height, a reach or a distance in metres)
+ * @param lo  the value that reads as 0
+ * @param hi  the value that reads as 1
+ * @return    (v - lo) / (hi - lo) clamped to 0 .. 1; 0 when the range is empty
+ */
 float norm01(float v, float lo, float hi)
 {
     const float span = hi - lo;

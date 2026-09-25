@@ -1,35 +1,48 @@
-// Noctuary -- the loops worth vectorising by hand.
-//
-// Every voice is a bank of rotating phasors: per sample and per partial, one complex multiply to
-// turn the phasor, one multiply-add into the sum, one add to ramp the amplitude. With up to six
-// strands of thirty-two partials in sixteen voices, plus three source slots that run the same
-// bank, this loop is most of the instrument's arithmetic. The compiler vectorises parts of it,
-// but not the reduction, because floating-point addition is not associative and it may not
-// reorder the sum on its own. Doing it here is the one place where saying so explicitly pays.
-//
-// The bank has THREE of these loops, and until 13.09.2026 only the first was written out:
-//
-//   phasorBankStep        the plain one: one sum, every partial in the middle.
-//   phasorBankStepStereo  a left and a right weight per partial -- Partial Spread, which gives
-//                         every partial its own place between the ears. Two sums.
-//   phasorBankStepFm      the feedback loop phase-modulating every partial: one more rotation by
-//                         a clamped angle, and two Newton steps to put the phasor back on the
-//                         unit circle.
-//
-// Measured on one additive source at 32 partials and six strands, everything else shut: the plain
-// loop 4.9 % of a core, the stereo one 10.3 % (+111 %), the FM one 16.7 % (+241 %). 2332 presets
-// of the 2.0 library carry Partial Spread and 1038 carry feedback FM -- about a quarter of it --
-// so two of the three hot loops were scalar for most of the presets that are dear to begin with.
-// They are the same arithmetic as the first, with two accumulators or one more rotation.
-//
-// The scalar path stays, and is what any platform without AVX2 or NEON compiles: the same
-// arithmetic in a different order, and the difference between them is the last bit or two of the
-// sum. The Quest's arm64 now takes the NEON path here rather than the scalar one -- four lanes
-// instead of eight, and a horizontal add that is written out because AArch64's vaddvq is not in
-// the test shim.
+/**
+ * @file Simd.h
+ * @brief The loops worth vectorising by hand.
+ *
+ * Every voice is a bank of rotating phasors: per sample and per partial, one complex multiply to
+ * turn the phasor, one multiply-add into the sum, one add to ramp the amplitude. With up to six
+ * strands of thirty-two partials in sixteen voices, plus three source slots that run the same
+ * bank, this loop is most of the instrument's arithmetic. The compiler vectorises parts of it,
+ * but not the reduction, because floating-point addition is not associative and it may not
+ * reorder the sum on its own. Doing it here is the one place where saying so explicitly pays.
+ *
+ * The bank has THREE of these loops, and until 13.09.2026 only the first was written out:
+ *
+ *   phasorBankStep        the plain one: one sum, every partial in the middle.
+ *   phasorBankStepStereo  a left and a right weight per partial -- Partial Spread, which gives
+ *                         every partial its own place between the ears. Two sums.
+ *   phasorBankStepFm      the feedback loop phase-modulating every partial: one more rotation by
+ *                         a clamped angle, and two Newton steps to put the phasor back on the
+ *                         unit circle.
+ *
+ * Measured on one additive source at 32 partials and six strands, everything else shut: the plain
+ * loop 4.9 % of a core, the stereo one 10.3 % (+111 %), the FM one 16.7 % (+241 %). 2332 presets
+ * of the 2.0 library carry Partial Spread and 1038 carry feedback FM -- about a quarter of it --
+ * so two of the three hot loops were scalar for most of the presets that are dear to begin with.
+ * They are the same arithmetic as the first, with two accumulators or one more rotation.
+ *
+ * The scalar path stays, and is what any platform without AVX2 or NEON compiles: the same
+ * arithmetic in a different order, and the difference between them is the last bit or two of the
+ * sum. The Quest's arm64 now takes the NEON path here rather than the scalar one -- four lanes
+ * instead of eight, and a horizontal add that is written out because AArch64's vaddvq is not in
+ * the test shim.
+ *
+ * Every loop here takes the bank as flat arrays -- cos and sin of each phasor, cos and sin of its
+ * per-sample rotation, its amplitude and the amplitude's per-sample step -- steps all of them in
+ * place, and returns the sample. The vector part handles as many whole groups of eight (AVX) or
+ * four (NEON) lanes as fit; a scalar tail finishes the rest, so `n` may be anything.
+ */
 #pragma once
 #include "Dsp.h"
 
+/**
+ * @def AMBIENT_HAS_AVX
+ * @brief 1 when the eight-lane AVX2 paths compile in (GCC/Clang with -mavx2, or MSVC with /arch:AVX
+ *        or the AMBIENT_AVX define on x64), else 0 and the scalar tail does everything.
+ */
 #if defined(__AVX2__) || (defined(_MSC_VER) && defined(__AVX__)) || (defined(_MSC_VER) && defined(_M_X64) && defined(AMBIENT_AVX))
   #define AMBIENT_HAS_AVX 1
   #include <immintrin.h>
@@ -37,12 +50,17 @@
   #define AMBIENT_HAS_AVX 0
 #endif
 
-// The other half of the instrument's world: the Quest's arm64. Four lanes rather than eight, and
-// no gather at all -- a grain reads eight different places in a clip, and on NEON those are eight
-// loads whatever else happens. What vectorises there is the window and the two accumulations,
-// which is most of the arithmetic but not the memory.
-// AMBIENT_NEON_SHIM is an x86 test build that runs the NEON paths through Tests/neonshim/arm_neon.h,
-// which spells the few intrinsics out lane by lane (see Tests/CMakeLists.txt).
+/**
+ * @def AMBIENT_HAS_NEON
+ * @brief 1 when the four-lane NEON paths compile in (any arm64, or the x86 test shim), else 0.
+ *
+ * The other half of the instrument's world: the Quest's arm64. Four lanes rather than eight, and
+ * no gather at all -- a grain reads eight different places in a clip, and on NEON those are eight
+ * loads whatever else happens. What vectorises there is the window and the two accumulations,
+ * which is most of the arithmetic but not the memory.
+ * AMBIENT_NEON_SHIM is an x86 test build that runs the NEON paths through Tests/neonshim/arm_neon.h,
+ * which spells the few intrinsics out lane by lane (see Tests/CMakeLists.txt).
+ */
 #if defined(__aarch64__) || defined(_M_ARM64) || defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(AMBIENT_NEON_SHIM)
   #define AMBIENT_HAS_NEON 1
   #include <arm_neon.h>
@@ -53,7 +71,11 @@
 namespace ambient {
 
 #if AMBIENT_HAS_AVX
-// The eight lanes added up. Written once: three loops end with it.
+/**
+ * @brief The eight lanes added up. Written once: three loops end with it.
+ * @param acc  the accumulator
+ * @return     the sum of its eight lanes
+ */
 inline float horizontalSum(__m256 acc)
 {
     __m128 lo = _mm256_castps256_ps128(acc), hi = _mm256_extractf128_ps(acc, 1);
@@ -63,8 +85,12 @@ inline float horizontalSum(__m256 acc)
     return _mm_cvtss_f32(lo);
 }
 #elif AMBIENT_HAS_NEON
-// The same for four lanes, through memory rather than through vaddvq: the test shim spells out
-// only the intrinsics the instrument uses, and one store is not worth another entry in it.
+/**
+ * @brief The same for four lanes, through memory rather than through vaddvq: the test shim spells out
+ *        only the intrinsics the instrument uses, and one store is not worth another entry in it.
+ * @param acc  the accumulator
+ * @return     the sum of its four lanes
+ */
 inline float horizontalSum(float32x4_t acc)
 {
     float v[4];
@@ -73,8 +99,25 @@ inline float horizontalSum(float32x4_t acc)
 }
 #endif
 
-// The same step with a left and a right weight per partial: two sums instead of one, for the
-// bank whose partials are spread across the field one by one (Partial Spread).
+/**
+ * @brief The same step with a left and a right weight per partial: two sums instead of one, for the
+ *        bank whose partials are spread across the field one by one (Partial Spread).
+ *
+ * See phasorBankStep for the step itself; the only difference is that partial h's sample
+ * amp[h] * ps[h] is added into the left sum times wL[h] and into the right sum times wR[h].
+ *
+ * @param pc    cos of each phasor, updated in place
+ * @param ps    sin of each phasor, updated in place
+ * @param rc    cos of each phasor's per-sample rotation
+ * @param rs    sin of each phasor's per-sample rotation
+ * @param amp   each partial's amplitude, stepped in place
+ * @param step  each amplitude's per-sample increment (the control-rate ramp)
+ * @param n     partials to process, 0 .. the array length
+ * @param wL    each partial's left weight
+ * @param wR    each partial's right weight
+ * @param outL  receives the left sum
+ * @param outR  receives the right sum
+ */
 inline void phasorBankStepStereo(float* pc, float* ps, const float* rc, const float* rs,
                                  float* amp, const float* step, int n,
                                  const float* wL, const float* wR, float& outL, float& outR)
@@ -122,8 +165,22 @@ inline void phasorBankStepStereo(float* pc, float* ps, const float* rc, const fl
     outL = sumL; outR = sumR;
 }
 
-// One sample of a phasor bank: turns every phasor by its own rotation, sums amp*sin, and steps
-// the amplitudes. Returns the sum. `n` may be anything from 0 to the array length.
+/**
+ * @brief One sample of a phasor bank: turns every phasor by its own rotation, sums amp*sin, and steps
+ *        the amplitudes. Returns the sum. `n` may be anything from 0 to the array length.
+ *
+ * The sample is taken BEFORE the turn, so partial h contributes amp[h] * ps[h] as they stand on
+ * entry; then (pc, ps) is turned by (rc, rs) as a complex product and amp advanced by step.
+ *
+ * @param pc    cos of each phasor, updated in place
+ * @param ps    sin of each phasor, updated in place
+ * @param rc    cos of each phasor's per-sample rotation
+ * @param rs    sin of each phasor's per-sample rotation
+ * @param amp   each partial's amplitude, stepped in place
+ * @param step  each amplitude's per-sample increment (the control-rate ramp)
+ * @param n     partials to process
+ * @return      the sum of amp[h] * ps[h] over the n partials
+ */
 inline float phasorBankStep(float* pc, float* ps, const float* rc, const float* rs,
                             float* amp, const float* step, int n)
 {
@@ -166,11 +223,27 @@ inline float phasorBankStep(float* pc, float* ps, const float* rc, const float* 
     return sum;
 }
 
-// The bank with the feedback loop phase-modulating every partial: after its own rotation, each
-// phasor is turned again by the modulation angle h*theta -- a small-angle rotation by tan = t,
-// clamped, so deep modulation saturates softly on the high partials instead of tearing -- and
-// then put back on the unit circle by two Newton steps of the inverse square root. `hf` is the
-// partial's harmonic number, `theta` the modulation for this sample, `maxStep` the clamp.
+/**
+ * @brief The phasor bank step with the feedback loop's phase modulation on every partial.
+ *
+ * The bank with the feedback loop phase-modulating every partial: after its own rotation, each
+ * phasor is turned again by the modulation angle h*theta -- a small-angle rotation by tan = t,
+ * clamped, so deep modulation saturates softly on the high partials instead of tearing -- and
+ * then put back on the unit circle by two Newton steps of the inverse square root. `hf` is the
+ * partial's harmonic number, `theta` the modulation for this sample, `maxStep` the clamp.
+ *
+ * @param pc       cos of each phasor, updated in place
+ * @param ps       sin of each phasor, updated in place
+ * @param rc       cos of each phasor's per-sample rotation
+ * @param rs       sin of each phasor's per-sample rotation
+ * @param amp      each partial's amplitude, stepped in place
+ * @param step     each amplitude's per-sample increment (the control-rate ramp)
+ * @param n        partials to process
+ * @param hf       each partial's harmonic number as a float (1, 2, 3, ...)
+ * @param theta    this sample's modulation angle at the fundamental, in radians
+ * @param maxStep  the clamp on tan of the per-partial angle (Voice.cpp uses 0.4, which keeps the two-step normalisation exact)
+ * @return         the sum of amp[h] * ps[h] over the n partials, taken before the turn
+ */
 inline float phasorBankStepFm(float* pc, float* ps, const float* rc, const float* rs,
                               float* amp, const float* step, int n,
                               const float* hf, float theta, float maxStep)

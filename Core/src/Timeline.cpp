@@ -1,3 +1,21 @@
+/**
+ * @file Timeline.cpp
+ * @brief The set timeline: recording events in order, and the .ambientset text form.
+ *
+ * The recording side is the audio thread's: SetTimeline::add() is called for every parameter
+ * change and every note while a set is recorded, so it never grows the vector -- reserve() took
+ * the room in advance and anything past it is dropped -- and it appends in O(1) in the common case
+ * of a time later than the last event, falling back to a binary search only when an event arrives
+ * out of order. seek() positions the playback cursor; step() itself is a template in Timeline.h.
+ *
+ * The text side is the message thread's. parse() reads one event per line -- seconds, then
+ * `param <key> <value>`, `on <note> <velocity>` or `off <note>` -- skipping blank lines and '#'
+ * comments, resolving the parameter key through findParam, and refusing the whole text on a line
+ * it cannot read or on a time or value that is not finite (a NaN time would break the ordering and
+ * stall playback for good). write() produces that text again with a header line, NUL-terminated;
+ * save() and load() are the file forms around them, used by the plugin, the Quest app and
+ * `ambient_render --set-file`.
+ */
 #include <cmath>
 #include "ambient/Timeline.h"
 #include <algorithm>

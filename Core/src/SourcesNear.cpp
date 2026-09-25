@@ -1,27 +1,37 @@
-// Noctuary -- the near sources (13.09.2026): what the instrument plays close to the ear.
-//
-// Every source the instrument had was a plane -- a bank, a table, a recording, a string, all of
-// them made to be sustained and to be sent back into the far reverb. Rich's foreground is
-// something else: a flute blown once, water falling into a bowl, a voice on a radio, a rim rubbed
-// until it sings. Four models, each a physical caricature small enough to run in every voice:
-//
-//   Flute   a blown pipe after the jet-drive waveguide of Cook (STK), with the loop closed the
-//           way an open pipe closes it -- the jet's travel time sets the register, so the same
-//           pipe overblows to its octave when the embouchure shortens the jet.
-//   Murmur  a voice that never says anything: a glottal pulse through three formants that walk
-//           between vowels at a syllable's pace, consonants as bursts of noise, phrases and pauses,
-//           and behind it a radio -- a band, a saturation, the hiss of the carrier, the squelch
-//           that closes after every transmission, the Quindar tones Apollo keyed its air with.
-//   Bowl    a set of modes rubbed by a stick, the bow's own friction curve (Sources.cpp) driving
-//           a modal body instead of a string. Every mode is a doublet a hair apart, which is
-//           where a real bowl's beating comes from (P1: the instrument wants beats).
-//   Ice     the same friction on a low, dense, short-lived set of modes, and a slip clock in
-//           front of it: ice or old wood creaking under a slow load, not struck, stretched.
-//   Drops   water falling into a vessel, after van den Doel (2005): a drop is a bubble, a sine
-//           whose pitch RISES as it decays, and the vessel it falls into rings after the click.
-//
-// Each is calibrated against the wavetable slot at the same Level, as the Bow is, and the selftest
-// holds them to it.
+/**
+ * @file SourcesNear.cpp
+ * @brief The near sources (13.09.2026): what the instrument plays close to the ear.
+ *
+ * Every source the instrument had was a plane -- a bank, a table, a recording, a string, all of
+ * them made to be sustained and to be sent back into the far reverb. Rich's foreground is
+ * something else: a flute blown once, water falling into a bowl, a voice on a radio, a rim rubbed
+ * until it sings. Four models, each a physical caricature small enough to run in every voice:
+ *
+ *   Flute   a blown pipe after the jet-drive waveguide of Cook (STK), with the loop closed the
+ *           way an open pipe closes it -- the jet's travel time sets the register, so the same
+ *           pipe overblows to its octave when the embouchure shortens the jet.
+ *   Murmur  a voice that never says anything: a glottal pulse through three formants that walk
+ *           between vowels at a syllable's pace, consonants as bursts of noise, phrases and pauses,
+ *           and behind it a radio -- a band, a saturation, the hiss of the carrier, the squelch
+ *           that closes after every transmission, the Quindar tones Apollo keyed its air with.
+ *   Bowl    a set of modes rubbed by a stick, the bow's own friction curve (Sources.cpp) driving
+ *           a modal body instead of a string. Every mode is a doublet a hair apart, which is
+ *           where a real bowl's beating comes from (P1: the instrument wants beats).
+ *   Ice     the same friction on a low, dense, short-lived set of modes, and a slip clock in
+ *           front of it: ice or old wood creaking under a slow load, not struck, stretched.
+ *   Drops   water falling into a vessel, after van den Doel (2005): a drop is a bubble, a sine
+ *           whose pitch RISES as it decays, and the vessel it falls into rings after the click.
+ *
+ * Each is calibrated against the wavetable slot at the same Level, as the Bow is, and the selftest
+ * holds them to it.
+ *
+ * The file also holds the Clip type (the recording played as it is, once, from Position) and the
+ * second foreground round, the signals (Whistler, Shaker, Chime, Geiger, Tube, Krell, Beacon,
+ * Morse, Dial), each a SourceSlot::render* method that SourceSlot::render() in Sources.cpp
+ * dispatches to on the audio thread, one control block at a time, adding into its output. All of
+ * them keep their state in the SourceSlot (Sources.h) and start it afresh at every fresh note and
+ * at every change of type, which is what the `Ready_` flags (fluteReady_, rubReady_, murReady_, sigReady_) are for.
+ */
 #include "ambient/Sources.h"
 #include "ambient/Voice.h"     // kControlBlock
 #include <cmath>
@@ -32,12 +42,21 @@ namespace ambient {
 
 namespace {
 
-// A one-pole delay's share of a loop, in samples at the fundamental: (1 - g) / g.
+/**
+ * @brief A one-pole delay's share of a loop, in samples at the fundamental: (1 - g) / g.
+ * @param g  the one-pole's coefficient, 0 .. 1 (floored at 0.001 so a closed filter does not divide by zero)
+ * @return   the samples to take off the loop's delay line so the loop stays one period long
+ */
 inline double onePoleDelay(float g) { return (1.0 - static_cast<double>(g)) / std::max(static_cast<double>(g), 1.0e-3); }
 
-// The bow's friction, as one function (Sources.cpp keeps its own copy inside the string loop):
-// the Stribeck curve of the waveguide literature, sticking while the relative velocity is small,
-// slipping once it is not.
+/**
+ * @brief The bow's friction, as one function (Sources.cpp keeps its own copy inside the string loop):
+ *        the Stribeck curve of the waveguide literature, sticking while the relative velocity is small,
+ *        slipping once it is not.
+ * @param dv     the relative velocity between the stick (or bow) and the body under it
+ * @param slope  how steep the curve falls with |dv|: 5 at no Force, 1 at full, so a heavier hand sticks wider
+ * @return       the friction force, dv times the curve, clamped to -1 .. 1
+ */
 inline float friction(float dv, float slope)
 {
     float rho = std::pow(std::fabs((dv - 0.001f) * slope) + 0.75f, -4.0f);
@@ -45,8 +64,10 @@ inline float friction(float dv, float slope)
     return clampv(dv * rho, -1.0f, 1.0f);
 }
 
-// The vowels the murmur walks between: F1, F2, F3 in hertz (Peterson and Barney's men, rounded),
-// and a schwa in the middle where every unstressed syllable goes.
+/**
+ * @brief The vowels the murmur walks between: F1, F2, F3 in hertz (Peterson and Barney's men, rounded),
+ *        and a schwa in the middle where every unstressed syllable goes.
+ */
 constexpr float kVowels[6][3] = {
     { 730.0f, 1090.0f, 2440.0f },   // a
     { 530.0f, 1840.0f, 2480.0f },   // e
@@ -56,34 +77,47 @@ constexpr float kVowels[6][3] = {
     { 500.0f, 1500.0f, 2500.0f },   // schwa
 };
 
-// The modes of the two rubbed bodies, as ratios to the lowest, with each mode's weight at the
-// rim and how long it rings against the lowest. A thin-walled bowl's (n,0) modes go roughly as
-// (n^2 - 1), which is the 1 : 2.7 : 5 : 7.8 ladder every singing bowl has; ice and old wood are
-// plate-like, dense and inharmonic, and their modes die in a second.
-struct RubBody { float ratio[SourceSlot::kRubModes]; float weight[SourceSlot::kRubModes]; float ring[SourceSlot::kRubModes]; float t60; };
-constexpr RubBody kBowlBody = { { 1.0f, 2.71f, 4.98f, 7.78f, 11.0f, 14.6f }, { 1.0f, 0.55f, 0.32f, 0.18f, 0.10f, 0.06f }, { 1.0f, 0.7f, 0.5f, 0.35f, 0.25f, 0.18f }, 14.0f };
-constexpr RubBody kIceBody  = { { 1.0f, 1.58f, 2.24f, 3.02f, 3.98f, 5.1f },  { 1.0f, 0.8f, 0.6f, 0.45f, 0.3f, 0.2f },     { 1.0f, 0.8f, 0.6f, 0.45f, 0.35f, 0.25f }, 1.4f };
+/**
+ * @brief The modes of the two rubbed bodies, as ratios to the lowest, with each mode's weight at the
+ *        rim and how long it rings against the lowest.
+ *
+ * A thin-walled bowl's (n,0) modes go roughly as
+ * (n^2 - 1), which is the 1 : 2.7 : 5 : 7.8 ladder every singing bowl has; ice and old wood are
+ * plate-like, dense and inharmonic, and their modes die in a second.
+ */
+struct RubBody {
+    float ratio[SourceSlot::kRubModes];    ///< each mode's frequency as a ratio to the lowest
+    float weight[SourceSlot::kRubModes];   ///< each mode's amplitude at the rim, the lowest at 1
+    float ring[SourceSlot::kRubModes];     ///< each mode's ring time as a fraction of t60
+    float t60;                             ///< how long the lowest mode takes to fall 60 dB, in seconds
+};
+constexpr RubBody kBowlBody = { { 1.0f, 2.71f, 4.98f, 7.78f, 11.0f, 14.6f }, { 1.0f, 0.55f, 0.32f, 0.18f, 0.10f, 0.06f }, { 1.0f, 0.7f, 0.5f, 0.35f, 0.25f, 0.18f }, 14.0f };   ///< the singing bowl: the (n^2 - 1) ladder, ringing for fourteen seconds
+constexpr RubBody kIceBody  = { { 1.0f, 1.58f, 2.24f, 3.02f, 3.98f, 5.1f },  { 1.0f, 0.8f, 0.6f, 0.45f, 0.3f, 0.2f },     { 1.0f, 0.8f, 0.6f, 0.45f, 0.35f, 0.25f }, 1.4f };   ///< ice and old wood: dense, inharmonic, dead within a second and a half
 
 } // namespace
 
 // ---------------------------------------------------------------- Flute
-//
-// The pipe is a loop of one period: a delay for the round trip, a one-pole at the far end for the
-// losses (radiation and the walls take the highs first), and the air jet at the embouchure. The
-// jet is deflected by the acoustic velocity at the hole, travels to the edge in a time of its own
-// -- the jet delay -- and there it is switched into or out of the pipe by a soft cubic (Cook's
-// jet table, x - x^3). The sign is what makes it a flute: the jet works AGAINST the wave that
-// deflected it, and with a travel time of half a period that inversion arrives back in phase, so
-// the pipe speaks its fundamental. Shorten the travel to a quarter period and the octave is in
-// phase instead: that is overblowing, and Position is the embouchure that does it. Breath
-// pressure (Force) sets how hard the jet is driven, and the loop's small-signal gain with it,
-// so a light breath does not speak at all and a heavy one saturates towards the cubic's limit;
-// Speed is the air's own noise, the turbulence a real jet always carries, part of it into the
-// pipe (where it is filtered into breathiness) and part straight out.
-//
-// The loop's length is the period less what the filter and the feedback sample already delay,
-// as the bow's is, and the selftest measures the pitch across the register against the
-// instrument's own tuning.
+
+/**
+ * @brief The pipe is a loop of one period: a delay for the round trip, a one-pole at the far end for the
+ *        losses (radiation and the walls take the highs first), and the air jet at the embouchure.
+ *
+ * The
+ * jet is deflected by the acoustic velocity at the hole, travels to the edge in a time of its own
+ * -- the jet delay -- and there it is switched into or out of the pipe by a soft cubic (Cook's
+ * jet table, x - x^3). The sign is what makes it a flute: the jet works AGAINST the wave that
+ * deflected it, and with a travel time of half a period that inversion arrives back in phase, so
+ * the pipe speaks its fundamental. Shorten the travel to a quarter period and the octave is in
+ * phase instead: that is overblowing, and Position is the embouchure that does it. Breath
+ * pressure (Force) sets how hard the jet is driven, and the loop's small-signal gain with it,
+ * so a light breath does not speak at all and a heavy one saturates towards the cubic's limit;
+ * Speed is the air's own noise, the turbulence a real jet always carries, part of it into the
+ * pipe (where it is filtered into breathiness) and part straight out.
+ *
+ * The loop's length is the period less what the filter and the feedback sample already delay,
+ * as the bow's is, and the selftest measures the pitch across the register against the
+ * instrument's own tuning.
+ */
 void SourceSlot::renderFlute(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -202,21 +236,25 @@ void SourceSlot::renderFlute(float* out, int n, double hz, const SlotParams& p, 
 }
 
 // ---------------------------------------------------------------- Bowl and Ice
-//
-// A modal body under a stick. Each mode is a two-pole resonator on the mode's velocity, driven
-// by the friction between the stick and the sum of the modes at the contact point -- the bow's
-// curve (friction() above), with the bow's Force as the pressing and its Speed as the rubbing.
-// A slow stick with a heavy hand sticks and slips once per period of the lowest mode, which is
-// the Helmholtz motion of a rubbed rim, and because the modes' decay is long the tone takes
-// seconds to build, as a bowl does. Every mode is two resonators a hair apart, split by Pos
-// Drift: the doublet an asymmetric bowl always has, and its beating -- a real bowl warbles,
-// and so does this one. Position is where the stick sits, from the rim (every mode) to the
-// belly (the lowest alone). Below a twentieth of Speed the stick is lifted and the body only
-// rings, so a note that lets go of the stick decays on its own physics.
-//
-// Ice is the same body with low, dense, short modes and a slip clock in front of the friction:
-// under a slow load the stick does not glide, it creeps -- holds, gives, holds -- and every
-// give is a pulse of stick velocity into the modes. The rate of the creeping follows Speed.
+
+/**
+ * @brief A modal body under a stick.
+ *
+ * Each mode is a two-pole resonator on the mode's velocity, driven
+ * by the friction between the stick and the sum of the modes at the contact point -- the bow's
+ * curve (friction() above), with the bow's Force as the pressing and its Speed as the rubbing.
+ * A slow stick with a heavy hand sticks and slips once per period of the lowest mode, which is
+ * the Helmholtz motion of a rubbed rim, and because the modes' decay is long the tone takes
+ * seconds to build, as a bowl does. Every mode is two resonators a hair apart, split by Pos
+ * Drift: the doublet an asymmetric bowl always has, and its beating -- a real bowl warbles,
+ * and so does this one. Position is where the stick sits, from the rim (every mode) to the
+ * belly (the lowest alone). Below a twentieth of Speed the stick is lifted and the body only
+ * rings, so a note that lets go of the stick decays on its own physics.
+ *
+ * Ice is the same body with low, dense, short modes and a slip clock in front of the friction:
+ * under a slow load the stick does not glide, it creeps -- holds, gives, holds -- and every
+ * give is a pulse of stick velocity into the modes. The rate of the creeping follows Speed.
+ */
 void SourceSlot::renderRub(float* out, int n, double hz, const SlotParams& p, float dt, bool ice)
 {
     (void)dt;
@@ -320,23 +358,27 @@ void SourceSlot::renderRub(float* out, int n, double hz, const SlotParams& p, fl
 }
 
 // ---------------------------------------------------------------- Murmur
-//
-// Speech without words. The source is a glottal pulse train at the slot's pitch -- an impulse
-// per period through two one-poles, which is the -12 dB per octave of a glottal flow -- with a
-// jitter per period so it is a voice and not an oscillator, and a pitch that moves the way
-// speech moves: it falls over a phrase (declination) and rises and falls a little on every
-// syllable. Three formant filters in parallel walk between the vowels of the table above at a
-// syllable's pace (Speed: three to six a second), some syllables are fricatives (noise through
-// the formants and above them), some begin with a stop (a gap, then a burst), and the syllables
-// come in phrases of a few seconds with pauses between -- so it is heard as someone talking, and
-// never as what they say.
-//
-// Position is the medium. At 0 the voice is in the room, close; towards 1 it goes through a
-// radio: a band from 300 to 3000 Hz, a saturation, the hiss of the carrier under every
-// transmission, the burst of squelch noise that closes the channel after each phrase, and from
-// 0.7 up the Quindar tones -- 2525 Hz to key the transmitter, 2475 Hz to release it, a quarter of
-// a second each, which is the sound every Apollo air-to-ground loop opened and closed with.
-// Force is effort: level, openness (the first formant rises), and the tilt of the pulse.
+
+/**
+ * @brief Speech without words.
+ *
+ * The source is a glottal pulse train at the slot's pitch -- an impulse
+ * per period through two one-poles, which is the -12 dB per octave of a glottal flow -- with a
+ * jitter per period so it is a voice and not an oscillator, and a pitch that moves the way
+ * speech moves: it falls over a phrase (declination) and rises and falls a little on every
+ * syllable. Three formant filters in parallel walk between the vowels of the table above at a
+ * syllable's pace (Speed: three to six a second), some syllables are fricatives (noise through
+ * the formants and above them), some begin with a stop (a gap, then a burst), and the syllables
+ * come in phrases of a few seconds with pauses between -- so it is heard as someone talking, and
+ * never as what they say.
+ *
+ * Position is the medium. At 0 the voice is in the room, close; towards 1 it goes through a
+ * radio: a band from 300 to 3000 Hz, a saturation, the hiss of the carrier under every
+ * transmission, the burst of squelch noise that closes the channel after each phrase, and from
+ * 0.7 up the Quindar tones -- 2525 Hz to key the transmitter, 2475 Hz to release it, a quarter of
+ * a second each, which is the sound every Apollo air-to-ground loop opened and closed with.
+ * Force is effort: level, openness (the first formant rises), and the tilt of the pulse.
+ */
 void SourceSlot::renderMurmur(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     const float sr = static_cast<float>(sr_);
@@ -459,17 +501,21 @@ void SourceSlot::renderMurmur(float* out, int n, double hz, const SlotParams& p,
 }
 
 // ---------------------------------------------------------------- Drops
-//
-// A drop of water falling into a vessel makes two sounds: the click of the impact, and the
-// bubble the impact pulls under the surface, which rings like a bell whose pitch RISES as the
-// bubble rises towards the surface. Van den Doel (2005) gives the bubble as a sine at f0 with a
-// damping d = 0.043 f0 + 0.0014 f0^1.5 and a frequency f(t) = f0 (1 + s d t): the "bloop" of
-// every drip. The bubble's size sets f0 -- a millimetre is three kilohertz, and a drop's bubbles
-// are one to seven -- and Bright is that size: small and high, or large and low. The click goes
-// into the vessel, two resonators whose pitch is Position (a cup at the top, a cistern at the
-// bottom), and the bubble is heard dry beside it. Drops fall at Density a second, on a Poisson
-// clock, so the pattern never repeats; with Pitch = Note the bubbles sit on the note's own
-// partials instead of on a random size, which is the wet marimba of a cave.
+
+/**
+ * @brief A drop of water falling into a vessel makes two sounds: the click of the impact, and the
+ *        bubble the impact pulls under the surface, which rings like a bell whose pitch RISES as the
+ *        bubble rises towards the surface.
+ *
+ * Van den Doel (2005) gives the bubble as a sine at f0 with a
+ * damping d = 0.043 f0 + 0.0014 f0^1.5 and a frequency f(t) = f0 (1 + s d t): the "bloop" of
+ * every drip. The bubble's size sets f0 -- a millimetre is three kilohertz, and a drop's bubbles
+ * are one to seven -- and Bright is that size: small and high, or large and low. The click goes
+ * into the vessel, two resonators whose pitch is Position (a cup at the top, a cistern at the
+ * bottom), and the bubble is heard dry beside it. Drops fall at Density a second, on a Poisson
+ * clock, so the pattern never repeats; with Pitch = Note the bubbles sit on the note's own
+ * partials instead of on a random size, which is the wet marimba of a cave.
+ */
 void SourceSlot::renderDrops(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -547,14 +593,18 @@ void SourceSlot::renderDrops(float* out, int n, double hz, const SlotParams& p, 
 }
 
 // ---------------------------------------------------------------- Clip
-//
-// The recording as it is. Every other way this instrument has of playing a clip takes it apart --
-// grains, a spectral stretch, a band model -- because a drone wants a texture and not a document.
-// The foreground wants the document: "Houston, we've had a problem" is a sentence, and a sentence
-// in grains is not one. So: the clip from Position, once, at its own speed (Pitch = Free, with
-// the slot's octave and ratio as a speed) or pitched to the note (Pitch = Note, against the pitch
-// its name carries), the last twenty milliseconds faded, and silence after -- unless the file's
-// name marks it seamless, in which case it wraps. A new note starts it again.
+
+/**
+ * @brief The recording as it is.
+ *
+ * Every other way this instrument has of playing a clip takes it apart --
+ * grains, a spectral stretch, a band model -- because a drone wants a texture and not a document.
+ * The foreground wants the document: "Houston, we've had a problem" is a sentence, and a sentence
+ * in grains is not one. So: the clip from Position, once, at its own speed (Pitch = Free, with
+ * the slot's octave and ratio as a speed) or pitched to the note (Pitch = Note, against the pitch
+ * its name carries), the last twenty milliseconds faded, and silence after -- unless the file's
+ * name marks it seamless, in which case it wraps. A new note starts it again.
+ */
 void SourceSlot::renderClip(float* outL, int n, double hz, double speed, const SlotParams& p, const Texture* tex, float dt)
 {
     (void)dt;
@@ -593,18 +643,48 @@ void SourceSlot::renderClip(float* outL, int n, double hz, double speed, const S
 }
 
 // ================================================================ the signals (13.09.2026)
-//
-// The second foreground round, Rene's list and a few more: not instruments but the sounds of
-// things -- a whistler, a rattle, a bell, a Geiger tube, a fluorescent tube, a chaotic circuit, a
-// beacon, a number station, a shortwave set. Each is a caricature small enough to run in a
-// voice, each calibrated to the same level as the others (about 0.1 RMS at Level 1), and each
-// starts its clocks again at every note. One set of memories serves all nine (sigT_ and the
-// rest in Sources.h): a slot is one type at a time.
+
+/**
+ * @brief The second foreground round, Rene's list and a few more: not instruments but the sounds of
+ *        things -- a whistler, a rattle, a bell, a Geiger tube, a fluorescent tube, a chaotic circuit, a
+ *        beacon, a number station, a shortwave set.
+ *
+ * Each is a caricature small enough to run in a
+ * voice, each calibrated to the same level as the others (about 0.1 RMS at Level 1), and each
+ * starts its clocks again at every note. One set of memories serves all nine (sigT_ and the
+ * rest in Sources.h): a slot is one type at a time.
+ *
+ * This namespace holds what the nine share: the resonator every one of them rings its clicks and
+ * noise in, the sanity guard, and the Morse alphabet of the number station.
+ */
 namespace {
 
-// A two-pole resonance at f with a bandwidth of f/q, as the drops' vessel: the input is scaled by
-// (1 - r) so the gain at resonance is what is written and not 1/(1 - r).
+/**
+ * @brief A two-pole resonance at f with a bandwidth of f/q, as the drops' vessel: the input is scaled by
+ *        (1 - r) so the gain at resonance is what is written and not 1/(1 - r).
+ *
+ * The coefficients alone; the two samples of state live in the slot (sigY1_, sigY2_ and their
+ * kin) and resoStep() runs one sample through them.
+ */
 struct Reso2 { float a1, a2, drive; };
+/** @var float Reso2::a1
+ *  @brief the feedback on the previous output, 2 r cos(theta)
+ */
+/** @var float Reso2::a2
+ *  @brief the feedback on the output before that, -r^2
+ */
+/** @var float Reso2::drive
+ *  @brief the input scale, (1 - r) times the written gain, so the peak at resonance is that gain
+ */
+
+/**
+ * @brief Designs a Reso2: the pole radius from the bandwidth, the angle from the frequency.
+ * @param hz    the resonance, clamped to 20 Hz .. 0.45 of the sample rate
+ * @param q     the quality factor, bandwidth = hz / q (floored at 0.05)
+ * @param sr    the sample rate in Hz
+ * @param gain  the gain at resonance, applied through the input scale
+ * @return      the three coefficients
+ */
 inline Reso2 reso2(double hz, double q, double sr, float gain)
 {
     const double f = std::min(std::max(hz, 20.0), 0.45 * sr);
@@ -615,16 +695,28 @@ inline Reso2 reso2(double hz, double q, double sr, float gain)
     c.drive = (1.0f - r) * gain;
     return c;
 }
+/**
+ * @brief One sample through a Reso2.
+ * @param c   the coefficients
+ * @param in  the input sample
+ * @param y1  the previous output, updated to this one
+ * @param y2  the output before that, updated to the previous one
+ * @return    the resonator's output sample
+ */
 inline float resoStep(const Reso2& c, float in, float& y1, float& y2)
 {
     const float v = in * c.drive + c.a1 * y1 + c.a2 * y2;
     y2 = y1; y1 = v;
     return v;
 }
-// Every note is two seconds at most of state; a resonator that has run away is put back.
+/**
+ * @brief Every note is two seconds at most of state; a resonator that has run away is put back.
+ * @param v  a resonator's state
+ * @return   whether it is still within +-50, the bound past which the caller resets it
+ */
 inline bool sane(float v) { return v > -50.0f && v < 50.0f; }
 
-// The Morse alphabet, figures first (a number station reads figures), then the letters.
+/** @brief The Morse alphabet, figures first (a number station reads figures), then the letters. */
 constexpr const char* kMorse[36] = {
     "-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.",
     ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--",
@@ -634,14 +726,18 @@ constexpr const char* kMorse[36] = {
 } // namespace
 
 // ---------------------------------------------------------------- Whistler
-//
-// A lightning stroke's pulse travelling along a field line through the magnetosphere's plasma
-// arrives dispersed: the higher frequencies first, the lower ones later, and what a VLF receiver
-// hears is a whistle falling. Eckersley's law gives the delay as D / sqrt(f), so the frequency
-// falls as one over the square of time: f(t) = fEnd + (fStart - fEnd) / (1 + t / tau)^2. The note
-// is where the whistle ends, Bright how far above it begins (two to six octaves), Speed the tau
-// (0.2 to 1.7 s, the slow ones the long field lines), and under the tone a thread of noise in a
-// narrow band that follows it, the carrier's own fluctuation, at -32 dB.
+
+/**
+ * @brief A lightning stroke's pulse travelling along a field line through the magnetosphere's plasma
+ *        arrives dispersed: the higher frequencies first, the lower ones later, and what a VLF receiver
+ *        hears is a whistle falling.
+ *
+ * Eckersley's law gives the delay as D / sqrt(f), so the frequency
+ * falls as one over the square of time: f(t) = fEnd + (fStart - fEnd) / (1 + t / tau)^2. The note
+ * is where the whistle ends, Bright how far above it begins (two to six octaves), Speed the tau
+ * (0.2 to 1.7 s, the slow ones the long field lines), and under the tone a thread of noise in a
+ * narrow band that follows it, the carrier's own fluctuation, at -32 dB.
+ */
 void SourceSlot::renderWhistler(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -662,13 +758,17 @@ void SourceSlot::renderWhistler(float* out, int n, double hz, const SlotParams& 
 }
 
 // ---------------------------------------------------------------- Shaker
-//
-// Cook's PhISEM (Physically Informed Stochastic Event Modeling, 1997): a shaker is a system
-// energy that a shake tops up and that decays, and while it lasts, beans that hit the shell at
-// random, each hit a grain of noise at the energy's level, the shell a resonance. Density is the
-// shakes a second while the note is held (the first at the note), Force how long the energy
-// lasts (a bean pod at 0 to a big gourd at 1), Position the shell's pitch (1.5 to 5 kHz, or the
-// note with Pitch = Note), Noise Q how much it rings.
+
+/**
+ * @brief Cook's PhISEM (Physically Informed Stochastic Event Modeling, 1997): a shaker is a system
+ *        energy that a shake tops up and that decays, and while it lasts, beans that hit the shell at
+ *        random, each hit a grain of noise at the energy's level, the shell a resonance.
+ *
+ * Density is the
+ * shakes a second while the note is held (the first at the note), Force how long the energy
+ * lasts (a bean pod at 0 to a big gourd at 1), Position the shell's pitch (1.5 to 5 kHz, or the
+ * note with Pitch = Note), Noise Q how much it rings.
+ */
 void SourceSlot::renderShaker(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -696,14 +796,18 @@ void SourceSlot::renderShaker(float* out, int n, double hz, const SlotParams& p,
 }
 
 // ---------------------------------------------------------------- Chime
-//
-// Struck bronze: a ting-sha, a ship's bell, a church bell far off. A modal bank of five, and the
-// thing that makes cast bronze beat is that its modes come in doublets a hair apart (an
-// asymmetry of the casting): the prime's twin sits at 1 + split, and the two of them make the
-// beating a pair of cymbals has (3.5 Hz at 2.4 kHz). The hum an octave under the prime (Tilt is
-// how much of it: a church bell has it, a cymbal none), the tierce a minor third over, a high
-// partial at 2.5 to 3.5 times (Bright). Force is how long it rings (2 to 18 s for the prime, the
-// high one a fifth of that), Pos Drift the split. One hit of 0.8 ms at the note, all modes at once.
+
+/**
+ * @brief Struck bronze: a ting-sha, a ship's bell, a church bell far off.
+ *
+ * A modal bank of five, and the
+ * thing that makes cast bronze beat is that its modes come in doublets a hair apart (an
+ * asymmetry of the casting): the prime's twin sits at 1 + split, and the two of them make the
+ * beating a pair of cymbals has (3.5 Hz at 2.4 kHz). The hum an octave under the prime (Tilt is
+ * how much of it: a church bell has it, a cymbal none), the tierce a minor third over, a high
+ * partial at 2.5 to 3.5 times (Bright). Force is how long it rings (2 to 18 s for the prime, the
+ * high one a fifth of that), Pos Drift the split. One hit of 0.8 ms at the note, all modes at once.
+ */
 void SourceSlot::renderChime(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -743,13 +847,17 @@ void SourceSlot::renderChime(float* out, int n, double hz, const SlotParams& p, 
 }
 
 // ---------------------------------------------------------------- Geiger
-//
-// A Geiger-Mueller tube: discharges on a Poisson clock at Density a second, and now and then a
-// cluster, the rate leaping to 45 a second for 120 ms and falling back over 60 -- the burst a
-// particle shower makes. Force is the chance of a cluster (per second, up to two thirds). Every
-// discharge is a Dirac step into the counter's piezo, a heavily damped resonance (Position: 800
-// to 4000 Hz, the classic 1850 near the middle; Noise Q: 0.7 to 2.2) that makes the click last
-// about two milliseconds and no longer.
+
+/**
+ * @brief A Geiger-Mueller tube: discharges on a Poisson clock at Density a second, and now and then a
+ *        cluster, the rate leaping to 45 a second for 120 ms and falling back over 60 -- the burst a
+ *        particle shower makes.
+ *
+ * Force is the chance of a cluster (per second, up to two thirds). Every
+ * discharge is a Dirac step into the counter's piezo, a heavily damped resonance (Position: 800
+ * to 4000 Hz, the classic 1850 near the middle; Noise Q: 0.7 to 2.2) that makes the click last
+ * about two milliseconds and no longer.
+ */
 void SourceSlot::renderGeiger(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)hz; (void)dt;
@@ -776,13 +884,17 @@ void SourceSlot::renderGeiger(float* out, int n, double hz, const SlotParams& p,
 }
 
 // ---------------------------------------------------------------- Tube
-//
-// A fluorescent tube in a bunker corridor, in three stages: the bimetal starter's two or three
-// clicks 150 to 350 ms apart (a Dirac through a low-pass at 380 Hz, the thunk of the switch); the
-// choke's hum, the mains rectified to twice its frequency -- 100 Hz on 50, 120 on 60, Position
-// chooses -- with harmonics falling as k^-1.6, coloured by the coil's resonance at 850 Hz; and
-// the plasma's hiss, noise between 3.5 and 6.5 kHz chopped by the same half-waves (Bright is
-// how much). The hum and the hiss come up over 400 ms after the last click, as the tube strikes.
+
+/**
+ * @brief A fluorescent tube in a bunker corridor, in three stages: the bimetal starter's two or three
+ *        clicks 150 to 350 ms apart (a Dirac through a low-pass at 380 Hz, the thunk of the switch); the
+ *        choke's hum, the mains rectified to twice its frequency -- 100 Hz on 50, 120 on 60, Position
+ *        chooses -- with harmonics falling as k^-1.6, coloured by the coil's resonance at 850 Hz; and
+ *        the plasma's hiss, noise between 3.5 and 6.5 kHz chopped by the same half-waves (Bright is
+ *        how much).
+ *
+ * The hum and the hiss come up over 400 ms after the last click, as the tube strikes.
+ */
 void SourceSlot::renderTube(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)hz; (void)dt;
@@ -827,13 +939,16 @@ void SourceSlot::renderTube(float* out, int n, double hz, const SlotParams& p, f
 }
 
 // ---------------------------------------------------------------- Krell
-//
-// The Krell's machines (Forbidden Planet, 1956; Louis and Bebe Barron's circuits): FM whose
-// carrier and index are steered by a Roessler attractor, the one strange attractor with a single
-// fold, so the pitch wanders through its band and never repeats and never quite loses the thread.
-// dx = -y - z, dy = x + a y, dz = b + z (x - c) with a = b = 0.2, c = 5.7; x steers the carrier
-// over 2.6 octaves about the note (Position past the middle snaps it to semitones), y the index
-// (FM Index is its ceiling), Speed the attractor's pace. FM Ratio is the modulator's.
+
+/**
+ * @brief The Krell's machines (Forbidden Planet, 1956; Louis and Bebe Barron's circuits): FM whose
+ *        carrier and index are steered by a Roessler attractor, the one strange attractor with a single
+ *        fold, so the pitch wanders through its band and never repeats and never quite loses the thread.
+ *
+ * dx = -y - z, dy = x + a y, dz = b + z (x - c) with a = b = 0.2, c = 5.7; x steers the carrier
+ * over 2.6 octaves about the note (Position past the middle snaps it to semitones), y the index
+ * (FM Index is its ceiling), Speed the attractor's pace. FM Ratio is the modulator's.
+ */
 void SourceSlot::renderKrell(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -863,12 +978,16 @@ void SourceSlot::renderKrell(float* out, int n, double hz, const SlotParams& p, 
 }
 
 // ---------------------------------------------------------------- Beacon
-//
-// A deep-space beacon's packet: a preamble chirp falling from 2.17 to 1.5 times the note over
-// 35 ms, then eight bits of frequency-shift keying, 25 ms each, space at the note and mark a
-// major third over it (1200 and 1500 Hz on a note of 1200), every bit windowed with 5 ms Tukey
-// edges so the keying does not click. The bits are drawn anew for every packet; a packet every
-// 1/Density seconds while the note lasts, the first at once.
+
+/**
+ * @brief A deep-space beacon's packet: a preamble chirp falling from 2.17 to 1.5 times the note over
+ *        35 ms, then eight bits of frequency-shift keying, 25 ms each, space at the note and mark a
+ *        major third over it (1200 and 1500 Hz on a note of 1200), every bit windowed with 5 ms Tukey
+ *        edges so the keying does not click.
+ *
+ * The bits are drawn anew for every packet; a packet every
+ * 1/Density seconds while the note lasts, the first at once.
+ */
 void SourceSlot::renderBeacon(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -904,11 +1023,13 @@ void SourceSlot::renderBeacon(float* out, int n, double hz, const SlotParams& p,
 }
 
 // ---------------------------------------------------------------- Morse
-//
-// A number station: five-figure groups (Position past the middle: letters) in Morse at Speed
-// words a minute (8 to 30; a dit is 1.2 / wpm seconds, a dah three, the gaps one, three and seven
-// dits), the tone at the note, keyed with 5 ms edges, and over it the ionosphere's flutter, a
-// slow random tremolo (Bright is its depth) as the signal comes and goes over the horizon.
+
+/**
+ * @brief A number station: five-figure groups (Position past the middle: letters) in Morse at Speed
+ *        words a minute (8 to 30; a dit is 1.2 / wpm seconds, a dah three, the gaps one, three and seven
+ *        dits), the tone at the note, keyed with 5 ms edges, and over it the ionosphere's flutter, a
+ *        slow random tremolo (Bright is its depth) as the signal comes and goes over the horizon.
+ */
 void SourceSlot::renderMorse(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;
@@ -960,12 +1081,14 @@ void SourceSlot::renderMorse(float* out, int n, double hz, const SlotParams& p, 
 }
 
 // ---------------------------------------------------------------- Dial
-//
-// A shortwave set with its dial turned: heterodyne whistles -- a carrier beating against the
-// local oscillator -- that slide as the tuning moves, one to three of them (Position), each
-// drifting to a new pitch every second or two between 300 Hz and 3 kHz with the note as the
-// centre, and under them the band's own noise (Bright), through the same 350-3200 Hz window the
-// Murmur's radio has, with a squelch burst now and then when a carrier drops.
+
+/**
+ * @brief A shortwave set with its dial turned: heterodyne whistles -- a carrier beating against the
+ *        local oscillator -- that slide as the tuning moves, one to three of them (Position), each
+ *        drifting to a new pitch every second or two between 300 Hz and 3 kHz with the note as the
+ *        centre, and under them the band's own noise (Bright), through the same 350-3200 Hz window the
+ *        Murmur's radio has, with a squelch burst now and then when a carrier drops.
+ */
 void SourceSlot::renderDial(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     (void)dt;

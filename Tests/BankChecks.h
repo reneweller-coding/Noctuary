@@ -1,22 +1,28 @@
-// The partial bank's three inner loops (Core/include/ambient/Simd.h), without an engine: every
-// one of them against the arithmetic worked out of the definition in double, at lengths that land
-// on a lane boundary and at lengths that do not, so the vector body and the scalar tail are both
-// run. The selftest runs them, and ambient_banktest runs them once for every vector path the bank
-// has (see banktest.cpp) -- AVX2 as the desktop builds it, NEON through the x86 shim, and scalar.
-//
-// Why a reference rather than "the paths agree with each other": two wrong paths can agree.
-//
-// And why the reference is re-seeded from the implementation's own state at every sample rather
-// than run alongside it: a phasor bank is a RECURRENCE, and the FM loop renormalises with two
-// Newton steps. Started together and left to run, a double-precision copy and a single-precision
-// one drift apart -- the Newton correction pulls each back onto its own circle -- and after sixty
-// samples they disagree by far more than single precision explains. The first draft of this file
-// failed all three paths that way, including the scalar one that had not been touched, which is
-// the tell: an oracle that fails the code it is meant to bless is measuring itself. So each step
-// is checked against the definition applied to the state the implementation actually had, and
-// what accumulates is then only what the definition allows.
-//
-// Include after a CHECK(cond, msg) macro is defined.
+/**
+ * @file BankChecks.h
+ * @brief The partial bank's three inner loops against the definition in double, and the grain ring's
+ *        vector path against its scalar one.
+ *
+ * The partial bank's three inner loops (Core/include/ambient/Simd.h), without an engine: every
+ * one of them against the arithmetic worked out of the definition in double, at lengths that land
+ * on a lane boundary and at lengths that do not, so the vector body and the scalar tail are both
+ * run. The selftest runs them, and ambient_banktest runs them once for every vector path the bank
+ * has (see banktest.cpp) -- AVX2 as the desktop builds it, NEON through the x86 shim, and scalar.
+ *
+ * Why a reference rather than "the paths agree with each other": two wrong paths can agree.
+ *
+ * And why the reference is re-seeded from the implementation's own state at every sample rather
+ * than run alongside it: a phasor bank is a RECURRENCE, and the FM loop renormalises with two
+ * Newton steps. Started together and left to run, a double-precision copy and a single-precision
+ * one drift apart -- the Newton correction pulls each back onto its own circle -- and after sixty
+ * samples they disagree by far more than single precision explains. The first draft of this file
+ * failed all three paths that way, including the scalar one that had not been touched, which is
+ * the tell: an oracle that fails the code it is meant to bless is measuring itself. So each step
+ * is checked against the definition applied to the state the implementation actually had, and
+ * what accumulates is then only what the definition allows.
+ *
+ * Include after a CHECK(cond, msg) macro is defined.
+ */
 #pragma once
 #include "ambient/Simd.h"
 #include "ambient/GrainRing.h"
@@ -25,14 +31,45 @@
 #include <cstdio>
 #include <vector>
 
+/** @brief The partial bank's and the grain ring's checks: a bank in a known state, the reference step, and the two check functions. */
 namespace bankchecks {
 
-constexpr int kMax = 64;
+constexpr int kMax = 64;   ///< partials a test bank holds: room for the longest length in the lists below (33) and to spare
 
-// A bank in a known state: phasors on the unit circle at spread angles, rotations of a few
-// hundredths of a turn, amplitudes falling with the partial, ramps small and of both signs.
+/**
+ * @brief A bank in a known state: phasors on the unit circle at spread angles, rotations of a few
+ *        hundredths of a turn, amplitudes falling with the partial, ramps small and of both signs.
+ *
+ * The constructor fills it the same way every time; the checks copy pc/ps/amp out and hand the
+ * rest to the bank functions as their read-only inputs.
+ */
 struct Bank {
-    float pc[kMax], ps[kMax], rc[kMax], rs[kMax], amp[kMax], step[kMax], wL[kMax], wR[kMax], hf[kMax];
+    float pc[kMax], ps[kMax], rc[kMax], rs[kMax], amp[kMax], step[kMax], wL[kMax], wR[kMax], hf[kMax];   ///< hf: the harmonic numbers the FM bank scales its modulation by
+    /** @var Bank::pc
+     *  the phasors' cosines: where each partial stands on the unit circle
+     */
+    /** @var Bank::ps
+     *  the phasors' sines
+     */
+    /** @var Bank::rc
+     *  cosine of each partial's rotation per sample
+     */
+    /** @var Bank::rs
+     *  sine of each partial's rotation per sample
+     */
+    /** @var Bank::amp
+     *  the amplitudes, falling with the partial
+     */
+    /** @var Bank::step
+     *  the amplitude ramp per sample, small and of both signs
+     */
+    /** @var Bank::wL
+     *  the stereo bank's left weights
+     */
+    /** @var Bank::wR
+     *  the stereo bank's right weights
+     */
+    /** @brief Fills every array with the known state described above; deterministic, no randomness. */
     Bank()
     {
         for (int h = 0; h < kMax; ++h) {
@@ -52,15 +89,46 @@ struct Bank {
     }
 };
 
-// One sample of the definition, in double, FROM the state the implementation is in. `mode`:
-// 0 plain, 1 stereo, 2 FM. Writes what the state should become into pcOut/psOut/ampOut.
+/**
+ * @brief One sample of the definition, in double, FROM the state the implementation is in.
+ *
+ * `mode`:
+ * 0 plain, 1 stereo, 2 FM. Writes what the state should become into pcOut/psOut/ampOut.
+ */
 struct RefStep {
-    double sumL = 0.0, sumR = 0.0;
-    // The sum of the terms' magnitudes: what a reordered sum's error is bounded BY. A bank whose
-    // partials cancel has a sum near zero and an error that is not small against it -- measuring
-    // against the sum itself made the FM checks fail on both vector paths for no fault of theirs.
+    double sumL = 0.0, sumR = 0.0;   ///< sumR: the right side of the stereo sum (unused in modes 0 and 2)
+    /** @var RefStep::sumL
+     *  what the sample sums to: the mono sum, or the left side in stereo mode
+     */
+    /**
+     * @brief The sum of the terms' magnitudes: what a reordered sum's error is bounded BY.
+     *
+     * A bank whose
+     * partials cancel has a sum near zero and an error that is not small against it -- measuring
+     * against the sum itself made the FM checks fail on both vector paths for no fault of theirs.
+     */
     double magL = 0.0, magR = 0.0;
-    double pc[kMax] = {}, ps[kMax] = {}, amp[kMax] = {};
+    /** @var RefStep::magR
+     *  the same bound for the right side of the stereo sum
+     */
+    double pc[kMax] = {}, ps[kMax] = {}, amp[kMax] = {};   ///< amp: the amplitudes the implementation should hold after the step
+    /** @var RefStep::pc
+     *  the phasor cosines the implementation should hold after the step
+     */
+    /** @var RefStep::ps
+     *  the phasor sines the implementation should hold after the step
+     */
+    /**
+     * @brief Computes one step of the definition from the implementation's current state.
+     * @param b        the bank whose rotations, ramps, weights and harmonic numbers apply
+     * @param pcIn     the implementation's phasor cosines before the step
+     * @param psIn     the implementation's phasor sines before the step
+     * @param ampIn    the implementation's amplitudes before the step
+     * @param n        how many partials are in play (the length under test)
+     * @param mode     0 plain, 1 stereo, 2 FM
+     * @param theta    FM only: the modulation angle per unit harmonic number this sample
+     * @param maxStep  FM only: the clamp on theta * hf, as the implementation applies it
+     */
     void run(const Bank& b, const float* pcIn, const float* psIn, const float* ampIn,
              int n, int mode, double theta, double maxStep)
     {
@@ -90,6 +158,15 @@ struct RefStep {
     }
 };
 
+/**
+ * @brief The three bank loops against RefStep, at every length in the list, for 64 samples each.
+ *
+ * For the plain, the stereo and the FM bank (the last at three modulation depths, one of which
+ * reaches the clamp): every sample's sum within 2e-5 of the sum of magnitudes of the reference,
+ * every phasor within 1e-5 of where the definition turns it, and every phasor within 1e-3 of the
+ * unit circle. Then the three against one another from one shared state: weights of one make the
+ * stereo bank the plain one, no modulation makes the FM bank the plain one, both within 1e-4.
+ */
 inline void bankChecks()
 {
     // Lengths that end on a lane boundary and lengths that do not: eight lanes on AVX2, four on
@@ -185,12 +262,19 @@ inline void bankChecks()
     }
 }
 
-// The grain loop the Cloud and the Memory share (GrainRing.h), whose vector path is the other one
-// that is written by hand: the same grain rendered through the vector path and through the scalar
-// one, mono and stereo, across the seam of a ring whose length is not a power of two. The selftest
-// has held these two against each other since the Cloud was built, but only ever on the path the
-// host compiles; run from banktest it covers the NEON one as well, which until 13.09.2026 did not
-// exist at all -- the Quest rendered every grain of the Cloud and the Memory scalar.
+/**
+ * @brief The grain loop the Cloud and the Memory share (GrainRing.h), whose vector path is the other one
+ *        that is written by hand: the same grain rendered through the vector path and through the scalar
+ *        one, mono and stereo, across the seam of a ring whose length is not a power of two.
+ *
+ * The selftest
+ * has held these two against each other since the Cloud was built, but only ever on the path the
+ * host compiles; run from banktest it covers the NEON one as well, which until 13.09.2026 did not
+ * exist at all -- the Quest rendered every grain of the Cloud and the Memory scalar.
+ *
+ * Passes when the two renders agree to an energy ratio of 1e-10 and both grains end at the same
+ * position, folded back into the ring.
+ */
 inline void grainRingChecks()
 {
     for (int ch = 1; ch <= 2; ++ch) {
@@ -224,4 +308,5 @@ inline void grainRingChecks()
 
 }   // namespace bankchecks
 
+/** @brief The one call the selftest and banktest make: the bank's checks, then the grain ring's. */
 inline void bankChecks() { bankchecks::bankChecks(); bankchecks::grainRingChecks(); }

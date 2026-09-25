@@ -1,3 +1,25 @@
+/**
+ * @file ZPlane.cpp
+ * @brief The z-plane filter's arithmetic: the modal bank, the corner frames and their
+ *        interpolation, and the normalised biquad cascade.
+ *
+ * ZPlane.h describes the idea and declares the pieces; this file builds them. The generated bank
+ * -- a hundred and fifty-five shapes of eight corner descriptors each, with their names and
+ * families -- is compiled in from ZPlaneBank.inc, which Tools/make_zplane_bank.py writes.
+ * zFrameFromSpec() turns one compact corner descriptor into a frame of up to six sections;
+ * zInterpolate() blends the eight corners of a shape trilinearly in the log-frequency /
+ * log-bandwidth domain, over logarithms that are taken once per shape and cached (ShapeCorners),
+ * because the interpolation runs at control rate for every sounding voice and the corners never
+ * change.
+ *
+ * zBuildCascade() is the cascade's normalisation: every section is scaled to its geometric mean
+ * over a fixed 16-point logarithmic grid plus its own pole and zero angles, and the finished
+ * cascade is measured over the same points so that its loudest point comes back to unity -- the
+ * reason a shape can be extremely resonant without becoming loud. ZModal is the same frames read
+ * as a parallel bank of ringing resonators, each normalised to unity at its own frequency and the
+ * bank as a whole on expected power. The two warm-up functions build the static tables from the
+ * message thread, so that no voice ever builds them under the lock a function-local static carries.
+ */
 #include <vector>
 #include "ambient/ZPlane.h"
 #include <algorithm>
@@ -91,25 +113,50 @@ ZFrame zFrameFromSpec(const ZCornerSpec& c)
 }
 
 namespace {
-// The eight corners of a shape, and the logarithms the interpolation takes of them. Both depend
-// on the shape alone -- on a number that changes when somebody turns a knob, and not otherwise --
-// and both used to be computed afresh on every call: eight corner frames rebuilt, and then
-// thirty-two logarithms per section taken of the values that had just been rebuilt. This runs at
-// control rate for every sounding voice, so at eleven voices that was eight thousand times a
-// second of audio, always with the same answer. VTune put it at nine per cent of an entire
-// render, which is roughly what the whole reverb costs.
-//
-// Held here instead, worked out once for each shape the moment it is first asked for. The
-// interpolation itself is untouched -- the same weights over the same logarithms, so the same
-// numbers to the last bit; only the arithmetic that had no reason to be repeated is gone.
+/**
+ * @brief The eight corners of a shape, and the logarithms the interpolation takes of them.
+ *
+ * Both depend
+ * on the shape alone -- on a number that changes when somebody turns a knob, and not otherwise --
+ * and both used to be computed afresh on every call: eight corner frames rebuilt, and then
+ * thirty-two logarithms per section taken of the values that had just been rebuilt. This runs at
+ * control rate for every sounding voice, so at eleven voices that was eight thousand times a
+ * second of audio, always with the same answer. VTune put it at nine per cent of an entire
+ * render, which is roughly what the whole reverb costs.
+ *
+ * Held here instead, worked out once for each shape the moment it is first asked for. The
+ * interpolation itself is untouched -- the same weights over the same logarithms, so the same
+ * numbers to the last bit; only the arithmetic that had no reason to be repeated is gone.
+ */
 struct ShapeCorners {
-    int  used = 0;
+    int  used = 0;   ///< sections every one of the eight corners has; the interpolated frame has as many
+    /**
+     * @brief One section as seen from all eight corners: the values the interpolation blends,
+     *        corner by corner.
+     *
+     * One value per corner in each array; the logarithms are log2 of the value floored at 1e-3,
+     * exactly as zInterpolate used to take them on every call.
+     */
     struct Sec {
-        float lPole[8] = {}, lBw[8] = {}, lZeroHz[8] = {}, lZeroBw[8] = {}, gain[8] = {};
-        bool  zeros = false;   // a zero in every corner, or none at all
-    } s[kZSections];
+        float lPole[8] = {},     ///< log2 of the pole frequency in Hz
+              lBw[8] = {},       ///< log2 of the pole bandwidth in Hz
+              lZeroHz[8] = {},   ///< log2 of the zero frequency in Hz (meaningful only when `zeros`)
+              lZeroBw[8] = {},   ///< log2 of the zero bandwidth in Hz
+              gain[8] = {};      ///< the section gain, blended linearly
+        bool  zeros = false;   ///< a zero in every corner, or none at all
+    } s[kZSections];   ///< the sections, the first `used` of them meaningful
 };
 
+/**
+ * @brief The cached corners of a shape, built for every shape on the first call.
+ *
+ * The whole table is a function-local static, so the first caller builds it -- all shapes at once,
+ * from kZCorners through zFrameFromSpec -- under the guard the language puts around the static.
+ * zWarmShapes() makes sure that first caller is the message thread.
+ *
+ * @param shape  a valid shape index, 0 .. kZShapes - 1 (zInterpolate clamps before asking)
+ * @return       the corners and their logarithms for that shape
+ */
 const ShapeCorners& shapeCorners(int shape)
 {
     static const std::vector<ShapeCorners> all = [] {
@@ -139,8 +186,10 @@ const ShapeCorners& shapeCorners(int shape)
 }
 }  // namespace
 
-// Builds the shape table now, off the audio thread. Engine::prepare calls it; without that the
-// first voice to reach a filter would build it under the lock the language puts around a static.
+/**
+ * Builds the shape table now, off the audio thread. Engine::prepare calls it; without that the
+ * first voice to reach a filter would build it under the lock the language puts around a static.
+ */
 void zWarmShapes() { (void)shapeCorners(0); }
 
 ZFrame zInterpolate(int shape, float x, float y, float z)
@@ -171,11 +220,24 @@ ZFrame zInterpolate(int shape, float x, float y, float z)
 }
 
 namespace {
-// The normalisation grid: 16 logarithmically spaced points in normalised frequency (about
-// 24 Hz to 21 kHz at 48 kHz), with cos/sin of w and 2w precomputed once.
+/**
+ * @brief The normalisation grid: 16 logarithmically spaced points in normalised frequency (about
+ *        24 Hz to 21 kHz at 48 kHz), with cos/sin of w and 2w precomputed once.
+ */
 constexpr int kGrid = 16;
+/**
+ * @brief The precomputed trigonometry of the normalisation grid, one set per grid point.
+ *
+ * The angular frequencies are w = pi * 0.001 * 900^(k / 15), so the grid runs from 0.001 pi to
+ * 0.9 pi -- a fixed fraction of the sample rate, not a fixed frequency -- and the cos/sin pairs are
+ * exactly what ZBiquad::magSqAt() takes, so a magnitude on the grid costs no transcendental call.
+ */
 struct NormGrid {
-    float c1[kGrid], s1[kGrid], c2[kGrid], s2[kGrid];
+    float c1[kGrid],   ///< cos(w) at each grid point
+          s1[kGrid],   ///< sin(w)
+          c2[kGrid],   ///< cos(2w)
+          s2[kGrid];   ///< sin(2w)
+    /** @brief Fills the four tables; run once, when grid() is first called. */
     NormGrid()
     {
         for (int k = 0; k < kGrid; ++k) {
@@ -185,12 +247,18 @@ struct NormGrid {
         }
     }
 };
+/**
+ * @brief The one normalisation grid, built on the first call.
+ * @return  the grid's cos/sin tables; the same object for the life of the process
+ */
 const NormGrid& grid() { static const NormGrid g; return g; }
 }
 
-// Builds the normalisation grid now, on whoever calls -- prepare() does, from the message thread.
-// Left alone, the first voice to build a cascade did it on the audio thread, inside the guard
-// the language puts around a function-local static: a lock, where no lock belongs.
+/**
+ * Builds the normalisation grid now, on whoever calls -- prepare() does, from the message thread.
+ * Left alone, the first voice to build a cascade did it on the audio thread, inside the guard
+ * the language puts around a function-local static: a lock, where no lock belongs.
+ */
 void zWarmTables() { (void)grid(); }
 
 namespace {

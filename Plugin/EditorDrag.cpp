@@ -1,12 +1,15 @@
-// Noctuary -- what a modulation route looks like while it is being made.
-//
-// Dragging a card from the strip onto a knob worked, but you could not see it: the strip drew a
-// line inside its own bounds, and the gesture leaves those bounds immediately. So the modulator
-// in flight is drawn over the whole panel now -- a line from the card it came from, a small copy
-// of the card under the cursor, and a ring around the knob it would land on with its name -- and
-// when it lands, a knob for the depth appears where it landed, in the modulator's colour, and
-// goes away at the next click somewhere else. Both are Pigments' idea; both are the difference
-// between a gesture you have to remember and one you can see.
+/**
+ * @file EditorDrag.cpp
+ * @brief What a modulation route looks like while it is being made.
+ *
+ * Dragging a card from the strip onto a knob worked, but you could not see it: the strip drew a
+ * line inside its own bounds, and the gesture leaves those bounds immediately. So the modulator
+ * in flight is drawn over the whole panel now -- a line from the card it came from, a small copy
+ * of the card under the cursor, and a ring around the knob it would land on with its name -- and
+ * when it lands, a knob for the depth appears where it landed, in the modulator's colour, and
+ * goes away at the next click somewhere else. Both are Pigments' idea; both are the difference
+ * between a gesture you have to remember and one you can see.
+ */
 #include "PluginEditor.h"
 #include "EditorCommon.h"
 
@@ -97,9 +100,21 @@ float NoctuaryEditor::routeDepth(ModSource src, ParamId target) const
     return 0.0f;
 }
 
-// One route changed, the rest written back exactly as it stands. The matrix has no "set this
-// row" call -- it travels as text everywhere in this program, which is what the preset files and
-// the OSC interface use as well, so there is one form of it and not two.
+/**
+ * @brief One route changed, the rest written back exactly as it stands.
+ *
+ * The matrix has no "set this
+ * row" call -- it travels as text everywhere in this program, which is what the preset files and
+ * the OSC interface use as well, so there is one form of it and not two.
+ *
+ * @param m       the matrix as the engine holds it now, read route by route
+ * @param src     the source of the one route to change or drop
+ * @param target  the target of that route
+ * @param depth   the new depth for the matching route, or nullptr to keep the depth it has
+ * @param drop    true leaves the matching route out of the text altogether
+ * @return        the whole matrix as `source>target:depth[:via][:u]` rows joined with ';', in the
+ *                form Engine::setModMatrixText parses
+ */
 static juce::String matrixTextWith(const ModMatrix& m, ModSource src, ParamId target, const float* depth, bool drop)
 {
     juce::String t;

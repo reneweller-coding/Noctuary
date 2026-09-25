@@ -1,3 +1,24 @@
+/**
+ * @file Shifter.cpp
+ * @brief The spectral pitch shifter: frame analysis, peak-locked shifting and overlap-add.
+ *
+ * Shifter.h explains why the shimmer shifts in the spectrum rather than with two read heads; this
+ * file is the phase vocoder itself. process() runs sample by sample on the audio thread: every
+ * input sample goes into a kN ring, every output sample comes out of a 2 kN overlap-add buffer,
+ * and every kHop samples frame() is run once per channel. frame() windows the last kN samples
+ * with a Hann, takes the FFT, finds the spectral peaks (local maxima over two bins either side,
+ * no more than 70 dB under the loudest), and for each peak works out its true frequency from the
+ * phase advance since the previous frame. The peak and every bin of its region -- up to the trough
+ * before the next peak -- are then moved by the same number of bins to the shifted frequency and
+ * turned by one angle, so that the region keeps its internal phase relations (Laroche and
+ * Dolson's identity phase locking) and the output bin continues the phase it had at the shifted
+ * frequency in the previous frame. The shifted half-spectrum is mirrored into a real signal,
+ * inverse transformed, windowed again and added into the output ring.
+ *
+ * Everything is allocated in prepare(); process() may run in place, since the input sample is
+ * read before the output sample is written. The shift ratio is set by setSemitones() and is read
+ * at the next frame.
+ */
 #include "ambient/Shifter.h"
 #include <algorithm>
 #include <cmath>
@@ -5,8 +26,12 @@
 namespace ambient {
 
 namespace {
-constexpr double kTau = 6.283185307179586;
-// Hann analysis and Hann synthesis at a quarter-frame hop add up to one and a half.
+constexpr double kTau = 6.283185307179586;   ///< 2 pi: the Hann window and every phase in frame() are in radians
+/**
+ * @brief Gain of the overlap-add, so that a frame passed through unchanged comes out at unity.
+ *
+ * Hann analysis and Hann synthesis at a quarter-frame hop add up to one and a half.
+ */
 constexpr float kOverlapGain = 2.0f / 3.0f;
 }
 

@@ -1,3 +1,29 @@
+/**
+ * @file Sources.cpp
+ * @brief The source slots: what a voice plays beside (or instead of) its own strand bank.
+ *
+ * A voice owns kSlots SourceSlot objects (Sources.h), and every one of them is a small synthesiser
+ * of its own, chosen by SlotParams::type: a wavetable read as a spectrum into the phasor bank
+ * (Harmonic), the same bank fed by the voice's additive formula (Additive), single cycles read as
+ * samples (Wavetable), two-operator FM, a granular player over a recording (Texture), a Paulstretch
+ * of it (Stretch), its band model played back at any pitch (Spectral), the clip as it is (Clip),
+ * eleven colours of noise, and a bowed string (Bow). This file holds the far types -- the planes
+ * that are made to be sustained and to be sent into the reverb -- together with the name tables the
+ * editor shows, the five built-in wavetables, the Wavetable's morphing and analysis, the Texture's
+ * level measurement and band model, and SourceSlot's prepare(), noteOn() and the render()
+ * dispatcher that hands each block to the type's own routine. The near sources (Flute, Murmur,
+ * Bowl, Ice, Drops, Clip) and the signals (Whistler to Dial) live in SourcesNear.cpp; the state
+ * they share with the Bow -- the two delay lines -- is allocated here.
+ *
+ * render() is called from Voice::render on the audio thread once per control block of at most
+ * kControlBlock samples and ADDS into its two output buffers; prepare() runs on the message thread
+ * and does every allocation (the stretch buffers, the shared transforms, the string, the built-in
+ * tables), so the audio thread never allocates. Every type is calibrated so that Level means the
+ * same loudness: a Wavetable slot at Level 1 renders at about -22 dBFS, and the others -- the noise
+ * colours one at a time, the string, the grains -- were measured against it and corrected, which
+ * the selftest holds them to. Most of the comments below are measurements: what was heard, what
+ * was measured, and why the number that stands there stands there.
+ */
 #include "ambient/Sources.h"
 #include "ambient/Simd.h"
 #include "ambient/Voice.h"     // kControlBlock
@@ -20,14 +46,23 @@ const char* const kSlotRoleNames[kNumSlotRoles] = { "All", "Lowest", "Inner", "H
 const char* const kTableNames[kNumTables] = { "Classic", "Organ", "Vocal", "Glass", "Metal", "User" };
 const char* const kSlotRatioNames[kNumSlotRatios] = { "1/1", "9/8", "6/5", "5/4", "4/3", "3/2", "8/5", "5/3", "7/4", "2/1" };
 const double      kSlotRatios[kNumSlotRatios] = { 1.0, 9.0 / 8.0, 6.0 / 5.0, 5.0 / 4.0, 4.0 / 3.0, 3.0 / 2.0, 8.0 / 5.0, 5.0 / 3.0, 7.0 / 4.0, 2.0 };
-static constexpr float kSqrt2    = 1.41421356237f;
-static constexpr float kSqrt2Inv = 0.70710678119f;
+static constexpr float kSqrt2    = 1.41421356237f;   ///< sqrt(2): a copy's full weight on one channel in the equal-power pan of setBankPitch
+static constexpr float kSqrt2Inv = 0.70710678119f;   ///< 1 / sqrt(2): the level of a spread unison group, whose Pan is composed into the copies instead
 const char* const kFollowNames[2] = { "Free", "Note" };
 
 // ---------------------------------------------------------------- wavetables
 
 namespace {
 
+/**
+ * @brief Scales one frame of partial amplitudes to unit energy, so every frame of a table weighs the same.
+ *
+ * The sum of the squares comes to one afterwards; a silent frame is left as it is rather than
+ * divided by nothing. Called for every frame a built-in table is written with and for every frame
+ * Wavetable::analyse() cuts from a file.
+ *
+ * @param a  the frame's kTablePartials amplitudes, rewritten in place
+ */
 void normaliseFrame(float* a)
 {
     float sq = 0.0f;
@@ -37,8 +72,17 @@ void normaliseFrame(float* a)
     for (int h = 0; h < kTablePartials; ++h) a[h] *= s;
 }
 
+/**
+ * @brief The five built-in wavetables (Classic, Organ, Vocal, Glass, Metal), written from formulas.
+ *
+ * Each is a handful of frames of kTablePartials partial amplitudes, every frame normalised to unit
+ * energy, in the order kTableNames lists them; the sixth name, User, is the table a file provides
+ * and is not in here. Built once by builtins() and shared by every slot of every voice.
+ */
 struct BuiltinTables {
-    Wavetable t[kNumTables - 1];
+    Wavetable t[kNumTables - 1];   ///< the tables in the order of kTableNames, the User slot excluded
+
+    /** @brief Writes every frame of the five tables and normalises each of them to unit energy. */
     BuiltinTables()
     {
         auto frame = [&](Wavetable& w, int fi) -> float* { w.frames = std::max(w.frames, fi + 1); return w.amp[fi]; };
@@ -95,6 +139,10 @@ struct BuiltinTables {
     }
 };
 
+/**
+ * @brief The built-in tables, constructed on the first call and read-only from then on.
+ * @return the one BuiltinTables instance
+ */
 const BuiltinTables& builtins() { static const BuiltinTables b; return b; }
 
 } // namespace
@@ -233,6 +281,11 @@ bool Wavetable::analyse(const float* mono, int n, int frameLen)
 // ---------------------------------------------------------------- slot
 
 namespace {
+/**
+ * @brief The fractional part of @p x: a phase brought back into [0, 1).
+ * @param x  a phase in cycles, of any magnitude
+ * @return   x minus floor(x)
+ */
 inline double wrap01(double x) { return x - std::floor(x); }
 }
 
@@ -447,13 +500,15 @@ void SourceSlot::renderWavetable(float* out, int n, double hz, const SlotParams&
     renderBank(spec, H, n, out, p.unison, outR);
 }
 
-// Where each copy of the bank sits: its pitch, and its place in the field.
-//
-// The copies are spread symmetrically about the written pitch -- with two they sit at plus and
-// minus half the detune, with three the middle one is exactly in tune -- and across the field the
-// same way, so the sound stays centred however many there are. At one copy the ratio is exactly
-// 1.0 and the arithmetic below is `hz * h`, which is what stood here before unison existed: every
-// preset in the library renders to the bit.
+/**
+ * @brief Where each copy of the bank sits: its pitch, and its place in the field.
+ *
+ * The copies are spread symmetrically about the written pitch -- with two they sit at plus and
+ * minus half the detune, with three the middle one is exactly in tune -- and across the field the
+ * same way, so the sound stays centred however many there are. At one copy the ratio is exactly
+ * 1.0 and the arithmetic below is `hz * h`, which is what stood here before unison existed: every
+ * preset in the library renders to the bit.
+ */
 
 int SourceSlot::setBankPitch(double hz, const SlotParams& p, int partials)
 {
@@ -493,12 +548,16 @@ int SourceSlot::setBankPitch(double hz, const SlotParams& p, int partials)
     return H;
 }
 
-// `uni` copies of the same spectrum, laid end to end in the flat bank: copy c occupies entries
-// c*kTablePartials .. c*kTablePartials+31 at its own slightly detuned pitch, so the amplitudes
-// repeat every kTablePartials and the same SIMD loop steps all of them. The energy is divided
-// among the copies -- the constant-power rule the single bank always used, applied to the whole
-// list rather than to one copy of it -- so turning unison up thickens the sound without raising
-// the level. At one copy every line below does exactly what it did before, entry for entry.
+/**
+ * @brief `uni` copies of the same spectrum, laid end to end in the flat bank: copy c occupies entries
+ *        c*kTablePartials .. c*kTablePartials+31 at its own slightly detuned pitch, so the amplitudes
+ *        repeat every kTablePartials and the same SIMD loop steps all of them.
+ *
+ * The energy is divided
+ * among the copies -- the constant-power rule the single bank always used, applied to the whole
+ * list rather than to one copy of it -- so turning unison up thickens the sound without raising
+ * the level. At one copy every line below does exactly what it did before, entry for entry.
+ */
 void SourceSlot::renderBank(const float* spec, int H, int n, float* out, int uni, float* outR)
 {
     float sumSq = 0.0f;
@@ -527,12 +586,16 @@ void SourceSlot::renderBank(const float* spec, int H, int n, float* out, int uni
         out[i] = phasorBankStep(pc_, ps_, rc_, rs_, amp_, ampStep_, active_);
 }
 
-// The Wavetable type: single cycles read as samples (CycleTable.h). A phase per unison copy, the
-// copies detuned and placed across the field exactly as the Harmonic type places its own
-// (setBankPitch), the energy divided among them, and Position glided across the block so a turning
-// knob never steps. The level a note reads follows its highest copy; when that changes, the block
-// reads both levels and fades from the old one to the new, so a glide across a boundary is not
-// heard as the top octave of harmonics switching off.
+/**
+ * @brief The Wavetable type: single cycles read as samples (CycleTable.h).
+ *
+ * A phase per unison copy, the
+ * copies detuned and placed across the field exactly as the Harmonic type places its own
+ * (setBankPitch), the energy divided among them, and Position glided across the block so a turning
+ * knob never steps. The level a note reads follows its highest copy; when that changes, the block
+ * reads both levels and fades from the old one to the new, so a glide across a boundary is not
+ * heard as the top octave of harmonics switching off.
+ */
 void SourceSlot::renderCycles(float* out, int n, double hz, const SlotParams& p, const CycleTable* table, float dt, float* outR)
 {
     const float wander = posDrift_.update(dt, 0.02f, rng_) * 0.5f * p.positionDrift;
@@ -600,9 +663,11 @@ void SourceSlot::renderCycles(float* out, int n, double hz, const SlotParams& p,
     }
 }
 
-// Additive in a slot: the voice's spectrum formula (tilt, brightness window, odd/even, inharmonic
-// stretch, per-partial shimmer) on the slot's own bank -- one strand, so a second or third
-// additive source costs what a wavetable slot costs.
+/**
+ * @brief Additive in a slot: the voice's spectrum formula (tilt, brightness window, odd/even, inharmonic
+ *        stretch, per-partial shimmer) on the slot's own bank -- one strand, so a second or third
+ *        additive source costs what a wavetable slot costs.
+ */
 void SourceSlot::renderAdditive(float* out, int n, double hz, const SlotParams& p, float dt)
 {
     const int partials = clampv(p.partials, 1, kTablePartials);
@@ -698,8 +763,12 @@ void Texture::measure()
     analyse();
 }
 
-// Measure the clip into the band model. Runs where measure() runs -- the loader thread, once per
-// clip -- and never in render(): a six-second clip is under three hundred transforms.
+/**
+ * @brief Measure the clip into the band model.
+ *
+ * Runs where measure() runs -- the loader thread, once per
+ * clip -- and never in render(): a six-second clip is under three hundred transforms.
+ */
 void Texture::analyse()
 {
     spectral = SpectralModel();
@@ -794,12 +863,21 @@ void Texture::analyse()
     }
 }
 
-// Catmull-Rom through four samples: the curve that passes through y1 and y2 with the slopes the
-// neighbours imply. Against the straight line it folds back less of what it cannot represent when
-// a clip is played above its own pitch, and takes less off the top when it is played below.
-// Needs p[-stride] .. p[2*stride]; the caller guarantees that window, see `herm` in renderTexture.
-// `p` points at the sample before the fraction and `stride` is 1 for a mono clip, 2 for one channel
-// of an interleaved pair.
+/**
+ * @brief Catmull-Rom through four samples: the curve that passes through y1 and y2 with the slopes the
+ *        neighbours imply.
+ *
+ * Against the straight line it folds back less of what it cannot represent when
+ * a clip is played above its own pitch, and takes less off the top when it is played below.
+ * Needs p[-stride] .. p[2*stride]; the caller guarantees that window, see `herm` in renderTexture.
+ * `p` points at the sample before the fraction and `stride` is 1 for a mono clip, 2 for one channel
+ * of an interleaved pair.
+ *
+ * @param p       the sample before the fraction; p[-stride] .. p[2 * stride] must be readable
+ * @param stride  1 for a mono clip, 2 for one channel of an interleaved stereo pair
+ * @param t       the fraction between p[0] and p[stride], 0 .. 1
+ * @return        the sample on the curve at that fraction
+ */
 static inline float hermiteAt(const float* p, int stride, float t)
 {
     const float y0 = p[-stride], y1 = p[0], y2 = p[stride], y3 = p[2 * stride];
@@ -809,7 +887,18 @@ static inline float hermiteAt(const float* p, int stride, float t)
     return ((a * t + b) * t + c) * t + y1;
 }
 
-// One sample of a clip at a fractional position, either way of joining the dots.
+/**
+ * @brief One sample of a clip at a fractional position, either way of joining the dots.
+ *
+ * The choice is a template tag and not a branch, because the grain loop this serves is the
+ * instrument's largest single cost and a test inside it is paid by every sample (see renderTexture).
+ *
+ * @tparam H      true for the Catmull-Rom curve of hermiteAt(), false for the straight line
+ * @param p       the sample before the fraction (for H the window of hermiteAt() must be readable)
+ * @param stride  1 for a mono clip, 2 for one channel of an interleaved stereo pair
+ * @param t       the fraction between p[0] and p[stride], 0 .. 1
+ * @return        the interpolated sample
+ */
 template <bool H>
 static inline float readAt(const float* p, int stride, float t)
 {
@@ -1131,18 +1220,24 @@ void SourceSlot::renderTexture(float* outL, int n, double hz, double speed, cons
 }
 
 // ---------------------------------------------------------------- stretch
-//
-// Paulstretch, in a voice. A window of the clip is transformed, its magnitudes are kept and its
-// phases thrown away and drawn afresh, and the result is overlap-added at a quarter of the
-// window -- the same machinery as the Cosmos's Nebula, pointed at a recording instead of at the
-// mix. Every frame is a plausible piece of the clip's spectrum with no memory of where its
-// transients were, so the analysis position can crawl through the recording at a thousandth of
-// its speed and what comes out is a continuum: twenty seconds of rain becoming an evening of it.
-//
-// Pitch is applied when the window is READ, as a resampling step through the clip, and the
-// stretch is applied to how far the read position moves between frames. The two do not know
-// about each other, which is the point: Follow = Note plays a chromatic sample across the
-// keyboard without a high note ending sooner than a low one.
+
+/**
+ * @brief Paulstretch, in a voice.
+ *
+ * A window of the clip is transformed, its magnitudes are kept and its
+ * phases thrown away and drawn afresh, and the result is overlap-added at a quarter of the
+ * window -- the same machinery as the Cosmos's Nebula, pointed at a recording instead of at the
+ * mix. Every frame is a plausible piece of the clip's spectrum with no memory of where its
+ * transients were, so the analysis position can crawl through the recording at a thousandth of
+ * its speed and what comes out is a continuum: twenty seconds of rain becoming an evening of it.
+ *
+ * Pitch is applied when the window is READ, as a resampling step through the clip, and the
+ * stretch is applied to how far the read position moves between frames. The two do not know
+ * about each other, which is the point: Follow = Note plays a chromatic sample across the
+ * keyboard without a high note ending sooner than a low one.
+ *
+ * This is the one frame: renderStretch() calls it whenever the overlap-add has run out of hop.
+ */
 
 void SourceSlot::stretchFrame(const SlotParams& p, const Texture* tex, double rate, int N)
 {
@@ -1242,8 +1337,16 @@ void SourceSlot::renderStretch(float* out, int n, double hz, double speed, const
 }
 
 namespace {
-// Paul Kellet's pink filter, all seven terms. The three-pole short form is 1.7 dB per octave too
-// steep -- measured, which is why it is not used here.
+/**
+ * @brief Paul Kellet's pink filter, all seven terms.
+ *
+ * The three-pole short form is 1.7 dB per octave too
+ * steep -- measured, which is why it is not used here.
+ *
+ * @param st  the channel's noise state; its seven pink terms are advanced
+ * @param w   one sample of white noise, -1 .. 1
+ * @return    one sample of pink noise, scaled to sit near the white's level
+ */
 inline float pinkStep(SourceSlot::NoiseState& st, float w)
 {
     st.pink[0] = 0.99886f * st.pink[0] + w * 0.0555179f;
@@ -1260,12 +1363,16 @@ inline float pinkStep(SourceSlot::NoiseState& st, float w)
 } // namespace
 
 // ---------------------------------------------------------------- noise
-//
-// Ten colours. The three textbook slopes (pink, brown, blue/violet) plus grey, a resonant band
-// that can track the note, a wandering band that is wind, sparse crackle and sample-and-hold
-// digital noise. Each is normalised so that Level means roughly the same loudness across the
-// lot -- the same lesson the Texture slot taught: a source whose Level means something different
-// from its neighbour's is a source nobody uses.
+
+/**
+ * @brief Ten colours.
+ *
+ * The three textbook slopes (pink, brown, blue/violet) plus grey, a resonant band
+ * that can track the note, a wandering band that is wind, sparse crackle and sample-and-hold
+ * digital noise. Each is normalised so that Level means roughly the same loudness across the
+ * lot -- the same lesson the Texture slot taught: a source whose Level means something different
+ * from its neighbour's is a source nobody uses.
+ */
 void SourceSlot::renderNoise(float* outL, int n, double hz, const SlotParams& p, float dt)
 {
     std::memset(scratch_, 0, sizeof(float) * static_cast<size_t>(n));
@@ -1443,42 +1550,50 @@ void SourceSlot::renderNoise(float* outL, int n, double hz, const SlotParams& p,
 
 
 // ---------------------------------------------------------------- Bow
-//
-// A bowed string, after McIntyre, Schumacher and Woodhouse (1983) and the waveguide form of Smith
-// (2010). The instrument had a struck source (Strike) but nothing continuously excited, and the
-// two are not the same thing: a struck body rings and dies, a bowed one is driven for as long as
-// the bow moves and settles into a stick-slip oscillation of its own -- which is exactly what a
-// drone wants, a note that sustains because it is being fed rather than because its release is long.
-//
-// The string is two waveguides meeting at the bow -- one to the nut, one to the bridge -- so that
-// the bow's position along the string decides which partials it favours, as it does on a real
-// instrument. The nut reflects and inverts; the bridge reflects, inverts and loses the highs,
-// which is what makes the upper partials die first. Every sample the friction between bow and string is evaluated:
-//
-//     dv   = v_bow - v_string           the relative velocity at the bow
-//     rho  = min(1, (F / (|dv| + eps))^0.8)   the Stribeck curve: sticking while dv is small,
-//                                             slipping once it is not
-//     out  = dv * rho
-//
-// so a slow bow with a heavy hand sticks for most of the period and releases suddenly -- the
-// Helmholtz motion -- and a fast bow with a light hand slips more and gives the thinner, airier
-// tone. The friction force is fed back into the string, and the string's own motion changes the
-// relative velocity on the next sample, which is the loop that makes it oscillate at all.
-//
-// It is guarded rather than trusted: the loop gain is below one by construction, the injected
-// force is clamped, and a non-finite state resets the string. A physical model that runs away is
-// a burst of full-scale noise, and this instrument's whole point is that it never does that.
-// Playing a recording back from its band model rather than from its samples.
-//
-// Two numbers that a sampler has to share are separate here. `transpose` scales every band's
-// frequency, so the note decides the pitch; Rate scales how fast the model is read, so it decides
-// the speed. At Rate 0 the read head stands still and the clip becomes one endless chord -- a
-// frozen moment of a recording, held at whatever pitch is played, which no amount of granular
-// overlap can do without a texture of its own.
-//
-// Each band is rebuilt from two things: an oscillator at the band's strongest partial, weighted by
-// how tonal the band measured, and a band of noise at the same place, weighted by the rest. Breath
-// tilts that balance -- all the way to the partials on its own, or all the way to the wind.
+
+/**
+ * @fn void ambient::SourceSlot::renderBow(float* out, int n, double hz, const SlotParams& p, float dt)
+ * @brief A bowed string, after McIntyre, Schumacher and Woodhouse (1983) and the waveguide form of Smith
+ *        (2010).
+ *
+ * The instrument had a struck source (Strike) but nothing continuously excited, and the
+ * two are not the same thing: a struck body rings and dies, a bowed one is driven for as long as
+ * the bow moves and settles into a stick-slip oscillation of its own -- which is exactly what a
+ * drone wants, a note that sustains because it is being fed rather than because its release is long.
+ *
+ * The string is two waveguides meeting at the bow -- one to the nut, one to the bridge -- so that
+ * the bow's position along the string decides which partials it favours, as it does on a real
+ * instrument. The nut reflects and inverts; the bridge reflects, inverts and loses the highs,
+ * which is what makes the upper partials die first. Every sample the friction between bow and string is evaluated:
+ *
+ *     dv   = v_bow - v_string           the relative velocity at the bow
+ *     rho  = min(1, (F / (|dv| + eps))^0.8)   the Stribeck curve: sticking while dv is small,
+ *                                             slipping once it is not
+ *     out  = dv * rho
+ *
+ * so a slow bow with a heavy hand sticks for most of the period and releases suddenly -- the
+ * Helmholtz motion -- and a fast bow with a light hand slips more and gives the thinner, airier
+ * tone. The friction force is fed back into the string, and the string's own motion changes the
+ * relative velocity on the next sample, which is the loop that makes it oscillate at all.
+ *
+ * It is guarded rather than trusted: the loop gain is below one by construction, the injected
+ * force is clamped, and a non-finite state resets the string. A physical model that runs away is
+ * a burst of full-scale noise, and this instrument's whole point is that it never does that.
+ */
+
+/**
+ * @brief Playing a recording back from its band model rather than from its samples.
+ *
+ * Two numbers that a sampler has to share are separate here. `transpose` scales every band's
+ * frequency, so the note decides the pitch; Rate scales how fast the model is read, so it decides
+ * the speed. At Rate 0 the read head stands still and the clip becomes one endless chord -- a
+ * frozen moment of a recording, held at whatever pitch is played, which no amount of granular
+ * overlap can do without a texture of its own.
+ *
+ * Each band is rebuilt from two things: an oscillator at the band's strongest partial, weighted by
+ * how tonal the band measured, and a band of noise at the same place, weighted by the rest. Breath
+ * tilts that balance -- all the way to the partials on its own, or all the way to the wind.
+ */
 void SourceSlot::renderSpectral(float* out, int n, double transpose, const SlotParams& p, const Texture* tex, float dt)
 {
     if (tex == nullptr || tex->spectral.empty()) { active_ = 0; return; }

@@ -1,31 +1,76 @@
-// Noctuary -- the grain loop the granular effects share.
-//
-// The texture sources read their grains out of a finished clip; the Cloud and the Memory read
-// theirs out of a ring that is being written while they play. The loop is the one Sources.cpp
-// worked out with VTune for the clips (10.09.): the lifetime is decided once per block and not
-// once per sample, the vector runs over eight SAMPLES of one grain and never over eight grains
-// (they all add into the same output sample), and the Hann window is eight phasors seeded at
-// r^0..r^7 and turned by r^8. A ring needs one change to that: both places the interpolation
-// reads are folded back into the ring before the gather -- by a compare and a subtract rather
-// than a mask, so a ring does not have to be a power of two long.
+/**
+ * @file GrainRing.h
+ * @brief The grain loop the granular effects share.
+ *
+ * The texture sources read their grains out of a finished clip; the Cloud and the Memory read
+ * theirs out of a ring that is being written while they play. The loop is the one Sources.cpp
+ * worked out with VTune for the clips (10.09.): the lifetime is decided once per block and not
+ * once per sample, the vector runs over eight SAMPLES of one grain and never over eight grains
+ * (they all add into the same output sample), and the Hann window is eight phasors seeded at
+ * r^0..r^7 and turned by r^8. A ring needs one change to that: both places the interpolation
+ * reads are folded back into the ring before the gather -- by a compare and a subtract rather
+ * than a mask, so a ring does not have to be a power of two long.
+ */
 #pragma once
 #include "Simd.h"
 
 namespace ambient {
 
+/**
+ * @brief One grain reading out of a ring: where it reads, how fast, its window phasor, its gains
+ *        and where in the block it starts.
+ *
+ * Owned by the effect that plays it (Cloud.h and Memory.h keep arrays of these); renderRingGrain()
+ * advances pos and the window phasor for the samples it renders, and the owner keeps age, start
+ * and the phasor's length between blocks. The window is a Hann, 0.5 - 0.5 wc, with (wc, ws)
+ * turned by (rc, rs) = (cos, sin)(2 pi / len) on every sample.
+ */
 struct RingGrain {
-    double pos = 0.0;                                     // read position in frames, in [0, cap)
-    double rate = 1.0;                                    // frames read per sample, > 0
-    float  wc = 1.0f, ws = 0.0f, rc = 1.0f, rs = 0.0f;    // the window's phasor and its step
-    float  gl = 0.0f, gr = 0.0f;                          // gains into the left and the right output
-    int    len = 0, age = 0;                              // window length and samples played so far
-    int    start = 0;                                     // first sample of the current block it plays in
-    int    bus = 0;                                       // which output it plays into (the cloud's resonators)
-    int    ring = 0;                                      // which ring it reads (the memory's lines)
+    double pos = 0.0;                                     ///< read position in frames, in [0, cap)
+    double rate = 1.0;                                    ///< frames read per sample, > 0
+    /** @var float wc
+     *  @brief cosine of the window's phasor: the Hann window is 0.5 - 0.5 wc */
+    /** @var float ws
+     *  @brief sine of the window's phasor, carried so the phasor can be turned */
+    /** @var float rc
+     *  @brief cosine of the phasor's step per sample, cos(2 pi / len) */
+    float  wc = 1.0f, ws = 0.0f, rc = 1.0f, rs = 0.0f;    ///< the window's phasor and its step (rs: the step's sine)
+    /** @var float gl
+     *  @brief gain into the left output, from the grain's pan */
+    float  gl = 0.0f, gr = 0.0f;                          ///< gains into the left and the right output
+    /** @var int len
+     *  @brief window length in samples: the grain is done when age reaches it */
+    int    len = 0, age = 0;                              ///< window length and samples played so far
+    int    start = 0;                                     ///< first sample of the current block it plays in
+    int    bus = 0;                                       ///< which output it plays into (the cloud's resonators)
+    int    ring = 0;                                      ///< which ring it reads (the memory's lines)
 };
 
+/** @brief The shared body behind renderRingGrain() and renderRingGrainScalar(); not for callers. */
 namespace detail {
 
+/**
+ * @brief Adds `count` samples of one grain into the output pair, over the vector path or without it.
+ *
+ * The gather reads two neighbouring frames per sample and interpolates linearly between them;
+ * both indices are folded back into the ring by a compare and a subtract, so the ring need not be
+ * a power of two long. On AVX2 eight samples go at once (the window phasor as eight lanes turned
+ * by r^8, the frames through a gather); on NEON four, with the interpolation scalar because NEON
+ * has no gather; the tail -- and the whole loop without VEC -- is the scalar form. On return the
+ * grain's pos is advanced by rate * count and folded, and its phasor stands at the next sample.
+ *
+ * @tparam CH   1 for a mono ring, 2 for an interleaved stereo pair (the right channel is read
+ *              from the odd cells)
+ * @tparam VEC  whether the vector path may be taken; false is the reference the self test holds
+ *              the true path against
+ * @param ring   the ring's samples, `cap` frames of CH channels
+ * @param cap    frames in the ring
+ * @param g      the grain: pos, rate, window phasor and gains are read, pos and the phasor written
+ * @param oL     left output, `count` samples, added into
+ * @param oR     right output, `count` samples, added into (the same signal as the left for a
+ *               mono ring)
+ * @param count  samples to render; g.pos + g.rate * count must stay below 2 * cap - 1
+ */
 template <int CH, bool VEC>
 inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, float* oR, int count)
 {
@@ -183,19 +228,40 @@ inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, f
 
 } // namespace detail
 
-// Adds `count` samples of grain `g` into oL and oR. The ring holds `cap` frames of `channels`
-// channels (1, or 2 interleaved). Requires g.pos in [0, cap), a positive rate, and
-// g.pos + g.rate * count < 2 * cap - 1. Advances pos (folded back into the ring) and the window;
-// the caller keeps the age and keeps the phasor on the unit circle between blocks.
+/**
+ * @brief Adds `count` samples of grain `g` into oL and oR.
+ *
+ * The ring holds `cap` frames of `channels`
+ * channels (1, or 2 interleaved). Requires g.pos in [0, cap), a positive rate, and
+ * g.pos + g.rate * count < 2 * cap - 1. Advances pos (folded back into the ring) and the window;
+ * the caller keeps the age and keeps the phasor on the unit circle between blocks.
+ *
+ * Audio thread, once per grain per block, from the Cloud's and the Memory's grain loops; takes
+ * the vector path this translation unit was compiled with (see ringGrainPath()).
+ *
+ * @param ring      the ring's samples
+ * @param cap       frames in the ring
+ * @param channels  1 for mono, 2 for an interleaved stereo pair; anything else reads as mono
+ * @param g         the grain to render and advance
+ * @param oL        left output, added into
+ * @param oR        right output, added into
+ * @param count     samples to render this block
+ */
 inline void renderRingGrain(const float* ring, int cap, int channels, RingGrain& g, float* oL, float* oR, int count)
 {
     if (channels == 2) detail::ringGrainBody<2, true>(ring, cap, g, oL, oR, count);
     else               detail::ringGrainBody<1, true>(ring, cap, g, oL, oR, count);
 }
 
-// Which path renderRingGrain was compiled to. A test that holds the vector path against the
-// scalar one passes for nothing at all when there is no vector path to hold: this is how it says
-// so. The Quest had none here until 13.09.2026 and the check had been green throughout.
+/**
+ * @brief Which path renderRingGrain was compiled to.
+ *
+ * A test that holds the vector path against the
+ * scalar one passes for nothing at all when there is no vector path to hold: this is how it says
+ * so. The Quest had none here until 13.09.2026 and the check had been green throughout.
+ *
+ * @return "avx2", "neon" or "scalar"
+ */
 inline const char* ringGrainPath()
 {
 #if AMBIENT_HAS_AVX && defined(__AVX2__)
@@ -207,7 +273,16 @@ inline const char* ringGrainPath()
 #endif
 }
 
-// The same arithmetic without the vector path, so the self test can hold the two against each other.
+/**
+ * @brief The same arithmetic without the vector path, so the self test can hold the two against each other.
+ * @param ring      the ring's samples
+ * @param cap       frames in the ring
+ * @param channels  1 for mono, 2 for an interleaved stereo pair; anything else reads as mono
+ * @param g         the grain to render and advance
+ * @param oL        left output, added into
+ * @param oR        right output, added into
+ * @param count     samples to render this block
+ */
 inline void renderRingGrainScalar(const float* ring, int cap, int channels, RingGrain& g, float* oL, float* oR, int count)
 {
     if (channels == 2) detail::ringGrainBody<2, false>(ring, cap, g, oL, oR, count);

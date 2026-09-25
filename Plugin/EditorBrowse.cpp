@@ -1,23 +1,64 @@
+/**
+ * @file EditorBrowse.cpp
+ * @brief The browse page (columns, list, map) and the perform page.
+ *
+ * Two of the editor's three pages live here; the third, the panel itself, is PluginEditor.cpp, which
+ * owns both of these as browse_ and perform_ and swaps them in with setPage(). Everything runs on
+ * the message thread and reads the instrument through the processor: the parameters through apvts,
+ * the engine's map cursor, route and morph state through engine() getters, and the presets through
+ * the accessors of Presets.h and PresetMeta.h. Nothing here touches audio.
+ *
+ * The browse page is BrowseView, and it has two modes. "Columns" is the classic browser --
+ * Family | Character | Motion | Features narrowing the list, the preset's own card (InfoPanel)
+ * beside the results. "Map" is the measured plane of Tools/library/map_all.py: every preset a dot at
+ * the place its measurements put it (MapView), the four macro range sliders thinning the cloud along
+ * one descriptor each, the blend cursor and its radius, and the route strip that walks the cursor
+ * from waypoint to waypoint. Both modes share the search box, the sort, the favourites, the "similar"
+ * narrowing and the morph-on-select, and both end in applyFilter(), which builds the one list
+ * (filtered) that the list box, the map and the info line all read.
+ *
+ * The map is the expensive picture: with a library loaded there are thousands of dots, so the cloud
+ * is drawn once into an image and only what moves -- the cursor, the ring of what is playing, the
+ * crossing while a preset change travels, the names once zoomed in -- is drawn live over it. The
+ * colours come from the two helpers at the top of the file: familyColour() for where a preset came
+ * from, clusterColour() for the measured group it sounds like.
+ *
+ * The perform page is PerformView: the eight macros as large knobs, the morph slider between the
+ * A and B slots, and the set recorder (record every knob, gesture and note with its time; play a set
+ * back; ambient_render --set-file renders it again offline).
+ */
 #include "EditorCommon.h"
 
 using namespace ambient;
 
-// The browse page (columns, list, map) and the perform page.
-
 // ---------------------------------------------------------------- browse page
 
 namespace {
+/**
+ * @brief The colours of the twelve built-in preset families, indexed by family.
+ *
+ * The twelve built-in families keep their colours; loaded packs get their own hues, spaced by
+ * the golden angle so neighbouring packs never look alike.
+ */
 const juce::Colour kFamilyColours[] = {
     juce::Colour(0xff7fb3d5), juce::Colour(0xff8ec9a8), juce::Colour(0xffe0c070), juce::Colour(0xffd08a8a),
     juce::Colour(0xffb094d8), juce::Colour(0xff70c8c8), juce::Colour(0xffe09a60), juce::Colour(0xffa0b8e0),
     juce::Colour(0xffc8d870), juce::Colour(0xffd880b8), juce::Colour(0xff90d0f0), juce::Colour(0xffd0d0d0),
 };
-// The twelve built-in families keep their colours; loaded packs get their own hues, spaced by
-// the golden angle so neighbouring packs never look alike.
 }
 namespace edt {
-// A colour per measured group. The families are hues by index; the groups get their own ramp so
-// the two colourings cannot be confused with one another at a glance.
+/**
+ * @brief A colour per measured group.
+ *
+ * The families are hues by index; the groups get their own ramp so
+ * the two colourings cannot be confused with one another at a glance. The hue steps by the golden
+ * angle from group to group; when there is more than one group the brightness is stepped in three
+ * as well, so two groups that landed on nearby hues still tell apart.
+ *
+ * @param c  the group index as presetClusterOf() gives it, 0 .. numPresetClusters() - 1; negative
+ *           means the preset is in no group
+ * @return   the group's colour, opaque; a neutral grey for a negative index
+ */
 juce::Colour clusterColour(int c)
 {
     if (c < 0) return juce::Colour(0xff707880);
@@ -26,6 +67,12 @@ juce::Colour clusterColour(int c)
     return juce::Colour::fromHSV(h, 0.55f, 0.92f, 1.0f).withMultipliedBrightness(0.85f + 0.3f * (static_cast<float>(c % 3) / 3.0f) * (n > 1 ? 1.0f : 0.0f));
 }
 
+/**
+ * The first twelve families are the built-ins and take their colour from kFamilyColours; a family
+ * past them is a loaded pack, and is given a hue of its own, stepped by the golden angle from the
+ * last built-in, so packs loaded one after another never share a colour with a neighbour. A
+ * negative family reads as family 0.
+ */
 juce::Colour familyColour(int f)
 {
     constexpr int kBuiltIn = static_cast<int>(sizeof(kFamilyColours) / sizeof(kFamilyColours[0]));
@@ -339,9 +386,11 @@ void NoctuaryEditor::BrowseView::applyFilter()
     map.repaint();
 }
 
-// The info panel. Headings in the accent colour, the prose under them, wrapped -- the same shape
-// u-he uses, because it is the right one: name at the top, then what it is, then what your hands
-// do, then where it is filed.
+/**
+ * The info panel. Headings in the accent colour, the prose under them, wrapped -- the same shape
+ * u-he uses, because it is the right one: name at the top, then what it is, then what your hands
+ * do, then where it is filed.
+ */
 void NoctuaryEditor::BrowseView::InfoPanel::paint(juce::Graphics& g)
 {
     auto r = getLocalBounds();
@@ -417,10 +466,12 @@ bool NoctuaryEditor::BrowseView::macroActive() const
     return false;
 }
 
-// What Absynth's browser does when a tag is chosen: the cloud condenses. Ours cannot move the
-// points -- their places are what they mean -- so the view closes in on what is left instead,
-// which is the same gesture from the other side. Only on the filter's own action, never while
-// the mouse is panning or zooming, so the view never fights the hand.
+/**
+ * What Absynth's browser does when a tag is chosen: the cloud condenses. Ours cannot move the
+ * points -- their places are what they mean -- so the view closes in on what is left instead,
+ * which is the same gesture from the other side. Only on the filter's own action, never while
+ * the mouse is panning or zooming, so the view never fights the hand.
+ */
 void NoctuaryEditor::BrowseView::fitToFilter()
 {
     fitPending = false;
@@ -630,7 +681,7 @@ void NoctuaryEditor::BrowseView::resized()
     }
 }
 
-// The window onto the plane: at zoom 1 and centre (0.5, 0.5) this is exactly the old fixed view.
+/** The window onto the plane: at zoom 1 and centre (0.5, 0.5) this is exactly the old fixed view. */
 juce::Point<float> NoctuaryEditor::BrowseView::MapView::toScreen(float x, float y) const
 {
     const auto r = getLocalBounds().toFloat().reduced(18.0f);

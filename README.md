@@ -142,6 +142,7 @@ sonifications from NASA, 724 cylinder and early-radio transfers from the Library
 | `Deploy/` | `build_release.ps1` builds, checks and packages; `Noctuary.iss` is the installer. | Inno Setup 6+ |
 | `Quest/` | A native Meta Quest app against the same core: OpenXR, hand tracking, Oboe. Builds; not yet run on a headset. | NDK, OpenXR, Oboe |
 | `docs/concept.md` | Sound-design and architecture notes. | |
+| `docs/Doxyfile` | Doxygen configuration for the C++ sources (below). | Doxygen |
 
 ## Build
 
@@ -155,6 +156,22 @@ Outputs: the VST3 under `build/Plugin/Noctuary_artefacts/Release/VST3/` (copy th
 `build/Tools/render/Release/`, and the tests under `build/Tests/Release/`. The first configure
 downloads JUCE. `-DAMBIENT_BUILD_PLUGIN=OFF` builds only the core and the tools, which needs no
 JUCE and also builds on Linux.
+
+### Reference documentation
+
+Every C++ file in `Core/`, `Plugin/`, `Quest/`, `Tools/render/` and `Tests/` is documented in
+Doxygen form, in the same style as [Phosphene](https://github.com/reneweller-coding/Phosphene): a
+`@file` block that explains what the file is for and why it is built the way it is, a block on every
+class, function and constant, and `///<` on every member. The comments carry the design history
+(measurements, dates, what was tried and rejected), so the generated pages are the place to read the
+instrument's reasoning rather than a list of signatures.
+
+```bash
+doxygen docs/Doxyfile
+```
+
+writes the HTML to `build/doxygen/html/index.html`, with this README as the main page. The
+configuration lives in `docs/Doxyfile` and needs Doxygen 1.9 or newer; Graphviz is not required.
 
 ## Checking it
 

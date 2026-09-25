@@ -1,15 +1,22 @@
-// Noctuary -- the host contract.
-//
-// The self test measures the instrument; this one measures the plugin around it. Everything here
-// is something a host does and a synth has to survive: prepare and release at rates and block
-// sizes nobody develops at, a state that has to come back exactly as it went out, programs
-// changed while audio is running, an editor opened and closed under load, and parameters written
-// from the message thread while the audio thread reads them. None of it was ever checked, because
-// the standalone only ever does one of these things at a time and always at 48 kHz.
-//
-// This is not a replacement for pluginval (which exercises the VST3 wrapper itself, and which is
-// worth running on the built plugin); it is the part that can live in the repository and run on
-// every build.
+/**
+ * @file hosttest.cpp
+ * @brief The host contract.
+ *
+ * The self test measures the instrument; this one measures the plugin around it. Everything here
+ * is something a host does and a synth has to survive: prepare and release at rates and block
+ * sizes nobody develops at, a state that has to come back exactly as it went out, programs
+ * changed while audio is running, an editor opened and closed under load, and parameters written
+ * from the message thread while the audio thread reads them. None of it was ever checked, because
+ * the standalone only ever does one of these things at a time and always at 48 kHz.
+ *
+ * This is not a replacement for pluginval (which exercises the VST3 wrapper itself, and which is
+ * worth running on the built plugin); it is the part that can live in the repository and run on
+ * every build.
+ *
+ * Every section of main() is one host behaviour, named by its divider; the optional ones run under
+ * AMBIENT_TIMING=1 (what a program change costs) and AMBIENT_FUZZ=1 (random parameters, narrowed
+ * down by section). The exit code is the number of failed checks, clamped to one.
+ */
 #include "PluginProcessor.h"
 #include <atomic>
 #include <cstdio>
@@ -24,12 +31,23 @@
 using namespace ambient;
 
 namespace {
-int failures = 0;
+int failures = 0;   ///< how many checks failed; decides the exit code
+
+/**
+ * @brief Records one check: prints a FAIL line and counts it when @p ok is false.
+ * @param ok    the condition that has to hold
+ * @param what  what was measured, as the FAIL line prints it
+ */
 void check(bool ok, const char* what)
 {
     if (!ok) { std::printf("FAIL: %s\n", what); ++failures; }
 }
 
+/**
+ * @brief Whether every sample of every channel of @p b is a finite number.
+ * @param b  the buffer as the processor left it
+ * @return   false as soon as one NaN or infinity is found
+ */
 bool finite(const juce::AudioBuffer<float>& b)
 {
     for (int c = 0; c < b.getNumChannels(); ++c)
@@ -38,7 +56,16 @@ bool finite(const juce::AudioBuffer<float>& b)
     return true;
 }
 
-// A block of audio with a couple of notes and some expression, which is what a host really sends.
+/**
+ * @brief A block of audio with a couple of notes and some expression, which is what a host really sends.
+ *
+ * Runs @p blocks blocks through processBlock on the calling thread, clearing @p buf before each.
+ * @param p       the processor under test, prepared
+ * @param buf     the buffer to render into; its size is the block size the host uses
+ * @param blocks  how many blocks to run
+ * @param notes   true: two notes on (with channel pressure, pitch wheel and a CC on the second) in
+ *                block 1, both off in the second-to-last block; false: silence in
+ */
 void feed(NoctuaryProcessor& p, juce::AudioBuffer<float>& buf, int blocks, bool notes)
 {
     juce::MidiBuffer midi;
@@ -61,6 +88,14 @@ void feed(NoctuaryProcessor& p, juce::AudioBuffer<float>& buf, int blocks, bool 
 }
 } // namespace
 
+/**
+ * @brief Runs every section of the host test in order and prints the verdict.
+ *
+ * Takes no arguments; the optional sections are switched on by the environment (AMBIENT_TIMING,
+ * AMBIENT_FUZZ, AMBIENT_FUZZ_LONG). Needs a JUCE GUI initialiser because the editor is created and
+ * painted, but never spins a message loop.
+ * @return 0 when every check passed, 1 otherwise
+ */
 int main()
 {
     juce::ScopedJuceInitialiser_GUI juceInit;

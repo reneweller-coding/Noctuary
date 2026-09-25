@@ -1,12 +1,17 @@
-// The conductor alone, for an hour, measured -- the rule book's own check (its section 11).
-//
-//   ambient_brain_audit [--preset "name"] [--set key=value]... [--hours 1] [--dt 0.005] [--seed N]
-//
-// Prints one line per event, E,<seconds>,<conductor 1|2>,<on 1|0>,<note>,<velocity>, and one per
-// root change, R,<seconds>,<root>. Tools/library/brain_audit.py turns that into the table of
-// section 11, the anti-rules of section 12 and the roles of table 2. No audio is rendered: the
-// engine's conductors are stepped at the control rate with the parameters exactly as a render
-// would read them, which is why this is an engine method and not a copy of its wiring.
+/**
+ * @file brain_audit.cpp
+ * @brief The conductor alone, for an hour, measured -- the rule book's own check (its section 11).
+ *
+ * @code
+ *   ambient_brain_audit [--preset "name"] [--set key=value]... [--hours 1] [--dt 0.005] [--seed N]
+ * @endcode
+ *
+ * Prints one line per event, E,\<seconds\>,\<conductor 1|2\>,\<on 1|0\>,\<note\>,\<velocity\>, and one per
+ * root change, R,\<seconds\>,\<root\>. Tools/library/brain_audit.py turns that into the table of
+ * section 11, the anti-rules of section 12 and the roles of table 2. No audio is rendered: the
+ * engine's conductors are stepped at the control rate with the parameters exactly as a render
+ * would read them, which is why this is an engine method and not a copy of its wiring.
+ */
 #include "ambient/Engine.h"
 #include "ambient/Params.h"
 #include "ambient/Presets.h"
@@ -20,6 +25,14 @@
 
 using namespace ambient;
 
+/**
+ * @brief Reads the options, sets the engine up as a render would, and runs Engine::auditConductor for the
+ *        hours asked, printing the E and R lines (and the T lines under AMBIENT_BRAIN_TRACE) to stdout.
+ * @param argc  argument count, as the runtime hands it over
+ * @param argv  the options listed in the file header; a bad or unknown one is reported on stderr
+ * @return 0 when the audit ran, 2 for a command-line error (unknown option, preset or parameter,
+ *         a non-positive --hours or --dt)
+ */
 int main(int argc, char** argv)
 {
     double hours = 1.0, dt = 0.005;

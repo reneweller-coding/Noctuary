@@ -1,3 +1,22 @@
+/**
+ * @file Help.cpp
+ * @brief The help texts: the parameter table, the manual by topic and the tab paragraphs.
+ *
+ * Help.h declares five lookups; this file is the text behind them, and very little else. Three tables
+ * of string pairs in an anonymous namespace: kHelp, one or two sentences per parameter key, in the
+ * order of the panel; kTopics, the chapters of the manual as raw string literals, with the
+ * bibliography last; and kTabHelp, a paragraph per block of the panel. The one piece of mechanism is
+ * the family lookup: the four source slots, the eight LFOs, the six envelopes and the two delays share
+ * one text each, so a key is normalised to its family template (familyKey()) and the answer for every
+ * ParamId is resolved once, on first use, into HelpCache. The lookups are then an index into that
+ * cache or a linear search over a short table, so any shell -- tooltip, the header line, the Help
+ * page, the render tool's --list -- may call them freely on the message thread.
+ *
+ * Writing a text: a key that appears nowhere in kHelp gives "" and nothing complains here; the self
+ * test (Tests/selftest.cpp) walks paramTable() and is where a missing text shows up. The section
+ * comments inside the tables follow the panel, and the dates in them say when a family of parameters
+ * arrived.
+ */
 #include "ambient/Help.h"
 #include <cstring>
 #include <string>
@@ -6,11 +25,27 @@ namespace ambient {
 
 namespace {
 
-// One entry per parameter key. The slot, LFO, envelope and delay families share their texts: a
-// key like "src2_pos" is looked up as "srcN_pos", "lfo3_rate" as "lfoN_rate", "dly2_mix" as
-// "dly_mix" -- so the table stays readable and the three slots can never drift apart.
+/**
+ * @brief One entry per parameter key.
+ *
+ * The slot, LFO, envelope and delay families share their texts: a
+ * key like "src2_pos" is looked up as "srcN_pos", "lfo3_rate" as "lfoN_rate", "dly2_mix" as
+ * "dly_mix" -- so the table stays readable and the three slots can never drift apart.
+ */
 struct HelpEntry { const char* key; const char* text; };
+/**
+ * @var const char* HelpEntry::key
+ * @brief The parameter key as Params.h spells it, or a family template with an N in place of the slot digit.
+ */
+/**
+ * @var const char* HelpEntry::text
+ * @brief The one or two sentences shown for it: a string literal, never null.
+ */
 
+/**
+ * @brief The parameter texts, in the order of the panel; the section comments name the block each run
+ * belongs to. Searched once per parameter when HelpCache is built.
+ */
 const HelpEntry kHelp[] = {
     { "master_gain", "Output level after the mid/side stage and before the soft clipper. There is no compressor anywhere in this instrument: what you hear is the dynamics of the drone." },
 
@@ -527,8 +562,14 @@ const HelpEntry kHelp[] = {
     { "strand_low_detune", "Thins the strand detuning out towards the bottom of the range. A beat of a hertz is warmth at 300 Hz and a wobble at 100, because the same cents make a slower beat the lower the note: at 1 a note under 150 Hz keeps half the detuning of one above 300. It works on Detune and Drift together, and leaves the upper range exactly as it was." },
 };
 
-// Normalises a key to its family template: src2_pos -> srcN_pos, lfo3_rate -> lfoN_rate,
-// env5_depth -> envN_depth, dly2_mix -> dly_mix. Returns whether anything changed.
+/**
+ * @brief Normalises a key to its family template: src2_pos -> srcN_pos, lfo3_rate -> lfoN_rate,
+ * env5_depth -> envN_depth, dly2_mix -> dly_mix.
+ *
+ * Returns whether anything changed.
+ * @param key  a parameter key from paramTable()
+ * @return     the family template, or the key itself when it belongs to no family
+ */
 std::string familyKey(const char* key)
 {
     std::string k(key);
@@ -540,8 +581,13 @@ std::string familyKey(const char* key)
     return k;
 }
 
+/**
+ * @brief Every parameter's help text, resolved once: the answer for each ParamId by its own key or by
+ * its family template, so paramHelp() is an index and not a search.
+ */
 struct HelpCache {
-    const char* text[kNumParams];
+    const char* text[kNumParams];   ///< indexed by ParamId; "" where kHelp has nothing for the key or its family
+    /** @brief Walks paramTable() once and fills text[]; the first entry of kHelp that matches, by key or by family, wins. */
     HelpCache()
     {
         for (const ParamDesc& d : paramTable()) {
@@ -554,12 +600,29 @@ struct HelpCache {
     }
 };
 
+/**
+ * @brief The one HelpCache, built on first use; the static's own initialisation makes that thread-safe.
+ * @return the cache, which never changes afterwards
+ */
 const HelpCache& cache() { static const HelpCache c; return c; }
 
 // ---------------------------------------------------------------- the manual
 
+/** @brief One chapter of the manual: its title and its text, as the Help page prints them. */
 struct Topic { const char* title; const char* text; };
+/**
+ * @var const char* Topic::title
+ * @brief The chapter heading, which is also its entry in the Help page's list.
+ */
+/**
+ * @var const char* Topic::text
+ * @brief The chapter as a raw string literal, its paragraphs separated by blank lines.
+ */
 
+/**
+ * @brief The manual, chapter by chapter, in the order the Help page lists them: overview and signal
+ * flow first, the reading list last. numHelpTopics() counts this table.
+ */
 const Topic kTopics[] = {
     { "Overview and signal flow",
 R"(Noctuary is a drone instrument for slowly breathing clusters: just intonation, additive banks whose partials live their own lives, envelopes measured in minutes, a conductor (the Cluster Brain) that can play a whole night by itself, and a spatial model that treats depth as a landscape rather than an effect.
@@ -1929,11 +1992,25 @@ Rich, R.: The sleep concerts, from 1982; the recordings Somnium (2001) and Perpe
 };
 
 // ---------------------------------------------------------------- the blocks, one by one
-//
-// What each tab of the panel IS, in a paragraph: the manual prints it under the tab's picture,
-// over the list of that tab's parameters. The parameter texts say what a knob does; these say
-// what the thing the knobs belong to is for, which is the question a reader has first.
+
+/**
+ * @brief One block of the panel, by the name on its tab.
+ *
+ * What each tab of the panel IS, in a paragraph: the manual prints it under the tab's picture,
+ * over the list of that tab's parameters. The parameter texts say what a knob does; these say
+ * what the thing the knobs belong to is for, which is the question a reader has first.
+ */
 struct TabHelp { const char* name; const char* text; };
+/**
+ * @var const char* TabHelp::name
+ * @brief The name as the tab spells it ("SOURCE 2", "MATRIX"), a section without a tab ("SPACE") or
+ * a source type ("TYPE Stretch"); tabHelp() compares it exactly.
+ */
+/**
+ * @var const char* TabHelp::text
+ * @brief The paragraph, a string literal.
+ */
+/** @brief The tab paragraphs, in the order of the panel; the section comments name each row. */
 const TabHelp kTabHelp[] = {
     // ---- the source row
     { "SOURCE 1", "The first of four equal source slots, and the one with a history: set to Additive it is the strand bank -- up to six copies of a partial bank, detuned or placed on pure ratios, fanned across the stereo field -- and the Strands section under its display belongs to it alone. Set to any other type it renders exactly like the other three. Every slot has a Type, a Level, an Octave, a just Ratio to the note and a Pan; the rest of its knobs light up according to the type." },

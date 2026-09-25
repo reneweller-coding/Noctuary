@@ -1,8 +1,35 @@
+/**
+ * @file EditorViews.cpp
+ * @brief The displays that live inside the grid, each drawn from the numbers the engine is using.
+ *
+ * The panel's grid is knobs in sections, and the room a row's knobs leave over is a display -- what
+ * a Pigments-style layout puts there, and the part of the panel that moves. Every one of them is a
+ * small Component declared in PluginEditor.h and owned by the editor (brainView_ and its two
+ * siblings, stageView_, tuningView_, coherenceView_, cosmosView_, envView_, filterView_,
+ * source1View_ .. source4View_, vectorView_, outputView_), placed by the layout into its section
+ * row; this file is their paint routines and the few mouse handlers among them that are controls.
+ * The frame, the axes and the parameter reader they all draw with are in EditorCommon.h; the wide
+ * spectrum strip has a file of its own (EditorSpectrum.cpp).
+ *
+ * Nothing here is an illustration. The piano roll (BrainView) is the conductor's notes as they
+ * sound; the stage (StageView) is every voice at the pan and the plane the engine gave it, with the
+ * three planes as lines a hand can drag; the tuning display is the timbre's own roughness curve
+ * (Sethares) from the spectrum the conductor judges with; the coherence display is the Kuramoto
+ * ring, the Lenia field and the two attractors; the cosmos return is an FFT of the tap; the
+ * amplitude envelope carries the loudest voice's level; the filter response is the voice's own
+ * arithmetic (FilterCurve); a source's picture is its table in depth, its FM cycle, its clip with
+ * the grains that are reading it this instant, or the colour of its noise; the vector square shows
+ * the four slot weights the point is making; the loudness strip is the meter an ambient master is
+ * judged by.
+ *
+ * All of it runs on the message thread at the rate each view's timer sets, reads the host's
+ * parameter atomics (rawParam) and the engine's display getters, and never blocks: the one costly
+ * picture here, the wavetable slab, is drawn into an image once and blitted until the table or the
+ * size changes, as the map's cloud is in EditorBrowse.cpp.
+ */
 #include "EditorCommon.h"
 
 using namespace ambient;
-
-// The displays that live inside the grid, each drawn from the numbers the engine is using.
 
 
 
@@ -105,8 +132,15 @@ juce::Rectangle<float> NoctuaryEditor::StageView::plotRect() const
 }
 
 namespace {
-// The three planes a hand can move on the stage, each the parameter that is its depth.
-struct StagePlane { const char* key; const char* label; };
+/** @brief The three planes a hand can move on the stage, each the parameter that is its depth. */
+struct StagePlane {
+    const char* key;     ///< the parameter key of the plane's depth, 0 near .. 1 far
+    const char* label;   ///< the name drawn at the line's right end
+};
+/**
+ * @brief The conductor's, the keys' and the second conductor's plane, in the order lineAt() and
+ *        StageView::paint() index them.
+ */
 const StagePlane kStagePlanes[3] = { { "depth", "conductor" }, { "keys_depth", "keys" }, { "brain2_depth", "conductor 2" } };
 }
 
@@ -546,11 +580,13 @@ void NoctuaryEditor::SourceView::mouseDown(const juce::MouseEvent& e)
     if (type == 1 || type == 9) { flat = !flat; repaint(); }
 }
 
-// A table in depth. Every frame is a line of its cycle, and every step back into the table moves the
-// line up and to the right, so the table stands as one slab the eye reads as a single object -- the
-// way Serum taught everyone to look at a wavetable. The lines are drawn once into an image for as
-// long as the table and the size stay; what is drawn on every tick is the frame at Position, lit in
-// the warm colour of what is sounding, which is the part that moves.
+/**
+ * A table in depth. Every frame is a line of its cycle, and every step back into the table moves the
+ * line up and to the right, so the table stands as one slab the eye reads as a single object -- the
+ * way Serum taught everyone to look at a wavetable. The lines are drawn once into an image for as
+ * long as the table and the size stay; what is drawn on every tick is the frame at Position, lit in
+ * the warm colour of what is sounding, which is the part that moves.
+ */
 bool NoctuaryEditor::SourceView::paintTable3D(juce::Graphics& g, juce::Rectangle<float> plot, int type, int table, float pos)
 {
     // Which table, and whether it has changed since it was sampled. A user table is loaded into the
@@ -711,7 +747,7 @@ bool NoctuaryEditor::SourceView::ownEntrance() const
         && juce::roundToInt(rawParam(proc, (pre + "env").toRawUTF8())) == ambient::kNumSlotEnvs - 1;
 }
 
-// Under the right-hand line of text, where every type's picture is plot and none is text.
+/** Under the right-hand line of text, where every type's picture is plot and none is text. */
 juce::Rectangle<int> NoctuaryEditor::SourceView::entranceBox() const
 {
     return getLocalBounds().reduced(9, 0).removeFromRight(84).withY(21).withHeight(26);

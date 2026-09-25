@@ -1,6 +1,20 @@
-// Noctuary -- runtime preset packs. The preset list the rest of the program sees is the
-// built-in presets followed by every loaded pack, so the DAW programs, the map, the browser and
-// routes-by-name all pick packs up without knowing they exist.
+/**
+ * @file PresetPacks.cpp
+ * @brief Runtime preset packs.
+ *
+ * The preset list the rest of the program sees is the
+ * built-in presets followed by every loaded pack, so the DAW programs, the map, the browser and
+ * routes-by-name all pick packs up without knowing they exist.
+ *
+ * A pack is a text file of presets (the format is written out in Presets.h). This file reads
+ * them, keeps them, and answers the preset questions the header declares -- preset(), presetMeta(),
+ * presetFilePath(), the family and pack names -- by splicing the packs behind the compiled-in
+ * tables of Presets.cpp and PresetMeta.cpp. Everything here is message-thread only: loading
+ * allocates and resolves paths, and the views handed out point into the pack strings, which is why
+ * the packs are held by pointer and stay put until clearPresetPacks(). The same file also owns the
+ * library roots -- where sample files named relative to the library are looked for -- and the near
+ * layer's Auto draw, the hash that gives a pack preset its foreground.
+ */
 #include "ambient/Presets.h"
 #include "ambient/PresetMeta.h"
 #include "ambient/WavFile.h"   // resolveAudioFile, for the library-relative files of the banks
@@ -18,41 +32,105 @@ namespace ambient {
 
 namespace {
 
+/**
+ * @brief One preset of a pack, as read from its line: the strings a Preset will point into, and
+ *        its measured metadata.
+ *
+ * The string members are the fields of the pack line in their order; each optional one is empty
+ * when the line stopped before it, and the Preset view then carries nullptr for it.
+ */
 struct PackEntry {
-    std::string name, settings, texture, wavetable, impulse, mod, envs, impulseB;
-    PresetMeta  meta{ 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 };
+    std::string name,        ///< the preset's name
+                settings,    ///< its "key=value;..." settings, format-1 names translated
+                texture,     ///< the texture file(s) for the source slots, up to four separated by ';'
+                wavetable,   ///< the wavetable file for the User table
+                impulse,     ///< the impulse response of the convolution Room
+                mod,         ///< the modulation matrix rows
+                envs,        ///< the envelope shapes, '~' between them
+                impulseB;    ///< the impulse Room Morph goes to
+    PresetMeta  meta{ 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 };   ///< the metadata field, or this neutral centre-of-the-map default when the line has none; the family is filled in by loadPresetPack()
 };
+/** @brief One loaded pack file. */
 struct Pack {
-    std::string name;
-    std::string dir;                  // the pack file's folder, for relative sample paths
-    std::vector<PackEntry> entries;
+    std::string name;                 ///< the "pack" line's name, else the file's stem; also the family name of its presets
+    std::string dir;                  ///< the pack file's folder, for relative sample paths
+    std::vector<PackEntry> entries;   ///< its presets, in file order
 };
 
-// Held by pointer, not by value: the views below hand out const char* into these strings, and a
-// vector of Packs moves its elements when it grows -- which moves every short string with it
-// (they live inside the object). Rebuilding all the views after every pack was the workaround;
-// this is the reason it was needed.
+/**
+ * @brief The loaded packs, in load order.
+ *
+ * Held by pointer, not by value: the views below hand out const char* into these strings, and a
+ * vector of Packs moves its elements when it grows -- which moves every short string with it
+ * (they live inside the object). Rebuilding all the views after every pack was the workaround;
+ * this is the reason it was needed.
+ *
+ * @return  the one list, a function-local static so that it exists before any caller
+ */
 std::vector<std::unique_ptr<Pack>>& packs() { static std::vector<std::unique_ptr<Pack>> p; return p; }
-// Preset objects handed out point into the pack strings, so they stay valid until clearPresetPacks().
+/**
+ * @brief The pack presets as the rest of the program sees them, in the order of the packs and of
+ *        their lines; preset(index) for an index past the built-ins reads here.
+ *
+ * Preset objects handed out point into the pack strings, so they stay valid until clearPresetPacks().
+ *
+ * @return  the one list
+ */
 std::vector<Preset>& views() { static std::vector<Preset> v; return v; }
-std::vector<std::string>& paths() { static std::vector<std::string> p; return p; }   // absolute, kPresetFiles per entry
-std::vector<std::string>& loadedPaths() { static std::vector<std::string> p; return p; }   // pack files already read
-// One pointer per pack preset, in the order the views are in. presetMeta used to walk the pack
-// list to find out which pack an index belonged to -- and the map's neighbour search asks for
-// every preset's position on every audio block, so with 42 packs that was a hundred and eighty
-// thousand iterations per block to answer eight thousand questions.
+/**
+ * @brief The resolved file paths of the pack presets: absolute, kPresetFiles per entry, in the
+ *        order of views() (texture, wavetable, impulse, impulse B).
+ * @return  the one list
+ */
+std::vector<std::string>& paths() { static std::vector<std::string> p; return p; }
+/**
+ * @brief The canonical paths of the pack files already read, so that a file loads once per process.
+ * @return  the one list
+ */
+std::vector<std::string>& loadedPaths() { static std::vector<std::string> p; return p; }
+/**
+ * @brief One pointer per pack preset, in the order the views are in.
+ *
+ * presetMeta used to walk the pack
+ * list to find out which pack an index belonged to -- and the map's neighbour search asks for
+ * every preset's position on every audio block, so with 42 packs that was a hundred and eighty
+ * thousand iterations per block to answer eight thousand questions.
+ *
+ * @return  the one list, pointing into the PackEntry::meta of the packs
+ */
 std::vector<const PresetMeta*>& metaViews() { static std::vector<const PresetMeta*> v; return v; }
-// The pack each view came from, in the order the views are in (the near layer's Auto asks).
+/**
+ * @brief The pack each view came from, in the order the views are in (the near layer's Auto asks).
+ * @return  the one list of pack indices into packs()
+ */
 std::vector<int>& viewPacks() { static std::vector<int> v; return v; }
 
-struct NearAutoEntry { const char* preset; float weight; float rateLo, rateHi; };
-struct NearAutoPack  { const char* pack; float share; int first, count; };
+/** @brief One candidate foreground of an artist's near table (NearAuto.inc, compiled from Tools/library/near_by_artist.json). */
+struct NearAutoEntry {
+    const char* preset;   ///< the near preset's name (nearPreset(i).name)
+    float weight;         ///< its share of the draw within the pack's list
+    float rateLo,         ///< the lowest factor the near preset's Every is multiplied by
+    rateHi;               ///< and the highest; the factor is drawn uniformly between the two
+};
+/** @brief One pack's near table: which share of its presets get a foreground at all, and where its candidates lie in kNearAutoEntries. */
+struct NearAutoPack  {
+    const char* pack;   ///< the pack's name as loadPresetPack() reads it
+    float share;        ///< 0 .. 1, the fraction of the pack's presets that bring a foreground
+    int first,          ///< index of the pack's first entry in kNearAutoEntries
+    count;              ///< how many entries follow it there
+};
 #include "NearAuto.inc"
 
-// One pack's presets appended to the views. Called once per pack as it is loaded: the whole list
-// used to be rebuilt every time, so loading 42 packs of 200 presets did 176 000 entries' worth of
-// work instead of 8400, three filesystem path resolutions each. That was 678 ms of the 2.1 s
-// before the window appeared, and 0.4 s of every offline render.
+/**
+ * @brief One pack's presets appended to the views.
+ *
+ * Called once per pack as it is loaded: the whole list
+ * used to be rebuilt every time, so loading 42 packs of 200 presets did 176 000 entries' worth of
+ * work instead of 8400, three filesystem path resolutions each. That was 678 ms of the 2.1 s
+ * before the window appeared, and 0.4 s of every offline render.
+ *
+ * @param pk  the pack, already in packs() (its index there is what viewPacks() records)
+ */
 void appendViews(const Pack& pk)
 {
     {
@@ -99,6 +177,7 @@ void appendViews(const Pack& pk)
     }
 }
 
+/** @brief Throws every view away and appends every loaded pack again; what clearPresetPacks() does after emptying the pack list. */
 void rebuildViews()
 {
     views().clear();
@@ -108,6 +187,12 @@ void rebuildViews()
     for (const auto& pk : packs()) appendViews(*pk);
 }
 
+/**
+ * @brief The string without leading and trailing blanks, tabs and carriage returns -- the last for
+ *        pack files written on Windows and read elsewhere.
+ * @param s  the text as read
+ * @return   the trimmed copy
+ */
 std::string trim(const std::string& s)
 {
     size_t a = 0, b = s.size();
@@ -116,6 +201,13 @@ std::string trim(const std::string& s)
     return s.substr(a, b - a);
 }
 
+/**
+ * @brief Splits a string at every occurrence of a separator, keeping empty fields.
+ * @param s    the text
+ * @param sep  the separator character ('|' between the fields of a pack line, ' ' inside the
+ *             metadata field, ';' between the folders of AMBIENT_PACKS)
+ * @return     the fields, one more than there are separators; a single empty string for empty input
+ */
 std::vector<std::string> split(const std::string& s, char sep)
 {
     std::vector<std::string> out;
@@ -125,11 +217,19 @@ std::vector<std::string> split(const std::string& s, char sep)
     return out;
 }
 
-// A pack without a "format" line was written before the classic wavetable arrived, and calls the
-// spectral table type "Wavetable". That type is Harmonic now and the name belongs to the classic
-// one, so such a pack is read with the old name translated -- every pack in the library, and every
-// pack anybody wrote, keeps the sound it was voiced with. A pack that says "format 2" means what it
-// says.
+/**
+ * @brief Translates a format-1 settings string into today's type names.
+ *
+ * A pack without a "format" line was written before the classic wavetable arrived, and calls the
+ * spectral table type "Wavetable". That type is Harmonic now and the name belongs to the classic
+ * one, so such a pack is read with the old name translated -- every pack in the library, and every
+ * pack anybody wrote, keeps the sound it was voiced with. A pack that says "format 2" means what it
+ * says.
+ *
+ * @param settings  the preset's "key=value;..." settings as the old pack wrote them
+ * @return          the same settings with every whole "_type=Wavetable" value turned into
+ *                  "_type=Harmonic"
+ */
 std::string migrateFormat1(std::string settings)
 {
     const std::string from = "_type=Wavetable", to = "_type=Harmonic";
@@ -240,6 +340,17 @@ int loadPresetPacksIn(const char* dir)
 }
 
 namespace {
+/**
+ * @brief The folders the library may lie in, in the order they are searched.
+ *
+ * $AMBIENT_LIBRARY first when it is set; then the parent of every loaded pack's folder (the
+ * library is the folder the Packs folder is in); then the user's Documents/Noctuary and the
+ * folders an installer writes to (ProgramData and LocalAppData on Windows, /usr/local/share and
+ * /usr/share elsewhere); and last "Library" and "." relative to the working directory, which is
+ * where the source tree keeps it. A folder is listed once even if two packs point at it.
+ *
+ * @return  the candidate roots, each an absolute or working-directory-relative path
+ */
 std::vector<std::string> rootsOfTheLibrary()
 {
     std::vector<std::string> roots;
@@ -341,10 +452,18 @@ int presetPack(int presetIndex)
     return i >= 0 && i < static_cast<int>(viewPacks().size()) ? viewPacks()[static_cast<size_t>(i)] : -1;
 }
 
-// The draw is a hash, not a random number: FNV-1a over the preset's name (and a salt per
-// question), folded to [0, 1). A preset asks three questions -- whether it gets a foreground at
-// all, which one, and how often it speaks -- and gets the same three answers every time.
 namespace {
+/**
+ * @brief A number in [0, 1) that depends on a text and a salt and on nothing else.
+ *
+ * The draw is a hash, not a random number: FNV-1a over the preset's name (and a salt per
+ * question), folded to [0, 1). A preset asks three questions -- whether it gets a foreground at
+ * all, which one, and how often it speaks -- and gets the same three answers every time.
+ *
+ * @param text  the preset's name, hashed byte by byte
+ * @param salt  which question is being asked (1, 2 or 3 in nearAutoPick), mixed into the seed
+ * @return      the top 53 bits of the finalised hash as a double in [0, 1)
+ */
 double hashUnit(const char* text, unsigned salt)
 {
     uint64_t h = 1469598103934665603ull ^ (static_cast<uint64_t>(salt) * 0x9E3779B97F4A7C15ull);

@@ -1,3 +1,24 @@
+/**
+ * @file Convolution.cpp
+ * @brief The Room's convolver: the spectral products, impulse loading, the built-in hall, the schedule.
+ *
+ * Convolution.h explains the design -- three stages of growing partitions, the work spread over
+ * 256-sample steps, band-limited partitions, two morphable impulses double-buffered. This file is
+ * the machinery, in four parts. The products (sumOne, sumTwo, blendOne, blendTwo) are the one loop
+ * acc += X * H in the four shapes the morph and a mono impulse call for, vectorised with AVX2 on the
+ * desktop and NEON on the Quest; they are most of what the Room costs. The loading side, on the
+ * message thread, resamples a file to the engine rate with a Kaiser-windowed sinc, shrinks one that
+ * is longer than the cap instead of cutting it, normalises its energy and trims the silence at the
+ * end, and analyse() cuts it into each stage's partitions and keeps of every partition only the bins
+ * that carry more than its share of kDropBudget. makeDefaultImpulse() is the built-in hall, a
+ * statistical late field synthesised in the short-time Fourier domain from the octave design tables.
+ * The audio-thread side is process(), which moves samples between the input history and the output
+ * ring and calls step() once every head_ samples; step() begins a stage's block when one is complete
+ * and hands every stage in flight its share of the work left before its answer is due, which
+ * advance() spends phase by phase -- the input transform, the push into the delay line, the sum over
+ * the partitions, the inverse, the delivery -- through the resumable StepFft, so no step ever pays
+ * for a 16384-sample partition at once.
+ */
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
 #include "ambient/Simd.h"
@@ -12,36 +33,100 @@ namespace ambient {
 
 namespace {
 
-constexpr double kPiD = 3.14159265358979323846;
-// All that the band limits and the trimmed end may leave out of an impulse, together: -100 dB of
-// its energy. A fifth goes to the silence at the end, the rest is shared by the partitions.
+constexpr double kPiD = 3.14159265358979323846;   ///< pi in double: the twiddles, the windows, the sinc
+/**
+ * @brief All that the band limits and the trimmed end may leave out of an impulse, together: -100 dB of
+ *        its energy.
+ *
+ * A fifth goes to the silence at the end, the rest is shared by the partitions.
+ */
 constexpr double kDropBudget = 1.0e-10;
-constexpr long long kUnlimited = std::numeric_limits<long long>::max() / 4;
+constexpr long long kUnlimited = std::numeric_limits<long long>::max() / 4;   ///< a budget no transform can spend: the offline callers, and the last step before a block is due
+/**
+ * @brief Where a stage's block in progress stands (Stage::phase), in the order advance() runs them.
+ *
+ * kIdle: nothing in flight; the stage waits for its next block to complete. kFftIn: the forward
+ * transform of the input block, one channel after the other. kPush: the transform goes into the
+ * frequency-domain delay line and the accumulators are cleared. kSum: the products over the
+ * partitions, resumable at any bin. kInvert: the inverse transform of the sum, channel by channel.
+ * kDeliver: the result, scaled by 1/N, is added into the output ring where the block is due.
+ */
 enum Phase { kIdle = 0, kFftIn, kPush, kSum, kInvert, kDeliver };
 
+/**
+ * @brief @p v rounded up to a multiple of eight: the bin counts, so the vector paths cover every bin.
+ * @param v  a bin count
+ * @return   the smallest multiple of eight >= v
+ */
 inline int roundUp8(int v) { return (v + 7) & ~7; }
 
 // ---------------------------------------------------------------- the products
-// One loop in four shapes: acc += X * H over the bins [k0, k1). k1 - k0 is always a multiple of
-// eight and every array is padded to match, so the vector paths -- eight lanes with AVX2 on the
-// desktop, four with NEON on the Quest -- cover all of it, and the scalar lines are only what a
-// build with neither runs. This is most of the Room's arithmetic.
+/**
+ * @name The products
+ * One loop in four shapes: acc += X * H over the bins [k0, k1). k1 - k0 is always a multiple of
+ * eight and every array is padded to match, so the vector paths -- eight lanes with AVX2 on the
+ * desktop, four with NEON on the Quest -- cover all of it, and the scalar lines are only what a
+ * build with neither runs. This is most of the Room's arithmetic.
+ * @{ */
 
 #if AMBIENT_HAS_NEON
-// a + b c and a - b c. Fused wherever the target has FMA: every AArch64 compiler says so with
-// __ARM_FEATURE_FMA (the NDK header declares vfmaq_f32 only then), and MSVC's arm64 header has it
-// anyway -- one instruction each, rounded like the fmadd of the AVX path. The plain multiply-add is
-// for GCC or clang on a 32-bit ARM without VFPv4; the x86 test variant AMBIENT_NEON_SHIM_NOFMA runs it.
+/**
+ * @name NEON multiply-add
+ * a + b c and a - b c. Fused wherever the target has FMA: every AArch64 compiler says so with
+ * \__ARM_FEATURE_FMA (the NDK header declares vfmaq_f32 only then), and MSVC's arm64 header has it
+ * anyway -- one instruction each, rounded like the fmadd of the AVX path. The plain multiply-add is
+ * for GCC or clang on a 32-bit ARM without VFPv4; the x86 test variant AMBIENT_NEON_SHIM_NOFMA runs it.
+ * @{ */
 #if (defined(__ARM_FEATURE_FMA) || defined(_M_ARM64) || defined(AMBIENT_NEON_SHIM)) && !defined(AMBIENT_NEON_SHIM_NOFMA)
+/**
+ * @brief a + b c in one fused instruction.
+ * @param a  the addend, four lanes
+ * @param b  first factor
+ * @param c  second factor
+ * @return   a + b * c, rounded once
+ */
 inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vfmaq_f32(a, b, c); }
+/**
+ * @brief a - b c in one fused instruction.
+ * @param a  the minuend, four lanes
+ * @param b  first factor
+ * @param c  second factor
+ * @return   a - b * c, rounded once
+ */
 inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vfmsq_f32(a, b, c); }
 #else
+/**
+ * @brief a + b c as a multiply and an add, for a target without FMA.
+ * @param a  the addend, four lanes
+ * @param b  first factor
+ * @param c  second factor
+ * @return   a + b * c, rounded twice
+ */
 inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vmlaq_f32(a, b, c); }
+/**
+ * @brief a - b c as a multiply and a subtract, for a target without FMA.
+ * @param a  the minuend, four lanes
+ * @param b  first factor
+ * @param c  second factor
+ * @return   a - b * c, rounded twice
+ */
 inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vmlsq_f32(a, b, c); }
 #endif
+/** @} */
 #endif
 
-// One channel against one impulse, weighted.
+/**
+ * @brief One channel against one impulse, weighted.
+ * @param ar  the accumulator's real parts; += Re(w H X) over the bins
+ * @param ai  the accumulator's imaginary parts; += Im(w H X)
+ * @param xr  the input block's spectrum, real parts
+ * @param xi  the input block's spectrum, imaginary parts
+ * @param hr  the partition's spectrum, real parts
+ * @param hi  the partition's spectrum, imaginary parts
+ * @param w   the impulse's morph weight; at exactly 1 the vector paths skip the multiply
+ * @param k0  the first bin
+ * @param k1  one past the last bin; k1 - k0 is a multiple of eight
+ */
 void sumOne(float* ar, float* ai, const float* xr, const float* xi, const float* hr, const float* hi, float w, int k0, int k1)
 {
     int k = k0;
@@ -73,7 +158,22 @@ void sumOne(float* ar, float* ai, const float* xr, const float* xi, const float*
     }
 }
 
-// Both channels against one mono impulse: the impulse is loaded once for the two of them.
+/**
+ * @brief Both channels against one mono impulse: the impulse is loaded once for the two of them.
+ * @param a0r  left accumulator, real parts
+ * @param a0i  left accumulator, imaginary parts
+ * @param a1r  right accumulator, real parts
+ * @param a1i  right accumulator, imaginary parts
+ * @param x0r  the left input block's spectrum, real parts
+ * @param x0i  the left input block's spectrum, imaginary parts
+ * @param x1r  the right input block's spectrum, real parts
+ * @param x1i  the right input block's spectrum, imaginary parts
+ * @param hr   the mono partition's spectrum, real parts
+ * @param hi   the mono partition's spectrum, imaginary parts
+ * @param w    the impulse's morph weight; at exactly 1 the vector paths skip the multiply
+ * @param k0   the first bin
+ * @param k1   one past the last bin; k1 - k0 is a multiple of eight
+ */
 void sumTwo(float* a0r, float* a0i, float* a1r, float* a1i,
             const float* x0r, const float* x0i, const float* x1r, const float* x1i,
             const float* hr, const float* hi, float w, int k0, int k1)
@@ -115,7 +215,21 @@ void sumTwo(float* a0r, float* a0i, float* a1r, float* a1i,
     }
 }
 
-// One channel against the blend of two impulses.
+/**
+ * @brief One channel against the blend of two impulses.
+ * @param ar   the accumulator's real parts
+ * @param ai   the accumulator's imaginary parts
+ * @param xr   the input block's spectrum, real parts
+ * @param xi   the input block's spectrum, imaginary parts
+ * @param har  impulse A's partition, real parts
+ * @param hai  impulse A's partition, imaginary parts
+ * @param wa   impulse A's weight, 1 - morph
+ * @param hbr  impulse B's partition, real parts
+ * @param hbi  impulse B's partition, imaginary parts
+ * @param wb   impulse B's weight, the morph
+ * @param k0   the first bin
+ * @param k1   one past the last bin; k1 - k0 is a multiple of eight
+ */
 void blendOne(float* ar, float* ai, const float* xr, const float* xi,
               const float* har, const float* hai, float wa, const float* hbr, const float* hbi, float wb, int k0, int k1)
 {
@@ -146,7 +260,25 @@ void blendOne(float* ar, float* ai, const float* xr, const float* xi,
     }
 }
 
-// Both channels against the blend of two mono impulses.
+/**
+ * @brief Both channels against the blend of two mono impulses.
+ * @param a0r  left accumulator, real parts
+ * @param a0i  left accumulator, imaginary parts
+ * @param a1r  right accumulator, real parts
+ * @param a1i  right accumulator, imaginary parts
+ * @param x0r  the left input block's spectrum, real parts
+ * @param x0i  the left input block's spectrum, imaginary parts
+ * @param x1r  the right input block's spectrum, real parts
+ * @param x1i  the right input block's spectrum, imaginary parts
+ * @param har  impulse A's mono partition, real parts
+ * @param hai  impulse A's mono partition, imaginary parts
+ * @param wa   impulse A's weight, 1 - morph
+ * @param hbr  impulse B's mono partition, real parts
+ * @param hbi  impulse B's mono partition, imaginary parts
+ * @param wb   impulse B's weight, the morph
+ * @param k0   the first bin
+ * @param k1   one past the last bin; k1 - k0 is a multiple of eight
+ */
 void blendTwo(float* a0r, float* a0i, float* a1r, float* a1i,
               const float* x0r, const float* x0i, const float* x1r, const float* x1i,
               const float* har, const float* hai, float wa, const float* hbr, const float* hbi, float wb, int k0, int k1)
@@ -185,9 +317,19 @@ void blendTwo(float* a0r, float* a0i, float* a1r, float* a1i,
         a1i[k] += x1r[k] * h_i + x1i[k] * h_r;
     }
 }
+/** @} */
 
 // ---------------------------------------------------------------- resampling
 
+/**
+ * @brief The modified Bessel function of the first kind and order zero, by its power series.
+ *
+ * The Kaiser window is I0(beta sqrt(1 - z^2)) / I0(beta); the series converges in a few dozen terms
+ * for the beta of 7 used here.
+ *
+ * @param x  the argument, non-negative
+ * @return   I0(x), 1 at zero and growing like e^x / sqrt(2 pi x)
+ */
 double besselI0(double x)
 {
     double sum = 1.0, term = 1.0;
@@ -200,10 +342,20 @@ double besselI0(double x)
     return sum;
 }
 
-// An impulse recorded at another rate, band-limited onto the engine's: a Kaiser-windowed sinc with
-// 16 zero crossings each side at the lower of the two rates, about -70 dB outside the band. The
-// linear interpolation that stood here dulled the top octave of every 44.1 kHz impulse and folded
-// what lay above a lower rate's Nyquist back down. At most `limit` samples come out.
+/**
+ * @brief An impulse recorded at another rate, band-limited onto the engine's: a Kaiser-windowed sinc with
+ *        16 zero crossings each side at the lower of the two rates, about -70 dB outside the band.
+ *
+ * The
+ * linear interpolation that stood here dulled the top octave of every 44.1 kHz impulse and folded
+ * what lay above a lower rate's Nyquist back down. At most `limit` samples come out.
+ *
+ * @param x      the impulse's samples at its own rate
+ * @param n      how many of them
+ * @param ratio  engine rate over the impulse's rate: the output has n * ratio samples
+ * @param limit  the most samples to produce (the Room's cap); the rest of the impulse is not computed
+ * @return       the impulse at the engine rate; a copy of the first `limit` samples when the rates match
+ */
 std::vector<float> resample(const float* x, int n, double ratio, long limit)
 {
     if (std::fabs(ratio - 1.0) < 1.0e-9) return std::vector<float>(x, x + std::min<long>(n, limit));
@@ -239,13 +391,21 @@ std::vector<float> resample(const float* x, int n, double ratio, long limit)
     return y;
 }
 
-// An impulse longer than the Room keeps, shortened rather than cut. A cut stops the tail wherever
-// it happens to be: a 56-second space cut at twelve seconds stopped at -34 dB, and every note
-// through it ended in a gate. Instead the kept part gets an exponential window that brings it to
-// -60 dB against its loudest 50 ms at the cap -- every band's decay shortened by the same extra
-// rate, so the room keeps its colour and only gets smaller (Canfield-Dafilou and Abel 2018) -- and
-// then a 50 ms fade. Measured on that space: a straight 13.8-second room that ends 76 dB down and
-// gates nowhere; on the Quest's four seconds, a 4.3-second room.
+/**
+ * @brief An impulse longer than the Room keeps, shortened rather than cut.
+ *
+ * A cut stops the tail wherever
+ * it happens to be: a 56-second space cut at twelve seconds stopped at -34 dB, and every note
+ * through it ended in a gate. Instead the kept part gets an exponential window that brings it to
+ * -60 dB against its loudest 50 ms at the cap -- every band's decay shortened by the same extra
+ * rate, so the room keeps its colour and only gets smaller (Canfield-Dafilou and Abel 2018) -- and
+ * then a 50 ms fade. Measured on that space: a straight 13.8-second room that ends 76 dB down and
+ * gates nowhere; on the Quest's four seconds, a 4.3-second room.
+ *
+ * @param ch        the channels, already resampled and cut at the cap, all of one length; windowed in place
+ * @param channels  1 or 2, how many of @p ch are in use
+ * @param sr        the engine's sample rate, for the 50 ms windows
+ */
 void shrinkToCap(std::vector<float>* ch, int channels, double sr)
 {
     const size_t len = ch[0].size();
@@ -280,15 +440,25 @@ void shrinkToCap(std::vector<float>* ch, int channels, double sr)
     }
 }
 
-// The built-in hall's design, solved offline by the generator that makes the library's rooms
-// (Tools/ImpulseGen/roomgen.py): the initial spectrum in dB and T60 in seconds at the octaves.
-constexpr int kOct = 9;
-constexpr double kOctHz[kOct]  = { 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0 };
-constexpr double kOctB[kOct]   = { -3.7, -3.5, -2.5, -1.1, -1.4, -3.9, -7.5, -11.9, -17.9 };
-constexpr double kOctT60[kOct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85, 0.37 };
+/**
+ * @name The built-in hall's design
+ * The built-in hall's design, solved offline by the generator that makes the library's rooms
+ * (Tools/ImpulseGen/roomgen.py): the initial spectrum in dB and T60 in seconds at the octaves.
+ * @{ */
+constexpr int kOct = 9;   ///< the octave bands, 63 Hz .. 16 kHz
+constexpr double kOctHz[kOct]  = { 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0 };   ///< the bands' centres in Hz
+constexpr double kOctB[kOct]   = { -3.7, -3.5, -2.5, -1.1, -1.4, -3.9, -7.5, -11.9, -17.9 };   ///< the initial spectrum at each band, in dB
+constexpr double kOctT60[kOct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85, 0.37 };   ///< the decay to -60 dB at each band, in seconds
+/** @} */
 
-// Linear in log frequency between the octaves (the T60 in its logarithm); outside them the ends
-// are held, with the design's guards: 12 dB an octave below 40 Hz, 6 dB an octave above 14 kHz.
+/**
+ * @brief The design at any frequency: linear in log frequency between the octaves (the T60 in its logarithm); outside them the ends
+ *        are held, with the design's guards: 12 dB an octave below 40 Hz, 6 dB an octave above 14 kHz.
+ *
+ * @param f    the frequency in Hz (a bin's centre); anything below 1 Hz is taken as 1
+ * @param bDb  receives the initial level in dB
+ * @param t60  receives the decay time to -60 dB in seconds
+ */
 void octaveDesign(double f, double& bDb, double& t60)
 {
     f = std::max(f, 1.0);
@@ -314,6 +484,13 @@ void octaveDesign(double f, double& bDb, double& t60)
 
 // ---------------------------------------------------------------- rings
 
+/**
+ * @brief Copies a run of samples into a ring, wrapping at its end.
+ * @param ring  the ring, a power of two long
+ * @param at    the index of the first sample written, already masked into the ring
+ * @param src   the samples
+ * @param m     how many; never more than the ring holds
+ */
 void ringWrite(std::vector<float>& ring, int at, const float* src, int m)
 {
     const int size = static_cast<int>(ring.size());
@@ -322,7 +499,13 @@ void ringWrite(std::vector<float>& ring, int at, const float* src, int m)
     if (first < m) std::memcpy(ring.data(), src + first, sizeof(float) * static_cast<size_t>(m - first));
 }
 
-// Read and empty: what the stages add lands on zeros.
+/**
+ * @brief Read and empty: what the stages add lands on zeros.
+ * @param ring  the output ring, a power of two long
+ * @param at    the index of the first sample read, already masked into the ring
+ * @param dst   receives the samples
+ * @param m     how many; never more than the ring holds
+ */
 void ringTake(std::vector<float>& ring, int at, float* dst, int m)
 {
     const int size = static_cast<int>(ring.size());
@@ -363,9 +546,13 @@ void Convolver::StepFft::init(int size)
     work = static_cast<long long>(n) / 4 + static_cast<long long>(n) * bits / 2;
 }
 
-// The same radix-2 transform as Fft (Cosmos.h): forward turns by e^-i, inverse by e^+i and is left
-// unscaled -- the one caller divides by n when it delivers. Stops when the budget is spent, at
-// the end of a run of butterflies, and returns true once the whole transform is done.
+/**
+ * @brief The same radix-2 transform as Fft (Cosmos.h): forward turns by e^-i, inverse by e^+i and is left
+ *        unscaled -- the one caller divides by n when it delivers.
+ *
+ * Stops when the budget is spent, at
+ * the end of a run of butterflies, and returns true once the whole transform is done.
+ */
 bool Convolver::runFft(const StepFft& f, FftRun& r, float* re, float* im, bool inverse, long long& budget)
 {
     const int n = f.n;
@@ -489,8 +676,12 @@ void Convolver::prepare(double sampleRate, float maxSeconds)
     reset();
 }
 
-// Nothing old is read after this: a delay line counts as empty until it is written again, and
-// the rings are cleared. Cheap enough for the audio thread whatever the impulse length.
+/**
+ * @brief Nothing old is read after this: a delay line counts as empty until it is written again, and
+ *        the rings are cleared.
+ *
+ * Cheap enough for the audio thread whatever the impulse length.
+ */
 void Convolver::reset()
 {
     for (int g = 0; g < stages_; ++g) {
@@ -669,19 +860,23 @@ void Convolver::generateDefault(uint64_t seed, float seconds)
     setImpulse(L.data(), R.data(), static_cast<int>(L.size()), sr_);
 }
 
-// The built-in hall: the statistical late field (Polack 1993; Jot 1992) the generated library's
-// rooms are made of, synthesised in the short-time Fourier domain so it needs nothing but this
-// file's own transform. Two streams of Gaussian noise, a Hann frame of 2048 samples every 512; in
-// each frame every bin gets the design's initial spectrum and its own decay at the frame's time,
-// and the two ears are rotated into each other so that they are half-coherent in the bass and
-// independent above 300 Hz. Then a 15 ms onset and a 100 ms fade.
-//
-// The design (the tables above): T60 2.8 s through the mids, the bass held just under it, the
-// treble shortened by walls and air down to 0.37 s at 16 kHz; the colour solved for what measured
-// rooms have -- 15.8 % of the energy between 150 and 500 Hz, -15.6 dB below 150 Hz, a power
-// centroid of 2.0 kHz. The hall that stood here before was three bands of noise whose top band
-// leaked into the middle: a centroid of 8.7 kHz and a T30 of 3.3 s at 8 kHz, the brightest room
-// the instrument had, and the one every fresh instance played.
+/**
+ * @brief The built-in hall: the statistical late field (Polack 1993; Jot 1992) the generated library's
+ *        rooms are made of, synthesised in the short-time Fourier domain so it needs nothing but this
+ *        file's own transform.
+ *
+ * Two streams of Gaussian noise, a Hann frame of 2048 samples every 512; in
+ * each frame every bin gets the design's initial spectrum and its own decay at the frame's time,
+ * and the two ears are rotated into each other so that they are half-coherent in the bass and
+ * independent above 300 Hz. Then a 15 ms onset and a 100 ms fade.
+ *
+ * The design (the tables above): T60 2.8 s through the mids, the bass held just under it, the
+ * treble shortened by walls and air down to 0.37 s at 16 kHz; the colour solved for what measured
+ * rooms have -- 15.8 % of the energy between 150 and 500 Hz, -15.6 dB below 150 Hz, a power
+ * centroid of 2.0 kHz. The hall that stood here before was three bands of noise whose top band
+ * leaked into the middle: a centroid of 8.7 kHz and a T30 of 3.3 s at 8 kHz, the brightest room
+ * the instrument had, and the one every fresh instance played.
+ */
 void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float seconds, std::vector<float>& L, std::vector<float>& R)
 {
     const int scale = sampleRate < 64000.0 ? 1 : (sampleRate < 128000.0 ? 2 : 4);
@@ -764,7 +959,7 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
     }
 }
 
-// Message thread: see Engine::waitForQuiet.
+/** @brief Message thread: see Engine::waitForQuiet. */
 void Convolver::waitForQuiet()
 {
     const unsigned long long begun = stepsBegun_.load(std::memory_order_acquire);

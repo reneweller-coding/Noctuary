@@ -1,6 +1,11 @@
-// Noctuary -- what the engine renders: process() with its denormal control and its sleep
-// check, and renderChunk, which is the signal path from the voices through both planes to the
-// master. Split out of Engine.cpp.
+/**
+ * @file EngineRender.cpp
+ * @brief What the engine renders: process() with its denormal control and its sleep
+ *        check, and renderChunk, which is the signal path from the voices through both planes to the
+ *        master.
+ *
+ * Split out of Engine.cpp.
+ */
 #include "ambient/Engine.h"
 #include "ambient/PresetMap.h"
 #include "ambient/PresetMeta.h"
@@ -12,13 +17,27 @@
 #if defined(_M_X64) || defined(__x86_64__) || defined(_M_IX86) || defined(__i386__)
   #include <xmmintrin.h>
   #include <pmmintrin.h>
+  /**
+   * @brief 1 on x86: the SSE control register (MXCSR) exists, and Engine::process() in EngineRender.cpp
+   *        sets its flush-to-zero and denormals-are-zero bits for the length of a block and restores
+   *        it afterwards.
+   */
   #define AMBIENT_HAS_MXCSR 1
 #else
+  /**
+   * @brief 0 on every other architecture: there is no MXCSR to set, so the denormal control in
+   *        Engine::process() is compiled out (on 64-bit ARM it is FPCR's, see AMBIENT_HAS_FPCR).
+   */
   #define AMBIENT_HAS_MXCSR 0
 #endif
 #if defined(__aarch64__) || defined(_M_ARM64)
+  /**
+   * @brief 1 on 64-bit ARM: Engine::process() sets bit 24 of FPCR (flush-to-zero) for the length of a
+   *        block, which is what keeps the Quest's decaying tails and envelopes out of denormals.
+   */
   #define AMBIENT_HAS_FPCR 1
 #else
+  /** @brief 0 on every other architecture: there is no FPCR to set. */
   #define AMBIENT_HAS_FPCR 0
 #endif
 
@@ -26,9 +45,12 @@ namespace ambient {
 
 // ---------------------------------------------------------------- audio
 
-// Message thread, before this engine is heard: take a cluster over from the one that is leaving.
-// The notes are started exactly as the conductor's own would be, so they carry this preset's
-// depth, its spatial placing and its envelopes -- the same chord, played by another instrument.
+/**
+ * @brief Message thread, before this engine is heard: take a cluster over from the one that is leaving.
+ *
+ * The notes are started exactly as the conductor's own would be, so they carry this preset's
+ * depth, its spatial placing and its envelopes -- the same chord, played by another instrument.
+ */
 void Engine::adoptCluster(const int* notes, const float* vels, int count, bool second)
 {
     // The inherited notes are not new notes. They were sounding on the engine that is leaving and
@@ -972,9 +994,13 @@ void Engine::renderChunk(float* L, float* R, int n)
 
 namespace ambient {
 
-// The conductors on their own clock, with nothing rendered: the rule book's check is an hour of
-// notes measured, and an hour of audio is not the way to get them. The seed and every parameter
-// come through readParams(), so what is measured is what the render would have played.
+/**
+ * @brief The conductors on their own clock, with nothing rendered: the rule book's check is an hour of
+ *        notes measured, and an hour of audio is not the way to get them.
+ *
+ * The seed and every parameter
+ * come through readParams(), so what is measured is what the render would have played.
+ */
 void Engine::auditConductor(double seconds, double dt,
                             const std::function<void(double, int, const BrainEvent&)>& sink,
                             const std::function<void(double, int)>& rootSink)

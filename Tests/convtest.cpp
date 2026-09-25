@@ -1,8 +1,13 @@
-// The convolution room's checks on their own (ConvolverChecks.h, which the selftest runs as well),
-// so that every vector path of the convolver is run and not only the one the desktop core is built
-// with. Tests/CMakeLists.txt builds this file three ways on x86 -- with NoctuaryCore (AVX2), through
-// the NEON path on the x86 shim, and scalar -- and the Android build of it is the real NEON path.
-// Each variant says which path it expects, and a variant that did not get it fails.
+/**
+ * @file convtest.cpp
+ * @brief ambient_convtest: the convolution room's checks, once per vector path.
+ *
+ * The convolution room's checks on their own (ConvolverChecks.h, which the selftest runs as well),
+ * so that every vector path of the convolver is run and not only the one the desktop core is built
+ * with. Tests/CMakeLists.txt builds this file three ways on x86 -- with NoctuaryCore (AVX2), through
+ * the NEON path on the x86 shim, and scalar -- and the Android build of it is the real NEON path.
+ * Each variant says which path it expects, and a variant that did not get it fails.
+ */
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
 #include "ambient/Simd.h"
@@ -11,11 +16,24 @@
 
 using namespace ambient;
 
-static int failures = 0;
+static int failures = 0;   ///< how many CHECKs failed so far; decides the exit code
+
+/**
+ * @brief Records one check: prints a FAIL line with the file and line and counts it when @p cond is false.
+ *
+ * ConvolverChecks.h is written against this macro and is included right after it is defined.
+ * @param cond  the condition that has to hold
+ * @param msg   what was measured, as the FAIL line prints it
+ */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 
 #include "ConvolverChecks.h"
 
+/**
+ * @brief Names the vector path this build took, checks it is the one CMake asked for (AMBIENT_EXPECT_PATH),
+ *        and runs the convolver's checks.
+ * @return 0 when every check passed, 1 otherwise
+ */
 int main()
 {
 #if AMBIENT_HAS_AVX

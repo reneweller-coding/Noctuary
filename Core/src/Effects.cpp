@@ -1,3 +1,17 @@
+/**
+ * @file Effects.cpp
+ * @brief The stereo effects' inner loops, one section per class.
+ *
+ * Effects.h declares the classes and says what each is for; this is where they run. What the reader
+ * finds only here: the three Ensemble modes' construction (the chorus taps, the microshifter's long
+ * ramp and short hand-over, the velvet-noise sequence and how it is drawn), the delay's absorption
+ * band and the ducking of its loop's brightness, the diffuser's prime-ratio stages, the Unmask's
+ * three-band split and upward spread of masking, the Patina's wow, hiss and saturation with the
+ * double-precision read head that cured a six-minute buzz, the reverb's line lengths, scattering
+ * all-passes and turning matrix, and the MidSide's tilt and mono guard with the measurements behind
+ * their thresholds. HaasBand and EarlyRoom are inline in the header and have nothing here.
+ * Everything but prepare() runs on the audio thread and allocates nothing.
+ */
 #include "ambient/Effects.h"
 #include <cmath>
 #include <algorithm>
@@ -5,6 +19,11 @@
 namespace ambient {
 
 namespace {
+/**
+ * @brief The smallest power of two that is at least @p n: the ring sizes, so a mask can wrap them.
+ * @param n  the number of samples a ring has to hold
+ * @return   the first power of two >= n (1 for n <= 1)
+ */
 int pow2At(int n) { int p = 1; while (p < n) p <<= 1; return p; }
 }
 
@@ -44,10 +63,14 @@ void Ensemble::process(float* L, float* R, int n)
     else                 processChorus(L, R, n);
 }
 
-// Velvet noise: kVelvetTaps impulses of +-1, one in each equal interval of the sequence, at a
-// random position inside its interval. Because the impulses are sparse and signed, the sequence
-// is spectrally flat -- convolving with it decorrelates without colouring -- and because they are
-// one per interval, they never clump into an audible echo.
+/**
+ * @brief Velvet noise: kVelvetTaps impulses of +-1, one in each equal interval of the sequence, at a
+ *        random position inside its interval.
+ *
+ * Because the impulses are sparse and signed, the sequence
+ * is spectrally flat -- convolving with it decorrelates without colouring -- and because they are
+ * one per interval, they never clump into an audible echo.
+ */
 void Ensemble::buildVelvet(uint64_t seed)
 {
     velvetLen_ = std::max(64, static_cast<int>(0.030 * sr_));   // 30 ms
@@ -89,21 +112,25 @@ void Ensemble::processVelvet(float* L, float* R, int n)
     }
 }
 
-// Two delay-line pitch shifters, +c cents on the left and -c on the right. A read pointer that
-// walks towards the write head raises the pitch and one that walks away lowers it, and since it
-// cannot walk for ever it is wrapped, with a short cross-fade to a second tap one ramp behind.
-//
-// The ramp is long (200 ms of travel) and the cross-fade short (25 ms), and that is the whole
-// design. The obvious construction -- two taps half a cycle apart under a Hann pair, which is how
-// a granular pitch shifter is drawn in every textbook -- has both taps audible all the time, at a
-// fixed delay difference, which for a sustained tone is a comb filter: the two cancel wherever
-// that difference happens to be half a wavelength, and at twelve cents the pattern crawls through
-// the spectrum once every few seconds. Measured, it lost a fifth of the signal. Here the two taps
-// overlap for a thousandth of the cycle instead, so the shifter is a plain delay line at a
-// slowly changing delay, which is what a micro-shift is.
-//
-// The two channels also sit at different base delays (11 and 19 ms). Opposite detune and unequal
-// delay together decorrelate the pair without ever holding them at a fixed phase difference.
+/**
+ * @brief Two delay-line pitch shifters, +c cents on the left and -c on the right.
+ *
+ * A read pointer that
+ * walks towards the write head raises the pitch and one that walks away lowers it, and since it
+ * cannot walk for ever it is wrapped, with a short cross-fade to a second tap one ramp behind.
+ *
+ * The ramp is long (200 ms of travel) and the cross-fade short (25 ms), and that is the whole
+ * design. The obvious construction -- two taps half a cycle apart under a Hann pair, which is how
+ * a granular pitch shifter is drawn in every textbook -- has both taps audible all the time, at a
+ * fixed delay difference, which for a sustained tone is a comb filter: the two cancel wherever
+ * that difference happens to be half a wavelength, and at twelve cents the pattern crawls through
+ * the spectrum once every few seconds. Measured, it lost a fifth of the signal. Here the two taps
+ * overlap for a thousandth of the cycle instead, so the shifter is a plain delay line at a
+ * slowly changing delay, which is what a micro-shift is.
+ *
+ * The two channels also sit at different base delays (11 and 19 ms). Opposite detune and unequal
+ * delay together decorrelate the pair without ever holding them at a fixed phase difference.
+ */
 void Ensemble::processShift(float* L, float* R, int n)
 {
     const float msToSamples = static_cast<float>(sr_ / 1000.0);

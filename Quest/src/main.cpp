@@ -1,20 +1,41 @@
-// Noctuary for Meta Quest -- native OpenXR application.
-//
-//   hands (XR_EXT_hand_tracking) -> GestureLayer -> Engine parameters
-//   left pinch                   -> HandMenu (presets A/B, morph, record, calibrate)
-//   Oboe output stream           -> Engine::process (+ WavRecorder)
-//   GLES 3 scene                 <- Engine observers (sounding notes, level, distance, root, morph)
-//   optional bridge              -> OSC to a PC running the desktop plugin
-//
-// No game engine: NativeActivity + android_native_app_glue, EGL, OpenXR loader, Oboe, the core.
-// Files in <externalDataPath>:
-//   ambient.cfg   osc_host=192.168.1.20  osc_port=9000  audio=1  preset=Consonant Hollow  route=Night Descent  rest_zone=0.08
-//   calib.txt     hand calibration, written after the calibration gesture
-//   texture.wav   optional sample for the Texture source slots (assumed recorded at C4)
-//   wavetable.wav optional user wavetable, 2048-sample frames (Table = User)
-//   Packs/*.ambientpack  preset packs loaded at start (see Core/include/ambient/Presets.h)
-//                        a pack preset may name its own texture, wavetable and impulse
-//   rec-*.wav     recordings
+/**
+ * @file Quest/src/main.cpp
+ * @brief Noctuary for Meta Quest -- native OpenXR application.
+ *
+ * @verbatim
+ *   hands (XR_EXT_hand_tracking) -> GestureLayer -> Engine parameters
+ *   left pinch                   -> HandMenu (presets A/B, morph, record, calibrate)
+ *   Oboe output stream           -> Engine::process (+ WavRecorder)
+ *   GLES 3 scene                 <- Engine observers (sounding notes, level, distance, root, morph)
+ *   optional bridge              -> OSC to a PC running the desktop plugin
+ * @endverbatim
+ *
+ * No game engine: NativeActivity + android_native_app_glue, EGL, OpenXR loader, Oboe, the core.
+ * The whole front end lives in this one file, in an anonymous namespace: the small matrix and
+ * quaternion helpers the OpenXR views need, a 5x7 dot font for the head-locked panel, the OSC
+ * sender of the bridge mode, the Oboe stream that drives Engine::process, the config reader, the
+ * GLES point-cloud scene, and App, which owns the OpenXR instance, session, spaces, swapchains
+ * and hand trackers and runs the frame loop. android_main at the bottom is the only symbol the
+ * NativeActivity glue looks for. Nothing here touches the synthesizer's internals: the engine is
+ * driven through the same Engine, GestureLayer, HandMenu and preset calls the desktop plugin uses,
+ * so a preset, a route or a calibration means the same thing on both.
+ *
+ * Threads: the glue thread runs everything below except Audio::onAudioReady, which Oboe calls on
+ * its own real-time thread; the engine, the gesture layer and the recorder are built for that split
+ * (parameters through atomics, recording through a lock-free ring). Impulses that arrive before the
+ * engine is prepared wait in App until the audio has started.
+ *
+ * @verbatim
+ * Files in <externalDataPath>:
+ *   ambient.cfg   osc_host=192.168.1.20  osc_port=9000  audio=1  preset=Consonant Hollow  route=Night Descent  rest_zone=0.08
+ *   calib.txt     hand calibration, written after the calibration gesture
+ *   texture.wav   optional sample for the Texture source slots (assumed recorded at C4)
+ *   wavetable.wav optional user wavetable, 2048-sample frames (Table = User)
+ *   Packs/*.ambientpack  preset packs loaded at start (see Core/include/ambient/Presets.h)
+ *                        a pack preset may name its own texture, wavetable and impulse
+ *   rec-*.wav     recordings
+ * @endverbatim
+ */
 
 #include <android/log.h>
 #include <android_native_app_glue.h>
@@ -49,7 +70,9 @@
 #include "ambient/Sources.h"
 #include <dirent.h>
 
+/** @brief Informational line in logcat under the tag "Noctuary"; printf-style arguments. */
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "Noctuary", __VA_ARGS__)
+/** @brief Error line in logcat under the tag "Noctuary"; printf-style arguments. */
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "Noctuary", __VA_ARGS__)
 
 using namespace ambient;
@@ -58,11 +81,33 @@ namespace {
 
 // ---------------------------------------------------------------- small math
 
-struct Mat4 { float m[16]; };
-struct Vec3 { float x, y, z; };
+/**
+ * @brief A 4x4 matrix in OpenGL's column-major layout: element (row, column) sits at m[column * 4 + row].
+ *
+ * Only what the two eyes' view-projection needs; there is no general linear algebra here.
+ */
+struct Mat4 {
+    float m[16];   ///< the sixteen elements, column after column, as glUniformMatrix4fv reads them
+};
+/** @brief A point or direction in metres, OpenXR convention: x right, y up, z back (towards the viewer). */
+struct Vec3 {
+    float x,   ///< right, in metres (unitless for a direction)
+    y,         ///< up
+    z;         ///< back, towards the viewer
+};
 
+/**
+ * @brief The identity matrix, the starting point of every matrix built below.
+ * @return a Mat4 with ones on the diagonal and zeros elsewhere
+ */
 Mat4 identity() { Mat4 r{}; r.m[0] = r.m[5] = r.m[10] = r.m[15] = 1.0f; return r; }
 
+/**
+ * @brief The matrix product a * b, so that (a * b) v applies b first and a second.
+ * @param a  the left factor (applied last)
+ * @param b  the right factor (applied first)
+ * @return   the product, column-major like its factors
+ */
 Mat4 multiply(const Mat4& a, const Mat4& b)
 {
     Mat4 r{};
@@ -72,6 +117,17 @@ Mat4 multiply(const Mat4& a, const Mat4& b)
     return r;
 }
 
+/**
+ * @brief An OpenGL perspective projection from the asymmetric field of view OpenXR reports per eye.
+ *
+ * The four angles are turned into tangents, so the frustum need not be centred on the view axis --
+ * the two eyes of a headset never are. Depth maps to the -1 .. 1 clip range of GLES.
+ *
+ * @param fov    the eye's half angles in radians, as xrLocateViews gives them (left and down negative)
+ * @param nearZ  distance of the near plane in metres (the app uses 0.05)
+ * @param farZ   distance of the far plane in metres (the app uses 100)
+ * @return       the projection matrix, column-major
+ */
 Mat4 projectionFromFov(const XrFovf& fov, float nearZ, float farZ)
 {
     const float l = std::tan(fov.angleLeft), r = std::tan(fov.angleRight), u = std::tan(fov.angleUp), d = std::tan(fov.angleDown);
@@ -85,6 +141,11 @@ Mat4 projectionFromFov(const XrFovf& fov, float nearZ, float farZ)
     return p;
 }
 
+/**
+ * @brief The rotation matrix of a unit quaternion.
+ * @param q  a unit quaternion (OpenXR poses hand out normalised ones; nothing renormalises here)
+ * @return   the rotation as a Mat4 with no translation
+ */
 Mat4 rotationFromQuat(const XrQuaternionf& q)
 {
     const float x = q.x, y = q.y, z = q.z, w = q.w;
@@ -95,12 +156,27 @@ Mat4 rotationFromQuat(const XrQuaternionf& q)
     return r;
 }
 
+/**
+ * @brief Rotates a vector by a quaternion, through its rotation matrix.
+ * @param q  the rotation, a unit quaternion
+ * @param v  the vector to rotate (a direction: no translation is applied)
+ * @return   the rotated vector
+ */
 Vec3 rotate(const XrQuaternionf& q, Vec3 v)
 {
     const Mat4 r = rotationFromQuat(q);
     return { r.m[0] * v.x + r.m[4] * v.y + r.m[8] * v.z, r.m[1] * v.x + r.m[5] * v.y + r.m[9] * v.z, r.m[2] * v.x + r.m[6] * v.y + r.m[10] * v.z };
 }
 
+/**
+ * @brief The view matrix of an eye: the inverse of its pose in the stage space.
+ *
+ * Inverse rotation (the transpose, the quaternion being unit) times the negated translation, so a
+ * point given in stage coordinates lands in the eye's own frame.
+ *
+ * @param pose  the eye's pose from xrLocateViews, in the space the scene is drawn in
+ * @return      the view matrix, to be multiplied with the projection
+ */
 Mat4 viewFromPose(const XrPosef& pose)
 {
     Mat4 r = rotationFromQuat(pose.orientation);
@@ -111,6 +187,18 @@ Mat4 viewFromPose(const XrPosef& pose)
     return multiply(rt, t);
 }
 
+/**
+ * @brief Yaw, pitch and roll in degrees of a head orientation, for the gesture layer and the engine.
+ *
+ * OpenXR's y-up frame: yaw is the turn about the vertical axis, pitch the nod about x, roll the
+ * tilt about the view axis. The pitch's sine is clamped to -1 .. 1 before the asin so a quaternion
+ * slightly off unit length cannot produce a NaN.
+ *
+ * @param q      the orientation, a unit quaternion
+ * @param yaw    out: degrees, 0 looking along -z of the stage, positive turning towards +x (the right)
+ * @param pitch  out: degrees, positive looking up
+ * @param roll   out: degrees, positive tilting the head to the left
+ */
 void quatToEulerDeg(const XrQuaternionf& q, float& yaw, float& pitch, float& roll)
 {
     const float sinp = 2.0f * (q.w * q.x - q.y * q.z);
@@ -121,7 +209,16 @@ void quatToEulerDeg(const XrQuaternionf& q, float& yaw, float& pitch, float& rol
 
 // ---------------------------------------------------------------- 5x7 point font
 
-// Rows top to bottom, 5 bits each (bit 4 = left column). Covers A-Z, 0-9 and a few signs.
+/**
+ * @brief The 5x7 dot pattern of a character, as Scene::addText draws it on the panel.
+ *
+ * Rows top to bottom, 5 bits each (bit 4 = left column). Covers A-Z, 0-9 and a few signs.
+ * Lower-case letters are folded to upper case; anything the font does not have is the blank glyph,
+ * so a preset name with an odd character still takes up its cell.
+ *
+ * @param c  the character to draw
+ * @return   seven row bitmasks, a pointer into the static table (never null)
+ */
 const unsigned char* glyph(char c)
 {
     static const unsigned char kFont[][7] = {
@@ -153,8 +250,22 @@ const unsigned char* glyph(char c)
 
 // ---------------------------------------------------------------- OSC sender (bridge mode)
 
+/**
+ * @brief The bridge mode's OSC sender: UDP datagrams of float arguments to the desktop plugin.
+ *
+ * Only what the bridge needs -- an address, a type tag string of `f`s and big-endian floats, no
+ * bundles, no other types. With `osc_host` set in ambient.cfg the app sends every frame's hand
+ * and head data through it (App::updateHands, App::updateHead) so the plugin on a PC can be played
+ * from the headset.
+ */
 class OscOut {
 public:
+    /**
+     * @brief Opens the UDP socket towards the plugin, closing any earlier one.
+     * @param host  the PC's IPv4 address in dotted form (no name resolution)
+     * @param port  the plugin's OSC port (9000 by default)
+     * @return      false if the socket could not be made or the host is not a dotted IPv4 address
+     */
     bool open(const std::string& host, int port)
     {
         close();
@@ -166,8 +277,20 @@ public:
         if (inet_pton(AF_INET, host.c_str(), &to_.sin_addr) != 1) { close(); return false; }
         return true;
     }
+    /** @brief Closes the socket; afterwards ok() is false and send() does nothing. */
     void close() { if (sock_ >= 0) ::close(sock_); sock_ = -1; }
+    /** @brief Whether a socket is open, i.e. the bridge is on. @return true after a successful open() */
     bool ok() const { return sock_ >= 0; }
+    /**
+     * @brief Sends one OSC message of float arguments; a no-op while the socket is closed.
+     *
+     * The packet is built in a 256-byte buffer: address and type tags padded to four bytes, then
+     * the floats as big-endian 32-bit words. Fire and forget: the return of sendto is not checked.
+     *
+     * @param address  the OSC address pattern, e.g. "/ambient/hand/L"
+     * @param args     the float arguments
+     * @param n        how many, at most 14 (the type tag string holds 16 characters)
+     */
     void send(const char* address, const float* args, int n)
     {
         if (sock_ < 0) return;
@@ -180,15 +303,36 @@ public:
         ::sendto(sock_, buf, pos, 0, reinterpret_cast<sockaddr*>(&to_), sizeof(to_));
     }
 private:
-    int sock_ = -1;
-    sockaddr_in to_{};
+    int sock_ = -1;      ///< the UDP socket, or -1 while closed
+    sockaddr_in to_{};   ///< the plugin's address and port, filled by open()
 };
 
 // ---------------------------------------------------------------- audio
 
+/**
+ * @brief The Oboe output stream and its callback: the engine renders into it, the recorder listens.
+ *
+ * An exclusive low-latency float stereo stream is asked for at 48 kHz; whatever rate the device
+ * grants is what the engine is prepared at, and what a recording is written at. The callback is the
+ * app's audio thread: it renders the engine in chunks, hands the same samples to the recorder's ring
+ * and interleaves them into the stream's buffer.
+ */
 class Audio : public oboe::AudioStreamDataCallback {
 public:
+    /**
+     * @brief Binds the stream to the engine it renders and the recorder that taps it.
+     * @param e  the engine, prepared by start() and run by the callback
+     * @param r  the recorder that gets every rendered block (it ignores them while not recording)
+     */
     Audio(Engine& e, WavRecorder& r) : engine_(e), recorder_(r) {}
+    /**
+     * @brief Opens and starts the stream and prepares the engine at the stream's rate.
+     *
+     * Buffer size is two bursts. The engine is prepared with a maximum block of 1024 and the
+     * scratch buffers hold 8192 frames; the callback works in chunks of at most 4096 frames.
+     *
+     * @return false if the stream could not be opened or started (the app then runs without sound)
+     */
     bool start()
     {
         oboe::AudioStreamBuilder b;
@@ -208,8 +352,20 @@ public:
         LOGI("Oboe: %d Hz, burst %d", sampleRate_, burst);
         return stream_->requestStart() == oboe::Result::OK;
     }
+    /** @brief Stops and closes the stream, if one is open; called once at shutdown. */
     void stop() { if (stream_) { stream_->requestStop(); stream_->close(); stream_.reset(); } }
+    /** @brief The stream's rate in Hz (48000 until start() learned the real one); a recording is written at it. @return the sample rate */
     int sampleRate() const { return sampleRate_; }
+    /**
+     * @brief Oboe's data callback, the audio thread: renders @p frames stereo frames into @p data.
+     *
+     * The engine renders into bufL_ / bufR_ in chunks of at most 4096 frames, the recorder is fed
+     * the same chunk, and the two channels are interleaved into the stream's float buffer.
+     *
+     * @param data    the stream's output buffer, interleaved stereo float
+     * @param frames  how many frames Oboe wants
+     * @return        Continue, always; the stream stops only through stop()
+     */
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream*, void* data, int32_t frames) override
     {
         float* out = static_cast<float*>(data);
@@ -224,24 +380,40 @@ public:
         return oboe::DataCallbackResult::Continue;
     }
 private:
-    Engine& engine_;
-    WavRecorder& recorder_;
-    std::shared_ptr<oboe::AudioStream> stream_;
-    std::vector<float> bufL_, bufR_;
-    int sampleRate_ = 48000;
+    Engine& engine_;                              ///< the synthesizer, owned by App
+    WavRecorder& recorder_;                       ///< the recorder, owned by App; taps every rendered block
+    std::shared_ptr<oboe::AudioStream> stream_;   ///< the open Oboe stream, null before start() and after stop()
+    std::vector<float> bufL_,   ///< left scratch buffer the engine renders into, 8192 frames
+                       bufR_;   ///< right scratch buffer, the same size
+    int sampleRate_ = 48000;                      ///< the rate the stream really opened at, in Hz
 };
 
 // ---------------------------------------------------------------- config
 
+/**
+ * @brief What ambient.cfg in the data folder may set; the defaults are what runs without a file.
+ *
+ * One `key=value` per line, keys as named in the file header; unknown keys are ignored. Read once
+ * at start by readConfig(); nothing rereads it while the app runs.
+ */
 struct Config {
-    std::string oscHost;
-    int oscPort = 9000;
-    bool audio = true;
-    std::string preset;
-    std::string route;   // route preset name or route text for ROUTE PLAY/STOP
-    float restZone = 0.08f;   // both hands below this share of the calibrated height = resting, nothing moves
+    std::string oscHost;      ///< `osc_host`: IPv4 address of the PC running the desktop plugin; empty = no bridge
+    int oscPort = 9000;       ///< `osc_port`: the plugin's OSC port
+    bool audio = true;        ///< `audio`: false (`audio=0`) means no on-device sound, a pure bridge
+    std::string preset;       ///< `preset`: a preset applied at start, by its exact name; empty = the engine's init state
+    std::string route;   ///< `route`: route preset name or route text for ROUTE PLAY/STOP
+    float restZone = 0.08f;   ///< `rest_zone`: both hands below this share of the calibrated height = resting, nothing moves
 };
 
+/**
+ * @brief Reads `<dir>/ambient.cfg` into a Config; the defaults where the file or a key is missing.
+ *
+ * Lines without `=` are skipped, trailing CR, LF and spaces are stripped from a line before the
+ * split, and numbers are parsed with atoi / atof (a bad number reads as 0).
+ *
+ * @param dir  the app's external data folder, or null (then the defaults come back untouched)
+ * @return     the settings found, over the defaults
+ */
 Config readConfig(const char* dir)
 {
     Config c;
@@ -269,6 +441,13 @@ Config readConfig(const char* dir)
 
 // ---------------------------------------------------------------- GL scene
 
+/**
+ * @brief GLES 3.0 vertex shader of the point cloud: position, colour and size per vertex, one
+ *        view-projection matrix.
+ *
+ * The point size is divided by the clip-space w (floored at 0.2) so a dot shrinks with distance
+ * like a thing in the world rather than staying a fixed number of pixels.
+ */
 const char* kVertexShader = R"(#version 300 es
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec4 aCol;
@@ -282,6 +461,13 @@ void main() {
     vCol = aCol;
 })";
 
+/**
+ * @brief GLES 3.0 fragment shader of the point cloud: a soft round dot.
+ *
+ * The radial smoothstep fades the square point sprite to a disc with a wide soft edge; colour and
+ * alpha are premultiplied and the output alpha is 1, because Scene::draw blends additively
+ * (GL_ONE, GL_ONE) and the colour's alpha is really its brightness.
+ */
 const char* kFragmentShader = R"(#version 300 es
 precision mediump float;
 in vec4 vCol;
@@ -293,8 +479,27 @@ void main() {
     o = vec4(vCol.rgb * a * vCol.a, 1.0);
 })";
 
-struct Point { float x, y, z; float r, g, b, a; float size; };
+/**
+ * @brief One vertex of the point cloud, laid out exactly as Scene::init binds it: position at
+ *        offset 0, colour at 12, size at 28.
+ */
+struct Point {
+    float x,      ///< position in metres, stage space: x right
+    y,            ///< y up
+    z;            ///< z back
+    float r,      ///< red 0 .. 1
+    g,            ///< green 0 .. 1
+    b,            ///< blue 0 .. 1
+    a;            ///< brightness of the additive dot, 0 .. 1 (not a coverage)
+    float size;   ///< point size in pixels at clip w = 1, divided by the depth in the shader
+};
 
+/**
+ * @brief Compiles one shader stage and logs the info log if it fails.
+ * @param type  GL_VERTEX_SHADER or GL_FRAGMENT_SHADER
+ * @param src   the GLSL ES source
+ * @return      the shader name, returned even when compiling failed (the link then fails and Scene::init reports it)
+ */
 GLuint compile(GLenum type, const char* src)
 {
     GLuint s = glCreateShader(type);
@@ -305,11 +510,26 @@ GLuint compile(GLenum type, const char* src)
     return s;
 }
 
-// A head-locked text panel: origin in front of the eyes, axes from the head's yaw only.
-struct Panel { Vec3 origin, right, up; };
+/** @brief A head-locked text panel: origin in front of the eyes, axes from the head's yaw only. */
+struct Panel {
+    Vec3 origin,   ///< the panel's top-left corner in stage space
+    right,         ///< unit axis along the text
+    up;            ///< unit axis up the lines (world up)
+};
 
+/**
+ * @brief The picture: a cloud of soft additive points, rebuilt every frame and drawn once per eye.
+ *
+ * Everything drawn is a Point -- the horizon ring, the sounding notes, the brain's root, the hands,
+ * the morph bridge and the panel text. A frame is begin(), addWorld() and the overlay's addText()
+ * calls, upload(), then draw() per eye with that eye's view-projection.
+ */
 class Scene {
 public:
+    /**
+     * @brief Builds the program from the two shaders and the VAO/VBO with the Point layout.
+     * @return false if the program did not link (the app then stops at init)
+     */
     bool init()
     {
         program_ = glCreateProgram();
@@ -330,8 +550,24 @@ public:
         return true;
     }
 
+    /** @brief Starts a new frame's cloud: forgets last frame's points. */
     void begin() { points_.clear(); }
 
+    /**
+     * @brief Adds the world of the current frame from what the engine and the hands report.
+     *
+     * A horizon ring of 64 dim dots at 2.5 m. Every sounding note (24 .. 107) around the listener by
+     * its pitch class, its octave as height (0.35 m per octave around 0.5 m), its distance as radius
+     * (1.2 m near, 5.2 m far), warm near and blue far, brightness and size following its envelope
+     * level. The brain's root as an orange dot on the floor at 1 m. Each tracked palm as a dot that
+     * turns from green to red with the pinch, and between two tracked palms a dotted bridge that
+     * lights up as far as the morph position has gone.
+     *
+     * @param engine      the engine to read (soundingNotes, noteDistance, noteLevel, brainRoot, morphPosition); glue thread, lock-free reads
+     * @param palms       the two palm positions in stage space, left then right
+     * @param palmsValid  whether each palm was tracked this frame
+     * @param pinch       each hand's pinch 0 .. 1
+     */
     void addWorld(Engine& engine, const XrVector3f* palms, const bool* palmsValid, const float* pinch)
     {
         for (int i = 0; i < 64; ++i) {   // horizon ring
@@ -372,7 +608,22 @@ public:
         }
     }
 
-    // Text on the panel; (u, v) in metres from the panel origin, cell = dot spacing in metres.
+    /**
+     * @brief Text on the panel; (u, v) in metres from the panel origin, cell = dot spacing in metres.
+     *
+     * One dot per set bit of the 5x7 glyph, a character every six cells; the dots are sized to the
+     * cell so the text stays legible whatever the cell.
+     *
+     * @param p     the panel giving origin and axes (App::headPanel)
+     * @param u     start along the panel's right axis, metres
+     * @param v     start along the panel's up axis, metres (the glyph hangs down from it)
+     * @param cell  dot spacing in metres (0.006 for the menu)
+     * @param text  the string; characters the font lacks become blanks
+     * @param r     red 0 .. 1
+     * @param g     green 0 .. 1
+     * @param b     blue 0 .. 1
+     * @param a     brightness 0 .. 1 (the additive alpha)
+     */
     void addText(const Panel& p, float u, float v, float cell, const char* text, float r, float g, float b, float a)
     {
         for (const char* c = text; *c; ++c) {
@@ -388,12 +639,20 @@ public:
         }
     }
 
+    /** @brief Sends this frame's points to the VBO (GL_DYNAMIC_DRAW); once per frame, before the eyes are drawn. */
     void upload()
     {
         glBindBuffer(GL_ARRAY_BUFFER, vbo_);
         glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(points_.size() * sizeof(Point)), points_.data(), GL_DYNAMIC_DRAW);
     }
 
+    /**
+     * @brief Draws the uploaded cloud into the bound framebuffer: near-black clear, additive blend,
+     *        no depth test.
+     * @param vp      the eye's projection * view
+     * @param width   the swapchain image's width in pixels
+     * @param height  its height in pixels
+     */
     void draw(const Mat4& vp, int width, int height)
     {
         glViewport(0, 0, width, height);
@@ -409,24 +668,57 @@ public:
         glBindVertexArray(0);
     }
 private:
-    GLuint program_ = 0, vbo_ = 0, vao_ = 0;
-    GLint uVP_ = -1;
-    std::vector<Point> points_;
+    GLuint program_ = 0,   ///< the linked program
+           vbo_ = 0,       ///< the vertex buffer the points are uploaded to
+           vao_ = 0;       ///< the vertex array with the Point layout
+    GLint uVP_ = -1;                           ///< location of the uVP uniform
+    std::vector<Point> points_;                ///< this frame's cloud, cleared by begin(), uploaded by upload()
 };
 
 // ---------------------------------------------------------------- the app
 
+/** @brief One eye's render target: its OpenXR swapchain, the GLES textures behind it, and a framebuffer to draw them through. */
 struct SwapchainTarget {
-    XrSwapchain swapchain = XR_NULL_HANDLE;
-    int width = 0, height = 0;
-    std::vector<XrSwapchainImageOpenGLESKHR> images;
-    GLuint fbo = 0, depth = 0;
+    XrSwapchain swapchain = XR_NULL_HANDLE;              ///< the eye's colour swapchain
+    int width = 0,    ///< the swapchain image width in pixels, the runtime's recommended size for the view
+        height = 0;   ///< its height in pixels
+    std::vector<XrSwapchainImageOpenGLESKHR> images;     ///< the swapchain's images as GL texture names, indexed by the acquired index
+    GLuint fbo = 0,     ///< the framebuffer the acquired image is attached to per frame
+           depth = 0;   ///< its 24-bit depth renderbuffer
 };
 
+/**
+ * @brief The application: OpenXR setup, the frame loop, the hands and the head into the engine,
+ *        the menu, persistence, and the sound.
+ *
+ * Built once on the heap by android_main. init() reads the data folder (packs, config, calibration,
+ * texture, wavetable, impulse), brings up the loader, instance, EGL, session and hand trackers, the
+ * scene and the audio, and starts a calibration when there is no calib.txt. run() is the loop:
+ * looper events, OpenXR events, one frame while the session runs. Each frame locates the hands and
+ * the head, feeds them to the GestureLayer (which writes the engine's parameters) and the HandMenu,
+ * steers the preset map when it is on, then renders the scene for both eyes. shutdown() tears it
+ * all down in reverse.
+ */
 class App {
 public:
+    /**
+     * @brief Remembers the glue's android_app; nothing is created until init().
+     * @param app  the NativeActivity glue's application object
+     */
     explicit App(android_app* app) : app_(app) {}
 
+    /**
+     * @brief Brings everything up, in the order the dependencies demand.
+     *
+     * Preset packs first, so the config's preset name can be found among them; then the config, the
+     * calibration and the folder's source files, then the preset's own files so they win over the
+     * folder's; the Room's maximum impulse length before the engine is prepared; the bridge socket;
+     * then loader, instance, EGL, session, hands, scene and audio. Once the audio has started the
+     * engine is prepared and the impulses that waited go in. Missing hand tracking and a failed
+     * audio start are logged and survived; a failed OpenXR or GL step is fatal.
+     *
+     * @return false when the app cannot run (loader, instance, EGL, session or the GL program failed)
+     */
     bool init()
     {
         dataDir_ = app_->activity->externalDataPath ? app_->activity->externalDataPath : "";
@@ -461,7 +753,15 @@ public:
         return true;
     }
 
-    // A pack preset may bring its own sample, wavetable and impulse; the paths sit next to the pack.
+    /**
+     * @brief A pack preset may bring its own sample, wavetable and impulse; the paths sit next to the pack.
+     *
+     * The texture goes straight into the engine, the wavetable too; the impulses wait in pendingIr_
+     * / pendingIrB_ until the engine is prepared, or go in at once when the audio already runs.
+     * Called from init() for the config's preset and from applyMenu() when A changes without morph.
+     *
+     * @param index  the preset's index in the preset list (presetFilePath reads its four file fields)
+     */
     void loadPresetFiles(int index)
     {
         std::vector<float> mono; int rate = 0;
@@ -513,7 +813,12 @@ public:
         if (audioStarted_) applyPendingImpulses();
     }
 
-    // Message thread, engine prepared: the impulses a preset or the data folder asked for.
+    /**
+     * @brief Message thread, engine prepared: the impulses a preset or the data folder asked for.
+     *
+     * Hands pendingIr_ and pendingIrB_ to the engine and clears them; when a preset named a room and
+     * no B (clearIrB_), the engine's B impulse is cleared instead so the Room plays A alone.
+     */
     void applyPendingImpulses()
     {
         if (!pendingIr_.empty()) {
@@ -529,8 +834,13 @@ public:
         clearIrB_ = false;
     }
 
-    // texture.wav (a field recording etc., assumed at C4 for Pitch = Note) and wavetable.wav
-    // (2048-sample frames) in the data folder feed the Texture and User-table source slots.
+    /**
+     * @brief texture.wav (a field recording etc., assumed at C4 for Pitch = Note) and wavetable.wav
+     *        (2048-sample frames) in the data folder feed the Texture and User-table source slots.
+     *
+     * Also impulse.wav, which waits in pendingIr_ for the engine to be prepared. Once at init(),
+     * before the config preset's own files, so those take precedence.
+     */
     void loadSourceFiles()
     {
         if (dataDir_.empty()) return;
@@ -564,6 +874,12 @@ public:
         }
     }
 
+    /**
+     * @brief The main loop until Android asks to destroy the activity or OpenXR asks to quit.
+     *
+     * Looper events are polled without blocking while the session runs (or before the window
+     * exists) and blocking otherwise, then OpenXR events, then one frame while the session runs.
+     */
     void run()
     {
         while (!app_->destroyRequested) {
@@ -579,6 +895,7 @@ public:
         }
     }
 
+    /** @brief Stops the recorder and the audio and destroys swapchains, hand trackers, spaces, session, instance and the socket. */
     void shutdown()
     {
         recorder_.stop();
@@ -595,6 +912,12 @@ public:
 private:
     // ------------------------------------------------ persistence
 
+    /**
+     * @brief Reads the first line of calib.txt into the gesture layer; calibrated_ says whether it parsed.
+     *
+     * Without a file nothing is logged and calibrated_ stays false, which makes init() start the
+     * calibration gesture.
+     */
     void loadCalibration()
     {
         if (dataDir_.empty()) return;
@@ -606,6 +929,11 @@ private:
         LOGI("calibration %s", calibrated_ ? "loaded" : "invalid");
     }
 
+    /**
+     * @brief Writes the gesture layer's ranges to calib.txt and marks the app calibrated.
+     *
+     * Called from frame() the moment a calibration ends, whether the first one or one from the menu.
+     */
     void saveCalibration()
     {
         if (dataDir_.empty()) return;
@@ -619,6 +947,17 @@ private:
 
     // ------------------------------------------------ menu actions
 
+    /**
+     * @brief Carries out an item the hand menu fired.
+     *
+     * Morph on/off; A = now / B = now (capture the live parameters into a slot); previous/next
+     * preset into slot A or B (the preset's values go into the morph slot, and without morph a new A
+     * is applied outright, files included); the preset map on/off; the route from ambient.cfg (or the
+     * first route preset) playing/stopped; recording start/stop to `rec-YYYYMMDD-HHMMSS.wav` in the
+     * data folder; and an 8-second calibration.
+     *
+     * @param a  the fired item, never None
+     */
     void applyMenu(MenuAction a)
     {
         switch (a) {
@@ -682,6 +1021,10 @@ private:
 
     // ------------------------------------------------ OpenXR setup
 
+    /**
+     * @brief Initialises the OpenXR loader with the JavaVM and the activity, as Android requires before any other call.
+     * @return false if xrInitializeLoaderKHR is not there or fails
+     */
     bool initLoader()
     {
         PFN_xrInitializeLoaderKHR initLoader = nullptr;
@@ -693,6 +1036,11 @@ private:
         return XR_SUCCEEDED(initLoader(reinterpret_cast<const XrLoaderInitInfoBaseHeaderKHR*>(&li)));
     }
 
+    /**
+     * @brief Creates the instance with the Android, OpenGL ES and hand-tracking extensions, finds the
+     *        HMD system and asks whether it tracks hands.
+     * @return false if the instance or the system could not be obtained
+     */
     bool initInstance()
     {
         const char* exts[] = { XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME, XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME, XR_EXT_HAND_TRACKING_EXTENSION_NAME };
@@ -720,6 +1068,14 @@ private:
         return true;
     }
 
+    /**
+     * @brief Brings up EGL: queries the runtime's GLES requirements, initialises the default display,
+     *        picks an RGBA8 GLES 3 config and makes a context current on a 16x16 pbuffer.
+     *
+     * The pbuffer is never shown; all drawing goes into the swapchain images through framebuffers.
+     *
+     * @return false if any EGL step fails
+     */
     bool initEgl()
     {
         PFN_xrGetOpenGLESGraphicsRequirementsKHR getReq = nullptr;
@@ -743,6 +1099,15 @@ private:
         return true;
     }
 
+    /**
+     * @brief Creates the session on the EGL context, the reference spaces, and one swapchain with
+     *        framebuffer and depth buffer per stereo view.
+     *
+     * Stage space is preferred and local space the fallback; a view space is made for the head.
+     * The swapchain format is GL_SRGB8_ALPHA8 when the runtime offers it, else its first format.
+     *
+     * @return false if the session, a reference space or a swapchain could not be created
+     */
     bool initSession()
     {
         XrGraphicsBindingOpenGLESAndroidKHR gb{ XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR };
@@ -799,6 +1164,10 @@ private:
         return true;
     }
 
+    /**
+     * @brief Resolves the XR_EXT_hand_tracking entry points and creates a tracker per hand.
+     * @return false if the system does not track hands, the functions are missing or a tracker fails; the app then runs without hands
+     */
     bool initHands()
     {
         if (!handsSupported_) return false;
@@ -815,6 +1184,12 @@ private:
         return true;
     }
 
+    /**
+     * @brief Drains the OpenXR event queue and follows the session state.
+     *
+     * READY begins the session (sessionRunning_), STOPPING ends it, EXITING and LOSS_PENDING -- as
+     * an instance loss -- set quit_ so run() returns.
+     */
     void pollXrEvents()
     {
         XrEventDataBuffer ev{ XR_TYPE_EVENT_DATA_BUFFER };
@@ -848,6 +1223,16 @@ private:
 
     // ------------------------------------------------ per frame
 
+    /**
+     * @brief Locates both hands' joints and turns them into the gesture layer's inputs.
+     *
+     * Per hand: the palm's position in stage space, a pinch of 1 when thumb tip and index tip are
+     * 15 mm apart or closer falling to 0 at 50 mm, and the palm's tilt (the world y of its sideways
+     * axis, -1 .. 1). A hand that is not tracked, not active or without a valid palm pose is marked
+     * invalid and not sent. In bridge mode the same five numbers go out as `/ambient/hand/L` and `/R`.
+     *
+     * @param time  the frame's predicted display time, the instant the joints are located for
+     */
     void updateHands(XrTime time)
     {
         for (int h = 0; h < 2; ++h) {
@@ -882,6 +1267,14 @@ private:
         }
     }
 
+    /**
+     * @brief Locates the head (the view space in the stage space) and passes its yaw, pitch and roll on.
+     *
+     * The gesture layer gets all three, the engine the yaw for its binaural mode, the bridge the three
+     * as `/ambient/head`. headPose_ and headValid_ feed the panel.
+     *
+     * @param time  the frame's predicted display time
+     */
     void updateHead(XrTime time)
     {
         headValid_ = false;
@@ -898,6 +1291,11 @@ private:
         if (osc_.ok()) { const float args[3] = { yaw, pitch, roll }; osc_.send("/ambient/head", args, 3); }
     }
 
+    /**
+     * @brief The panel of this frame: 0.9 m ahead of the head along its yaw, 0.12 m above it and
+     *        0.22 m to the left, level with the floor.
+     * @return the panel's origin and axes in stage space
+     */
     Panel headPanel() const
     {
         // In front of the eyes, following yaw only (a panel that tilts with the head is tiring).
@@ -911,6 +1309,14 @@ private:
         return p;
     }
 
+    /**
+     * @brief Adds the head-locked text of this frame to the scene.
+     *
+     * While calibrating: the instructions and the progress in percent. With the menu closed: a
+     * `REC m:ss` line while recording, else nothing. With the menu open (its openness fades the
+     * text in): every item with its state appended (ON/OFF, PLAYING/STOPPED, START/STOP), the
+     * highlighted one brighter, and above them the names in slots A and B. Nothing without a head pose.
+     */
     void addOverlay()
     {
         if (!headValid_) return;
@@ -949,6 +1355,17 @@ private:
         scene_.addText(p, 0.0f, 0.06f, cell * 0.8f, ab.c_str(), 0.9f, 0.6f, 0.9f, o);
     }
 
+    /**
+     * @brief One OpenXR frame: wait, begin, update, render both eyes, end.
+     *
+     * dt comes from the predicted display times (1/72 s for the very first frame). Hands and head
+     * are located, the menu is updated and its action applied, the gesture layer writes the engine's
+     * parameters, the route steps; when no route runs and the preset map is on (menu closed, not
+     * calibrating, hands not resting) the left hand's reach and height set the map cursor and the
+     * right hand's height its blend radius. A calibration that ended this frame is saved. Then, if
+     * the runtime wants a frame and the views are valid, the scene is built once and drawn into each
+     * eye's acquired swapchain image, and the projection layer is submitted (or no layer at all).
+     */
     void frame()
     {
         XrFrameWaitInfo wi{ XR_TYPE_FRAME_WAIT_INFO };
@@ -1037,53 +1454,74 @@ private:
         xrEndFrame(session_, &ei);
     }
 
-    android_app* app_;
-    std::string dataDir_;
-    std::vector<std::vector<float>> pendingIr_; int pendingIrRate_ = 48000;
-    std::vector<std::vector<float>> pendingIrB_; int pendingIrBRate_ = 48000;
-    bool clearIrB_ = false, audioStarted_ = false;
-    Config config_;
-    Engine engine_;
-    GestureLayer gestures_;
-    HandMenu menu_;
-    WavRecorder recorder_;
-    Audio audio_{ engine_, recorder_ };
-    OscOut osc_;
-    Scene scene_;
-    int presetA_ = 0, presetB_ = 0;
-    std::string slotName_[2] = { "INIT", "INIT" };
-    bool calibrated_ = false;
+    android_app* app_;                                                     ///< the NativeActivity glue: activity, window, looper, destroyRequested
+    std::string dataDir_;                                                  ///< the external data folder (config, calibration, samples, packs, recordings), or empty
+    std::vector<std::vector<float>> pendingIr_;                   ///< impulse A waiting for the engine to be prepared, one vector per channel
+                                    int pendingIrRate_ = 48000;   ///< its sample rate in Hz
+    std::vector<std::vector<float>> pendingIrB_;                   ///< impulse B waiting likewise, one vector per channel
+                                    int pendingIrBRate_ = 48000;   ///< its sample rate in Hz
+    bool clearIrB_ = false,       ///< the pending preset named a room and no B, so the engine's B impulse is to be cleared
+         audioStarted_ = false;   ///< the engine is prepared, impulses may go in at once
+    Config config_;                                                        ///< ambient.cfg as read at init()
+    Engine engine_;                                                        ///< the synthesizer; rendered by audio_, parameters written by gestures_ and the menu
+    GestureLayer gestures_;                                                ///< hands and head in, engine parameters out; holds the calibration
+    HandMenu menu_;                                                        ///< the left-pinch menu, updated once per frame
+    WavRecorder recorder_;                                                 ///< records the audio callback's output to rec-*.wav on a background thread
+    Audio audio_{ engine_, recorder_ };                                    ///< the Oboe stream; started at init() unless config_.audio is off
+    OscOut osc_;                                                           ///< the bridge to the desktop plugin; closed unless config_.oscHost is set
+    Scene scene_;                                                          ///< the point-cloud renderer
+    int presetA_ = 0,   ///< preset index in morph slot A, moved by the menu
+        presetB_ = 0;   ///< preset index in morph slot B
+    std::string slotName_[2] = { "INIT", "INIT" };                         ///< what the panel shows for A and B: a preset name, "NOW" after a capture, "INIT" at start
+    bool calibrated_ = false;                                              ///< a calibration was loaded or saved; false makes init() start one
 
-    XrInstance instance_ = XR_NULL_HANDLE;
-    XrSystemId system_ = XR_NULL_SYSTEM_ID;
-    XrSession session_ = XR_NULL_HANDLE;
-    XrSpace stageSpace_ = XR_NULL_HANDLE, viewSpace_ = XR_NULL_HANDLE;
-    XrSessionState sessionState_ = XR_SESSION_STATE_UNKNOWN;
-    bool sessionRunning_ = false, quit_ = false, handsSupported_ = false;
-    std::vector<XrView> views_;
-    std::vector<SwapchainTarget> targets_;
-    XrTime lastTime_ = 0;
-    XrPosef headPose_{};
-    bool headValid_ = false;
+    XrInstance instance_ = XR_NULL_HANDLE;                                 ///< the OpenXR instance
+    XrSystemId system_ = XR_NULL_SYSTEM_ID;                                ///< the head-mounted display system
+    XrSession session_ = XR_NULL_HANDLE;                                   ///< the session on the EGL context
+    XrSpace stageSpace_ = XR_NULL_HANDLE,   ///< the space the scene lives in: stage, or local as fallback
+            viewSpace_ = XR_NULL_HANDLE;    ///< the head's space, located in the stage each frame
+    XrSessionState sessionState_ = XR_SESSION_STATE_UNKNOWN;               ///< the last state the runtime reported
+    bool sessionRunning_ = false,   ///< between xrBeginSession and xrEndSession: frames are rendered
+         quit_ = false,             ///< the runtime asked to leave; run() returns
+         handsSupported_ = false;   ///< the system reports hand tracking
+    std::vector<XrView> views_;                                            ///< the stereo views, located each frame
+    std::vector<SwapchainTarget> targets_;                                 ///< one render target per view
+    XrTime lastTime_ = 0;                                                  ///< the previous frame's predicted display time, for dt; 0 before the first frame
+    XrPosef headPose_{};                                                   ///< the head in stage space, from updateHead()
+    bool headValid_ = false;                                               ///< whether headPose_ was located this frame (the panel needs it)
 
-    EGLDisplay display_ = EGL_NO_DISPLAY;
-    EGLConfig config_egl_ = nullptr;
-    EGLSurface surface_ = EGL_NO_SURFACE;
-    EGLContext context_ = EGL_NO_CONTEXT;
+    EGLDisplay display_ = EGL_NO_DISPLAY;                                  ///< the default EGL display
+    EGLConfig config_egl_ = nullptr;                                       ///< the RGBA8 GLES 3 config chosen at initEgl()
+    EGLSurface surface_ = EGL_NO_SURFACE;                                  ///< a 16x16 pbuffer, only so the context can be made current
+    EGLContext context_ = EGL_NO_CONTEXT;                                  ///< the GLES 3 context the session and the scene draw with
 
-    PFN_xrCreateHandTrackerEXT pfnCreateHandTracker_ = nullptr;
-    PFN_xrLocateHandJointsEXT pfnLocateHandJoints_ = nullptr;
-    PFN_xrDestroyHandTrackerEXT pfnDestroyHandTracker_ = nullptr;
-    XrHandTrackerEXT handTracker_[2] = { XR_NULL_HANDLE, XR_NULL_HANDLE };
-    XrVector3f palms_[2] = {};
-    bool palmValid_[2] = { false, false };
-    float pinch_[2] = { 0.0f, 0.0f };
+    PFN_xrCreateHandTrackerEXT pfnCreateHandTracker_ = nullptr;            ///< XR_EXT_hand_tracking entry point, resolved by initHands()
+    PFN_xrLocateHandJointsEXT pfnLocateHandJoints_ = nullptr;              ///< XR_EXT_hand_tracking entry point, resolved by initHands()
+    PFN_xrDestroyHandTrackerEXT pfnDestroyHandTracker_ = nullptr;          ///< XR_EXT_hand_tracking entry point, resolved by initHands()
+    XrHandTrackerEXT handTracker_[2] = { XR_NULL_HANDLE, XR_NULL_HANDLE }; ///< the trackers, left then right; null when hands are unavailable
+    XrVector3f palms_[2] = {};                                             ///< this frame's palm positions in stage space, left then right
+    bool palmValid_[2] = { false, false };                                 ///< whether each palm was tracked this frame
+    float pinch_[2] = { 0.0f, 0.0f };                                      ///< each hand's pinch 0 .. 1 this frame (for the picture; the gesture layer has its own copy)
 };
 
+/**
+ * @brief The glue's app-command handler: nothing to do, the loop watches destroyRequested and the
+ *        OpenXR session state itself.
+ *
+ * Both parameters (the android_app and the command) are unused.
+ */
 void handleCmd(android_app*, int32_t) {}
 
 } // namespace
 
+/**
+ * @brief The entry point the NativeActivity glue calls on its own thread.
+ *
+ * Attaches the thread to the JavaVM (the OpenXR loader needs a JNIEnv on it), runs the App through
+ * init(), run() and shutdown(), and detaches. Errors in init() are logged and the activity ends.
+ *
+ * @param app  the glue's application object for this activity
+ */
 void android_main(android_app* app)
 {
     app->onAppCmd = handleCmd;
