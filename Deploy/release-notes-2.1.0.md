@@ -92,5 +92,7 @@ that measurement (the filter round above came after it and was not measured into
 ## Checked
 
 The self test, the host test and the race test in the release configuration (Intel oneAPI);
+pluginval at strictness 10 (with fifteen minutes a test: its parameter thread-safety test outlasts
+the default thirty seconds on an instrument this size);
 the new filter test on every vector path -- as the desktop is built, through the NEON path on the
 x86 shim, and scalar -- and compiled for the Quest's arm64. The sample library is that of 2.0.0.
