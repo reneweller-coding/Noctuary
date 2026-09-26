@@ -7,9 +7,9 @@
  * coefficients of whichever model is chosen and resets the state when the model changes, reset()
  * clears every model's state at once, and magnitude() evaluates |H(f)| of the analogue prototypes
  * -- the state-variable stages, the one-pole, the four-pole ladder, the comb with its damping, the
- * three formant band passes -- for the display, without touching a voice. The formant table the
- * Formant model morphs through lives here as well, since both set() and magnitude() read it: the
- * one to tune three band passes, the other to draw them.
+ * three formant band passes, the circuit models linearised -- for the display, without touching a
+ * voice. The formant table the Formant model morphs through lives here as well, since both set()
+ * and magnitude() read it: the one to tune three band passes, the other to draw them.
  */
 #include "ambient/Filter.h"
 #include <complex>
@@ -19,6 +19,7 @@ namespace ambient {
 
 const char* const kFilterModelNames[kNumFilterModels] = {
     "LP 6", "LP 12", "LP 24", "HP 12", "BP 12", "Notch", "Peak", "Ladder", "Comb", "Formant",
+    "Moog", "SEM", "Prophet", "Juno", "Diode",
 };
 
 namespace {
@@ -43,6 +44,26 @@ void formantsAt(float cutoffHz, float* out)
     const float f = t - static_cast<float>(i);
     for (int k = 0; k < 3; ++k) out[k] = std::exp(std::log(kFormants[i][k]) + f * (std::log(kFormants[i + 1][k]) - std::log(kFormants[i][k])));
 }
+
+/**
+ * @brief The highest one-pole coefficient the old Ladder may run at with a feedback k.
+ *
+ * Its loop takes the fourth stage from the last sample, and at Nyquist that sample of delay turns
+ * the negative feedback positive: the loop gain there is k (g / (2 - g))^4, and past one the ladder
+ * oscillates at 24 kHz at full scale. Nobody hears it; the loudness measurement of the library did,
+ * and turned presets down by up to sixteen decibels for it (26.09.2026, "Envelope Hollow" among
+ * them, found moving the Ladder's presets to the Moog). Held at a loop gain of 0.8 there: at the
+ * highest Resonance the corner stops near 14 kHz, 9 kHz on the knob.
+ *
+ * @param k  the ladder's feedback
+ * @return   the ceiling for g1, 1 where k cannot reach the loop gain at all
+ */
+float ladderCeiling(float k)
+{
+    if (k <= 0.8f) return 1.0f;
+    const float q = std::pow(0.8f / k, 0.25f);   // g / (2 - g) at the ceiling
+    return 2.0f * q / (1.0f + q);
+}
 } // namespace
 const char* const kFilterRouteNames[2] = { "Series", "Parallel" };
 
@@ -54,14 +75,18 @@ void VoiceFilter::reset()
     std::memset(combBuf_, 0, sizeof(combBuf_));
     combW_ = 0;
     combDamp_[0] = combDamp_[1] = 0.0f;
+    std::memset(cv_, 0, sizeof(cv_));
+    std::memset(cs_, 0, sizeof(cs_));
+    os2_.reset();
     osL_.reset(); osR_.reset();
     driving_ = false;
 }
 
-void VoiceFilter::set(FilterModel model, float cutoffHz, float resonance, float drive)
+void VoiceFilter::set(FilterModel model, float cutoffHz, float resonance, float drive, float morph)
 {
     if (model != model_) {   // a model change starts from rest; the states mean different things
         model_ = model;
+        circuit_ = isCircuitModel(model);
         reset();
     }
     const float fc = clampv(cutoffHz, 10.0f, sr_ * 0.45f);
@@ -98,6 +123,7 @@ void VoiceFilter::set(FilterModel model, float cutoffHz, float resonance, float 
         g1_ = 1.0f - std::exp(-kTwoPi * std::min(fc * 1.55f, sr_ * 0.45f) / sr_);
         kLad_ = 4.0f * res * res * 0.98f;   // squared: the interesting range is near the top
         ladComp_ = 1.0f + kLad_ * 0.5f;     // passband loss under feedback, partly restored
+        g1_ = std::min(g1_, ladderCeiling(kLad_));
         break;
     }
     case FilterModel::Comb:
@@ -112,11 +138,30 @@ void VoiceFilter::set(FilterModel model, float cutoffHz, float resonance, float 
         svf3L_.setQ(f[2], q, sr_); svf3R_.copyCoefficients(svf3L_);
         break;
     }
+    case FilterModel::Moog: case FilterModel::Sem: case FilterModel::Prophet: case FilterModel::Juno: case FilterModel::Diode: {
+        // The circuit models at twice the rate, their corner on Cutoff; Resonance as Ephemeris
+        // voices it (FilterVoicing there): the ladders and cascades self-oscillate just at 1, the
+        // diode ladder at a loop gain of 17, and the SEM's Q runs from 0.7 to 40. Their pass band
+        // loses 1 / (1 + k) to the feedback, and a part of it is made good.
+        const float g = std::tan(kPi * fc / (2.0f * sr_));
+        float makeup = 1.0f;
+        cg_ = g;
+        cMorph_ = clampv(morph, 0.0f, 1.0f);
+        switch (model) {
+        case FilterModel::Moog:    ck_ = 4.0f * res * 0.985f; makeup = 1.0f + 0.5f * ck_; break;
+        case FilterModel::Sem:     ck_ = 0.707f * (1.0f - res) + 0.012f; break;
+        case FilterModel::Prophet: ck_ = 4.1f * res; makeup = 1.0f + 0.5f * ck_; break;
+        case FilterModel::Juno:    ck_ = 4.1f * res; makeup = 1.0f + 0.25f * ck_; break;
+        default:                   ck_ = 17.5f * res; makeup = 1.0f + 0.3f * ck_; cg_ = g * 0.70710678f; break;   // Diode: it rings at sqrt 2 times its w
+        }
+        cOut_ = makeup * driveOut_;
+        break;
+    }
     default: break;
     }
 }
 
-float VoiceFilter::magnitude(FilterModel model, float cutoffHz, float resonance, float hz, float sr)
+float VoiceFilter::magnitude(FilterModel model, float cutoffHz, float resonance, float hz, float sr, float morph)
 {
     using C = std::complex<float>;
     const float fc = clampv(cutoffHz, 10.0f, sr * 0.45f);
@@ -144,8 +189,8 @@ float VoiceFilter::magnitude(FilterModel model, float cutoffHz, float resonance,
         return std::abs(g / (1.0f - (1.0f - g) * z));
     }
     case FilterModel::Ladder: {
-        const float g = 1.0f - std::exp(-kTwoPi * std::min(fc * 1.55f, sr * 0.45f) / sr);
         const float k = 4.0f * res * res * 0.98f;
+        const float g = std::min(1.0f - std::exp(-kTwoPi * std::min(fc * 1.55f, sr * 0.45f) / sr), ladderCeiling(k));
         const C z = std::polar(1.0f, -w);
         const C G = g / (1.0f - (1.0f - g) * z);
         const C G4 = G * G * G * G;
@@ -171,6 +216,33 @@ float VoiceFilter::magnitude(FilterModel model, float cutoffHz, float resonance,
         const C zD = std::polar(1.0f, -w * D);
         const C damp = 0.35f / (1.0f - 0.65f * z);
         return std::abs((1.0f - fb) / (1.0f - fb * damp * zD));
+    }
+    case FilterModel::Moog: case FilterModel::Prophet: case FilterModel::Juno: {
+        // Small-signal, the ladder and the cascades are the same four one-poles with the fourth
+        // fed back, at twice the rate; they differ in how they saturate and in their makeup.
+        const float k = model == FilterModel::Moog ? 4.0f * res * 0.985f : 4.1f * res;
+        const float makeup = 1.0f + (model == FilterModel::Juno ? 0.25f : 0.5f) * k;
+        const C s(0.0f, std::tan(kPi * hz / (2.0f * sr)) / std::tan(kPi * fc / (2.0f * sr)));
+        const C h = 1.0f / (1.0f + s);
+        const C h4 = h * h * h * h;
+        return std::abs(h4 / (1.0f + k * h4)) * makeup;
+    }
+    case FilterModel::Sem: {
+        const float R = 0.707f * (1.0f - res) + 0.012f;
+        const float m = clampv(morph, 0.0f, 1.0f);
+        const C s(0.0f, std::tan(kPi * hz / (2.0f * sr)) / std::tan(kPi * fc / (2.0f * sr)));
+        const C den = s * s + 2.0f * R * s + 1.0f;
+        const C lp = 1.0f / den, hp = (s * s) / den;
+        return std::abs(m < 0.5f ? lp + 2.0f * m * hp : (2.0f - 2.0f * m) * lp + hp);
+    }
+    case FilterModel::Diode: {
+        // The four nodes solved from the last one up (v3 = 1): the half capacitor at the end, the
+        // three coupled through their diode pairs, u the input after the feedback.
+        const float k = 17.5f * res;
+        const C s(0.0f, std::tan(kPi * hz / (2.0f * sr)) / (std::tan(kPi * fc / (2.0f * sr)) * 0.70710678f));
+        const C a = s + 2.0f;
+        const C v2 = 0.5f * a, v1 = a * v2 - 1.0f, v0 = a * v1 - v2, u = a * v0 - v1;
+        return std::abs(1.0f / (u + k)) * (1.0f + 0.3f * k);
     }
     default: return 1.0f;
     }

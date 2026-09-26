@@ -252,6 +252,21 @@ root moves, the deep family's background register, Root Targets, Utonal, Series,
 family by family -- with `retrofit_review.py` beside it. Both have run over all 14591; after any
 change of this kind the library is re-measured, because the loudness of every preset moves with it.
 
+`Tools/library/circuit.py` (26.09.2026) moves presets to the circuit filters that came over from
+Ephemeris: every Ladder preset to the Moog (1.55 times the Cutoff, the Resonance squared, where the
+old ladder had its corner and feedback), seven in ten LP 24 to a four-pole circuit by the family,
+six in ten Notch and one in two HP 12 to the SEM at Morph 0.5 and 1, one in five LP 12 to the SEM --
+never a preset whose voice filter is not heard (a Replace z-plane, a parallel one at a Mix of 0.95
+and more). The Cutoff and Resonance of a four-pole circuit are fitted to the LP 24's small-signal
+curve, and what its pass band gives up goes into master_gain. `make_presets.py` applies it last;
+`make_layer_presets.py` applies it to the near bank's ladders and LP 24s; `retrofit_circuit.py`
+ran it over the packs and the built-ins. This round was NOT re-measured, as Rene asked. Every move
+but LP 12 to the SEM was rendered on both filters instead, 30 seconds at the old level
+(`circuit_measured.json`, 1832 presets), and corrected by what it measured -- the old ladder
+oscillated at Nyquist once its corner was pushed to the top, and the measurement had turned fifteen
+presets down for a tone nobody hears; LP 12 to the SEM kept the reckoning (the same two poles, within
+1.2 dB on a sample). Against the library's measurement the moved presets came out at a median of
+-0.1 dB. The map and the CLAP embeddings are still the last measurement's.
 The guide's two targets that are no parameter, the sub balance and the correlation, are pulled
 towards from a measurement by `guide_fit.py` (Sub Level, the master's Width; sixty per cent of the
 way, jittered by the name). A round is measured in two passes so that every preset gets its gain

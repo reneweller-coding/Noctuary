@@ -928,6 +928,9 @@ const std::array<ParamDesc, kNumParams> kTable = {{
     C(ParamId::BrainRootTargets, "brain_root_targets", "Root Targets", "Cluster Brain", kRootTargetNames, 4, 1),
     F(ParamId::BrainUtonal,      "brain_utonal",       "Utonal",       "Cluster Brain", 0.f,  1.f,   0.f,  1.f, ""),
     F(ParamId::BrainSeries,      "brain_series",       "Series",       "Cluster Brain", 0.f,  1.f,   0.f,  1.f, ""),
+    // The circuit models of the voice filter (26.09.2026): the SEM's knob, low pass by default so
+    // that the model sounds like a low pass until it is turned.
+    F(ParamId::FilterMorph,      "filter_morph",       "Morph",        "Filter",      0.f,   1.f,   0.f,   1.f,  ""),
 }};
 } // namespace
 

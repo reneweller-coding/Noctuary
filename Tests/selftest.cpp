@@ -4694,7 +4694,8 @@ void testZPlaneBank()
  * that function, so a model whose audio path disagrees with it would lie to the eye.
  * Pass criterion: at 200, 800 and 3000 Hz the settled amplitude of a sine through each model at
  * 800 Hz cutoff and 0.3 resonance is within 12 % of VoiceFilter::magnitude() (50 % for the comb
- * and the formant bank, whose caveats are noted in the code).
+ * and the formant bank, whose caveats are noted in the code). The circuit models are nonlinear by
+ * design and their curve is the small-signal one, so they hear the sine at a twentieth of the level.
  */
 void testFilterModels()
 {
@@ -4704,15 +4705,16 @@ void testFilterModels()
         f.prepare(sr);
         const auto model = static_cast<FilterModel>(m);
         f.set(model, 800.0f, 0.3f, 0.0f);
+        const float amp = isCircuitModel(model) ? 0.05f : 1.0f;
         // Drive a sine at a few frequencies and compare the settled amplitude with the promise.
         for (float hz : { 200.0f, 800.0f, 3000.0f }) {
             const int n = static_cast<int>(sr * 4.0f / hz) * 8;   // whole cycles, long enough to settle
             float peak = 0.0f;
             for (int i = 0; i < n; ++i) {
-                const float x = std::sin(kTwoPi * hz * static_cast<float>(i) / sr);
+                const float x = amp * std::sin(kTwoPi * hz * static_cast<float>(i) / sr);
                 float ol, orr;
                 f.tick(x, x, ol, orr);
-                if (i > n / 2) peak = std::max(peak, std::fabs(ol));
+                if (i > n / 2) peak = std::max(peak, std::fabs(ol) / amp);
             }
             const float want = VoiceFilter::magnitude(model, 800.0f, 0.3f, hz, sr);
             // A comb's response at one frequency depends on where the sine sits between its
@@ -4723,6 +4725,139 @@ void testFilterModels()
             CHECK(std::fabs(peak - want) <= tol * std::max(want, 0.15f) + 0.02f,
                   (std::string("filter model ") + kFilterModelNames[m] + " matches its own curve").c_str());
         }
+    }
+}
+
+/**
+ * @brief The circuit models of the voice filter (26.09.2026, from Ephemeris): they ring on Cutoff,
+ *        stay bounded when pushed, the SEM morphs, and all of them report their latency.
+ *
+ * Pass criteria:
+ *  - after an impulse at Cutoff 440 Hz and Resonance 1, every ladder and cascade rings at 440 Hz
+ *    within 4 per cent; Prophet, Juno and Diode are still oscillating two seconds later, on their
+ *    own, at 440 Hz within 4 per cent -- the Moog, voiced a hair under the threshold, has stopped;
+ *  - under a saw of amplitude 4 at full Resonance and full Drive every circuit model stays finite
+ *    and within five times the input's peak (Ephemeris tests 6.4). The cascades come nearest: their
+ *    feedback saturates before their stages, so a loud input gets through the pass band at the
+ *    level the makeup meant for a quiet one -- the Prophet at 3.3 times, the Juno at 2.2 (26.09.2026);
+ *  - the SEM (Cutoff 1 kHz, Resonance 0) at Morph 0.5 takes a sine on Cutoff down by more than
+ *    20 dB and passes 100 Hz and 8 kHz within 3 dB; at Morph 1 it takes 100 Hz down by more than 20 dB;
+ *  - latency() is StereoOversampler2's 25 samples for every circuit model and 0 for LP 12 without Drive;
+ *  - and the old Ladder, its corner pushed to the top at Resonance 0.85, does not oscillate at
+ *    Nyquist: under a quiet 220 Hz sine, less than one per cent of its output is in the upper band.
+ *    It did, at full scale, and the library's measurement had turned presets down for it.
+ */
+void testCircuitFilters()
+{
+    const float sr = 48000.0f;
+    // Rising zero crossings, interpolated: the frequency of a ringing tone.
+    auto freqOf = [sr](const std::vector<float>& y) {
+        double first = -1.0, last = -1.0;
+        int count = 0;
+        for (size_t i = 1; i < y.size(); ++i)
+            if (y[i - 1] < 0.0f && y[i] >= 0.0f) {
+                const double t = static_cast<double>(i - 1) + y[i - 1] / static_cast<double>(y[i - 1] - y[i]);
+                if (first < 0.0) first = t;
+                last = t;
+                ++count;
+            }
+        return count > 1 ? (count - 1) * static_cast<double>(sr) / (last - first) : 0.0;
+    };
+    for (FilterModel m : { FilterModel::Moog, FilterModel::Prophet, FilterModel::Juno, FilterModel::Diode }) {
+        const std::string name = kFilterModelNames[static_cast<int>(m)];
+        VoiceFilter f;
+        f.prepare(sr);
+        f.set(m, 440.0f, 1.0f, 0.0f);
+        const int n = static_cast<int>(sr * 2.5f);
+        std::vector<float> early, tail;
+        float ol, orr, tailPeak = 0.0f;
+        for (int i = 0; i < n; ++i) {
+            const float x = i < 4 ? 0.5f : 0.0f;
+            f.tick(x, x, ol, orr);
+            if (i >= 2400 && i < 2400 + 9600) early.push_back(ol);   // 50 .. 250 ms
+            if (i >= n - 9600) { tail.push_back(ol); tailPeak = std::max(tailPeak, std::fabs(ol)); }
+        }
+        const double fe = freqOf(early);
+        std::printf("    %-8s rings at %.1f Hz, after 2.3 s peak %.3f", name.c_str(), fe, tailPeak);
+        CHECK(std::fabs(fe / 440.0 - 1.0) < 0.04, (name + " rings on Cutoff").c_str());
+        if (m == FilterModel::Moog) {
+            std::printf("\n");
+            CHECK(tailPeak < 1e-3f, "the Moog at Resonance 1 rings and stops");
+        } else {
+            const double ft = freqOf(tail);
+            std::printf(", at %.1f Hz\n", ft);
+            CHECK(tailPeak > 0.05f && std::fabs(ft / 440.0 - 1.0) < 0.04, (name + " sings on its own on Cutoff").c_str());
+        }
+    }
+    for (FilterModel m : { FilterModel::Moog, FilterModel::Sem, FilterModel::Prophet, FilterModel::Juno, FilterModel::Diode }) {
+        VoiceFilter f;
+        f.prepare(sr);
+        f.set(m, 700.0f, 1.0f, 1.0f);
+        float peak = 0.0f;
+        bool finite = true;
+        for (int i = 0; i < static_cast<int>(sr); ++i) {
+            const float ph = std::fmod(110.0f * static_cast<float>(i) / sr, 1.0f);
+            const float x = 4.0f * (2.0f * ph - 1.0f);
+            float ol, orr;
+            f.tick(x, x, ol, orr);
+            finite = finite && std::isfinite(ol);
+            peak = std::max(peak, std::fabs(ol));
+        }
+        std::printf("    %-8s pushed: peak %.2f\n", kFilterModelNames[static_cast<int>(m)], peak);
+        CHECK(finite && peak < 5.0f * 4.0f, (std::string(kFilterModelNames[static_cast<int>(m)]) + " stays bounded when pushed").c_str());
+    }
+    // The SEM's morph: a notch at 0.5, a high pass at 1.
+    auto semGain = [sr](float morph, float hz) {
+        VoiceFilter f;
+        f.prepare(sr);
+        f.set(FilterModel::Sem, 1000.0f, 0.0f, 0.0f, morph);
+        const int n = static_cast<int>(sr * 8.0f / hz) * 8;
+        float peak = 0.0f;
+        for (int i = 0; i < n; ++i) {
+            const float x = 0.1f * std::sin(kTwoPi * hz * static_cast<float>(i) / sr);
+            float ol, orr;
+            f.tick(x, x, ol, orr);
+            if (i > n / 2) peak = std::max(peak, std::fabs(ol));
+        }
+        return 20.0f * std::log10(std::max(peak / 0.1f, 1e-6f));
+    };
+    const float notch = semGain(0.5f, 1000.0f), lo = semGain(0.5f, 100.0f), hi = semGain(0.5f, 8000.0f), hp = semGain(1.0f, 100.0f);
+    std::printf("    SEM Morph 0.5: %.1f dB at Cutoff, %.1f dB at 100 Hz, %.1f dB at 8 kHz; Morph 1: %.1f dB at 100 Hz\n", notch, lo, hi, hp);
+    CHECK(notch < -20.0f && std::fabs(lo) < 3.0f && std::fabs(hi) < 3.0f, "the SEM at Morph 0.5 is a notch on Cutoff");
+    CHECK(hp < -20.0f, "the SEM at Morph 1 is a high pass");
+    bool late = true;
+    for (FilterModel m : { FilterModel::Moog, FilterModel::Sem, FilterModel::Prophet, FilterModel::Juno, FilterModel::Diode }) {
+        VoiceFilter f;
+        f.prepare(sr);
+        f.set(m, 1000.0f, 0.2f, 0.0f);
+        float ol, orr;
+        f.tick(0.0f, 0.0f, ol, orr);
+        late = late && f.latency() == StereoOversampler2::kLatency;
+    }
+    VoiceFilter plain;
+    plain.prepare(sr);
+    plain.set(FilterModel::Lp12, 1000.0f, 0.2f, 0.0f);
+    float ol, orr;
+    plain.tick(0.0f, 0.0f, ol, orr);
+    CHECK(late && plain.latency() == 0.0f, "the circuit models report the oversampler's latency, LP 12 without Drive none");
+    {
+        VoiceFilter lad;
+        lad.prepare(sr);
+        lad.set(FilterModel::Ladder, 16000.0f, 0.85f, 0.0f);
+        float prev = 0.0f, upper = 0.0f, total = 0.0f;
+        for (int i = 0; i < 48000; ++i) {
+            const float x = 0.1f * std::sin(kTwoPi * 220.0f * static_cast<float>(i) / sr);
+            float yl, yr;
+            lad.tick(x, x, yl, yr);
+            if (i > 24000) {
+                const float d = 0.5f * (yl - prev);   // a first difference: unity at Nyquist, 0.014 at 220 Hz
+                upper += d * d;
+                total += yl * yl;
+            }
+            prev = yl;
+        }
+        std::printf("    old Ladder at the top, Resonance 0.85: %.2f %% of its output in the upper band\n", 100.0 * upper / std::max(total, 1e-20f));
+        CHECK(upper < 0.01f * total, "the old Ladder does not oscillate at Nyquist when its corner is pushed to the top");
     }
 }
 
@@ -9471,6 +9606,7 @@ int main()
     testZModal();
     testZPlaneBank();
     testFilterModels();
+    testCircuitFilters();
     testMixDeskFive();
     testAfterTheClassics();
     testBrainTimbre();

@@ -84,6 +84,7 @@ struct VoiceParams {
           keyTrack = 0.5f;      ///< octaves of cutoff per octave of pitch
     int   filterModel = 1;      ///< FilterModel (Filter.h); 1 = the 12 dB state-variable low pass
     float filterDrive = 0.0f;   ///< 0 .. 1, saturation ahead of the filter
+    float filterMorph = 0.0f;   ///< 0 .. 1, the SEM's response: low pass, notch, high pass
     float fold = 0.0f;          ///< wavefolder after the filters, 0 = off (see Voice.cpp)
     /// Rich refinements: the binaural phase field, the breathing doppler, the pitch tide (from the
     /// engine, already a multiplier), and the strike layer

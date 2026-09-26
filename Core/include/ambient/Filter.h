@@ -1,6 +1,6 @@
 /**
  * @file Filter.h
- * @brief The voice filter: one of ten models behind the same five knobs.
+ * @brief The voice filter: one of fifteen models behind the same five knobs.
  *
  * For a long time the voice had a single 12 dB state-variable low pass. That is the right default
  * for a drone instrument (it takes the edge off a spectrum without imposing a character), but a
@@ -11,18 +11,27 @@
  *
  * Every model reads the same Cutoff / Resonance / Drive, so a preset can switch models and stay
  * in a sensible place, and every model reports its own frequency response for the display.
+ *
+ * Five more since 26.09.2026, from Ephemeris: the classic analogue filters as circuit models
+ * (CircuitFilter.h) -- the Moog ladder, the Oberheim SEM with its morph from low pass through notch
+ * to high pass, the OTA cascades of the Prophet and the Juno, and the diode ladder of the EMS and the
+ * TB-303. They run at twice the rate, both channels at once, and their resonance sits on Cutoff: a
+ * ringing ladder with Key Track 1 plays the note.
  */
 #pragma once
+#include "CircuitFilter.h"
 #include "Dsp.h"
 #include "Oversample.h"
 
 namespace ambient {
 
 /**
- * @brief The ten models a VoiceFilter can run; the value is the Model parameter's, kFilterModelNames the display names.
+ * @brief The fifteen models a VoiceFilter can run; the value is the Model parameter's, kFilterModelNames the display names.
  *
- * All but Lp6, Ladder and Comb are built on the TPT state-variable filter of Dsp.h (Svf); the
- * coefficients each model makes of Cutoff and Resonance are in VoiceFilter::set (Filter.cpp).
+ * The first ten are built on the TPT state-variable filter of Dsp.h (Svf), except Lp6, Ladder and
+ * Comb; the last five are the circuit models of CircuitFilter.h, appended so that every preset
+ * written before them keeps its model. The coefficients each model makes of Cutoff and Resonance
+ * are in VoiceFilter::set (Filter.cpp).
  */
 enum class FilterModel : int {
     Lp6 = 0,   ///< a one-pole low pass, 6 dB an octave
@@ -35,10 +44,21 @@ enum class FilterModel : int {
     Ladder,    ///< four one-poles with saturated feedback, self-oscillating near the top
     Comb,      ///< a feedback comb tuned to Cutoff, a low pass in its loop
     Formant,   ///< three band passes on the formants of a vowel Cutoff morphs through
+    Moog,      ///< the Moog transistor ladder, solved exactly: 24 dB, its resonance on Cutoff
+    Sem,       ///< the Oberheim SEM's state-variable filter, 12 dB, Morph from low pass through notch to high pass
+    Prophet,   ///< the Prophet-5's OTA cascade (SSM2040 / CEM3320): 24 dB, its feedback saturating first
+    Juno,      ///< the Juno's OTA cascade (IR3109): 24 dB, cleaner stages, a gentler resonance
+    Diode,     ///< the diode ladder of the EMS and the TB-303: thinner and more nasal
     Count      ///< the number of models
 };
 constexpr int kNumFilterModels = static_cast<int>(FilterModel::Count);   ///< entries of kFilterModelNames
-extern const char* const kFilterModelNames[kNumFilterModels];   ///< display names in FilterModel order ("LP 6" .. "Formant"), defined in Filter.cpp
+extern const char* const kFilterModelNames[kNumFilterModels];   ///< display names in FilterModel order ("LP 6" .. "Diode"), defined in Filter.cpp
+/**
+ * @brief Whether a model is one of the circuit models (CircuitFilter.h), which run at twice the rate.
+ * @param m  the model
+ * @return   true for Moog, SEM, Prophet, Juno and Diode
+ */
+constexpr bool isCircuitModel(FilterModel m) { return static_cast<int>(m) >= static_cast<int>(FilterModel::Moog) && m != FilterModel::Count; }
 extern const char* const kFilterRouteNames[2];   ///< Series, Parallel: the names of the two ways a voice's two filters can be routed
 
 constexpr int kCombMax = 2048;   ///< longest comb delay in samples (40 Hz at 48 kHz needs 1200)
@@ -68,19 +88,23 @@ public:
      * Lp12 is exactly the old state-variable low pass.
      *
      * Called once a block from the voice's smoothed parameters. Switching the model resets the
-     * state. Cutoff is clamped between 10 Hz and 0.45 of the rate, Resonance and Drive to 0 .. 1.
-     * @param model      which of the ten models to run from the next tick on
+     * state. Cutoff is clamped between 10 Hz and 0.45 of the rate, Resonance, Drive and Morph to 0 .. 1.
+     * @param model      which of the fifteen models to run from the next tick on
      * @param cutoffHz   cutoff (or centre, or comb fundamental) in Hz, clamped inside the model
      * @param resonance  0 .. 1, the meaning per model (Q, feedback, formant width)
-     * @param drive      0 .. 1, input gain into the soft clip with the output compensated; off at 0
+     * @param drive      0 .. 1, input gain into the soft clip -- or, for a circuit model, into the
+     *                   circuit itself -- with the output compensated; off at 0
+     * @param morph      0 .. 1, the SEM's response: low pass, notch at 0.5, high pass; the other models ignore it
      */
-    void set(FilterModel model, float cutoffHz, float resonance, float drive);
+    void set(FilterModel model, float cutoffHz, float resonance, float drive, float morph = 0.0f);
     /**
      * @brief One sample of both channels through the drive and the model.
      *
      * Audio thread, once per sample. Each channel goes through the drive and then one(); the comb's
      * write pointer advances afterwards, once for both channels. The drive runs at four times the
-     * rate (Oversample.h) since 25.09.2026, and is 29.5 samples late for it while it is on.
+     * rate (Oversample.h) since 25.09.2026, and is 29.5 samples late for it while it is on. A
+     * circuit model runs at twice the rate as a whole, both channels in one register, its drive the
+     * gain into the circuit, and is 25 samples late all the time.
      * @param inL   left input sample
      * @param inR   right input sample
      * @param outL  left output
@@ -88,25 +112,28 @@ public:
      */
     inline void tick(float inL, float inR, float& outL, float& outR);
     /**
-     * @brief Whether the drive ran on the last tick -- and so whether the output is Oversampler4::kLatency late.
-     * @return true while Drive is above 0
+     * @brief How late the last tick's output is, in samples: the oversampler's round trip.
+     * @return StereoOversampler2::kLatency (25) for a circuit model, Oversampler4::kLatency (29.5)
+     *         while Drive is above 0 on any other, else 0
      */
-    bool driving() const { return driving_; }
+    float latency() const { return circuit_ ? StereoOversampler2::kLatency : (driving_ ? Oversampler4::kLatency : 0.0f); }
 
     /**
      * @brief |H(f)| of a model at these settings, for the display (Drive is not a linear quantity and is
      *        left out of the picture). Static: the picture never touches a voice.
      *
      * The analogue prototype of each model is evaluated at the warped frequency, so the curve is
-     * the one the digital filter actually has; the formant model sums magnitudes, not phases.
+     * the one the digital filter actually has; the formant model sums magnitudes, not phases. The
+     * circuit models are drawn by their small-signal response: what they do to a quiet input.
      * @param model      the model whose response is drawn
      * @param cutoffHz   the Cutoff knob in Hz (clamped like set() does)
      * @param resonance  the Resonance knob, 0 .. 1
      * @param hz         the frequency to evaluate at, in Hz
      * @param sr         the sample rate the voice runs at
+     * @param morph      the Morph knob, 0 .. 1 (the SEM's response)
      * @return           the linear magnitude at hz; 1 for a model that is not drawn
      */
-    static float magnitude(FilterModel model, float cutoffHz, float resonance, float hz, float sr);
+    static float magnitude(FilterModel model, float cutoffHz, float resonance, float hz, float sr, float morph = 0.0f);
 
 private:
     FilterModel model_ = FilterModel::Lp12;   ///< the model tick() runs; set() resets the state when it changes
@@ -153,6 +180,18 @@ private:
                  osR_;   ///< the right channel's
     bool  driving_ = false;   ///< the drive was on at the last tick
     /** @} */
+    /**
+     * @name circuit models (CircuitFilter.h), at twice the rate, left in lane 0 and right in lane 1
+     * @{ */
+    bool  circuit_ = false;   ///< model_ is one of the circuit models
+    circuit::F4 cv_[4] = {},  ///< their node voltages, the next sample's Newton start
+                cs_[4] = {};  ///< their trapezoidal states
+    StereoOversampler2 os2_;  ///< the round trip to twice the rate and back, both channels
+    float cg_ = 0.01f,        ///< tan(pi fc / 2 sr); for the diode ladder divided by sqrt 2
+          ck_ = 0.0f,         ///< the feedback (Moog, cascades, diode) or the SEM's damping R
+          cMorph_ = 0.0f,     ///< the SEM's morph
+          cOut_ = 1.0f;       ///< the output gain: the pass band's makeup times the drive's compensation
+    /** @} */
 
     /**
      * @brief The drive stage: a soft clip with its level compensated, at four times the rate;
@@ -176,7 +215,32 @@ private:
      * @return    the model's output; the input unchanged for an unknown model
      */
     inline float one(int ch, float x);
+    /**
+     * @brief One stereo sample through the current circuit model, at twice the rate.
+     * @param l   the left input at twice the rate, the drive's gain already applied
+     * @param r   the right input, the same
+     * @param yl  receives the left output, before cOut_
+     * @param yr  receives the right output
+     */
+    inline void circuitTick(float l, float r, float& yl, float& yr);
 };
+
+inline void VoiceFilter::circuitTick(float l, float r, float& yl, float& yr)
+{
+    using circuit::F4;
+    using circuit::lanes;
+    const F4 x = circuit::pack(l, r), g = lanes<F4>(cg_), k = lanes<F4>(ck_);
+    F4 y;
+    switch (model_) {
+    case FilterModel::Moog:    y = circuit::ladderMoog(cv_, cs_, x, g, k); break;
+    case FilterModel::Sem:     y = circuit::svfSem(cv_, cs_, x, g, k, cMorph_); break;
+    case FilterModel::Prophet: y = circuit::otaCascade(cv_, cs_, x, g, k, 0.7f, 1.6f); break;    // its feedback saturates before its stages
+    case FilterModel::Juno:    y = circuit::otaCascade(cv_, cs_, x, g, k, 0.45f, 1.2f); break;   // cleaner stages, a softer resonance VCA
+    case FilterModel::Diode:   y = circuit::diodeLadder(cv_, cs_, x, g, k); break;
+    default: y = x; break;
+    }
+    circuit::unpack(y, yl, yr);
+}
 
 inline float VoiceFilter::one(int ch, float x)
 {
@@ -236,6 +300,15 @@ inline float VoiceFilter::one(int ch, float x)
 
 inline void VoiceFilter::tick(float inL, float inR, float& outL, float& outR)
 {
+    if (circuit_) {
+        // The whole circuit at twice the rate, both channels at once: the drive is the gain into
+        // it, and its own stages are the saturation.
+        const float gi = driveIn_;
+        os2_.process(inL, inR, [this, gi](float l, float r, float& yl, float& yr) { circuitTick(l * gi, r * gi, yl, yr); });
+        outL = inL * cOut_;
+        outR = inR * cOut_;
+        return;
+    }
     drive(inL, inR);
     outL = one(0, inL);
     outR = one(1, inR);

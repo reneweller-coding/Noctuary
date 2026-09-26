@@ -43,6 +43,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import guide  # noqa: E402  -- the production guide's windows, applied to every preset (25.09.2026)
 import review  # noqa: E402  -- the review's conductor ranges by family, applied after the guide (25.09.2026)
+import circuit  # noqa: E402  -- the circuit filters by family, applied last (26.09.2026)
 import conductor  # noqa: E402  -- which family a style belongs to
 from styles import STYLES  # noqa: E402
 from wavetable_folders import tables as shelf_tables  # noqa: E402
@@ -1875,9 +1876,11 @@ def main():
                                                         SHADES[k % len(SHADES)],
                                                         random.Random(a.seed * 15485863 + si * 7919 + k))
             name = name_for(st, rng, used_names)
-            # the production guide's windows (guide.py), then the review's ranges by family (review.py)
+            # the production guide's windows (guide.py), then the review's ranges by family (review.py),
+            # then the circuit filters (circuit.py)
             settings = guide.apply_to_settings(settings_string(p))[0]
             settings = review.apply_to_settings(settings, family, name)[0]
+            settings = circuit.apply_to_settings(settings, family, name)[0]
             rows.append({"name": name, "params": p, "shade": SHADES[k % len(SHADES)][0],
                          "settings": settings,
                          # one path, or up to four ';'-separated (one per slot): each non-empty

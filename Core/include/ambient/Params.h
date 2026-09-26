@@ -374,6 +374,9 @@ enum class ParamId : int {
     /// without being pulled into major. Series: the Harmonic Cloud, candidates drawn to the
     /// harmonics of the root's fundamental rather than to the scale's degrees alone.
     BrainRootTargets, BrainUtonal, BrainSeries,   ///< root targets (kRootTargetNames); utonal (0 .. 1); series (0 .. 1)
+    /// The circuit models of the voice filter (26.09.2026, from Ephemeris): the SEM's response,
+    /// from low pass through notch to high pass.
+    FilterMorph,   ///< 0 .. 1: low pass, notch at 0.5, high pass (the SEM; the other models ignore it)
     Count   ///< one past the last: kNumParams
 };
 

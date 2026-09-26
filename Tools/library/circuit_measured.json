@@ -1,0 +1,10999 @@
+{
+"delta_db": {
+"Abbey Span": 0.72,
+"Abyssal Expanse": -0.5,
+"Accordion Descent": 0.79,
+"Adagio Basin": 0.0,
+"Adagio Expanse": 0.83,
+"Adobe Night": -0.4,
+"Aeon Passage": -1.51,
+"Aeon Threshold": 0.36,
+"Aether Echo": -0.01,
+"Aether Expanse": 1.76,
+"Afterglow Hollow": -0.94,
+"Afterglow Shore": -1.28,
+"Albedo Expanse": -0.94,
+"Albedo Field": -0.59,
+"Albedo Machinery": 2.67,
+"Albedo Signal": 0.74,
+"Algorithm Bed": 2.46,
+"Algorithm Reach": 0.87,
+"Algorithm Vigil": 2.02,
+"Amber Bed": -0.15,
+"Amber Drift": 0.45,
+"Amber Mystic": 0.27,
+"Amber Sustain": 0.35,
+"Amphora Descent": 2.91,
+"Amphora Dusk": 1.26,
+"Anahata Chant": -1.54,
+"Anchorage Reach": 0.55,
+"Ancient Field": 0.0,
+"Anemometer Descent": 0.41,
+"Anemometer Record": 1.5,
+"Anemometer Vigil": 0.47,
+"Angle Abstraction": 0.42,
+"Angle Shade": 1.32,
+"Apogee Basin": 1.87,
+"Apogee Veil": -0.12,
+"Apparition Transmission": 3.07,
+"Arc Basin": -0.6,
+"Arc Drift": -0.14,
+"Arc Interval": 1.66,
+"Arc Station": -0.38,
+"Arcade Passage": 1.8,
+"Arcanum Basin": 0.02,
+"Arcanum Dimension": 0.11,
+"Archway Span": -4.46,
+"Arctic Bed": 0.03,
+"Arctic Interval": 0.98,
+"Arctic Veil": -0.42,
+"Arroyo Bloom": 3.22,
+"Arroyo Plain": 1.66,
+"Arroyo Reach": -0.78,
+"Arroyo Vigil": 0.66,
+"Artefact Field": 0.59,
+"Artefact Passage": -0.44,
+"Artefact Threshold": -0.7,
+"Ash Surface": 0.8,
+"Ash Travel": -0.88,
+"Ash Vigil": 0.69,
+"Ashen Descent": -0.01,
+"Ashen Expanse": 2.24,
+"Ashen Reach": -0.02,
+"Ashen Room": -0.81,
+"Ashes Basin": 0.06,
+"Ashram Basin": -0.91,
+"Astrolabe Reach": 0.0,
+"Atom Bloom": 1.94,
+"Atom Expanse": -6.11,
+"Atom Field": 0.89,
+"Atom Interval": 0.25,
+"Atom Sequence": 1.34,
+"Atom Space": -6.87,
+"Atom Veil": 2.37,
+"Attenuator Bloom": 0.0,
+"Attenuator Expanse": 1.34,
+"Attenuator Hollow": 2.15,
+"Attenuator Loop": 0.16,
+"Attenuator Nocturne": 0.93,
+"Attenuator Veil": 0.92,
+"Attic Basin": 1.91,
+"Attic Haunt": 3.47,
+"Attic Reach": 1.21,
+"Attic Threshold": -0.02,
+"Aurora Silence": -0.58,
+"Axis Expanse": 0.43,
+"Axon Basin": -0.16,
+"Axon Code": 0.76,
+"Axon Sequence": 1.36,
+"Azimuth Basin": 2.2,
+"Azimuth Descent": 0.0,
+"Azimuth Gate": -0.55,
+"Azimuth Hollow": -0.27,
+"Bacillus Expanse": 0.74,
+"Balalaika Interval": 0.0,
+"Ballast Reach": -1.35,
+"Balustrade Echo": 0.53,
+"Balustrade Hollow": -0.25,
+"Bamboo Threshold": 1.06,
+"Bamboo Vapour": -0.36,
+"Banner Basin": -0.54,
+"Barley Interval": -0.19,
+"Basalt Pressure": 0.76,
+"Basin Hollow": 2.12,
+"Basin Reach": 2.49,
+"Basin Veil": 0.71,
+"Bassoon Horns": 1.11,
+"Bassoon Strings": -0.01,
+"Bazaar Night": 1.65,
+"Bazaar Space": -1.01,
+"Beacon Hum": -0.01,
+"Beacon Watch": 0.0,
+"Bedrock Expanse": 0.02,
+"Behemoth Vigil": 0.03,
+"Belfry Night": 0.32,
+"Belfry Passage": -0.7,
+"Belfry Vow": -1.01,
+"Bellow Drone": 1.89,
+"Bellow Expanse": -0.27,
+"Bellow Swell": 1.29,
+"Bellow Vigil": -0.67,
+"Bellows Descent": -0.36,
+"Bellows Interval": 1.43,
+"Bellows Organ": 0.63,
+"Bellrope Span": 0.7,
+"Bellrope Square": 1.51,
+"Belltower Chorus": -0.51,
+"Belltower Signal": -0.9,
+"Belltower Space": -0.51,
+"Belltower Span": -0.68,
+"Bellwether Expanse": 0.83,
+"Bias Signal": -0.4,
+"Birch Hollow": -0.51,
+"Birch Path": -0.38,
+"Birdsong Basin": -0.18,
+"Birdsong Drift": 0.68,
+"Birdsong Hollow": 1.82,
+"Birdsong Interval": 0.77,
+"Birdsong Passage": -0.51,
+"Bittern Bed": -5.94,
+"Bittern Night": 0.98,
+"Bittern Season": -5.6,
+"Blazar Basin": 1.33,
+"Blazar Signal": 0.14,
+"Bleach Decay": 0.45,
+"Bleach Loop": 0.56,
+"Bleach Organ": 0.22,
+"Bleach Reach": 0.65,
+"Blizzard Descent": -0.01,
+"Blizzard Field": -3.96,
+"Blizzard Night": 0.55,
+"Blizzard Record": -0.32,
+"Blizzard Shelf": -3.61,
+"Bodhi Basin": 0.5,
+"Bodhi Reach": 1.73,
+"Bodhi Veil": -0.03,
+"Bog Interval": 0.27,
+"Boiler Reach": 0.32,
+"Boiler Span": 1.21,
+"Bollard Hollow": -0.16,
+"Boreal Dark": 0.48,
+"Boreal Wind": 0.85,
+"Borehole Basin": -0.12,
+"Borehole Underside": -0.52,
+"Bourdon Depth": 0.75,
+"Bourdon Layer": 0.47,
+"Bourdon Span": 1.4,
+"Bow Field": 0.6,
+"Bowl Descent": -0.42,
+"Bowl Garden": 1.98,
+"Bramble Reach": 0.46,
+"Bramble Stillness": 0.92,
+"Brass Hollow": -0.33,
+"Brass Veil": 0.18,
+"Breakwater Pulse": 0.0,
+"Breath Expanse": -0.24,
+"Bridge Descent": 1.54,
+"Brine Hour": 0.06,
+"Bromeliad Interval": 3.12,
+"Brook Stillness": -0.21,
+"Brotherhood Drums": 0.22,
+"Bulkhead Passage": 0.09,
+"Buoy Current": -4.3,
+"Burnt Vigil": 0.52,
+"Burrow Passage": 0.21,
+"Buttercup Vigil": 0.23,
+"Buttress Drift": 0.68,
+"Cable Bed": 1.51,
+"Cable Bloom": 0.45,
+"Cable Descent": 0.0,
+"Cable Night": -1.21,
+"Cairn Clearing": -0.97,
+"Cairn Fire": 0.25,
+"Cairn Threshold": 0.01,
+"Callsign Expanse": -0.8,
+"Candle Interval": 0.14,
+"Candlelight Bloom": -0.25,
+"Candlelight Signal": 0.46,
+"Candlelight Threshold": 0.21,
+"Candlelight Vow": 0.53,
+"Candlewax Vigil": 0.46,
+"Canopy Reach": 0.0,
+"Canyon Bed": -0.39,
+"Canyon Bloom": 0.42,
+"Canyon Crossing": 3.85,
+"Canyon Descent": -0.59,
+"Canyon Fire": 0.3,
+"Canyon Hollow": 0.13,
+"Canyon Night": -2.27,
+"Canyon Reach": 1.0,
+"Canyon Sky": 1.12,
+"Canyon Span": 0.05,
+"Canyon Threshold": -1.46,
+"Capstan Interval": -13.76,
+"Capstan Machine": -0.25,
+"Capstan Reach": 0.55,
+"Capsule Orbit": -0.01,
+"Capsule Transit": 0.0,
+"Caravan Drift": -0.76,
+"Caravan Signal": 0.27,
+"Caravan Vigil": 3.41,
+"Caravanserai Vigil": -1.14,
+"Cardamom Dream": -0.9,
+"Cardamom Interval": -1.65,
+"Carrier Grid": -0.63,
+"Catacomb Bloom": 0.99,
+"Cathode Basin": -0.11,
+"Cathode Bed": 1.72,
+"Cathode Core": -1.23,
+"Cathode Descent": 0.54,
+"Cathode Field": 1.47,
+"Cathode Hollow": -3.08,
+"Cathode Horizon": -1.14,
+"Cathode Passage": -1.41,
+"Cathode Pulse": 0.73,
+"Cathode Reach": 1.01,
+"Cathode Space": 0.87,
+"Cathode Veil": 0.45,
+"Catwalk Hum": -0.99,
+"Catwalk Signal": 0.5,
+"Cavernous Swell": -0.82,
+"Cedar Descent": 0.03,
+"Cedar Fire": 0.05,
+"Cedar Span": 0.43,
+"Celestial Crown": 0.7,
+"Celestial Drift": -0.72,
+"Celestial Signal": -0.01,
+"Cellar Afternoon": 0.59,
+"Cellar Drift": -1.38,
+"Cellar Span": -1.05,
+"Cello Hall": 0.02,
+"Censer Choir": 0.05,
+"Cepheid Belt": -2.43,
+"Cepheid Transit": 0.4,
+"Chain Drum": 0.11,
+"Chain Hollow": 1.09,
+"Chalkline Drift": -0.22,
+"Chalkline Reach": 1.35,
+"Chalkline Room": 1.83,
+"Chamber Expanse": -0.85,
+"Chamber Quiet": 0.67,
+"Chantry Basin": 0.0,
+"Chantry Bed": 0.51,
+"Chantry Span": -0.57,
+"Chapel Veil": 0.67,
+"Chime Basin": -1.19,
+"Chimera Signal": 0.01,
+"Chimera Veil": 1.18,
+"Chord Turn": 0.37,
+"Chthonic Basin": -5.58,
+"Chthonic Veil": 0.11,
+"Cinder Expanse": 0.11,
+"Cinder Passage": -2.93,
+"Cipher Basin": 1.24,
+"Cipher Expanse": 0.78,
+"Cipher Reach": 0.25,
+"Cipher Veil": 0.63,
+"Cirrus Hollow": 0.3,
+"Cistern Bed": 0.09,
+"Cistern Hum": 3.07,
+"Cistern Passage": -0.78,
+"Clipped Hollow": 0.02,
+"Clipped Organ": -0.93,
+"Clipped Wash": 2.21,
+"Cloakroom Bloom": -1.06,
+"Cloakroom Drift": -0.01,
+"Cloakroom Hollow": -0.02,
+"Clock Descent": 0.29,
+"Clock Interval": 0.85,
+"Clock Nocturne": -1.72,
+"Clock Passage": 0.46,
+"Clock Reach": 0.83,
+"Clock Signal": -2.3,
+"Clock Vigil": -3.96,
+"Cloister Crossing": 0.0,
+"Cloister Vigil": 1.51,
+"Closet Hollow": -0.01,
+"Closet Vigil": 0.0,
+"Cobble Basin": 1.32,
+"Cobble Hour": -2.91,
+"Coldstore Vigil": 0.17,
+"Comma Reach": -0.13,
+"Conduit Stars": 1.9,
+"Conduit Veil": 0.25,
+"Constant Drift": 3.14,
+"Constant Field": 0.3,
+"Constant Hum": 0.89,
+"Constant Interval": -0.41,
+"Constant Note": 3.29,
+"Container Veil": 0.03,
+"Container Waterfront": -0.04,
+"Contour Descent": 0.0,
+"Contour Plane": 3.79,
+"Coolant Hollow": -1.02,
+"Coolant Section": 3.85,
+"Coolant Span": 0.0,
+"Corona Array": 0.0,
+"Corona Band": 1.0,
+"Corona Dock": -0.67,
+"Corona Reach": 2.36,
+"Cove Hollow": -1.03,
+"Cove Loops": 0.1,
+"Cowslip Basin": -0.01,
+"Coyote Bed": 1.61,
+"Coyote Ceremony": 0.99,
+"Coyote Drift": -2.22,
+"Coyote Field": -13.8,
+"Coyote Journey": -3.12,
+"Coyote Signal": 1.5,
+"Coyote Veil": 1.05,
+"Crank Bloom": -0.41,
+"Crank Expanse": 0.1,
+"Crank Order": -2.19,
+"Crater Basin": -2.13,
+"Crater Bed": 0.88,
+"Crater Descent": -3.68,
+"Crater Expanse": 0.27,
+"Crater Glow": 1.44,
+"Crater Horizon": -1.84,
+"Crater Interval": 0.0,
+"Crater Sequence": 1.31,
+"Crater Signal": 0.41,
+"Crater Space": 1.31,
+"Crater Threshold": 0.98,
+"Crater Veil": 0.11,
+"Crater Vigil": -1.08,
+"Crevasse Reach": 0.58,
+"Crevasse Signal": -0.28,
+"Crevasse Span": 0.35,
+"Crevice Drift": -0.22,
+"Crevice Vigil": 2.71,
+"Crossfade Field": 0.9,
+"Crossfade Veil": 1.84,
+"Crush Bed": 2.93,
+"Crush Drift": 0.11,
+"Crush Expanse": -1.14,
+"Crush Vigil": 3.47,
+"Cryo Bay": -1.04,
+"Cryo Level": 0.22,
+"Cryo Veil": 0.0,
+"Crypt Interval": -0.92,
+"Crystal Bed": 0.05,
+"Crystal Bloom": 0.33,
+"Crystal Hollow": 0.0,
+"Crystal Signal": -12.95,
+"Curtain Descent": 0.58,
+"Curtain Drift": 0.29,
+"Cyclone Reading": 0.63,
+"Cyclone Report": -0.26,
+"Cyclone Span": 0.06,
+"Cyclotron Count": 2.23,
+"Cyclotron Flux": -2.52,
+"Cyclotron Hollow": 0.76,
+"Cyclotron Interval": -4.15,
+"Cyclotron Pulse": 0.04,
+"Cyclotron Space": 0.98,
+"Cygnus Reach": 0.95,
+"Cypress Mystic": 0.1,
+"Dawn Colony": 0.26,
+"Dawn Hollow": 1.08,
+"Dawn Morning": 0.61,
+"Deadfall Passage": 0.22,
+"Deadfall Tide": 1.09,
+"Deck Signal": 0.0,
+"Deck Vigil": 0.02,
+"Degrade Organ": -1.33,
+"Delirium Passage": 1.4,
+"Delphi Echo": 0.64,
+"Delta Bloom": 2.08,
+"Delta Field": 0.42,
+"Delta Span": 0.89,
+"Deneb Belt": 1.27,
+"Deneb Descent": 1.44,
+"Deneb Expanse": -2.22,
+"Deneb Span": -1.19,
+"Dervish Hollow": -0.4,
+"Desert Bed": 0.27,
+"Desert Bloom": 0.15,
+"Desert Crossing": -0.05,
+"Desert Descent": -0.26,
+"Desert Field": -1.1,
+"Desert Veil": 2.01,
+"Deuterium Basin": 1.04,
+"Deuterium Bloom": 0.91,
+"Deuterium Glow": 0.84,
+"Deuterium Hollow": 1.52,
+"Deuterium Horizon": 2.31,
+"Deuterium Pulse": -1.4,
+"Deuterium Sequence": -0.98,
+"Deuterium Threshold": 0.48,
+"Dharma Wall": 0.61,
+"Dhyana Vigil": -0.85,
+"Didgeridoo Bloom": -0.46,
+"Didgeridoo Passage": 0.34,
+"Didgeridoo Reach": 1.14,
+"Dim Basin": 0.0,
+"Dim Interior": -0.24,
+"Dimmer Movement": 0.53,
+"Dimmer Veil": 0.22,
+"Dish Bed": -0.32,
+"Dish Hollow": 0.03,
+"Dockside Bed": -2.5,
+"Dominion Bed": 0.01,
+"Downpour Descent": -6.06,
+"Downpour Swell": 1.12,
+"Dragonfly Calm": -1.12,
+"Dragonfly Descent": 0.45,
+"Dragonfly Passage": 0.02,
+"Drawer Basin": -0.01,
+"Drawer Reach": -1.04,
+"Dream Signal": -1.04,
+"Dream Threshold": 0.0,
+"Drifting Room": 1.38,
+"Driftwood Interval": -0.58,
+"Driftwood Stillness": -0.78,
+"Driftwood Threshold": -0.02,
+"Driftwood Unfolding": -1.26,
+"Dune Bed": 1.63,
+"Dune Crossing": 0.6,
+"Dune Descent": 0.86,
+"Dune Expanse": -0.48,
+"Dune Plain": 0.49,
+"Dune Reach": 0.17,
+"Dune Vigil": 0.93,
+"Dunescape Basin": 0.37,
+"Dunescape Drift": 0.51,
+"Dusk Bank": -0.79,
+"Dusk Stillness": 0.07,
+"Dust Afternoon": -0.05,
+"Ebb Bowing": -1.62,
+"Ebb Drone": 1.23,
+"Ebb Vigil": -0.36,
+"Echo Reach": 1.04,
+"Echo Threshold": 0.46,
+"Echo Vigil": 2.43,
+"Ecliptic Bloom": 2.13,
+"Ecliptic Descent": 0.13,
+"Ecliptic Transit": -0.35,
+"Ecliptic Veil": 0.01,
+"Eddy Descent": 1.62,
+"Edge Drift": -0.74,
+"Edge Plane": 0.14,
+"Electron Reach": 0.17,
+"Electron Sequence": 1.21,
+"Electron Span": 0.57,
+"Elk Reach": -0.01,
+"Embankment Night": -3.38,
+"Embankment Signal": 0.02,
+"Embankment Survey": 1.12,
+"Embankment Traffic": -5.84,
+"Ember Bloom": 0.76,
+"Ember Field": 0.21,
+"Ember Fire": 2.16,
+"Ember Interval": 0.29,
+"Ember Objects": 0.03,
+"Ember Smoke": 0.49,
+"Ember Vigil": 0.19,
+"Emberlight Descent": 0.82,
+"Emberlight Reach": 0.0,
+"Embouchure Plate": -0.82,
+"Embouchure Signal": 0.57,
+"Embouchure Veil": -0.59,
+"Endless Field": -0.77,
+"Engine Bloom": -4.0,
+"Engine Span": 0.44,
+"Engineroom Threshold": 1.62,
+"Envelope Bloom": 0.97,
+"Envelope Descent": -0.54,
+"Envelope Expanse": -0.96,
+"Envelope Hollow": -19.44,
+"Envelope Nocturne": -0.15,
+"Envelope Passage": 0.68,
+"Envelope Reach": 0.34,
+"Envelope Signal": -1.89,
+"Enzyme Field": 0.2,
+"Enzyme Grid": 0.92,
+"Enzyme Threshold": 0.99,
+"Enzyme Wave": 0.33,
+"Ephemeris Basin": -0.14,
+"Ephemeris Expanse": 0.23,
+"Ephemeris Reach": -0.32,
+"Epiphyte Absence": 0.3,
+"Epiphyte Listening": -0.04,
+"Estuary Descent": -6.11,
+"Estuary Dub": 1.26,
+"Estuary Reach": -0.2,
+"Estuary Signal": -3.32,
+"Etching Field": 0.5,
+"Etching Threshold": 0.51,
+"Even Hollow": 0.88,
+"Even Reach": -0.08,
+"Even Span": 1.19,
+"Evening Expanse": 1.58,
+"Evening Field": 0.14,
+"Evening Horns": 0.81,
+"Exchange Drift": 0.19,
+"Exoplanet Orbit": 1.71,
+"Exoplanet Signal": 0.64,
+"Facet Drift": 3.16,
+"Faded Hollow": -0.92,
+"Fallow Stillness": -0.01,
+"Fathom Basin": 0.35,
+"Fathom Bloom": -0.59,
+"Fathom Drift": 0.52,
+"Fathom Drone": -0.84,
+"Fathom Expanse": -0.78,
+"Fathom Plate": 1.73,
+"Fathom Swell": 0.99,
+"Fell Beacon": -1.03,
+"Fell Descent": 0.01,
+"Fen Veil": 0.0,
+"Fernbank Morning": -0.04,
+"Fernbank Pool": -0.25,
+"Ferry Descent": 0.0,
+"Ferry Drift": 0.61,
+"Fibreoptic Level": -0.01,
+"Fibreoptic Veil": 0.51,
+"Fiddle Strings": -0.02,
+"Filament Drift": 2.17,
+"Filament Hollow": 1.05,
+"Filament Level": -0.12,
+"Filter Circuit": 0.96,
+"Filter Descent": 3.18,
+"Firmament Field": 0.15,
+"Firn Interval": 0.18,
+"Firn Passage": -0.03,
+"Firn Reach": -2.89,
+"Fission Bloom": 1.69,
+"Fission Core": 1.39,
+"Fission Drift": 1.02,
+"Fission Glow": -1.3,
+"Fission Sequence": 0.35,
+"Fission Space": -1.34,
+"Fjord Hollow": -0.01,
+"Flicker Descent": -1.21,
+"Flicker Span": 0.15,
+"Flicker Vigil": -0.79,
+"Floe Loop": 2.66,
+"Flue Field": -0.01,
+"Flue Veil": -0.49,
+"Flutter Hollow": 0.95,
+"Flutter Machine": 0.23,
+"Flutter Passage": 0.15,
+"Fog Air": 0.42,
+"Fog Basin": -0.47,
+"Fog Haze": 0.19,
+"Foghorn Interval": 0.46,
+"Foghorn Waterfront": 0.0,
+"Forest Drift": 1.53,
+"Forest Span": -0.25,
+"Foundry Field": 0.33,
+"Foundry Passage": 0.79,
+"Foundry Signal": 0.0,
+"Foundry Vigil": 0.32,
+"Fracture Descent": -1.26,
+"Frankincense Space": 0.72,
+"Freighter Descent": 0.43,
+"Freighter Hold": 3.61,
+"Freighter Hum": -0.35,
+"Frond Morning": -0.58,
+"Front Report": 1.39,
+"Frost Bed": 0.35,
+"Frost Reach": 0.23,
+"Frozen Hollow": 0.61,
+"Furnace Drift": 0.0,
+"Furnace Order": 0.0,
+"Fuse Vigil": 0.64,
+"Galaxy Storm": -0.43,
+"Gale Bloom": 1.6,
+"Gale Field": 2.45,
+"Gale Signal": -0.19,
+"Gamma Basin": -0.78,
+"Gamma Bed": 1.07,
+"Gamma Flux": 0.04,
+"Gamma Glow": 0.21,
+"Gamma Hollow": 0.58,
+"Gamma Interval": 0.0,
+"Gamma Pulse": 1.39,
+"Gamma Signal": 1.07,
+"Gamma Space": 0.73,
+"Gamma Span": 0.39,
+"Gamma Veil": 1.19,
+"Gamma Vigil": 2.25,
+"Gannet Basin": 0.0,
+"Gannet Expanse": 0.43,
+"Gasworks Basin": 0.01,
+"Gasworks City": 0.99,
+"Gasworks Threshold": 0.03,
+"Gasworks Ward": 0.08,
+"Gate Basin": -0.7,
+"Gate Bed": 2.7,
+"Gate Pattern": -0.77,
+"Gate Reach": 1.65,
+"Gate Signal": -1.65,
+"Gate Span": -2.05,
+"Gear Bloom": -0.59,
+"Genome Threshold": -0.17,
+"Gentle System": 0.0,
+"Girder Descent": -0.22,
+"Girder Frequency": 0.46,
+"Girder Veil": -0.61,
+"Glacial Depth": 2.79,
+"Glacial Hold": -7.26,
+"Glacial Silence": -0.02,
+"Glacial Span": 0.38,
+"Glacial Well": 0.2,
+"Glacier Field": 0.4,
+"Glacier Vigil": -0.65,
+"Glasshouse Tone": 0.11,
+"Glasspane Melt": -1.21,
+"Glaze Interval": 0.0,
+"Glide Bed": 0.27,
+"Glide Concert": -0.07,
+"Gloaming Loop": -0.62,
+"Gloaming Shore": 0.5,
+"Glow Loop": 0.64,
+"Gong Descent": 0.52,
+"Gouache Bloom": 0.62,
+"Gourd Bloom": 0.85,
+"Gourd Descent": 0.36,
+"Gramophone Drift": -0.47,
+"Gramophone Loop": -0.58,
+"Gramophone Threshold": -0.93,
+"Gramophone Vigil": 0.0,
+"Grey Field": 0.58,
+"Grey Signal": 3.52,
+"Grid Hollow": 0.0,
+"Grid Light": 1.87,
+"Grit Veil": 1.85,
+"Grotto Air": 1.76,
+"Grotto Drift": 2.28,
+"Grotto Hours": -0.84,
+"Groundswell Threshold": 0.53,
+"Hail Basin": 0.0,
+"Hail Record": -2.69,
+"Hail Signal": 1.51,
+"Hail Span": 0.88,
+"Halcyon Signal": 2.81,
+"Halcyon Threshold": 0.23,
+"Hallway Bloom": 0.0,
+"Hallway Sleep": -0.4,
+"Hammer Span": 1.54,
+"Hammer Works": 0.45,
+"Hammer Yard": 0.55,
+"Hangar Field": 0.0,
+"Hangar Hold": -0.16,
+"Harbour Current": 0.06,
+"Harmonic Interval": -1.73,
+"Harmonic Sphere": -0.36,
+"Harmonium Breath": -0.03,
+"Hatch Span": -0.79,
+"Hazel Bed": 0.98,
+"Hazel Expanse": -0.05,
+"Hazel Path": -0.4,
+"Hazel Vigil": 0.29,
+"Headstock Fog": -0.02,
+"Headstock Passage": 1.03,
+"Hearth Field": -0.01,
+"Hearth Tide": 0.62,
+"Hearthside Descent": 0.5,
+"Hearthside Field": -1.11,
+"Hearthside Reach": 0.37,
+"Hearthside Signal": -0.01,
+"Hearthside Threshold": -12.14,
+"Heat Crossing": 0.53,
+"Heat Descent": 0.17,
+"Heat Expanse": 0.6,
+"Heat Glow": 1.19,
+"Heat Night": -2.61,
+"Heat Plain": 1.17,
+"Heat Walk": -0.97,
+"Hedgerow Field": -0.23,
+"Hedgerow Reach": 0.44,
+"Hedgerow Vigil": 0.52,
+"Heliosphere Drift": -0.36,
+"Heliosphere Window": 1.39,
+"Helix Bed": 0.19,
+"Henna Drift": 2.08,
+"Henna Garden": 1.64,
+"Heron Calm": -0.89,
+"Heron Flow": 0.18,
+"Heron Veil": 1.94,
+"Heterodyne Interval": 0.0,
+"Hibernation Cycle": 0.0,
+"Hibernation Descent": -0.17,
+"Hibernation Drift": 0.18,
+"Hierophant Drift": 0.0,
+"Hierophant Hollow": -0.51,
+"Hierophant Reach": -0.71,
+"Hierophant Signal": -0.47,
+"Hillside Drop": 0.24,
+"Hillside Field": -0.53,
+"Hiss Expanse": 0.44,
+"Hiss Hollow": 0.18,
+"Hiss Threshold": -0.44,
+"Hoarding Bloom": -0.22,
+"Hoarding Span": 0.3,
+"Hoarding Threshold": -3.55,
+"Hood Descent": -0.79,
+"Hood Interval": -6.44,
+"Hopper Reach": 0.07,
+"Hopper Signal": -0.8,
+"Hopper Threshold": -0.5,
+"Horn Interval": -0.64,
+"Horn Passage": 1.37,
+"Horsehair Passage": 1.43,
+"Hull Drift": 0.0,
+"Humidity Blind": 0.46,
+"Humidity Interval": -5.84,
+"Humidity Recording": 1.81,
+"Humus Vigil": 0.21,
+"Hush Expanse": 0.07,
+"Hush Signal": -0.49,
+"Hush Veil": 1.42,
+"Hushed Descent": 1.13,
+"Hyades Passage": -0.63,
+"Hyades Transit": -0.05,
+"Hyades Vigil": -0.77,
+"Hybrid Bloom": -0.36,
+"Hybrid Plane": 1.24,
+"Hydrogen Field": 0.18,
+"Hydrophone Hollow": -6.28,
+"Hymn Scrape": 1.25,
+"Hymnal Bloom": -1.2,
+"Hymnal Descent": 1.33,
+"Hypnagogia Interval": 0.41,
+"Hypnagogia Span": 0.87,
+"Hypnagogic Descent": -1.13,
+"Hypnagogic Drift": 0.97,
+"Hypnagogic Expanse": 0.37,
+"Iceberg Bloom": 0.0,
+"Iceberg Field": -0.48,
+"Iceberg Shelf": 0.0,
+"Icecube Expanse": -1.09,
+"Icecube Interval": 2.38,
+"Icecube Turn": -0.05,
+"Icefall Expanse": 0.08,
+"Icefall Vigil": -0.18,
+"Icicle Expanse": 1.83,
+"Indigo Space": -1.13,
+"Integer Field": 0.45,
+"Integer Threshold": 1.14,
+"Ion Drift": 0.02,
+"Iron Litany": -0.7,
+"Iron Passage": -0.06,
+"Isobar Light": 1.51,
+"Isobar Pole": 0.78,
+"Isobar Shelf": 0.03,
+"Isotherm Night": 0.91,
+"Isotherm Signal": 1.84,
+"Isotherm Station": 1.33,
+"Isotope Array": 2.16,
+"Isotope Drift": 0.0,
+"Isotope Expanse": -1.33,
+"Isotope Interval": 0.29,
+"Isotope Reach": 1.4,
+"Isotope Span": 0.72,
+"Jack Passage": 0.66,
+"Jack Pattern": -0.26,
+"Jack Scan": -2.31,
+"Jack Span": 0.2,
+"Jammer Drift": 1.12,
+"Juniper Objects": -0.05,
+"Juniper Veil": 0.95,
+"Kailash Dawn": 1.18,
+"Kailash Field": 0.54,
+"Katabatic Shelf": 0.07,
+"Kelp Chorus": 2.1,
+"Kelp Season": 0.31,
+"Kelp Veil": -0.02,
+"Kelp Vigil": 0.87,
+"Kerb Span": 0.31,
+"Kettle Interval": -0.67,
+"Keyhole Bed": -0.17,
+"Kiln Bloom": 0.0,
+"Kiln Pressure": 0.05,
+"Kingfisher Calm": -0.98,
+"Knob Basin": 1.84,
+"Knob Bloom": 1.34,
+"Knob Circuit": -0.55,
+"Knob Expanse": 0.0,
+"Knob Night": 0.8,
+"Knob Pulse": 0.0,
+"Knob Scan": 1.08,
+"Knob Span": -1.86,
+"Knob Threshold": 0.69,
+"Kuiper Bed": 0.72,
+"Kuiper Span": -0.89,
+"Labyrinth Passage": -1.4,
+"Lacquer Hours": 0.49,
+"Lacquer Threshold": -1.21,
+"Lagoon Interval": -0.9,
+"Lagrange Orbit": 0.48,
+"Lagrange Reach": 0.21,
+"Lagrange Sleep": -0.19,
+"Lament Basin": -0.48,
+"Lament Choir": 0.48,
+"Lament Interval": 0.02,
+"Lament Movement": 0.11,
+"Landing Veil": -5.21,
+"Landing Vigil": -0.34,
+"Lantern Piece": -1.83,
+"Lantern Refuge": 1.92,
+"Lapis Basin": 0.27,
+"Lapis Expanse": 0.54,
+"Largo Afternoon": 1.74,
+"Largo Decrescendo": -0.65,
+"Lasting Vigil": 0.7,
+"Lattice Descent": 0.0,
+"Lattice Drift": 1.37,
+"Lattice Matrix": 1.1,
+"Lattice Signal": 0.91,
+"Leader Bloom": 3.74,
+"Leader Delay": 1.14,
+"Leader Field": 0.0,
+"Leaf Environment": -12.22,
+"Leaf Interval": 0.79,
+"Leaf Passage": 1.64,
+"Leafmould Passage": -0.88,
+"Leafmould Threshold": -1.05,
+"Lens Bloom": 0.27,
+"Lens Hollow": 0.35,
+"Lent Drift": -1.4,
+"Lent Hollow": 0.52,
+"Lent Reach": -0.18,
+"Lepton Array": 2.53,
+"Lepton Bed": 0.42,
+"Lepton Bloom": 0.24,
+"Lepton Expanse": -1.45,
+"Lepton Hollow": 0.58,
+"Lepton Reach": 0.96,
+"Lepton Sequence": 0.26,
+"Lepton Span": 0.0,
+"Lepton Vigil": 0.3,
+"Level Passage": -0.53,
+"Level Reach": -0.44,
+"Level Span": -0.39,
+"Level Tone": 0.29,
+"Lever Mass": -0.02,
+"Leviathan Bed": 2.52,
+"Libration Threshold": -0.22,
+"Libration Wind": 0.02,
+"Lichen Bloom": -0.01,
+"Lichen Clearing": 0.0,
+"Lightning Field": -0.03,
+"Linen Veil": -0.16,
+"Litany Passage": -11.99,
+"Lock Descent": 0.39,
+"Lock Interval": 0.07,
+"Lock Scrape": -0.04,
+"Lock Span": 0.11,
+"Long Hum": 0.0,
+"Longwave Reach": 0.92,
+"Longwave Station": 2.15,
+"Lotus Bloom": 0.62,
+"Lotus Garden": -1.96,
+"Lotus Pillar": -0.73,
+"Lotus Threshold": -0.01,
+"Lowland Plate": -0.3,
+"Lowland Reach": 0.1,
+"Lowland Tone": 0.0,
+"Lowland Vigil": -0.41,
+"Lull Strings": 0.05,
+"Lullaby Basin": -0.05,
+"Lyra Bed": -0.39,
+"Lyra Span": 0.0,
+"Magellan Expanse": 0.0,
+"Magellan Hollow": 0.0,
+"Magellan Vigil": 0.23,
+"Magma Sigh": 0.59,
+"Magma Threshold": 0.21,
+"Magnetar Message": 1.57,
+"Magnetar Passage": -4.15,
+"Magnetosphere Silence": -1.13,
+"Mandala Breath": 0.33,
+"Mandala Vigil": 3.28,
+"Mangrove Expanse": -0.49,
+"Mangrove Hollow": -0.03,
+"Mangrove Threshold": -5.8,
+"Manifold Signal": -0.02,
+"Mantel Afternoon": -1.19,
+"Mantel Bed": -0.33,
+"Mantel Frame": 4.34,
+"Mantle Reach": -0.34,
+"Mantle Shaft": 0.4,
+"Mantra Veil": 0.0,
+"Marrow Dusk": -4.61,
+"Marrow Hollow": -0.8,
+"Mast Log": -0.03,
+"Meadow Field": 0.15,
+"Meander Bloom": 3.61,
+"Meander Calm": -1.17,
+"Meander Vigil": -0.04,
+"Megastructure Descent": 0.38,
+"Megastructure Expanse": 0.42,
+"Memory Return": 1.78,
+"Memory Threshold": 2.29,
+"Mere Descent": 0.18,
+"Mere Dusk": 1.33,
+"Mere Stone": 2.28,
+"Mere Water": 0.62,
+"Meridian Arc": 1.24,
+"Meridian Descent": 0.0,
+"Meridian Drift": -0.44,
+"Meridian Signal": -0.33,
+"Meteor Span": -0.14,
+"Midnight Crowd": 3.08,
+"Midnight Descent": 2.12,
+"Midwinter Basin": 0.28,
+"Midwinter Signal": -6.13,
+"Midwinter Threshold": 0.04,
+"Mild Reach": -0.25,
+"Millisecond Basin": 0.98,
+"Millisecond Drift": 0.87,
+"Millisecond Passage": -0.81,
+"Millrace Passage": -0.6,
+"Millrace Threshold": 0.04,
+"Millstone Grain": -0.5,
+"Minaret Bed": 0.04,
+"Minaret Interval": 0.81,
+"Mirage Night": 0.34,
+"Mirage Reach": -0.55,
+"Mist Drift": 4.13,
+"Mist Dub": 3.42,
+"Mist Threshold": -0.78,
+"Mitosis Bloom": 0.22,
+"Mitosis Cell": 0.5,
+"Mitosis Threshold": 0.95,
+"Monk Bed": -0.45,
+"Monorail City": -0.03,
+"Monsoon Basin": 0.67,
+"Monsoon Descent": 1.22,
+"Monsoon Passage": 0.32,
+"Monsoon Plain": -0.49,
+"Monsoon Signal": 2.16,
+"Monsoon Veil": -0.45,
+"Monument Bed": 0.79,
+"Moonrise Bloom": -0.41,
+"Moonrise Drift": 0.55,
+"Moonrise Shore": -1.97,
+"Moonrise Span": 0.99,
+"Moonrise Tide": 0.16,
+"Moor Morning": 0.0,
+"Moor Night": -0.02,
+"Moor Passage": -4.13,
+"Morse Band": -9.28,
+"Morse Bloom": -0.74,
+"Morse Drift": 1.02,
+"Morse Signal": 0.05,
+"Morse Threshold": -0.67,
+"Mosaic Figure": -0.02,
+"Mosaicwork Garden": 2.78,
+"Mosaicwork Reach": 1.02,
+"Mosaicwork Space": 3.51,
+"Moss Bank": 0.0,
+"Moss Chorus": -0.46,
+"Mourner Field": 3.18,
+"Mourner Procession": 0.15,
+"Mourner Signal": 0.18,
+"Mouthpiece Descent": -0.94,
+"Mouthpiece Interval": 2.12,
+"Mulch Drift": 0.11,
+"Mulch Drone": 0.01,
+"Multiple Bloom": 0.81,
+"Multiple Circuit": 0.33,
+"Multiple Descent": 0.29,
+"Multiple Drift": 0.0,
+"Multiple Expanse": -1.53,
+"Multiple Field": 1.36,
+"Multiple Hollow": 0.0,
+"Multiple Scan": 2.83,
+"Multiple Veil": -2.36,
+"Muon Array": 1.22,
+"Muon Basin": 1.53,
+"Muon Drift": 1.35,
+"Muon Expanse": 0.54,
+"Muon Horizon": 0.43,
+"Muon Interval": -1.11,
+"Muon Reach": -3.98,
+"Muon Threshold": 0.77,
+"Muted Descent": 0.54,
+"Mycelium Hollow": 0.94,
+"Myrrh Bloom": 0.66,
+"Nadir Span": 0.79,
+"Nadir Veil": 2.12,
+"Nave Prayer": 0.0,
+"Nave Stone": -4.18,
+"Near Bloom": 0.36,
+"Nebula Threshold": -0.07,
+"Nebula Tide": 2.2,
+"Nebulae Threshold": -0.12,
+"Nebulae Vigil": 1.58,
+"Needle Interval": -0.04,
+"Needle Memory": -0.4,
+"Neon Signal": 0.28,
+"Nettle Bank": 0.94,
+"Neuron Interval": 0.9,
+"Neuron Threshold": 0.17,
+"Neutron Basin": 0.28,
+"Night Basin": 1.54,
+"Nightfall Field": -3.19,
+"Nightjar Basin": -0.93,
+"Nightjar Bloom": 1.39,
+"Nightjar Descent": 0.0,
+"Nightjar Recording": -5.83,
+"Nightjar Signal": 0.0,
+"Nocturne Gathering": 0.01,
+"Nomad Threshold": -0.8,
+"Northern Beacon": 0.62,
+"Northern Drift": 0.45,
+"Northern Vigil": -4.11,
+"Nova Descent": 3.11,
+"Nova Reach": 1.87,
+"Nova Silence": -0.26,
+"Nucleus Drift": 0.23,
+"Nucleus Expanse": 1.33,
+"Nucleus Field": 0.81,
+"Nucleus Flux": -0.73,
+"Nucleus Passage": 2.56,
+"Nucleus Pulse": 0.0,
+"Nucleus Reach": 0.1,
+"Nucleus Sequence": 0.0,
+"Oasis Road": 0.86,
+"Oasis Space": 0.38,
+"Obelisk Field": -0.25,
+"Obelisk Reach": -0.28,
+"Obsidian Fault": 1.78,
+"Obsidian Fire": 1.2,
+"Obsidian Shaft": 0.85,
+"Obsidian Vault": 1.57,
+"Ocarina Breath": 0.58,
+"Ocarina Descent": 1.25,
+"Ocarina Flow": -0.82,
+"Occult Dimension": -0.18,
+"Occult Span": -0.49,
+"Occultation Reach": -1.0,
+"Oceanid Storm": 0.35,
+"Oceanid Vigil": -1.73,
+"Ochre Bed": 0.87,
+"Ochre Bloom": -0.79,
+"Ochre Drift": -0.2,
+"Ochre Hollow": -0.43,
+"Ochre Reach": 0.21,
+"Octahedron Passage": -0.45,
+"Octave Basin": 0.7,
+"Octave Bloom": 1.03,
+"Octave Vigil": -0.4,
+"Offset Basin": 1.41,
+"Offset Field": 0.45,
+"Offset Signal": -1.85,
+"Oneiric Depth": -0.37,
+"Oneiric Drift": 0.1,
+"Oneiric Tide": 0.61,
+"Oort Descent": 0.0,
+"Opal Bed": -0.82,
+"Opal Breath": 1.71,
+"Opal Signal": 0.0,
+"Orbital Flux": 0.0,
+"Orbital Gate": 0.43,
+"Orbital Passage": -0.51,
+"Orbital Signal": -1.27,
+"Orbital Space": 1.96,
+"Orbital Span": -1.61,
+"Orbital Sphere": 0.13,
+"Orchard Field": 1.4,
+"Orchard Fold": 1.41,
+"Organ Passage": -0.01,
+"Orrery Dimension": -0.53,
+"Orrery Threshold": 0.0,
+"Orrery Wall": -0.6,
+"Oscillator Expanse": 0.78,
+"Oscillator Hollow": 0.49,
+"Oscillator Nocturne": 0.62,
+"Oscillator Pulse": -5.33,
+"Oscillator Scan": 0.0,
+"Oscillator Studio": 0.25,
+"Oscillator Take": 0.44,
+"Oscillator Veil": 0.57,
+"Ossuary Descent": 1.04,
+"Ouija Expanse": 0.04,
+"Ouija Voice": -0.09,
+"Outback Bed": 1.94,
+"Outback Glow": 2.24,
+"Outback Vigil": -6.13,
+"Outback Walk": 2.35,
+"Overcast Horn": 0.19,
+"Overpass Drift": 2.63,
+"Overpass Field": -0.69,
+"Overpass Hollow": 1.19,
+"Overpass Level": 0.89,
+"Overpass Span": -1.21,
+"Owlcall Field": 0.02,
+"Owlcall Shore": 1.14,
+"Owlcall Swell": 0.26,
+"Oxide Unfolding": 1.41,
+"Pail Signal": 3.22,
+"Painted Air": 4.23,
+"Painted Field": 0.19,
+"Painted Reach": -0.01,
+"Painted Shore": 0.61,
+"Pane Passage": 0.0,
+"Pane Shade": 0.49,
+"Pane Tone": 1.19,
+"Paper Reach": -0.25,
+"Parabola Field": 0.77,
+"Parabola Hollow": -0.98,
+"Parchment Bed": 0.73,
+"Parchment Interval": 0.07,
+"Parity Field": 0.0,
+"Parlour Signal": 0.32,
+"Parsec Passage": -0.29,
+"Parsec Span": 1.92,
+"Parsec Vigil": -0.46,
+"Pastel Signal": -0.1,
+"Patch Interval": 0.64,
+"Patch Passage": 1.34,
+"Patch Pattern": 1.52,
+"Patch Signal": 0.48,
+"Patch Veil": 0.19,
+"Patchbay Signal": 0.0,
+"Patience Basin": -0.24,
+"Patience Drift": -0.35,
+"Patience Threshold": 0.95,
+"Patient Descent": 0.03,
+"Payload Orbit": -0.48,
+"Payload Passage": 1.51,
+"Pearl Bloom": 1.25,
+"Pearl Expanse": 0.46,
+"Pearl Glass": 0.89,
+"Pearl Hours": 0.28,
+"Pebble Interval": -0.55,
+"Pedal Basin": -1.19,
+"Pedal Bed": -0.87,
+"Pedal Expanse": -0.33,
+"Pedal Hour": 0.38,
+"Pedal Reach": -0.78,
+"Pedal Tone": 0.59,
+"Pelog Span": 1.41,
+"Penance Basin": -1.29,
+"Perigee Threshold": 0.66,
+"Perihelion Passage": 0.67,
+"Petroglyph Descent": -0.28,
+"Petroglyph Threshold": 0.93,
+"Pewter Hollow": -0.01,
+"Pewter Interval": -0.49,
+"Phantasm Sea": -0.43,
+"Phantasm Vigil": 0.18,
+"Phase Circuit": 1.49,
+"Phase Descent": 0.45,
+"Phase Drift": 0.56,
+"Phase Pulse": 1.56,
+"Phase Reach": 1.26,
+"Phase Veil": 0.0,
+"Phonograph Dust": 0.0,
+"Phonograph Signal": 1.27,
+"Photon Basin": 4.94,
+"Photon Bed": 2.74,
+"Photon Descent": 0.43,
+"Photon Hollow": 0.04,
+"Pier Signal": 0.21,
+"Pier Swell": 1.44,
+"Pilgrim Bed": 0.98,
+"Pilgrim Passage": 1.31,
+"Pilgrim Vigil": -0.44,
+"Pin Expanse": 0.0,
+"Pine Clearing": 1.65,
+"Pistachio Night": 2.9,
+"Pistachio Tribe": 3.57,
+"Pith Morning": 0.1,
+"Pixel Span": -0.72,
+"Plasma Array": 0.54,
+"Plasma Basin": 0.76,
+"Plasma Bloom": 2.38,
+"Plasma Descent": 0.32,
+"Plasma Flux": 0.0,
+"Plasma Hollow": -0.04,
+"Plasma Horizon": 0.49,
+"Plasma Interval": 0.65,
+"Plasma Passage": -1.64,
+"Plasma Span": 1.19,
+"Plasma Threshold": -4.93,
+"Plasma Veil": -1.61,
+"Plasma Void": -0.02,
+"Plaza March": -2.46,
+"Plover Reach": -0.01,
+"Plover Season": -0.01,
+"Plover Span": -0.66,
+"Plover Vigil": 0.21,
+"Pneumatic Drift": 0.0,
+"Pneumatic Field": 0.76,
+"Polar Descent": -0.28,
+"Polar Night": -0.23,
+"Polar Passage": -5.7,
+"Polyhedron Expanse": 1.41,
+"Polyhedron Threshold": 0.04,
+"Pomegranate Interval": 1.15,
+"Pomegranate Span": 0.17,
+"Pool Bowing": 1.49,
+"Pool Descent": -1.07,
+"Pool Passage": -0.35,
+"Positron Bloom": 1.22,
+"Positron Descent": 1.28,
+"Positron Expanse": 0.77,
+"Positron Field": 2.34,
+"Positron Flux": 0.22,
+"Positron Glow": 1.17,
+"Positron Horizon": -0.64,
+"Positron Space": 0.14,
+"Positron Span": 0.63,
+"Prana Bed": -6.79,
+"Prana Dawn": -0.39,
+"Precession Signal": 1.82,
+"Precession Threshold": 1.07,
+"Primeval Storm": 0.01,
+"Prism Fold": 0.5,
+"Prism Passage": 1.18,
+"Probe Hollow": 0.39,
+"Protein Interval": 0.77,
+"Pulsar Basin": -0.59,
+"Pulsar Dock": -0.79,
+"Pulsar Message": 0.3,
+"Pulsar Passage": 0.11,
+"Pumphouse Pit": 1.45,
+"Pylon Drift": -2.81,
+"Pylon Hollow": 0.65,
+"Pylon Signal": 1.59,
+"Pylon Veil": 0.0,
+"Pyramid Gate": -0.34,
+"Pyramid Throne": 0.63,
+"Qanat Span": 0.01,
+"Qanat Veil": -0.92,
+"Quantum Drift": 0.39,
+"Quark Bed": 1.12,
+"Quark Bloom": 0.19,
+"Quark Descent": 1.7,
+"Quark Flux": 0.55,
+"Quark Hollow": 0.77,
+"Quark Interval": 0.93,
+"Quark Passage": -1.26,
+"Quark Span": 0.5,
+"Quark Vigil": -1.06,
+"Quartz Drift": -0.26,
+"Quartz Tone": -0.41,
+"Quasar Relay": 1.53,
+"Quasar Veil": 0.37,
+"Quayside Field": 0.0,
+"Quayside Interval": -0.35,
+"Quiet Basin": -0.77,
+"Radiance Chord": -1.0,
+"Radiance Wall": 0.55,
+"Radiant Source": 0.0,
+"Radiosonde Beacon": 0.32,
+"Radiosonde Descent": 1.0,
+"Rainfall Vapour": 1.08,
+"Rainline Interval": 0.01,
+"Rainline Vigil": 1.46,
+"Rainstick Bloom": 0.0,
+"Rainstick Vigil": 1.92,
+"Rainwater Environment": -0.01,
+"Rainwater Threshold": 0.46,
+"Ramp Bed": 0.3,
+"Ramp Expanse": 0.0,
+"Ramp Passage": 0.63,
+"Ramp Pulse": -1.66,
+"Ratio Hollow": 1.38,
+"Ratio Hours": 2.51,
+"Rattle Descent": -1.65,
+"Rattle Drift": -0.01,
+"Rawhide Objects": 0.7,
+"Reactor Array": 0.0,
+"Reactor Flux": 0.56,
+"Reactor Horizon": 0.0,
+"Reactor Space": 0.17,
+"Reactor Veil": -7.72,
+"Recess Descent": 0.35,
+"Recess Reach": -0.66,
+"Redrock Basin": -1.04,
+"Redrock Bed": -1.43,
+"Redrock Hollow": 1.21,
+"Redrock Night": 0.93,
+"Redrock Signal": 1.14,
+"Redshift Band": 0.61,
+"Redshift Threshold": -0.43,
+"Reel Bed": -0.67,
+"Reel Interval": 0.0,
+"Refinery Drift": 0.17,
+"Refinery Horn": 1.08,
+"Regal Veil": 0.31,
+"Relay Veil": 0.05,
+"Relic Field": 0.85,
+"Relic Memory": -0.01,
+"Reliquary Passage": 0.99,
+"Reservoir Bed": -0.44,
+"Reservoir Vigil": -0.52,
+"Resin Signal": 0.33,
+"Resonant Chant": -0.44,
+"Reverie Drift": -0.14,
+"Rhizome Descent": 2.06,
+"Rhizome Drift": 2.35,
+"Rhombus Expanse": 2.51,
+"Rigging Bed": 0.11,
+"Rigging Veil": 0.0,
+"Rill Signal": -0.01,
+"Rime Shelf": -1.67,
+"Ripple Calm": 0.28,
+"River Basin": 1.38,
+"River Bloom": 1.17,
+"River Veil": -0.01,
+"Riverbed Span": -0.02,
+"Rivet Hollow": -0.79,
+"Rookery Drift": -0.64,
+"Rookery Reach": 0.91,
+"Rookery Recording": -3.01,
+"Root Field": -1.21,
+"Root Reach": 0.19,
+"Root Veil": -0.7,
+"Rose Circle": 0.95,
+"Rose Drift": 0.31,
+"Rose Night": 0.0,
+"Rosewater Interval": 0.01,
+"Rosewater Signal": 0.49,
+"Rosin Decrescendo": 1.54,
+"Rotunda Expanse": -0.96,
+"Rune Signal": -0.51,
+"Rushes Veil": 0.95,
+"Rushes Window": -0.58,
+"Rushwater Passage": -0.66,
+"Rushwater Pool": -0.01,
+"Rust Veil": 1.88,
+"Rust Vigil": 0.44,
+"Sackcloth Span": -2.87,
+"Saffron Bed": 0.27,
+"Saffron Bloom": 0.27,
+"Saffron Garden": 2.73,
+"Sage Drift": -0.56,
+"Sage Fire": 3.48,
+"Sage Passage": 1.91,
+"Sage Sky": 1.44,
+"Saguaro Crossing": -0.6,
+"Saguaro Hollow": 0.0,
+"Saguaro Interval": 5.89,
+"Saguaro Night": -6.98,
+"Saguaro Plain": 0.52,
+"Saguaro Span": 1.38,
+"Saguaro Walk": 0.91,
+"Saltmarsh Chorus": 0.0,
+"Saltmarsh Drift": -3.59,
+"Saltmarsh Span": 0.74,
+"Samadhi Hollow": 0.01,
+"Samadhi Pillar": 0.17,
+"Sanctuary Hours": -0.68,
+"Sanctum Breath": 1.03,
+"Sandalwood Field": -0.81,
+"Sandalwood Road": -0.83,
+"Sandstone Descent": 0.07,
+"Sandstone Reach": -0.35,
+"Sandstone Smoke": 0.0,
+"Sap Morning": 0.46,
+"Sastrugi Hollow": 0.33,
+"Sastrugi Shelf": -1.24,
+"Saturate Interval": 0.92,
+"Scaffold Descent": 0.0,
+"Scaffold Drift": 0.09,
+"Scaffold Hour": 0.27,
+"Seafloor Bloom": -8.45,
+"Sealion Night": 0.21,
+"Sealskin Sheet": -3.09,
+"Seance Memory": -0.79,
+"Seance Voice": 0.01,
+"Season Expanse": 0.8,
+"Seawall Channel": 1.05,
+"Sediment Distance": 0.11,
+"Sediment Interval": 1.77,
+"Seedpod Threshold": -0.14,
+"Seismic Bed": -0.63,
+"Seismic Vigil": -0.17,
+"Sepia Fold": 0.54,
+"Sepia Span": -15.38,
+"Sepulchre Prayer": -0.02,
+"Sepulchre Signal": -0.72,
+"Sequencer Bed": 0.77,
+"Sequencer Bloom": 0.43,
+"Sequencer Interval": 1.94,
+"Sequencer Loop": 0.4,
+"Sequencer Signal": 1.1,
+"Sequencer Threshold": 0.71,
+"Serac Signal": 0.25,
+"Seventh Passage": -0.37,
+"Sextant Bloom": -0.75,
+"Shard Drift": -0.27,
+"Shard Figure": 0.0,
+"Shard Form": 0.84,
+"Shard Passage": 0.13,
+"Shatter Bed": 0.09,
+"Shatter Drift": 0.0,
+"Sheepbell Basin": -0.65,
+"Sheepbell Vigil": -0.45,
+"Shell Air": -0.02,
+"Shell Basin": -0.3,
+"Shellac Signal": 0.69,
+"Shore Descent": 1.61,
+"Shore Field": -1.27,
+"Shortwave Descent": 1.38,
+"Shortwave Drift": -5.37,
+"Shortwave Fade": -0.21,
+"Shroud Bed": -0.7,
+"Sibyl Dream": 0.27,
+"Sibyl Drift": 0.0,
+"Sibyl Vigil": -0.55,
+"Sideband Bloom": 1.98,
+"Sideband Call": -0.59,
+"Sideband Veil": 0.51,
+"Sideshow Basin": -0.49,
+"Sideshow Veil": 2.28,
+"Siding Bloom": -4.31,
+"Siding Drift": -0.39,
+"Siding Expanse": 0.14,
+"Siding Resonance": 0.03,
+"Sigil Descent": 0.46,
+"Sigil Order": -0.13,
+"Signal Fog": 2.01,
+"Silhouette Span": 0.61,
+"Silk Span": 0.12,
+"Silo Bed": -2.7,
+"Silo Chamber": 0.04,
+"Silo Descent": -0.48,
+"Silo Echo": -0.66,
+"Silt Travel": 1.3,
+"Silt Veil": -1.14,
+"Silver Hollow": 0.03,
+"Silvered Interval": 0.0,
+"Single Hour": 0.36,
+"Siren Threshold": -0.71,
+"Sirius Bloom": -0.67,
+"Sirius Gate": -4.25,
+"Skerry Hollow": 0.57,
+"Skip Night": 0.37,
+"Skyline District": 0.46,
+"Skyline Signal": -0.03,
+"Skyline Stars": 1.87,
+"Slate Passage": 0.1,
+"Slate Span": 1.38,
+"Slate Threshold": 0.73,
+"Slate Unfolding": -0.39,
+"Sleep Expanse": 0.0,
+"Sleep Field": -0.23,
+"Slew Basin": 4.25,
+"Slew Passage": 1.29,
+"Slew Reach": 0.36,
+"Slew Scan": 0.94,
+"Slew Span": 1.22,
+"Slew Vigil": 2.15,
+"Sloth Descent": 0.01,
+"Sloth Interval": -5.3,
+"Sludge Field": -0.09,
+"Sluice Drift": 0.63,
+"Sluicegate Signal": -0.28,
+"Slumber Depth": 1.84,
+"Slumber Vigil": 0.39,
+"Smear Loop": 0.19,
+"Smoke Passage": 0.47,
+"Smokestack Bed": 0.1,
+"Smokestack Reach": -0.1,
+"Smokestack Ward": 0.34,
+"Snowfield Drift": 2.58,
+"Sodium Interval": 2.13,
+"Sodium Reach": 2.03,
+"Soft Passage": 1.15,
+"Soft Reach": -0.66,
+"Solace Descent": 0.35,
+"Solace Sustain": -0.5,
+"Solar Dark": 0.04,
+"Solitary Interval": 0.62,
+"Solitary Vigil": -0.01,
+"Solstice Light": -0.51,
+"Somnia Basin": -0.85,
+"Somnolent Afternoon": 1.0,
+"Somnolent Decrescendo": 2.93,
+"Somnolent Expanse": -0.02,
+"Somnolent Span": 0.0,
+"Sonar Basin": 0.78,
+"Sonar Passage": 1.48,
+"Sonar Shelf": -0.6,
+"Sonar Signal": -0.42,
+"Sonar Vigil": 0.8,
+"Songline Basin": 1.46,
+"Songline Expanse": 1.28,
+"Songline Glow": 0.68,
+"Songline Interval": 0.0,
+"Songline Night": 0.6,
+"Songline Passage": 0.0,
+"Songline Threshold": -0.14,
+"Soot Basin": 0.66,
+"Soot Bed": -0.31,
+"Soot Bloom": -0.67,
+"Soot Loop": -0.22,
+"Sounding Dub": -0.72,
+"Sounding Passage": -0.51,
+"Sousaphone Plate": 1.86,
+"Sousaphone Veil": 0.0,
+"Spectre Haunt": -0.61,
+"Spectre Signal": 0.91,
+"Spectre Span": 0.0,
+"Spice Night": 0.0,
+"Spillway Bloom": 0.8,
+"Spillway Interval": 0.71,
+"Spiral Passage": 0.46,
+"Spirit Bed": -0.82,
+"Spirit Circle": 0.04,
+"Spirit Field": 0.0,
+"Spirit Hollow": 1.01,
+"Spirit Sky": 1.98,
+"Spool Circle": -0.7,
+"Spool Descent": 0.26,
+"Spool Drift": 1.59,
+"Sporangium Bed": -0.09,
+"Sporangium Ground": -0.84,
+"Spore Hollow": 0.33,
+"Spring Vigil": 0.12,
+"Spruce Descent": 1.44,
+"Spruce Hollow": -0.04,
+"Sputnik Grid": 0.0,
+"Sputnik Sequence": -0.25,
+"Sputnik Veil": 0.97,
+"Squall Bloom": -3.89,
+"Squall Dub": -0.48,
+"Squall Pulse": 0.42,
+"Squall Reach": 0.51,
+"Squall Veil": -0.04,
+"Stairwell Hour": 0.88,
+"Stairwell Reach": -0.62,
+"Standing Field": -0.02,
+"Standing Horizon": 2.33,
+"Standpipe Bed": -0.73,
+"Starboard Bed": 0.86,
+"Starlit Bed": 1.15,
+"Static Bed": -0.09,
+"Static Passage": 0.77,
+"Static Reach": 1.02,
+"Steel Bed": 2.17,
+"Steel Cycle": 0.35,
+"Steel Grove": -1.02,
+"Steel Hours": 0.29,
+"Stellar Basin": -0.49,
+"Stellar Drift": -0.28,
+"Stellar Hollow": -0.42,
+"Stellar Span": 1.09,
+"Stellar Throne": 1.41,
+"Stellar Wall": -0.84,
+"Stile Drift": -1.62,
+"Stile Span": 0.63,
+"Still Hour": -0.99,
+"Still Pattern": -0.01,
+"Still Piece": -0.26,
+"Stilled Note": 0.79,
+"Stillwater Distance": 3.77,
+"Stillwater Signal": 0.54,
+"Stillwater Span": -0.32,
+"Stone Dusk": 2.48,
+"Stone Hours": -0.7,
+"Stonefloor Bed": 0.37,
+"Stonefloor Crowd": -0.03,
+"Stonefloor March": 0.68,
+"Stonefloor Square": 0.52,
+"Storm Bloom": 2.02,
+"Storm Hollow": 0.15,
+"Storm Night": 0.58,
+"Storm Station": 3.33,
+"Stowage Bed": 0.35,
+"Stratos Circle": 0.98,
+"Stratos Descent": 0.72,
+"Stratos Gate": 0.0,
+"Streetlamp Expanse": -0.48,
+"Streetlamp Interval": 0.0,
+"Stretched Vigil": 0.31,
+"Struck Body": -0.74,
+"Stupa Pillar": 0.01,
+"Stupa Span": 1.14,
+"Stupa Vow": -1.64,
+"Substation Signal": 1.35,
+"Substation Station": -0.97,
+"Subterranean Passage": -3.84,
+"Summit Bed": 2.34,
+"Sunstone Basin": -0.05,
+"Sunstone Night": 1.23,
+"Sunstone Passage": 0.0,
+"Sunstone Reach": 0.42,
+"Sunstone Veil": -0.66,
+"Sustained Drift": 0.34,
+"Sustained Glacier": -0.66,
+"Sustained Hollow": 0.0,
+"Sustained Line": 0.41,
+"Sustained Threshold": -0.7,
+"Swamp Expanse": -0.04,
+"Swamp Interval": 1.06,
+"Synchrotron Expanse": -0.75,
+"Synchrotron Passage": 0.52,
+"Synchrotron Signal": 0.55,
+"Syzygy Bloom": 1.01,
+"Syzygy Dark": 0.0,
+"Syzygy Span": -0.12,
+"Tallow Field": -0.55,
+"Tamboura Expanse": 1.28,
+"Tamboura Interval": 0.94,
+"Tamboura Vigil": 0.77,
+"Tanpura Circle": -0.78,
+"Tapehead Bloom": 0.14,
+"Tapehead Fog": 0.0,
+"Tapestry Bloom": 0.69,
+"Tapestry Vigil": 0.46,
+"Tapir Blind": -0.38,
+"Tapir Passage": 0.0,
+"Tapir Place": 0.41,
+"Tarn Bed": 3.43,
+"Tarn Hollow": 0.59,
+"Tarn Reach": 0.0,
+"Tectonic Hollow": 0.0,
+"Tectonic Pressure": -0.12,
+"Tectonic Span": -0.12,
+"Tectonic Weight": -0.68,
+"Telemetry Expanse": 4.42,
+"Telemetry Orbit": 1.33,
+"Telemetry Signal": 1.74,
+"Telescope Expanse": 2.62,
+"Telescope Span": -0.29,
+"Tempest Signal": -0.01,
+"Temple Air": 0.36,
+"Tendril Morning": 0.38,
+"Tension Bed": -0.45,
+"Terminator Basin": 0.38,
+"Terminator Frontier": 0.33,
+"Terminator Reach": -0.22,
+"Terminus Bed": 0.29,
+"Tessera Bloom": -0.37,
+"Tessera Fold": 0.0,
+"Tether Cycle": -0.95,
+"Tether Span": 0.42,
+"Thistle Span": 1.99,
+"Thistle Veil": 0.72,
+"Thistle Weather": 0.06,
+"Threnody Passage": 0.0,
+"Threnody Wave": 0.22,
+"Tide Current": -5.87,
+"Tideline Drift": 0.01,
+"Tideline Span": 0.42,
+"Tidewater Bed": 1.64,
+"Tidewater Bloom": -0.27,
+"Tidewater Interval": -1.11,
+"Tidewater Reach": 0.0,
+"Tin Descent": -8.01,
+"Tin Interval": 0.01,
+"Tinsel Signal": -0.46,
+"Tinsel Vigil": -0.13,
+"Titan Bed": -0.66,
+"Torch Drift": 0.0,
+"Torch Span": -4.66,
+"Totem Expanse": 0.31,
+"Tower Descent": -0.36,
+"Tower Level": -0.45,
+"Tower Light": -0.01,
+"Tower Reach": 0.43,
+"Towpath Survey": -4.86,
+"Towpath Vigil": -0.38,
+"Tramline Bed": 0.0,
+"Tramline Bloom": 1.41,
+"Tramline Level": -0.88,
+"Trance Bed": -0.97,
+"Trance Descent": -0.8,
+"Trance Interval": 0.81,
+"Transept Veil": 0.52,
+"Transformer Passage": 0.27,
+"Transit Cycle": -0.76,
+"Trench Reach": -0.72,
+"Trigger Circuit": -2.22,
+"Trigger Expanse": 0.48,
+"Trigger Field": -0.46,
+"Trigger Night": 0.0,
+"Trigger Veil": 0.37,
+"Tritium Expanse": 0.89,
+"Tritium Interval": 2.34,
+"Tritium Pulse": -1.92,
+"Tritium Reach": -0.63,
+"Tritium Signal": -0.88,
+"Tritium Space": 2.54,
+"Tuba Bed": -0.38,
+"Tuba Interval": -0.78,
+"Tuba Threshold": 0.2,
+"Tuber Field": -0.03,
+"Tugboat Basin": 0.61,
+"Tundra Basin": 0.89,
+"Tundra Hollow": -4.82,
+"Tundra Signal": -4.6,
+"Tunnel Field": 0.27,
+"Tunnel Hollow": 0.84,
+"Turbine Bed": -0.81,
+"Turbine Hum": 3.4,
+"Turbine Watch": -3.56,
+"Turnstile Basin": -0.2,
+"Turnstile Survey": -4.62,
+"Turnstile Threshold": 0.79,
+"Turquoise Descent": 0.0,
+"Twilight Bed": 0.25,
+"Twilight Bloom": 0.67,
+"Twilight Signal": 1.61,
+"Twilight Span": 0.17,
+"Twilight Threshold": -0.52,
+"Umber Field": 0.38,
+"Umbra Cloud": -0.91,
+"Umbra Descent": -0.04,
+"Umbra Passage": -0.02,
+"Umbra Signal": -0.48,
+"Umbral Drift": 0.02,
+"Undercroft Sleep": -0.02,
+"Undercroft Vigil": 0.87,
+"Undertone Drone": 0.48,
+"Undertone Field": 1.59,
+"Undertone Plate": 0.87,
+"Undertone Reach": 0.91,
+"Undertone Vigil": -0.81,
+"Undertow Basin": 0.94,
+"Undertow Span": 0.21,
+"Unmoving Basin": 0.39,
+"Unmoving Drift": 0.27,
+"Unmoving Horizon": -0.01,
+"Valve Interval": 1.39,
+"Valve Layer": 2.37,
+"Valve Passage": -0.92,
+"Varispeed Machine": 0.66,
+"Vector Field": 0.14,
+"Vellum Shore": -0.09,
+"Velvet Veil": 1.01,
+"Vent Vigil": -0.23,
+"Vertex Bed": 0.59,
+"Vertex Dusk": 1.07,
+"Vertex Fold": 2.64,
+"Vertex Melancholy": -0.13,
+"Vesperal Descent": -1.12,
+"Vesperal Drift": 0.36,
+"Vesperal Hollow": -0.54,
+"Vesperal Threshold": 0.93,
+"Vesperal Vigil": 0.01,
+"Vestibule Bloom": -0.52,
+"Vestibule Drift": 0.39,
+"Vestibule Passage": -1.91,
+"Vestibule Signal": -6.01,
+"Viaduct Hollow": 8.87,
+"Viaduct Interval": 0.0,
+"Violet Field": -1.07,
+"Violet Passage": 2.88,
+"Vitrine Span": 0.68,
+"Voltage Basin": -0.73,
+"Voltage Drift": 1.84,
+"Voltage Hollow": 0.57,
+"Voltage Interval": 3.06,
+"Voltage Passage": -1.97,
+"Voltage Pulse": 0.63,
+"Voltage Reach": -1.54,
+"Voltage Signal": 0.42,
+"Vowel Signal": -1.12,
+"Vowel Span": -0.98,
+"Wainscot Quiet": -1.04,
+"Wallpaper Veil": 1.13,
+"Waning Horns": -0.71,
+"Waning Signal": 0.0,
+"Warehouse District": 0.01,
+"Warehouse Haze": -0.63,
+"Warm Basin": 0.42,
+"Warm Chord": 2.23,
+"Warm System": -1.32,
+"Warp Bloom": 0.05,
+"Warp Descent": 0.23,
+"Warp Field": -0.73,
+"Watercolour Study": -1.0,
+"Watercolour Vigil": 0.09,
+"Wavelength Source": -0.68,
+"Wavetrap Night": -0.1,
+"Wavetrap Signal": 0.57,
+"Wax Passage": -0.76,
+"Wax Signal": -0.06,
+"Wax Vigil": 1.48,
+"Weather Drift": -0.73,
+"Weather Room": -1.25,
+"Weir Stone": -0.41,
+"Wetland Bed": 0.73,
+"Wetland Bloom": 0.13,
+"Wetland Vigil": 0.8,
+"Whalesong Basin": -0.48,
+"Wharfside Bed": 1.66,
+"Wharfside Hollow": 0.83,
+"Whiteout Depth": 1.51,
+"Whiteout Drift": 0.66,
+"Wick Descent": 0.49,
+"Willow Basin": 2.82,
+"Willow Garden": 0.1,
+"Willow Hollow": 0.1,
+"Willow Interval": -0.39,
+"Willow Signal": -1.23,
+"Wind Signal": 1.32,
+"Wire Expanse": -0.35,
+"Wireless Veil": 0.0,
+"Wobble Dream": 1.22,
+"Wobble Vigil": 3.09,
+"Wold Descent": -0.61,
+"Wold Interval": 0.27,
+"Wold Threshold": -0.47,
+"Wolfden Reach": 0.13,
+"Wormhole Sleep": 0.4,
+"Zenith Belt": 0.45,
+"Zenith Breath": 0.08,
+"Zenith Expanse": 1.23,
+"Zenith Field": 4.51,
+"Zenith Wall": -0.62,
+"Ziggurat Reach": -0.83,
+"Zoetrope Hollow": 0.17,
+"Zoetrope Signal": 2.12
+},
+"lufs_before_after_truepeak_after": {
+"Abbey Span": [
+-24.38,
+-23.66,
+-9.14
+],
+"Abyssal Expanse": [
+-19.99,
+-20.49,
+-8.81
+],
+"Accordion Descent": [
+-21.86,
+-21.07,
+-6.82
+],
+"Adagio Basin": [
+-21.03,
+-21.03,
+-7.48
+],
+"Adagio Expanse": [
+-28.97,
+-28.14,
+-14.64
+],
+"Adobe Night": [
+-20.44,
+-20.84,
+-7.52
+],
+"Aeon Passage": [
+-21.02,
+-22.53,
+-8.01
+],
+"Aeon Threshold": [
+-21.55,
+-21.19,
+-9.21
+],
+"Aether Echo": [
+-21.33,
+-21.34,
+-10.98
+],
+"Aether Expanse": [
+-21.42,
+-19.66,
+-6.42
+],
+"Afterglow Hollow": [
+-21.31,
+-22.25,
+-10.46
+],
+"Afterglow Shore": [
+-19.58,
+-20.86,
+-9.0
+],
+"Albedo Expanse": [
+-19.99,
+-20.93,
+-5.52
+],
+"Albedo Field": [
+-20.14,
+-20.73,
+-6.67
+],
+"Albedo Machinery": [
+-20.53,
+-17.86,
+-6.18
+],
+"Albedo Signal": [
+-20.1,
+-19.36,
+-5.74
+],
+"Algorithm Bed": [
+-20.41,
+-17.95,
+-5.5
+],
+"Algorithm Reach": [
+-22.0,
+-21.13,
+-8.8
+],
+"Algorithm Vigil": [
+-21.46,
+-19.44,
+-4.21
+],
+"Amber Bed": [
+-21.48,
+-21.63,
+-7.09
+],
+"Amber Drift": [
+-19.92,
+-19.47,
+-7.36
+],
+"Amber Mystic": [
+-21.94,
+-21.67,
+-8.55
+],
+"Amber Sustain": [
+-21.23,
+-20.88,
+-9.25
+],
+"Amphora Descent": [
+-22.77,
+-19.86,
+-6.27
+],
+"Amphora Dusk": [
+-20.34,
+-19.08,
+-7.1
+],
+"Anahata Chant": [
+-21.61,
+-23.15,
+-10.52
+],
+"Anchorage Reach": [
+-29.68,
+-29.13,
+-13.67
+],
+"Ancient Field": [
+-21.27,
+-21.27,
+-8.23
+],
+"Anemometer Descent": [
+-20.84,
+-20.43,
+-8.21
+],
+"Anemometer Record": [
+-20.67,
+-19.17,
+-4.8
+],
+"Anemometer Vigil": [
+-20.89,
+-20.42,
+-6.38
+],
+"Angle Abstraction": [
+-19.53,
+-19.11,
+-5.37
+],
+"Angle Shade": [
+-20.22,
+-18.9,
+-8.14
+],
+"Apogee Basin": [
+-19.54,
+-17.67,
+-7.01
+],
+"Apogee Veil": [
+-19.77,
+-19.89,
+-6.44
+],
+"Apparition Transmission": [
+-19.65,
+-16.58,
+-4.69
+],
+"Arc Basin": [
+-23.9,
+-24.5,
+-11.59
+],
+"Arc Drift": [
+-21.37,
+-21.51,
+-8.52
+],
+"Arc Interval": [
+-21.07,
+-19.41,
+-7.73
+],
+"Arc Station": [
+-21.8,
+-22.18,
+-7.28
+],
+"Arcade Passage": [
+-20.49,
+-18.69,
+-7.24
+],
+"Arcanum Basin": [
+-32.98,
+-32.96,
+-14.17
+],
+"Arcanum Dimension": [
+-20.08,
+-19.97,
+-6.03
+],
+"Archway Span": [
+-19.72,
+-24.18,
+-8.76
+],
+"Arctic Bed": [
+-20.69,
+-20.66,
+-7.38
+],
+"Arctic Interval": [
+-20.62,
+-19.64,
+-8.18
+],
+"Arctic Veil": [
+-20.13,
+-20.55,
+-7.28
+],
+"Arroyo Bloom": [
+-19.87,
+-16.65,
+-4.67
+],
+"Arroyo Plain": [
+-19.7,
+-18.04,
+-5.33
+],
+"Arroyo Reach": [
+-20.22,
+-21.0,
+-6.38
+],
+"Arroyo Vigil": [
+-30.42,
+-29.76,
+-16.03
+],
+"Artefact Field": [
+-20.78,
+-20.19,
+-6.64
+],
+"Artefact Passage": [
+-20.61,
+-21.05,
+-10.32
+],
+"Artefact Threshold": [
+-20.57,
+-21.27,
+-11.62
+],
+"Ash Surface": [
+-23.68,
+-22.88,
+-8.5
+],
+"Ash Travel": [
+-22.0,
+-22.88,
+-9.77
+],
+"Ash Vigil": [
+-19.98,
+-19.29,
+-5.06
+],
+"Ashen Descent": [
+-19.24,
+-19.25,
+-7.28
+],
+"Ashen Expanse": [
+-19.5,
+-17.26,
+-7.12
+],
+"Ashen Reach": [
+-26.24,
+-26.26,
+-12.81
+],
+"Ashen Room": [
+-21.44,
+-22.25,
+-6.48
+],
+"Ashes Basin": [
+-20.37,
+-20.31,
+-9.5
+],
+"Ashram Basin": [
+-19.47,
+-20.38,
+-5.91
+],
+"Astrolabe Reach": [
+-40.5,
+-40.5,
+-26.89
+],
+"Atom Bloom": [
+-19.64,
+-17.7,
+-4.87
+],
+"Atom Expanse": [
+-20.65,
+-26.76,
+-14.59
+],
+"Atom Field": [
+-19.93,
+-19.04,
+-6.2
+],
+"Atom Interval": [
+-20.06,
+-19.81,
+-7.5
+],
+"Atom Sequence": [
+-20.8,
+-19.46,
+-7.62
+],
+"Atom Space": [
+-20.43,
+-27.3,
+-15.69
+],
+"Atom Veil": [
+-19.09,
+-16.72,
+-4.48
+],
+"Attenuator Bloom": [
+-20.55,
+-20.55,
+-9.48
+],
+"Attenuator Expanse": [
+-20.4,
+-19.06,
+-6.39
+],
+"Attenuator Hollow": [
+-20.05,
+-17.9,
+-5.16
+],
+"Attenuator Loop": [
+-19.3,
+-19.14,
+-7.57
+],
+"Attenuator Nocturne": [
+-21.91,
+-20.98,
+-9.04
+],
+"Attenuator Veil": [
+-20.51,
+-19.59,
+-7.48
+],
+"Attic Basin": [
+-20.79,
+-18.88,
+-7.09
+],
+"Attic Haunt": [
+-22.33,
+-18.86,
+-4.65
+],
+"Attic Reach": [
+-21.39,
+-20.18,
+-6.61
+],
+"Attic Threshold": [
+-21.12,
+-21.14,
+-6.38
+],
+"Aurora Silence": [
+-20.47,
+-21.05,
+-8.04
+],
+"Axis Expanse": [
+-21.22,
+-20.79,
+-6.55
+],
+"Axon Basin": [
+-21.31,
+-21.47,
+-8.33
+],
+"Axon Code": [
+-20.94,
+-20.18,
+-8.78
+],
+"Axon Sequence": [
+-20.31,
+-18.95,
+-6.29
+],
+"Azimuth Basin": [
+-20.32,
+-18.12,
+-6.07
+],
+"Azimuth Descent": [
+-20.31,
+-20.31,
+-7.42
+],
+"Azimuth Gate": [
+-18.99,
+-19.54,
+-8.15
+],
+"Azimuth Hollow": [
+-23.15,
+-23.42,
+-9.84
+],
+"Bacillus Expanse": [
+-20.33,
+-19.59,
+-7.3
+],
+"Balalaika Interval": [
+-21.92,
+-21.92,
+-6.9
+],
+"Ballast Reach": [
+-22.78,
+-24.13,
+-9.55
+],
+"Balustrade Echo": [
+-26.84,
+-26.31,
+-13.41
+],
+"Balustrade Hollow": [
+-25.63,
+-25.88,
+-11.06
+],
+"Bamboo Threshold": [
+-20.84,
+-19.78,
+-5.97
+],
+"Bamboo Vapour": [
+-20.64,
+-21.0,
+-7.79
+],
+"Banner Basin": [
+-19.33,
+-19.87,
+-7.09
+],
+"Barley Interval": [
+-26.44,
+-26.63,
+-13.73
+],
+"Basalt Pressure": [
+-20.79,
+-20.03,
+-6.52
+],
+"Basin Hollow": [
+-20.59,
+-18.47,
+-5.93
+],
+"Basin Reach": [
+-20.28,
+-17.79,
+-5.89
+],
+"Basin Veil": [
+-20.05,
+-19.34,
+-7.79
+],
+"Bassoon Horns": [
+-21.04,
+-19.93,
+-6.0
+],
+"Bassoon Strings": [
+-22.34,
+-22.35,
+-7.08
+],
+"Bazaar Night": [
+-20.58,
+-18.93,
+-5.8
+],
+"Bazaar Space": [
+-18.77,
+-19.78,
+-8.01
+],
+"Beacon Hum": [
+-20.93,
+-20.94,
+-6.94
+],
+"Beacon Watch": [
+-21.84,
+-21.84,
+-1.94
+],
+"Bedrock Expanse": [
+-20.38,
+-20.36,
+-8.37
+],
+"Behemoth Vigil": [
+-22.37,
+-22.34,
+-8.04
+],
+"Belfry Night": [
+-19.77,
+-19.45,
+-6.14
+],
+"Belfry Passage": [
+-20.19,
+-20.89,
+-9.46
+],
+"Belfry Vow": [
+-20.23,
+-21.24,
+-6.88
+],
+"Bellow Drone": [
+-21.07,
+-19.18,
+-6.16
+],
+"Bellow Expanse": [
+-20.68,
+-20.95,
+-8.11
+],
+"Bellow Swell": [
+-18.7,
+-17.41,
+-6.08
+],
+"Bellow Vigil": [
+-21.66,
+-22.33,
+-8.75
+],
+"Bellows Descent": [
+-21.17,
+-21.53,
+-8.09
+],
+"Bellows Interval": [
+-21.65,
+-20.22,
+-7.75
+],
+"Bellows Organ": [
+-20.11,
+-19.48,
+-7.94
+],
+"Bellrope Span": [
+-21.06,
+-20.36,
+-6.87
+],
+"Bellrope Square": [
+-19.13,
+-17.62,
+-5.87
+],
+"Belltower Chorus": [
+-19.97,
+-20.48,
+-8.28
+],
+"Belltower Signal": [
+-19.97,
+-20.87,
+-8.21
+],
+"Belltower Space": [
+-21.73,
+-22.24,
+-9.29
+],
+"Belltower Span": [
+-18.69,
+-19.37,
+-6.66
+],
+"Bellwether Expanse": [
+-21.22,
+-20.39,
+-6.91
+],
+"Bias Signal": [
+-20.0,
+-20.4,
+-10.32
+],
+"Birch Hollow": [
+-25.51,
+-26.02,
+-11.64
+],
+"Birch Path": [
+-22.42,
+-22.8,
+-10.39
+],
+"Birdsong Basin": [
+-24.76,
+-24.94,
+-4.35
+],
+"Birdsong Drift": [
+-19.68,
+-19.0,
+-7.29
+],
+"Birdsong Hollow": [
+-20.96,
+-19.14,
+-5.89
+],
+"Birdsong Interval": [
+-20.24,
+-19.47,
+-5.52
+],
+"Birdsong Passage": [
+-21.03,
+-21.54,
+-8.8
+],
+"Bittern Bed": [
+-20.12,
+-26.06,
+-12.47
+],
+"Bittern Night": [
+-23.17,
+-22.19,
+-9.31
+],
+"Bittern Season": [
+-20.17,
+-25.77,
+-13.03
+],
+"Blazar Basin": [
+-21.86,
+-20.53,
+-6.31
+],
+"Blazar Signal": [
+-21.59,
+-21.45,
+-7.58
+],
+"Bleach Decay": [
+-20.52,
+-20.07,
+-6.38
+],
+"Bleach Loop": [
+-20.84,
+-20.28,
+-7.54
+],
+"Bleach Organ": [
+-18.37,
+-18.15,
+-5.61
+],
+"Bleach Reach": [
+-20.16,
+-19.51,
+-6.42
+],
+"Blizzard Descent": [
+-21.03,
+-21.04,
+-7.87
+],
+"Blizzard Field": [
+-20.35,
+-24.31,
+-9.69
+],
+"Blizzard Night": [
+-20.0,
+-19.45,
+-5.7
+],
+"Blizzard Record": [
+-20.64,
+-20.96,
+-9.09
+],
+"Blizzard Shelf": [
+-21.43,
+-25.04,
+-10.71
+],
+"Bodhi Basin": [
+-21.4,
+-20.9,
+-7.34
+],
+"Bodhi Reach": [
+-21.96,
+-20.23,
+-7.0
+],
+"Bodhi Veil": [
+-32.06,
+-32.09,
+-18.14
+],
+"Bog Interval": [
+-18.35,
+-18.08,
+-6.51
+],
+"Boiler Reach": [
+-26.5,
+-26.18,
+-12.36
+],
+"Boiler Span": [
+-20.98,
+-19.77,
+-6.93
+],
+"Bollard Hollow": [
+-20.95,
+-21.11,
+-7.91
+],
+"Boreal Dark": [
+-21.16,
+-20.68,
+-7.0
+],
+"Boreal Wind": [
+-20.94,
+-20.09,
+-6.39
+],
+"Borehole Basin": [
+-22.07,
+-22.19,
+-8.08
+],
+"Borehole Underside": [
+-19.92,
+-20.44,
+-6.89
+],
+"Bourdon Depth": [
+-22.98,
+-22.23,
+-8.01
+],
+"Bourdon Layer": [
+-20.68,
+-20.21,
+-6.53
+],
+"Bourdon Span": [
+-20.42,
+-19.02,
+-5.57
+],
+"Bow Field": [
+-18.79,
+-18.19,
+-5.21
+],
+"Bowl Descent": [
+-20.05,
+-20.47,
+-6.56
+],
+"Bowl Garden": [
+-20.77,
+-18.79,
+-5.11
+],
+"Bramble Reach": [
+-19.74,
+-19.28,
+-6.09
+],
+"Bramble Stillness": [
+-20.2,
+-19.28,
+-5.75
+],
+"Brass Hollow": [
+-21.75,
+-22.08,
+-6.95
+],
+"Brass Veil": [
+-20.34,
+-20.16,
+-5.71
+],
+"Breakwater Pulse": [
+-19.85,
+-19.85,
+-6.47
+],
+"Breath Expanse": [
+-19.94,
+-20.18,
+-7.19
+],
+"Bridge Descent": [
+-20.6,
+-19.06,
+-6.02
+],
+"Brine Hour": [
+-20.77,
+-20.71,
+-4.85
+],
+"Bromeliad Interval": [
+-20.58,
+-17.46,
+-5.92
+],
+"Brook Stillness": [
+-21.5,
+-21.71,
+-7.06
+],
+"Brotherhood Drums": [
+-18.25,
+-18.03,
+-4.53
+],
+"Bulkhead Passage": [
+-20.17,
+-20.08,
+-6.26
+],
+"Buoy Current": [
+-19.37,
+-23.67,
+-10.55
+],
+"Burnt Vigil": [
+-20.27,
+-19.75,
+-9.18
+],
+"Burrow Passage": [
+-19.83,
+-19.62,
+-6.84
+],
+"Buttercup Vigil": [
+-20.27,
+-20.04,
+-7.38
+],
+"Buttress Drift": [
+-25.75,
+-25.07,
+-6.23
+],
+"Cable Bed": [
+-20.09,
+-18.58,
+-7.59
+],
+"Cable Bloom": [
+-19.78,
+-19.33,
+-6.56
+],
+"Cable Descent": [
+-20.83,
+-20.83,
+-8.36
+],
+"Cable Night": [
+-21.99,
+-23.2,
+-9.03
+],
+"Cairn Clearing": [
+-20.79,
+-21.76,
+-8.17
+],
+"Cairn Fire": [
+-21.37,
+-21.12,
+-7.69
+],
+"Cairn Threshold": [
+-22.72,
+-22.71,
+-8.96
+],
+"Callsign Expanse": [
+-20.11,
+-20.91,
+-8.63
+],
+"Candle Interval": [
+-22.02,
+-21.88,
+-9.73
+],
+"Candlelight Bloom": [
+-19.72,
+-19.97,
+-5.76
+],
+"Candlelight Signal": [
+-19.79,
+-19.33,
+-4.38
+],
+"Candlelight Threshold": [
+-22.1,
+-21.89,
+-11.14
+],
+"Candlelight Vow": [
+-21.25,
+-20.72,
+-8.22
+],
+"Candlewax Vigil": [
+-20.3,
+-19.84,
+-6.79
+],
+"Canopy Reach": [
+-20.06,
+-20.06,
+-7.87
+],
+"Canyon Bed": [
+-26.03,
+-26.42,
+-9.6
+],
+"Canyon Bloom": [
+-23.29,
+-22.87,
+-6.93
+],
+"Canyon Crossing": [
+-19.81,
+-15.96,
+-2.97
+],
+"Canyon Descent": [
+-20.55,
+-21.14,
+-9.64
+],
+"Canyon Fire": [
+-20.25,
+-19.95,
+-7.45
+],
+"Canyon Hollow": [
+-23.84,
+-23.71,
+-10.0
+],
+"Canyon Night": [
+-20.04,
+-22.31,
+-8.74
+],
+"Canyon Reach": [
+-20.7,
+-19.7,
+-9.63
+],
+"Canyon Sky": [
+-20.08,
+-18.96,
+-7.68
+],
+"Canyon Span": [
+-20.1,
+-20.05,
+-6.25
+],
+"Canyon Threshold": [
+-25.26,
+-26.72,
+-9.27
+],
+"Capstan Interval": [
+-16.91,
+-30.67,
+-19.03
+],
+"Capstan Machine": [
+-21.7,
+-21.95,
+-8.55
+],
+"Capstan Reach": [
+-19.38,
+-18.83,
+-6.95
+],
+"Capsule Orbit": [
+-27.36,
+-27.37,
+-11.38
+],
+"Capsule Transit": [
+-25.89,
+-25.89,
+-12.04
+],
+"Caravan Drift": [
+-19.9,
+-20.66,
+-6.17
+],
+"Caravan Signal": [
+-20.71,
+-20.44,
+-8.21
+],
+"Caravan Vigil": [
+-22.12,
+-18.71,
+-4.78
+],
+"Caravanserai Vigil": [
+-23.33,
+-24.47,
+-11.9
+],
+"Cardamom Dream": [
+-27.23,
+-28.13,
+-13.63
+],
+"Cardamom Interval": [
+-21.14,
+-22.79,
+-9.37
+],
+"Carrier Grid": [
+-21.22,
+-21.85,
+-8.36
+],
+"Catacomb Bloom": [
+-19.15,
+-18.16,
+-5.07
+],
+"Cathode Basin": [
+-20.21,
+-20.32,
+-7.7
+],
+"Cathode Bed": [
+-20.39,
+-18.67,
+-7.28
+],
+"Cathode Core": [
+-19.97,
+-21.2,
+-8.2
+],
+"Cathode Descent": [
+-20.78,
+-20.24,
+-8.0
+],
+"Cathode Field": [
+-21.07,
+-19.6,
+-8.03
+],
+"Cathode Hollow": [
+-21.43,
+-24.51,
+-11.95
+],
+"Cathode Horizon": [
+-20.74,
+-21.88,
+-10.29
+],
+"Cathode Passage": [
+-18.57,
+-19.98,
+-5.45
+],
+"Cathode Pulse": [
+-17.9,
+-17.17,
+-4.36
+],
+"Cathode Reach": [
+-18.36,
+-17.35,
+-7.12
+],
+"Cathode Space": [
+-20.81,
+-19.94,
+-7.55
+],
+"Cathode Veil": [
+-20.28,
+-19.83,
+-7.52
+],
+"Catwalk Hum": [
+-22.01,
+-23.0,
+-10.12
+],
+"Catwalk Signal": [
+-22.73,
+-22.23,
+-6.63
+],
+"Cavernous Swell": [
+-20.9,
+-21.72,
+-8.25
+],
+"Cedar Descent": [
+-19.73,
+-19.7,
+-4.75
+],
+"Cedar Fire": [
+-22.3,
+-22.25,
+-8.23
+],
+"Cedar Span": [
+-21.45,
+-21.02,
+-8.0
+],
+"Celestial Crown": [
+-23.35,
+-22.65,
+-8.61
+],
+"Celestial Drift": [
+-20.86,
+-21.58,
+-9.37
+],
+"Celestial Signal": [
+-20.18,
+-20.19,
+-5.44
+],
+"Cellar Afternoon": [
+-20.43,
+-19.84,
+-7.64
+],
+"Cellar Drift": [
+-28.51,
+-29.89,
+-14.33
+],
+"Cellar Span": [
+-26.64,
+-27.69,
+-9.83
+],
+"Cello Hall": [
+-20.36,
+-20.34,
+-8.05
+],
+"Censer Choir": [
+-19.59,
+-19.54,
+-9.75
+],
+"Cepheid Belt": [
+-20.58,
+-23.01,
+-10.04
+],
+"Cepheid Transit": [
+-20.84,
+-20.44,
+-7.7
+],
+"Chain Drum": [
+-19.85,
+-19.74,
+-7.96
+],
+"Chain Hollow": [
+-20.38,
+-19.29,
+-6.69
+],
+"Chalkline Drift": [
+-21.02,
+-21.24,
+-7.32
+],
+"Chalkline Reach": [
+-20.09,
+-18.74,
+-7.42
+],
+"Chalkline Room": [
+-19.25,
+-17.42,
+-4.26
+],
+"Chamber Expanse": [
+-19.79,
+-20.64,
+-7.71
+],
+"Chamber Quiet": [
+-20.15,
+-19.48,
+-7.43
+],
+"Chantry Basin": [
+-21.56,
+-21.56,
+-9.69
+],
+"Chantry Bed": [
+-20.53,
+-20.02,
+-7.36
+],
+"Chantry Span": [
+-20.3,
+-20.87,
+-9.66
+],
+"Chapel Veil": [
+-19.84,
+-19.17,
+-7.87
+],
+"Chime Basin": [
+-22.63,
+-23.82,
+-12.48
+],
+"Chimera Signal": [
+-21.92,
+-21.91,
+-9.7
+],
+"Chimera Veil": [
+-21.75,
+-20.57,
+-5.69
+],
+"Chord Turn": [
+-20.45,
+-20.08,
+-7.37
+],
+"Chthonic Basin": [
+-20.56,
+-26.14,
+-11.88
+],
+"Chthonic Veil": [
+-21.2,
+-21.09,
+-1.27
+],
+"Cinder Expanse": [
+-22.54,
+-22.43,
+-6.32
+],
+"Cinder Passage": [
+-23.32,
+-26.25,
+-10.21
+],
+"Cipher Basin": [
+-22.95,
+-21.71,
+-10.12
+],
+"Cipher Expanse": [
+-20.01,
+-19.23,
+-8.71
+],
+"Cipher Reach": [
+-19.22,
+-18.97,
+-6.29
+],
+"Cipher Veil": [
+-20.88,
+-20.25,
+-8.79
+],
+"Cirrus Hollow": [
+-23.61,
+-23.31,
+-11.71
+],
+"Cistern Bed": [
+-21.14,
+-21.05,
+-8.93
+],
+"Cistern Hum": [
+-22.43,
+-19.36,
+-5.33
+],
+"Cistern Passage": [
+-20.38,
+-21.16,
+-9.33
+],
+"Clipped Hollow": [
+-21.08,
+-21.06,
+-8.13
+],
+"Clipped Organ": [
+-20.72,
+-21.65,
+-9.6
+],
+"Clipped Wash": [
+-20.07,
+-17.86,
+-6.88
+],
+"Cloakroom Bloom": [
+-19.95,
+-21.01,
+-6.88
+],
+"Cloakroom Drift": [
+-27.12,
+-27.13,
+-11.13
+],
+"Cloakroom Hollow": [
+-19.67,
+-19.69,
+-5.43
+],
+"Clock Descent": [
+-20.65,
+-20.36,
+-8.21
+],
+"Clock Interval": [
+-19.55,
+-18.7,
+-7.35
+],
+"Clock Nocturne": [
+-19.47,
+-21.19,
+-10.51
+],
+"Clock Passage": [
+-20.72,
+-20.26,
+-9.02
+],
+"Clock Reach": [
+-19.41,
+-18.58,
+-7.36
+],
+"Clock Signal": [
+-20.4,
+-22.7,
+-10.59
+],
+"Clock Vigil": [
+-20.16,
+-24.12,
+-15.55
+],
+"Cloister Crossing": [
+-18.79,
+-18.79,
+-4.42
+],
+"Cloister Vigil": [
+-19.13,
+-17.62,
+-0.77
+],
+"Closet Hollow": [
+-20.07,
+-20.08,
+-6.78
+],
+"Closet Vigil": [
+-21.1,
+-21.1,
+-7.21
+],
+"Cobble Basin": [
+-21.35,
+-20.03,
+-8.36
+],
+"Cobble Hour": [
+-20.2,
+-23.11,
+-9.77
+],
+"Coldstore Vigil": [
+-23.06,
+-22.89,
+-10.0
+],
+"Comma Reach": [
+-19.95,
+-20.08,
+-8.84
+],
+"Conduit Stars": [
+-20.4,
+-18.5,
+-6.65
+],
+"Conduit Veil": [
+-21.3,
+-21.05,
+-7.35
+],
+"Constant Drift": [
+-20.36,
+-17.22,
+-7.6
+],
+"Constant Field": [
+-19.35,
+-19.05,
+-2.76
+],
+"Constant Hum": [
+-21.9,
+-21.01,
+-6.91
+],
+"Constant Interval": [
+-22.4,
+-22.81,
+-9.44
+],
+"Constant Note": [
+-21.04,
+-17.75,
+-4.53
+],
+"Container Veil": [
+-20.28,
+-20.25,
+-8.25
+],
+"Container Waterfront": [
+-20.28,
+-20.32,
+-8.07
+],
+"Contour Descent": [
+-19.31,
+-19.31,
+-5.83
+],
+"Contour Plane": [
+-20.66,
+-16.87,
+-4.67
+],
+"Coolant Hollow": [
+-22.33,
+-23.35,
+-8.84
+],
+"Coolant Section": [
+-23.76,
+-19.91,
+-3.83
+],
+"Coolant Span": [
+-22.26,
+-22.26,
+-8.22
+],
+"Corona Array": [
+-19.16,
+-19.16,
+-7.65
+],
+"Corona Band": [
+-20.05,
+-19.05,
+-6.07
+],
+"Corona Dock": [
+-22.58,
+-23.25,
+-9.66
+],
+"Corona Reach": [
+-21.21,
+-18.85,
+-6.09
+],
+"Cove Hollow": [
+-20.4,
+-21.43,
+-12.29
+],
+"Cove Loops": [
+-19.04,
+-18.94,
+-5.84
+],
+"Cowslip Basin": [
+-31.74,
+-31.75,
+-18.53
+],
+"Coyote Bed": [
+-20.0,
+-18.39,
+-4.99
+],
+"Coyote Ceremony": [
+-23.0,
+-22.01,
+-9.79
+],
+"Coyote Drift": [
+-21.71,
+-23.93,
+-9.85
+],
+"Coyote Field": [
+-15.09,
+-28.89,
+-15.64
+],
+"Coyote Journey": [
+-19.98,
+-23.1,
+-6.19
+],
+"Coyote Signal": [
+-23.74,
+-22.24,
+-9.56
+],
+"Coyote Veil": [
+-20.68,
+-19.63,
+-7.4
+],
+"Crank Bloom": [
+-20.97,
+-21.38,
+-9.29
+],
+"Crank Expanse": [
+-19.65,
+-19.55,
+-8.03
+],
+"Crank Order": [
+-19.57,
+-21.76,
+-9.57
+],
+"Crater Basin": [
+-19.94,
+-22.07,
+-9.98
+],
+"Crater Bed": [
+-19.7,
+-18.82,
+-5.09
+],
+"Crater Descent": [
+-19.54,
+-23.22,
+-10.37
+],
+"Crater Expanse": [
+-20.36,
+-20.09,
+-8.12
+],
+"Crater Glow": [
+-20.34,
+-18.9,
+-6.97
+],
+"Crater Horizon": [
+-19.32,
+-21.16,
+-8.77
+],
+"Crater Interval": [
+-20.0,
+-20.0,
+-6.09
+],
+"Crater Sequence": [
+-20.48,
+-19.17,
+-7.66
+],
+"Crater Signal": [
+-20.33,
+-19.92,
+-6.7
+],
+"Crater Space": [
+-22.13,
+-20.82,
+-7.24
+],
+"Crater Threshold": [
+-19.93,
+-18.95,
+-5.98
+],
+"Crater Veil": [
+-19.59,
+-19.48,
+-7.0
+],
+"Crater Vigil": [
+-20.25,
+-21.33,
+-9.57
+],
+"Crevasse Reach": [
+-19.15,
+-18.57,
+-4.34
+],
+"Crevasse Signal": [
+-20.55,
+-20.83,
+-6.17
+],
+"Crevasse Span": [
+-22.18,
+-21.83,
+-4.09
+],
+"Crevice Drift": [
+-20.42,
+-20.64,
+-6.55
+],
+"Crevice Vigil": [
+-20.94,
+-18.23,
+-3.9
+],
+"Crossfade Field": [
+-20.38,
+-19.48,
+-7.83
+],
+"Crossfade Veil": [
+-26.63,
+-24.79,
+-11.27
+],
+"Crush Bed": [
+-20.84,
+-17.91,
+-5.4
+],
+"Crush Drift": [
+-20.18,
+-20.07,
+-9.13
+],
+"Crush Expanse": [
+-21.05,
+-22.19,
+-6.98
+],
+"Crush Vigil": [
+-18.4,
+-14.93,
+-2.61
+],
+"Cryo Bay": [
+-22.86,
+-23.9,
+-8.34
+],
+"Cryo Level": [
+-20.38,
+-20.16,
+-5.76
+],
+"Cryo Veil": [
+-20.32,
+-20.32,
+-7.18
+],
+"Crypt Interval": [
+-20.55,
+-21.47,
+-8.6
+],
+"Crystal Bed": [
+-20.31,
+-20.26,
+-8.33
+],
+"Crystal Bloom": [
+-19.7,
+-19.37,
+-6.6
+],
+"Crystal Hollow": [
+-20.29,
+-20.29,
+-7.96
+],
+"Crystal Signal": [
+-19.88,
+-32.83,
+-17.78
+],
+"Curtain Descent": [
+-21.46,
+-20.88,
+-6.23
+],
+"Curtain Drift": [
+-22.14,
+-21.85,
+-9.3
+],
+"Cyclone Reading": [
+-20.03,
+-19.4,
+-6.39
+],
+"Cyclone Report": [
+-21.6,
+-21.86,
+-6.86
+],
+"Cyclone Span": [
+-20.61,
+-20.55,
+-6.36
+],
+"Cyclotron Count": [
+-22.1,
+-19.87,
+-3.09
+],
+"Cyclotron Flux": [
+-20.69,
+-23.21,
+-10.78
+],
+"Cyclotron Hollow": [
+-19.4,
+-18.64,
+-5.86
+],
+"Cyclotron Interval": [
+-18.62,
+-22.77,
+-10.09
+],
+"Cyclotron Pulse": [
+-20.41,
+-20.37,
+-6.8
+],
+"Cyclotron Space": [
+-19.76,
+-18.78,
+-6.69
+],
+"Cygnus Reach": [
+-19.88,
+-18.93,
+-4.91
+],
+"Cypress Mystic": [
+-21.81,
+-21.71,
+-7.48
+],
+"Dawn Colony": [
+-20.51,
+-20.25,
+-8.54
+],
+"Dawn Hollow": [
+-19.7,
+-18.62,
+-9.33
+],
+"Dawn Morning": [
+-20.34,
+-19.73,
+-7.36
+],
+"Deadfall Passage": [
+-22.8,
+-22.58,
+-8.02
+],
+"Deadfall Tide": [
+-22.65,
+-21.56,
+-7.52
+],
+"Deck Signal": [
+-20.72,
+-20.72,
+-6.21
+],
+"Deck Vigil": [
+-22.07,
+-22.05,
+-9.09
+],
+"Degrade Organ": [
+-24.52,
+-25.85,
+-10.51
+],
+"Delirium Passage": [
+-20.37,
+-18.97,
+-6.79
+],
+"Delphi Echo": [
+-24.45,
+-23.81,
+-9.23
+],
+"Delta Bloom": [
+-20.16,
+-18.08,
+-4.8
+],
+"Delta Field": [
+-21.2,
+-20.78,
+-7.97
+],
+"Delta Span": [
+-20.65,
+-19.76,
+-4.81
+],
+"Deneb Belt": [
+-20.98,
+-19.71,
+-6.26
+],
+"Deneb Descent": [
+-20.19,
+-18.75,
+-5.92
+],
+"Deneb Expanse": [
+-21.59,
+-23.81,
+-10.69
+],
+"Deneb Span": [
+-20.59,
+-21.78,
+-8.17
+],
+"Dervish Hollow": [
+-19.44,
+-19.84,
+-5.38
+],
+"Desert Bed": [
+-21.21,
+-20.94,
+-8.86
+],
+"Desert Bloom": [
+-28.93,
+-28.78,
+-15.98
+],
+"Desert Crossing": [
+-20.03,
+-20.08,
+-7.88
+],
+"Desert Descent": [
+-20.41,
+-20.67,
+-8.22
+],
+"Desert Field": [
+-20.53,
+-21.63,
+-6.7
+],
+"Desert Veil": [
+-20.41,
+-18.4,
+-5.34
+],
+"Deuterium Basin": [
+-20.51,
+-19.47,
+-6.7
+],
+"Deuterium Bloom": [
+-20.05,
+-19.14,
+-7.5
+],
+"Deuterium Glow": [
+-20.29,
+-19.45,
+-7.39
+],
+"Deuterium Hollow": [
+-20.4,
+-18.88,
+-5.57
+],
+"Deuterium Horizon": [
+-20.73,
+-18.42,
+-6.64
+],
+"Deuterium Pulse": [
+-20.38,
+-21.78,
+-8.95
+],
+"Deuterium Sequence": [
+-20.42,
+-21.4,
+-8.45
+],
+"Deuterium Threshold": [
+-20.28,
+-19.8,
+-8.36
+],
+"Dharma Wall": [
+-21.03,
+-20.42,
+-7.41
+],
+"Dhyana Vigil": [
+-22.85,
+-23.7,
+-7.4
+],
+"Didgeridoo Bloom": [
+-17.95,
+-18.41,
+-6.54
+],
+"Didgeridoo Passage": [
+-22.08,
+-21.74,
+-8.63
+],
+"Didgeridoo Reach": [
+-23.06,
+-21.92,
+-7.74
+],
+"Dim Basin": [
+-20.07,
+-20.07,
+-7.47
+],
+"Dim Interior": [
+-20.43,
+-20.67,
+-9.52
+],
+"Dimmer Movement": [
+-21.92,
+-21.39,
+-6.6
+],
+"Dimmer Veil": [
+-22.1,
+-21.88,
+-6.15
+],
+"Dish Bed": [
+-20.84,
+-21.16,
+-5.48
+],
+"Dish Hollow": [
+-24.88,
+-24.85,
+-9.28
+],
+"Dockside Bed": [
+-21.06,
+-23.56,
+-11.32
+],
+"Dominion Bed": [
+-21.16,
+-21.15,
+-7.05
+],
+"Downpour Descent": [
+-20.52,
+-26.58,
+-12.59
+],
+"Downpour Swell": [
+-20.54,
+-19.42,
+-7.76
+],
+"Dragonfly Calm": [
+-20.68,
+-21.8,
+-10.36
+],
+"Dragonfly Descent": [
+-23.52,
+-23.07,
+-9.59
+],
+"Dragonfly Passage": [
+-18.82,
+-18.8,
+-6.17
+],
+"Drawer Basin": [
+-20.26,
+-20.27,
+-7.55
+],
+"Drawer Reach": [
+-21.41,
+-22.45,
+-9.46
+],
+"Dream Signal": [
+-20.01,
+-21.05,
+-9.05
+],
+"Dream Threshold": [
+-19.19,
+-19.19,
+-6.37
+],
+"Drifting Room": [
+-20.99,
+-19.61,
+-8.2
+],
+"Driftwood Interval": [
+-20.66,
+-21.24,
+-6.37
+],
+"Driftwood Stillness": [
+-24.23,
+-25.01,
+-10.04
+],
+"Driftwood Threshold": [
+-24.02,
+-24.04,
+-8.74
+],
+"Driftwood Unfolding": [
+-22.01,
+-23.27,
+-9.07
+],
+"Dune Bed": [
+-21.31,
+-19.68,
+-9.16
+],
+"Dune Crossing": [
+-19.62,
+-19.02,
+-6.68
+],
+"Dune Descent": [
+-20.7,
+-19.84,
+-6.75
+],
+"Dune Expanse": [
+-21.13,
+-21.61,
+-9.58
+],
+"Dune Plain": [
+-21.47,
+-20.98,
+-8.07
+],
+"Dune Reach": [
+-30.46,
+-30.29,
+-14.21
+],
+"Dune Vigil": [
+-20.18,
+-19.25,
+-8.25
+],
+"Dunescape Basin": [
+-19.38,
+-19.01,
+-7.83
+],
+"Dunescape Drift": [
+-19.59,
+-19.08,
+-7.49
+],
+"Dusk Bank": [
+-19.81,
+-20.6,
+-5.92
+],
+"Dusk Stillness": [
+-21.68,
+-21.61,
+-10.4
+],
+"Dust Afternoon": [
+-20.42,
+-20.47,
+-7.24
+],
+"Ebb Bowing": [
+-20.59,
+-22.21,
+-10.38
+],
+"Ebb Drone": [
+-21.64,
+-20.41,
+-6.5
+],
+"Ebb Vigil": [
+-18.67,
+-19.03,
+-3.92
+],
+"Echo Reach": [
+-20.45,
+-19.41,
+-7.44
+],
+"Echo Threshold": [
+-19.17,
+-18.71,
+-7.03
+],
+"Echo Vigil": [
+-20.05,
+-17.62,
+-5.96
+],
+"Ecliptic Bloom": [
+-20.6,
+-18.47,
+-3.9
+],
+"Ecliptic Descent": [
+-21.07,
+-20.94,
+-7.31
+],
+"Ecliptic Transit": [
+-22.01,
+-22.36,
+-9.28
+],
+"Ecliptic Veil": [
+-22.3,
+-22.29,
+-8.63
+],
+"Eddy Descent": [
+-22.14,
+-20.52,
+-5.3
+],
+"Edge Drift": [
+-17.99,
+-18.73,
+-5.35
+],
+"Edge Plane": [
+-19.73,
+-19.59,
+-8.31
+],
+"Electron Reach": [
+-20.01,
+-19.84,
+-8.81
+],
+"Electron Sequence": [
+-20.56,
+-19.35,
+-8.53
+],
+"Electron Span": [
+-20.6,
+-20.03,
+-7.7
+],
+"Elk Reach": [
+-21.4,
+-21.41,
+-8.78
+],
+"Embankment Night": [
+-20.07,
+-23.45,
+-7.79
+],
+"Embankment Signal": [
+-20.2,
+-20.18,
+-7.76
+],
+"Embankment Survey": [
+-19.84,
+-18.72,
+-8.12
+],
+"Embankment Traffic": [
+-20.68,
+-26.52,
+-14.13
+],
+"Ember Bloom": [
+-20.31,
+-19.55,
+-6.38
+],
+"Ember Field": [
+-20.87,
+-20.66,
+-7.98
+],
+"Ember Fire": [
+-19.33,
+-17.17,
+-5.16
+],
+"Ember Interval": [
+-21.17,
+-20.88,
+-10.93
+],
+"Ember Objects": [
+-20.26,
+-20.23,
+-7.83
+],
+"Ember Smoke": [
+-22.84,
+-22.35,
+-9.25
+],
+"Ember Vigil": [
+-20.37,
+-20.18,
+-8.11
+],
+"Emberlight Descent": [
+-20.51,
+-19.69,
+-4.71
+],
+"Emberlight Reach": [
+-18.45,
+-18.45,
+-6.74
+],
+"Embouchure Plate": [
+-19.52,
+-20.34,
+-9.15
+],
+"Embouchure Signal": [
+-23.83,
+-23.26,
+-9.32
+],
+"Embouchure Veil": [
+-20.23,
+-20.82,
+-6.88
+],
+"Endless Field": [
+-22.39,
+-23.16,
+-8.96
+],
+"Engine Bloom": [
+-20.21,
+-24.21,
+-9.37
+],
+"Engine Span": [
+-22.5,
+-22.06,
+-4.97
+],
+"Engineroom Threshold": [
+-23.5,
+-21.88,
+-7.02
+],
+"Envelope Bloom": [
+-19.19,
+-18.22,
+-6.16
+],
+"Envelope Descent": [
+-19.84,
+-20.38,
+-4.62
+],
+"Envelope Expanse": [
+-20.0,
+-20.96,
+-9.51
+],
+"Envelope Hollow": [
+-18.12,
+-37.56,
+-24.03
+],
+"Envelope Nocturne": [
+-19.99,
+-20.14,
+-7.63
+],
+"Envelope Passage": [
+-19.96,
+-19.28,
+-6.67
+],
+"Envelope Reach": [
+-20.06,
+-19.72,
+-7.49
+],
+"Envelope Signal": [
+-20.57,
+-22.46,
+-11.55
+],
+"Enzyme Field": [
+-20.64,
+-20.44,
+-8.38
+],
+"Enzyme Grid": [
+-20.73,
+-19.81,
+-7.54
+],
+"Enzyme Threshold": [
+-27.34,
+-26.35,
+-12.36
+],
+"Enzyme Wave": [
+-20.29,
+-19.96,
+-7.05
+],
+"Ephemeris Basin": [
+-19.77,
+-19.91,
+-8.23
+],
+"Ephemeris Expanse": [
+-23.17,
+-22.94,
+-8.21
+],
+"Ephemeris Reach": [
+-22.03,
+-22.35,
+-7.6
+],
+"Epiphyte Absence": [
+-19.97,
+-19.67,
+-9.11
+],
+"Epiphyte Listening": [
+-22.98,
+-23.02,
+-6.93
+],
+"Estuary Descent": [
+-20.17,
+-26.28,
+-14.24
+],
+"Estuary Dub": [
+-20.26,
+-19.0,
+-8.35
+],
+"Estuary Reach": [
+-20.83,
+-21.03,
+-7.35
+],
+"Estuary Signal": [
+-20.3,
+-23.62,
+-9.69
+],
+"Etching Field": [
+-20.76,
+-20.26,
+-5.69
+],
+"Etching Threshold": [
+-20.6,
+-20.09,
+-3.97
+],
+"Even Hollow": [
+-24.22,
+-23.34,
+-6.67
+],
+"Even Reach": [
+-21.58,
+-21.66,
+-7.84
+],
+"Even Span": [
+-20.95,
+-19.76,
+-7.27
+],
+"Evening Expanse": [
+-20.35,
+-18.77,
+-7.53
+],
+"Evening Field": [
+-24.69,
+-24.55,
+-5.62
+],
+"Evening Horns": [
+-25.4,
+-24.59,
+-8.58
+],
+"Exchange Drift": [
+-24.24,
+-24.05,
+-9.37
+],
+"Exoplanet Orbit": [
+-20.02,
+-18.31,
+-4.96
+],
+"Exoplanet Signal": [
+-19.23,
+-18.59,
+-4.4
+],
+"Facet Drift": [
+-21.11,
+-17.95,
+-5.57
+],
+"Faded Hollow": [
+-38.48,
+-39.4,
+-25.22
+],
+"Fallow Stillness": [
+-32.36,
+-32.37,
+-15.41
+],
+"Fathom Basin": [
+-23.45,
+-23.1,
+-7.42
+],
+"Fathom Bloom": [
+-21.36,
+-21.95,
+-6.77
+],
+"Fathom Drift": [
+-19.65,
+-19.13,
+-5.93
+],
+"Fathom Drone": [
+-21.55,
+-22.39,
+-8.01
+],
+"Fathom Expanse": [
+-20.68,
+-21.46,
+-6.1
+],
+"Fathom Plate": [
+-19.51,
+-17.78,
+-5.86
+],
+"Fathom Swell": [
+-20.58,
+-19.59,
+-8.23
+],
+"Fell Beacon": [
+-19.99,
+-21.02,
+-10.43
+],
+"Fell Descent": [
+-19.46,
+-19.45,
+-8.72
+],
+"Fen Veil": [
+-20.17,
+-20.17,
+-6.3
+],
+"Fernbank Morning": [
+-19.03,
+-19.07,
+-6.04
+],
+"Fernbank Pool": [
+-20.06,
+-20.31,
+-6.98
+],
+"Ferry Descent": [
+-20.69,
+-20.69,
+-2.0
+],
+"Ferry Drift": [
+-20.83,
+-20.22,
+-6.98
+],
+"Fibreoptic Level": [
+-20.56,
+-20.57,
+-7.97
+],
+"Fibreoptic Veil": [
+-20.55,
+-20.04,
+-6.82
+],
+"Fiddle Strings": [
+-20.28,
+-20.3,
+-6.71
+],
+"Filament Drift": [
+-20.22,
+-18.05,
+-6.27
+],
+"Filament Hollow": [
+-20.32,
+-19.27,
+-7.94
+],
+"Filament Level": [
+-20.9,
+-21.02,
+-7.3
+],
+"Filter Circuit": [
+-21.29,
+-20.33,
+-7.98
+],
+"Filter Descent": [
+-20.41,
+-17.23,
+-5.44
+],
+"Firmament Field": [
+-20.55,
+-20.4,
+-8.42
+],
+"Firn Interval": [
+-20.2,
+-20.02,
+-7.46
+],
+"Firn Passage": [
+-22.99,
+-23.02,
+-8.0
+],
+"Firn Reach": [
+-22.52,
+-25.41,
+-9.97
+],
+"Fission Bloom": [
+-19.48,
+-17.79,
+-5.71
+],
+"Fission Core": [
+-26.15,
+-24.76,
+-12.81
+],
+"Fission Drift": [
+-18.84,
+-17.82,
+-4.96
+],
+"Fission Glow": [
+-20.07,
+-21.37,
+-12.01
+],
+"Fission Sequence": [
+-20.68,
+-20.33,
+-8.71
+],
+"Fission Space": [
+-19.9,
+-21.24,
+-10.34
+],
+"Fjord Hollow": [
+-20.95,
+-20.96,
+-8.49
+],
+"Flicker Descent": [
+-20.26,
+-21.47,
+-8.67
+],
+"Flicker Span": [
+-24.6,
+-24.45,
+-10.47
+],
+"Flicker Vigil": [
+-42.25,
+-43.04,
+-29.48
+],
+"Floe Loop": [
+-20.68,
+-18.02,
+-5.12
+],
+"Flue Field": [
+-22.91,
+-22.92,
+-9.24
+],
+"Flue Veil": [
+-20.15,
+-20.64,
+-7.17
+],
+"Flutter Hollow": [
+-27.16,
+-26.21,
+-13.79
+],
+"Flutter Machine": [
+-31.62,
+-31.39,
+-16.52
+],
+"Flutter Passage": [
+-17.54,
+-17.39,
+-6.63
+],
+"Fog Air": [
+-17.85,
+-17.43,
+-6.66
+],
+"Fog Basin": [
+-23.36,
+-23.83,
+-9.47
+],
+"Fog Haze": [
+-20.06,
+-19.87,
+-7.01
+],
+"Foghorn Interval": [
+-20.53,
+-20.07,
+-8.62
+],
+"Foghorn Waterfront": [
+-20.21,
+-20.21,
+-7.72
+],
+"Forest Drift": [
+-20.88,
+-19.35,
+-6.52
+],
+"Forest Span": [
+-20.51,
+-20.76,
+-3.3
+],
+"Foundry Field": [
+-21.11,
+-20.78,
+-6.13
+],
+"Foundry Passage": [
+-20.47,
+-19.68,
+-6.64
+],
+"Foundry Signal": [
+-21.54,
+-21.54,
+-9.92
+],
+"Foundry Vigil": [
+-19.86,
+-19.54,
+-6.85
+],
+"Fracture Descent": [
+-20.75,
+-22.01,
+-8.04
+],
+"Frankincense Space": [
+-17.95,
+-17.23,
+-3.43
+],
+"Freighter Descent": [
+-24.38,
+-23.95,
+-10.84
+],
+"Freighter Hold": [
+-21.9,
+-18.29,
+-3.2
+],
+"Freighter Hum": [
+-20.18,
+-20.53,
+-5.88
+],
+"Frond Morning": [
+-19.66,
+-20.24,
+-6.61
+],
+"Front Report": [
+-21.64,
+-20.25,
+-6.39
+],
+"Frost Bed": [
+-20.25,
+-19.9,
+-6.74
+],
+"Frost Reach": [
+-20.39,
+-20.16,
+-7.58
+],
+"Frozen Hollow": [
+-20.73,
+-20.12,
+-5.52
+],
+"Furnace Drift": [
+-20.02,
+-20.02,
+-8.59
+],
+"Furnace Order": [
+-19.77,
+-19.77,
+-6.14
+],
+"Fuse Vigil": [
+-20.8,
+-20.16,
+-8.0
+],
+"Galaxy Storm": [
+-20.59,
+-21.02,
+-8.74
+],
+"Gale Bloom": [
+-19.93,
+-18.33,
+-6.62
+],
+"Gale Field": [
+-20.96,
+-18.51,
+-4.55
+],
+"Gale Signal": [
+-19.43,
+-19.62,
+-6.19
+],
+"Gamma Basin": [
+-20.95,
+-21.73,
+-7.03
+],
+"Gamma Bed": [
+-20.74,
+-19.67,
+-7.81
+],
+"Gamma Flux": [
+-33.45,
+-33.41,
+-17.94
+],
+"Gamma Glow": [
+-20.46,
+-20.25,
+-8.59
+],
+"Gamma Hollow": [
+-20.29,
+-19.71,
+-9.82
+],
+"Gamma Interval": [
+-20.46,
+-20.46,
+-8.05
+],
+"Gamma Pulse": [
+-20.55,
+-19.16,
+-6.5
+],
+"Gamma Signal": [
+-18.96,
+-17.89,
+-4.78
+],
+"Gamma Space": [
+-19.91,
+-19.18,
+-5.78
+],
+"Gamma Span": [
+-20.34,
+-19.95,
+-7.37
+],
+"Gamma Veil": [
+-22.53,
+-21.34,
+-9.64
+],
+"Gamma Vigil": [
+-20.19,
+-17.94,
+-5.52
+],
+"Gannet Basin": [
+-21.55,
+-21.55,
+-9.07
+],
+"Gannet Expanse": [
+-31.26,
+-30.83,
+-15.9
+],
+"Gasworks Basin": [
+-30.52,
+-30.51,
+-17.26
+],
+"Gasworks City": [
+-20.97,
+-19.98,
+-8.11
+],
+"Gasworks Threshold": [
+-19.32,
+-19.29,
+-7.81
+],
+"Gasworks Ward": [
+-18.57,
+-18.49,
+-5.23
+],
+"Gate Basin": [
+-18.46,
+-19.16,
+-7.14
+],
+"Gate Bed": [
+-20.54,
+-17.84,
+-5.96
+],
+"Gate Pattern": [
+-20.53,
+-21.3,
+-7.36
+],
+"Gate Reach": [
+-20.32,
+-18.67,
+-11.77
+],
+"Gate Signal": [
+-20.44,
+-22.09,
+-10.06
+],
+"Gate Span": [
+-20.31,
+-22.36,
+-8.65
+],
+"Gear Bloom": [
+-20.22,
+-20.81,
+-9.48
+],
+"Genome Threshold": [
+-20.21,
+-20.38,
+-8.69
+],
+"Gentle System": [
+-19.64,
+-19.64,
+-10.83
+],
+"Girder Descent": [
+-20.07,
+-20.29,
+-5.0
+],
+"Girder Frequency": [
+-19.66,
+-19.2,
+-7.04
+],
+"Girder Veil": [
+-22.38,
+-22.99,
+-8.94
+],
+"Glacial Depth": [
+-20.85,
+-18.06,
+-7.1
+],
+"Glacial Hold": [
+-17.06,
+-24.32,
+-8.35
+],
+"Glacial Silence": [
+-21.5,
+-21.52,
+-8.63
+],
+"Glacial Span": [
+-20.6,
+-20.22,
+-6.81
+],
+"Glacial Well": [
+-19.95,
+-19.75,
+-6.39
+],
+"Glacier Field": [
+-18.47,
+-18.07,
+-7.22
+],
+"Glacier Vigil": [
+-19.42,
+-20.07,
+-7.9
+],
+"Glasshouse Tone": [
+-20.2,
+-20.09,
+-6.99
+],
+"Glasspane Melt": [
+-20.12,
+-21.33,
+-9.29
+],
+"Glaze Interval": [
+-20.0,
+-20.0,
+-9.22
+],
+"Glide Bed": [
+-19.94,
+-19.67,
+-6.24
+],
+"Glide Concert": [
+-19.95,
+-20.02,
+-7.93
+],
+"Gloaming Loop": [
+-19.27,
+-19.89,
+-8.17
+],
+"Gloaming Shore": [
+-19.59,
+-19.09,
+-7.51
+],
+"Glow Loop": [
+-21.05,
+-20.41,
+-4.13
+],
+"Gong Descent": [
+-20.61,
+-20.09,
+-7.86
+],
+"Gouache Bloom": [
+-18.77,
+-18.15,
+-6.68
+],
+"Gourd Bloom": [
+-21.39,
+-20.54,
+-5.24
+],
+"Gourd Descent": [
+-20.35,
+-19.99,
+-8.18
+],
+"Gramophone Drift": [
+-21.6,
+-22.07,
+-7.56
+],
+"Gramophone Loop": [
+-19.99,
+-20.57,
+-7.27
+],
+"Gramophone Threshold": [
+-20.74,
+-21.67,
+-8.79
+],
+"Gramophone Vigil": [
+-20.61,
+-20.61,
+-7.28
+],
+"Grey Field": [
+-20.1,
+-19.52,
+-8.88
+],
+"Grey Signal": [
+-24.59,
+-21.07,
+-6.92
+],
+"Grid Hollow": [
+-20.63,
+-20.63,
+-7.07
+],
+"Grid Light": [
+-20.35,
+-18.48,
+-5.64
+],
+"Grit Veil": [
+-20.14,
+-18.29,
+-6.25
+],
+"Grotto Air": [
+-20.27,
+-18.51,
+-3.91
+],
+"Grotto Drift": [
+-20.13,
+-17.85,
+-4.85
+],
+"Grotto Hours": [
+-19.2,
+-20.04,
+-8.1
+],
+"Groundswell Threshold": [
+-21.34,
+-20.81,
+-7.78
+],
+"Hail Basin": [
+-21.79,
+-21.79,
+-7.71
+],
+"Hail Record": [
+-20.32,
+-23.01,
+-10.89
+],
+"Hail Signal": [
+-19.97,
+-18.46,
+-5.37
+],
+"Hail Span": [
+-20.24,
+-19.36,
+-6.02
+],
+"Halcyon Signal": [
+-21.86,
+-19.05,
+-5.09
+],
+"Halcyon Threshold": [
+-19.7,
+-19.47,
+-5.84
+],
+"Hallway Bloom": [
+-21.56,
+-21.56,
+-9.41
+],
+"Hallway Sleep": [
+-20.02,
+-20.42,
+-6.66
+],
+"Hammer Span": [
+-19.2,
+-17.66,
+-6.74
+],
+"Hammer Works": [
+-19.66,
+-19.21,
+-7.44
+],
+"Hammer Yard": [
+-27.69,
+-27.14,
+-14.61
+],
+"Hangar Field": [
+-23.45,
+-23.45,
+-8.71
+],
+"Hangar Hold": [
+-21.91,
+-22.07,
+-8.55
+],
+"Harbour Current": [
+-20.66,
+-20.6,
+-9.34
+],
+"Harmonic Interval": [
+-20.93,
+-22.66,
+-10.07
+],
+"Harmonic Sphere": [
+-21.21,
+-21.57,
+-8.68
+],
+"Harmonium Breath": [
+-20.54,
+-20.57,
+-8.5
+],
+"Hatch Span": [
+-23.04,
+-23.83,
+-7.13
+],
+"Hazel Bed": [
+-19.87,
+-18.89,
+-7.51
+],
+"Hazel Expanse": [
+-20.11,
+-20.16,
+-7.35
+],
+"Hazel Path": [
+-19.14,
+-19.54,
+-6.11
+],
+"Hazel Vigil": [
+-20.77,
+-20.48,
+-8.65
+],
+"Headstock Fog": [
+-18.65,
+-18.67,
+-7.96
+],
+"Headstock Passage": [
+-19.41,
+-18.38,
+-6.38
+],
+"Hearth Field": [
+-22.01,
+-22.02,
+-8.78
+],
+"Hearth Tide": [
+-19.89,
+-19.27,
+-7.42
+],
+"Hearthside Descent": [
+-20.29,
+-19.79,
+-7.44
+],
+"Hearthside Field": [
+-19.85,
+-20.96,
+-9.53
+],
+"Hearthside Reach": [
+-21.99,
+-21.62,
+-7.95
+],
+"Hearthside Signal": [
+-18.56,
+-18.57,
+-6.18
+],
+"Hearthside Threshold": [
+-15.75,
+-27.89,
+-15.73
+],
+"Heat Crossing": [
+-22.05,
+-21.52,
+-7.92
+],
+"Heat Descent": [
+-19.19,
+-19.02,
+-6.69
+],
+"Heat Expanse": [
+-20.51,
+-19.91,
+-6.86
+],
+"Heat Glow": [
+-20.7,
+-19.51,
+-6.82
+],
+"Heat Night": [
+-19.19,
+-21.8,
+-10.3
+],
+"Heat Plain": [
+-20.31,
+-19.14,
+-8.14
+],
+"Heat Walk": [
+-20.78,
+-21.75,
+-8.62
+],
+"Hedgerow Field": [
+-20.11,
+-20.34,
+-7.32
+],
+"Hedgerow Reach": [
+-21.64,
+-21.2,
+-9.78
+],
+"Hedgerow Vigil": [
+-20.43,
+-19.91,
+-8.73
+],
+"Heliosphere Drift": [
+-22.28,
+-22.64,
+-8.67
+],
+"Heliosphere Window": [
+-20.2,
+-18.81,
+-5.65
+],
+"Helix Bed": [
+-20.66,
+-20.47,
+-6.73
+],
+"Henna Drift": [
+-20.0,
+-17.92,
+-5.44
+],
+"Henna Garden": [
+-19.73,
+-18.09,
+-7.69
+],
+"Heron Calm": [
+-20.26,
+-21.15,
+-8.67
+],
+"Heron Flow": [
+-22.68,
+-22.5,
+-9.76
+],
+"Heron Veil": [
+-19.55,
+-17.61,
+-5.08
+],
+"Heterodyne Interval": [
+-27.11,
+-27.11,
+-13.21
+],
+"Hibernation Cycle": [
+-21.33,
+-21.33,
+-6.08
+],
+"Hibernation Descent": [
+-20.02,
+-20.19,
+-6.92
+],
+"Hibernation Drift": [
+-22.55,
+-22.37,
+-8.82
+],
+"Hierophant Drift": [
+-19.28,
+-19.28,
+-5.93
+],
+"Hierophant Hollow": [
+-21.48,
+-21.99,
+-7.82
+],
+"Hierophant Reach": [
+-20.39,
+-21.1,
+-7.43
+],
+"Hierophant Signal": [
+-20.19,
+-20.66,
+-6.53
+],
+"Hillside Drop": [
+-21.22,
+-20.98,
+-8.02
+],
+"Hillside Field": [
+-20.39,
+-20.92,
+-7.68
+],
+"Hiss Expanse": [
+-21.56,
+-21.12,
+-7.15
+],
+"Hiss Hollow": [
+-22.47,
+-22.29,
+-9.3
+],
+"Hiss Threshold": [
+-21.93,
+-22.37,
+-8.55
+],
+"Hoarding Bloom": [
+-20.91,
+-21.13,
+-7.18
+],
+"Hoarding Span": [
+-25.01,
+-24.71,
+-8.93
+],
+"Hoarding Threshold": [
+-20.8,
+-24.35,
+-10.23
+],
+"Hood Descent": [
+-19.96,
+-20.75,
+-11.66
+],
+"Hood Interval": [
+-21.18,
+-27.62,
+-14.51
+],
+"Hopper Reach": [
+-21.55,
+-21.48,
+-7.8
+],
+"Hopper Signal": [
+-19.98,
+-20.78,
+-5.85
+],
+"Hopper Threshold": [
+-20.75,
+-21.25,
+-7.98
+],
+"Horn Interval": [
+-20.81,
+-21.45,
+-9.3
+],
+"Horn Passage": [
+-24.63,
+-23.26,
+-10.01
+],
+"Horsehair Passage": [
+-20.22,
+-18.79,
+-5.78
+],
+"Hull Drift": [
+-19.66,
+-19.66,
+-5.26
+],
+"Humidity Blind": [
+-20.17,
+-19.71,
+-7.1
+],
+"Humidity Interval": [
+-20.52,
+-26.36,
+-14.35
+],
+"Humidity Recording": [
+-19.52,
+-17.71,
+-3.93
+],
+"Humus Vigil": [
+-20.74,
+-20.53,
+-8.77
+],
+"Hush Expanse": [
+-22.47,
+-22.4,
+-8.21
+],
+"Hush Signal": [
+-23.81,
+-24.3,
+-10.79
+],
+"Hush Veil": [
+-22.13,
+-20.71,
+-8.71
+],
+"Hushed Descent": [
+-28.15,
+-27.02,
+-14.31
+],
+"Hyades Passage": [
+-20.17,
+-20.8,
+-7.05
+],
+"Hyades Transit": [
+-19.87,
+-19.92,
+-7.01
+],
+"Hyades Vigil": [
+-21.81,
+-22.58,
+-8.98
+],
+"Hybrid Bloom": [
+-20.98,
+-21.34,
+-9.9
+],
+"Hybrid Plane": [
+-20.48,
+-19.24,
+-9.46
+],
+"Hydrogen Field": [
+-20.89,
+-20.71,
+-7.58
+],
+"Hydrophone Hollow": [
+-20.27,
+-26.55,
+-12.36
+],
+"Hymn Scrape": [
+-20.93,
+-19.68,
+-8.32
+],
+"Hymnal Bloom": [
+-19.82,
+-21.02,
+-9.72
+],
+"Hymnal Descent": [
+-19.93,
+-18.6,
+-5.79
+],
+"Hypnagogia Interval": [
+-22.16,
+-21.75,
+-7.48
+],
+"Hypnagogia Span": [
+-21.35,
+-20.48,
+-8.72
+],
+"Hypnagogic Descent": [
+-20.64,
+-21.77,
+-9.08
+],
+"Hypnagogic Drift": [
+-19.94,
+-18.97,
+-5.98
+],
+"Hypnagogic Expanse": [
+-20.42,
+-20.05,
+-10.25
+],
+"Iceberg Bloom": [
+-20.76,
+-20.76,
+-8.86
+],
+"Iceberg Field": [
+-25.87,
+-26.35,
+-11.92
+],
+"Iceberg Shelf": [
+-22.04,
+-22.04,
+-9.3
+],
+"Icecube Expanse": [
+-21.65,
+-22.74,
+-8.12
+],
+"Icecube Interval": [
+-21.05,
+-18.67,
+-4.78
+],
+"Icecube Turn": [
+-19.15,
+-19.2,
+-7.25
+],
+"Icefall Expanse": [
+-21.36,
+-21.28,
+-6.75
+],
+"Icefall Vigil": [
+-17.73,
+-17.91,
+-5.3
+],
+"Icicle Expanse": [
+-19.84,
+-18.01,
+-4.09
+],
+"Indigo Space": [
+-20.53,
+-21.66,
+-9.86
+],
+"Integer Field": [
+-21.34,
+-20.89,
+-7.38
+],
+"Integer Threshold": [
+-20.74,
+-19.6,
+-6.75
+],
+"Ion Drift": [
+-18.85,
+-18.83,
+-7.12
+],
+"Iron Litany": [
+-20.37,
+-21.07,
+-12.17
+],
+"Iron Passage": [
+-24.34,
+-24.4,
+-7.96
+],
+"Isobar Light": [
+-20.42,
+-18.91,
+-6.31
+],
+"Isobar Pole": [
+-19.1,
+-18.32,
+-7.47
+],
+"Isobar Shelf": [
+-24.41,
+-24.38,
+-11.64
+],
+"Isotherm Night": [
+-19.98,
+-19.07,
+-5.53
+],
+"Isotherm Signal": [
+-19.75,
+-17.91,
+-3.87
+],
+"Isotherm Station": [
+-20.9,
+-19.57,
+-6.44
+],
+"Isotope Array": [
+-19.88,
+-17.72,
+-6.58
+],
+"Isotope Drift": [
+-20.0,
+-20.0,
+-7.47
+],
+"Isotope Expanse": [
+-20.23,
+-21.56,
+-8.65
+],
+"Isotope Interval": [
+-19.77,
+-19.48,
+-7.18
+],
+"Isotope Reach": [
+-20.43,
+-19.03,
+-7.64
+],
+"Isotope Span": [
+-20.15,
+-19.43,
+-6.73
+],
+"Jack Passage": [
+-29.83,
+-29.17,
+-16.99
+],
+"Jack Pattern": [
+-20.28,
+-20.54,
+-9.07
+],
+"Jack Scan": [
+-19.82,
+-22.13,
+-10.68
+],
+"Jack Span": [
+-19.99,
+-19.79,
+-6.53
+],
+"Jammer Drift": [
+-21.49,
+-20.37,
+-7.33
+],
+"Juniper Objects": [
+-19.96,
+-20.01,
+-6.13
+],
+"Juniper Veil": [
+-21.88,
+-20.93,
+-8.35
+],
+"Kailash Dawn": [
+-21.13,
+-19.95,
+-5.74
+],
+"Kailash Field": [
+-25.04,
+-24.5,
+-7.99
+],
+"Katabatic Shelf": [
+-24.33,
+-24.26,
+-9.73
+],
+"Kelp Chorus": [
+-20.36,
+-18.26,
+-5.54
+],
+"Kelp Season": [
+-20.93,
+-20.62,
+-9.48
+],
+"Kelp Veil": [
+-20.83,
+-20.85,
+-8.82
+],
+"Kelp Vigil": [
+-20.05,
+-19.18,
+-7.86
+],
+"Kerb Span": [
+-20.42,
+-20.11,
+-5.56
+],
+"Kettle Interval": [
+-20.46,
+-21.13,
+-6.29
+],
+"Keyhole Bed": [
+-20.32,
+-20.49,
+-7.58
+],
+"Kiln Bloom": [
+-21.13,
+-21.13,
+-5.77
+],
+"Kiln Pressure": [
+-20.22,
+-20.17,
+-7.73
+],
+"Kingfisher Calm": [
+-21.08,
+-22.06,
+-9.99
+],
+"Knob Basin": [
+-18.55,
+-16.71,
+-4.79
+],
+"Knob Bloom": [
+-20.29,
+-18.95,
+-7.48
+],
+"Knob Circuit": [
+-21.11,
+-21.66,
+-9.99
+],
+"Knob Expanse": [
+-18.85,
+-18.85,
+-4.96
+],
+"Knob Night": [
+-19.13,
+-18.33,
+-6.37
+],
+"Knob Pulse": [
+-20.78,
+-20.78,
+-9.35
+],
+"Knob Scan": [
+-22.0,
+-20.92,
+-9.45
+],
+"Knob Span": [
+-20.16,
+-22.02,
+-10.94
+],
+"Knob Threshold": [
+-19.58,
+-18.89,
+-7.3
+],
+"Kuiper Bed": [
+-19.96,
+-19.24,
+-5.3
+],
+"Kuiper Span": [
+-20.54,
+-21.43,
+-9.07
+],
+"Labyrinth Passage": [
+-20.84,
+-22.24,
+-8.19
+],
+"Lacquer Hours": [
+-20.78,
+-20.29,
+-7.74
+],
+"Lacquer Threshold": [
+-19.65,
+-20.86,
+-11.21
+],
+"Lagoon Interval": [
+-24.25,
+-25.15,
+-11.41
+],
+"Lagrange Orbit": [
+-20.91,
+-20.43,
+-6.03
+],
+"Lagrange Reach": [
+-19.77,
+-19.56,
+-5.9
+],
+"Lagrange Sleep": [
+-21.7,
+-21.89,
+-6.76
+],
+"Lament Basin": [
+-22.21,
+-22.69,
+-7.66
+],
+"Lament Choir": [
+-22.52,
+-22.04,
+-8.44
+],
+"Lament Interval": [
+-20.99,
+-20.97,
+-8.08
+],
+"Lament Movement": [
+-21.21,
+-21.1,
+-5.26
+],
+"Landing Veil": [
+-18.95,
+-24.16,
+-9.42
+],
+"Landing Vigil": [
+-18.43,
+-18.77,
+-5.62
+],
+"Lantern Piece": [
+-20.87,
+-22.7,
+-11.51
+],
+"Lantern Refuge": [
+-20.7,
+-18.78,
+-4.66
+],
+"Lapis Basin": [
+-19.7,
+-19.43,
+-7.48
+],
+"Lapis Expanse": [
+-20.32,
+-19.78,
+-6.19
+],
+"Largo Afternoon": [
+-21.46,
+-19.72,
+-6.44
+],
+"Largo Decrescendo": [
+-33.46,
+-34.11,
+-19.24
+],
+"Lasting Vigil": [
+-23.08,
+-22.38,
+-9.31
+],
+"Lattice Descent": [
+-20.88,
+-20.88,
+-8.73
+],
+"Lattice Drift": [
+-22.31,
+-20.94,
+-9.35
+],
+"Lattice Matrix": [
+-21.0,
+-19.9,
+-6.78
+],
+"Lattice Signal": [
+-23.18,
+-22.27,
+-9.83
+],
+"Leader Bloom": [
+-20.26,
+-16.52,
+-3.96
+],
+"Leader Delay": [
+-19.68,
+-18.54,
+-7.39
+],
+"Leader Field": [
+-22.37,
+-22.37,
+-7.74
+],
+"Leaf Environment": [
+-8.03,
+-25.23,
+-13.22
+],
+"Leaf Interval": [
+-20.51,
+-19.72,
+-7.24
+],
+"Leaf Passage": [
+-19.53,
+-17.89,
+-4.53
+],
+"Leafmould Passage": [
+-23.55,
+-24.43,
+-13.76
+],
+"Leafmould Threshold": [
+-19.95,
+-21.0,
+-9.08
+],
+"Lens Bloom": [
+-21.6,
+-21.33,
+-7.75
+],
+"Lens Hollow": [
+-19.25,
+-18.9,
+-8.12
+],
+"Lent Drift": [
+-20.86,
+-22.26,
+-10.06
+],
+"Lent Hollow": [
+-20.52,
+-20.0,
+-5.33
+],
+"Lent Reach": [
+-21.36,
+-21.54,
+-9.03
+],
+"Lepton Array": [
+-20.77,
+-18.24,
+-6.14
+],
+"Lepton Bed": [
+-19.95,
+-19.53,
+-3.89
+],
+"Lepton Bloom": [
+-20.45,
+-20.21,
+-7.17
+],
+"Lepton Expanse": [
+-19.71,
+-21.16,
+-9.03
+],
+"Lepton Hollow": [
+-20.47,
+-19.89,
+-8.18
+],
+"Lepton Reach": [
+-22.86,
+-21.9,
+-10.03
+],
+"Lepton Sequence": [
+-22.88,
+-22.62,
+-9.74
+],
+"Lepton Span": [
+-18.79,
+-18.79,
+-6.86
+],
+"Lepton Vigil": [
+-18.67,
+-18.37,
+-4.78
+],
+"Level Passage": [
+-23.66,
+-24.19,
+-6.36
+],
+"Level Reach": [
+-23.88,
+-24.32,
+-9.09
+],
+"Level Span": [
+-20.62,
+-21.01,
+-8.85
+],
+"Level Tone": [
+-22.05,
+-21.76,
+-10.13
+],
+"Lever Mass": [
+-20.16,
+-20.18,
+-8.87
+],
+"Leviathan Bed": [
+-25.51,
+-22.99,
+-8.08
+],
+"Libration Threshold": [
+-24.21,
+-24.43,
+-9.99
+],
+"Libration Wind": [
+-22.37,
+-22.35,
+-8.02
+],
+"Lichen Bloom": [
+-25.55,
+-25.56,
+-10.53
+],
+"Lichen Clearing": [
+-23.6,
+-23.6,
+-9.43
+],
+"Lightning Field": [
+-20.44,
+-20.47,
+-8.16
+],
+"Linen Veil": [
+-19.08,
+-19.24,
+-2.37
+],
+"Litany Passage": [
+-23.67,
+-35.66,
+-23.13
+],
+"Lock Descent": [
+-18.89,
+-18.5,
+-4.91
+],
+"Lock Interval": [
+-23.16,
+-23.09,
+-8.05
+],
+"Lock Scrape": [
+-24.63,
+-24.67,
+-14.52
+],
+"Lock Span": [
+-20.08,
+-19.97,
+-6.85
+],
+"Long Hum": [
+-18.84,
+-18.84,
+-5.52
+],
+"Longwave Reach": [
+-20.31,
+-19.39,
+-6.13
+],
+"Longwave Station": [
+-21.87,
+-19.72,
+-6.3
+],
+"Lotus Bloom": [
+-20.53,
+-19.91,
+-6.45
+],
+"Lotus Garden": [
+-20.14,
+-22.1,
+-8.11
+],
+"Lotus Pillar": [
+-20.7,
+-21.43,
+-8.24
+],
+"Lotus Threshold": [
+-20.05,
+-20.06,
+-6.1
+],
+"Lowland Plate": [
+-21.94,
+-22.24,
+-7.86
+],
+"Lowland Reach": [
+-20.42,
+-20.32,
+-5.07
+],
+"Lowland Tone": [
+-22.04,
+-22.04,
+-6.76
+],
+"Lowland Vigil": [
+-21.5,
+-21.91,
+-8.59
+],
+"Lull Strings": [
+-20.87,
+-20.82,
+-7.4
+],
+"Lullaby Basin": [
+-17.26,
+-17.31,
+-4.63
+],
+"Lyra Bed": [
+-20.09,
+-20.48,
+-8.09
+],
+"Lyra Span": [
+-20.98,
+-20.98,
+-9.42
+],
+"Magellan Expanse": [
+-21.72,
+-21.72,
+-7.34
+],
+"Magellan Hollow": [
+-19.84,
+-19.84,
+-5.55
+],
+"Magellan Vigil": [
+-19.8,
+-19.57,
+-7.47
+],
+"Magma Sigh": [
+-21.38,
+-20.79,
+-6.18
+],
+"Magma Threshold": [
+-20.45,
+-20.24,
+-7.58
+],
+"Magnetar Message": [
+-22.58,
+-21.01,
+-7.92
+],
+"Magnetar Passage": [
+-21.01,
+-25.16,
+-10.28
+],
+"Magnetosphere Silence": [
+-19.69,
+-20.82,
+-9.52
+],
+"Mandala Breath": [
+-20.48,
+-20.15,
+-6.49
+],
+"Mandala Vigil": [
+-20.14,
+-16.86,
+-3.8
+],
+"Mangrove Expanse": [
+-18.92,
+-19.41,
+-3.89
+],
+"Mangrove Hollow": [
+-20.09,
+-20.12,
+-7.76
+],
+"Mangrove Threshold": [
+-20.59,
+-26.39,
+-12.11
+],
+"Manifold Signal": [
+-21.43,
+-21.45,
+-6.04
+],
+"Mantel Afternoon": [
+-20.58,
+-21.77,
+-9.05
+],
+"Mantel Bed": [
+-20.65,
+-20.98,
+-7.68
+],
+"Mantel Frame": [
+-21.54,
+-17.2,
+-3.65
+],
+"Mantle Reach": [
+-21.16,
+-21.5,
+-7.69
+],
+"Mantle Shaft": [
+-21.27,
+-20.87,
+-7.88
+],
+"Mantra Veil": [
+-22.19,
+-22.19,
+-9.48
+],
+"Marrow Dusk": [
+-28.1,
+-32.71,
+-11.8
+],
+"Marrow Hollow": [
+-20.21,
+-21.01,
+-7.39
+],
+"Mast Log": [
+-20.32,
+-20.35,
+-7.24
+],
+"Meadow Field": [
+-19.74,
+-19.59,
+-7.09
+],
+"Meander Bloom": [
+-20.84,
+-17.23,
+-4.47
+],
+"Meander Calm": [
+-20.67,
+-21.84,
+-9.59
+],
+"Meander Vigil": [
+-19.35,
+-19.39,
+-6.25
+],
+"Megastructure Descent": [
+-20.28,
+-19.9,
+-6.55
+],
+"Megastructure Expanse": [
+-21.65,
+-21.23,
+-8.1
+],
+"Memory Return": [
+-20.48,
+-18.7,
+-5.78
+],
+"Memory Threshold": [
+-20.03,
+-17.74,
+-6.2
+],
+"Mere Descent": [
+-21.01,
+-20.83,
+-7.66
+],
+"Mere Dusk": [
+-20.37,
+-19.04,
+-7.98
+],
+"Mere Stone": [
+-20.28,
+-18.0,
+-6.59
+],
+"Mere Water": [
+-20.79,
+-20.17,
+-7.05
+],
+"Meridian Arc": [
+-20.34,
+-19.1,
+-6.32
+],
+"Meridian Descent": [
+-20.09,
+-20.09,
+-7.68
+],
+"Meridian Drift": [
+-22.33,
+-22.77,
+-8.06
+],
+"Meridian Signal": [
+-21.31,
+-21.64,
+-6.93
+],
+"Meteor Span": [
+-19.27,
+-19.41,
+-6.19
+],
+"Midnight Crowd": [
+-21.18,
+-18.1,
+-5.5
+],
+"Midnight Descent": [
+-20.32,
+-18.2,
+-6.31
+],
+"Midwinter Basin": [
+-20.65,
+-20.37,
+-8.12
+],
+"Midwinter Signal": [
+-27.87,
+-34.0,
+-20.26
+],
+"Midwinter Threshold": [
+-19.81,
+-19.77,
+-8.04
+],
+"Mild Reach": [
+-21.54,
+-21.79,
+-6.97
+],
+"Millisecond Basin": [
+-21.58,
+-20.6,
+-7.65
+],
+"Millisecond Drift": [
+-21.74,
+-20.87,
+-6.41
+],
+"Millisecond Passage": [
+-21.45,
+-22.26,
+-9.29
+],
+"Millrace Passage": [
+-20.68,
+-21.28,
+-8.6
+],
+"Millrace Threshold": [
+-19.56,
+-19.52,
+-6.32
+],
+"Millstone Grain": [
+-20.98,
+-21.48,
+-6.26
+],
+"Minaret Bed": [
+-24.02,
+-23.98,
+-11.97
+],
+"Minaret Interval": [
+-21.73,
+-20.92,
+-7.69
+],
+"Mirage Night": [
+-19.75,
+-19.41,
+-6.25
+],
+"Mirage Reach": [
+-19.81,
+-20.36,
+-7.09
+],
+"Mist Drift": [
+-20.18,
+-16.05,
+-5.31
+],
+"Mist Dub": [
+-20.23,
+-16.81,
+-4.25
+],
+"Mist Threshold": [
+-20.4,
+-21.18,
+-7.64
+],
+"Mitosis Bloom": [
+-22.9,
+-22.68,
+-9.03
+],
+"Mitosis Cell": [
+-19.91,
+-19.41,
+-8.55
+],
+"Mitosis Threshold": [
+-20.29,
+-19.34,
+-5.83
+],
+"Monk Bed": [
+-20.85,
+-21.3,
+-7.78
+],
+"Monorail City": [
+-20.05,
+-20.08,
+-7.72
+],
+"Monsoon Basin": [
+-18.48,
+-17.81,
+-5.79
+],
+"Monsoon Descent": [
+-19.38,
+-18.16,
+-5.93
+],
+"Monsoon Passage": [
+-19.69,
+-19.37,
+-7.04
+],
+"Monsoon Plain": [
+-20.23,
+-20.72,
+-8.37
+],
+"Monsoon Signal": [
+-20.62,
+-18.46,
+-7.36
+],
+"Monsoon Veil": [
+-18.52,
+-18.97,
+-6.89
+],
+"Monument Bed": [
+-20.11,
+-19.32,
+-7.71
+],
+"Moonrise Bloom": [
+-17.18,
+-17.59,
+-6.04
+],
+"Moonrise Drift": [
+-20.88,
+-20.33,
+-8.56
+],
+"Moonrise Shore": [
+-20.26,
+-22.23,
+-10.44
+],
+"Moonrise Span": [
+-25.97,
+-24.98,
+-13.63
+],
+"Moonrise Tide": [
+-20.17,
+-20.01,
+-7.77
+],
+"Moor Morning": [
+-18.52,
+-18.52,
+-5.6
+],
+"Moor Night": [
+-18.56,
+-18.58,
+-3.55
+],
+"Moor Passage": [
+-20.08,
+-24.21,
+-9.74
+],
+"Morse Band": [
+-15.46,
+-24.74,
+-11.37
+],
+"Morse Bloom": [
+-20.74,
+-21.48,
+-8.17
+],
+"Morse Drift": [
+-20.27,
+-19.25,
+-9.09
+],
+"Morse Signal": [
+-21.55,
+-21.5,
+-7.9
+],
+"Morse Threshold": [
+-22.58,
+-23.25,
+-9.9
+],
+"Mosaic Figure": [
+-20.26,
+-20.28,
+-7.68
+],
+"Mosaicwork Garden": [
+-20.77,
+-17.99,
+-5.47
+],
+"Mosaicwork Reach": [
+-19.26,
+-18.24,
+-6.09
+],
+"Mosaicwork Space": [
+-19.78,
+-16.27,
+-3.7
+],
+"Moss Bank": [
+-20.7,
+-20.7,
+-6.83
+],
+"Moss Chorus": [
+-19.43,
+-19.89,
+-7.14
+],
+"Mourner Field": [
+-21.78,
+-18.6,
+-5.09
+],
+"Mourner Procession": [
+-19.14,
+-18.99,
+-5.86
+],
+"Mourner Signal": [
+-20.6,
+-20.42,
+-7.71
+],
+"Mouthpiece Descent": [
+-20.74,
+-21.68,
+-8.09
+],
+"Mouthpiece Interval": [
+-20.12,
+-18.0,
+-6.34
+],
+"Mulch Drift": [
+-22.35,
+-22.24,
+-9.05
+],
+"Mulch Drone": [
+-21.92,
+-21.91,
+-8.48
+],
+"Multiple Bloom": [
+-21.02,
+-20.21,
+-10.06
+],
+"Multiple Circuit": [
+-20.84,
+-20.51,
+-9.87
+],
+"Multiple Descent": [
+-20.55,
+-20.26,
+-7.27
+],
+"Multiple Drift": [
+-19.85,
+-19.85,
+-8.05
+],
+"Multiple Expanse": [
+-23.15,
+-24.68,
+-9.59
+],
+"Multiple Field": [
+-19.33,
+-17.97,
+-7.19
+],
+"Multiple Hollow": [
+-20.27,
+-20.27,
+-7.53
+],
+"Multiple Scan": [
+-20.06,
+-17.23,
+-5.76
+],
+"Multiple Veil": [
+-20.37,
+-22.73,
+-12.16
+],
+"Muon Array": [
+-18.28,
+-17.06,
+-3.95
+],
+"Muon Basin": [
+-20.51,
+-18.98,
+-7.06
+],
+"Muon Drift": [
+-19.96,
+-18.61,
+-5.39
+],
+"Muon Expanse": [
+-20.88,
+-20.34,
+-9.72
+],
+"Muon Horizon": [
+-19.08,
+-18.65,
+-6.44
+],
+"Muon Interval": [
+-20.36,
+-21.47,
+-7.87
+],
+"Muon Reach": [
+-20.09,
+-24.07,
+-11.59
+],
+"Muon Threshold": [
+-20.13,
+-19.36,
+-9.13
+],
+"Muted Descent": [
+-19.69,
+-19.15,
+-4.23
+],
+"Mycelium Hollow": [
+-21.3,
+-20.36,
+-8.53
+],
+"Myrrh Bloom": [
+-21.79,
+-21.13,
+-7.24
+],
+"Nadir Span": [
+-19.87,
+-19.08,
+-6.14
+],
+"Nadir Veil": [
+-19.15,
+-17.03,
+-3.57
+],
+"Nave Prayer": [
+-22.86,
+-22.86,
+-10.59
+],
+"Nave Stone": [
+-21.59,
+-25.77,
+-14.36
+],
+"Near Bloom": [
+-20.15,
+-19.79,
+-7.52
+],
+"Nebula Threshold": [
+-20.74,
+-20.81,
+-8.4
+],
+"Nebula Tide": [
+-21.04,
+-18.84,
+-5.83
+],
+"Nebulae Threshold": [
+-20.8,
+-20.92,
+-7.21
+],
+"Nebulae Vigil": [
+-18.62,
+-17.04,
+-3.35
+],
+"Needle Interval": [
+-21.12,
+-21.16,
+-7.44
+],
+"Needle Memory": [
+-19.93,
+-20.33,
+-9.13
+],
+"Neon Signal": [
+-22.71,
+-22.43,
+-9.77
+],
+"Nettle Bank": [
+-19.57,
+-18.63,
+-5.63
+],
+"Neuron Interval": [
+-20.61,
+-19.71,
+-7.24
+],
+"Neuron Threshold": [
+-19.58,
+-19.41,
+-6.37
+],
+"Neutron Basin": [
+-19.27,
+-18.99,
+-6.18
+],
+"Night Basin": [
+-21.28,
+-19.74,
+-7.85
+],
+"Nightfall Field": [
+-28.67,
+-31.86,
+-15.78
+],
+"Nightjar Basin": [
+-19.33,
+-20.26,
+-5.1
+],
+"Nightjar Bloom": [
+-20.06,
+-18.67,
+-6.51
+],
+"Nightjar Descent": [
+-19.85,
+-19.85,
+-7.26
+],
+"Nightjar Recording": [
+-20.54,
+-26.37,
+-14.97
+],
+"Nightjar Signal": [
+-19.99,
+-19.99,
+-5.52
+],
+"Nocturne Gathering": [
+-22.76,
+-22.75,
+-7.17
+],
+"Nomad Threshold": [
+-22.02,
+-22.82,
+-8.12
+],
+"Northern Beacon": [
+-20.98,
+-20.36,
+-9.29
+],
+"Northern Drift": [
+-19.98,
+-19.53,
+-6.95
+],
+"Northern Vigil": [
+-19.76,
+-23.87,
+-10.63
+],
+"Nova Descent": [
+-21.22,
+-18.11,
+-5.06
+],
+"Nova Reach": [
+-24.43,
+-22.56,
+-9.35
+],
+"Nova Silence": [
+-20.17,
+-20.43,
+-7.76
+],
+"Nucleus Drift": [
+-19.36,
+-19.13,
+-7.44
+],
+"Nucleus Expanse": [
+-20.27,
+-18.94,
+-6.97
+],
+"Nucleus Field": [
+-19.62,
+-18.81,
+-7.46
+],
+"Nucleus Flux": [
+-20.5,
+-21.23,
+-7.85
+],
+"Nucleus Passage": [
+-20.01,
+-17.45,
+-6.16
+],
+"Nucleus Pulse": [
+-19.32,
+-19.32,
+-6.4
+],
+"Nucleus Reach": [
+-19.48,
+-19.38,
+-5.08
+],
+"Nucleus Sequence": [
+-20.4,
+-20.4,
+-8.78
+],
+"Oasis Road": [
+-20.41,
+-19.55,
+-6.24
+],
+"Oasis Space": [
+-20.32,
+-19.94,
+-9.07
+],
+"Obelisk Field": [
+-19.78,
+-20.03,
+-6.89
+],
+"Obelisk Reach": [
+-20.18,
+-20.46,
+-6.09
+],
+"Obsidian Fault": [
+-18.67,
+-16.89,
+-4.79
+],
+"Obsidian Fire": [
+-26.26,
+-25.06,
+-13.46
+],
+"Obsidian Shaft": [
+-23.55,
+-22.7,
+-8.91
+],
+"Obsidian Vault": [
+-19.26,
+-17.69,
+-5.53
+],
+"Ocarina Breath": [
+-20.59,
+-20.01,
+-9.34
+],
+"Ocarina Descent": [
+-20.52,
+-19.27,
+-7.02
+],
+"Ocarina Flow": [
+-20.32,
+-21.14,
+-9.23
+],
+"Occult Dimension": [
+-19.85,
+-20.03,
+-8.1
+],
+"Occult Span": [
+-19.6,
+-20.09,
+-7.06
+],
+"Occultation Reach": [
+-20.43,
+-21.43,
+-6.99
+],
+"Oceanid Storm": [
+-24.39,
+-24.04,
+-9.95
+],
+"Oceanid Vigil": [
+-21.64,
+-23.37,
+-11.87
+],
+"Ochre Bed": [
+-48.11,
+-47.24,
+-33.41
+],
+"Ochre Bloom": [
+-21.59,
+-22.38,
+-9.86
+],
+"Ochre Drift": [
+-18.85,
+-19.05,
+-7.98
+],
+"Ochre Hollow": [
+-20.24,
+-20.67,
+-8.65
+],
+"Ochre Reach": [
+-24.09,
+-23.88,
+-7.75
+],
+"Octahedron Passage": [
+-20.62,
+-21.07,
+-6.63
+],
+"Octave Basin": [
+-21.44,
+-20.74,
+-8.01
+],
+"Octave Bloom": [
+-20.12,
+-19.09,
+-8.3
+],
+"Octave Vigil": [
+-21.59,
+-21.99,
+-9.03
+],
+"Offset Basin": [
+-20.55,
+-19.14,
+-7.59
+],
+"Offset Field": [
+-20.15,
+-19.7,
+-6.84
+],
+"Offset Signal": [
+-20.15,
+-22.0,
+-9.09
+],
+"Oneiric Depth": [
+-22.16,
+-22.53,
+-7.31
+],
+"Oneiric Drift": [
+-21.73,
+-21.63,
+-7.71
+],
+"Oneiric Tide": [
+-21.5,
+-20.89,
+-6.5
+],
+"Oort Descent": [
+-20.73,
+-20.73,
+-7.84
+],
+"Opal Bed": [
+-21.06,
+-21.88,
+-9.16
+],
+"Opal Breath": [
+-20.47,
+-18.76,
+-7.3
+],
+"Opal Signal": [
+-20.94,
+-20.94,
+-9.52
+],
+"Orbital Flux": [
+-19.33,
+-19.33,
+-7.15
+],
+"Orbital Gate": [
+-21.38,
+-20.95,
+-7.52
+],
+"Orbital Passage": [
+-20.11,
+-20.62,
+-7.54
+],
+"Orbital Signal": [
+-19.95,
+-21.22,
+-7.97
+],
+"Orbital Space": [
+-20.02,
+-18.06,
+-8.18
+],
+"Orbital Span": [
+-21.97,
+-23.58,
+-11.73
+],
+"Orbital Sphere": [
+-19.68,
+-19.55,
+-10.27
+],
+"Orchard Field": [
+-20.52,
+-19.12,
+-6.69
+],
+"Orchard Fold": [
+-21.05,
+-19.64,
+-7.6
+],
+"Organ Passage": [
+-21.0,
+-21.01,
+-9.27
+],
+"Orrery Dimension": [
+-20.77,
+-21.3,
+-7.6
+],
+"Orrery Threshold": [
+-20.87,
+-20.87,
+-7.3
+],
+"Orrery Wall": [
+-20.51,
+-21.11,
+-7.75
+],
+"Oscillator Expanse": [
+-19.31,
+-18.53,
+-7.02
+],
+"Oscillator Hollow": [
+-18.79,
+-18.3,
+-6.52
+],
+"Oscillator Nocturne": [
+-19.37,
+-18.75,
+-7.5
+],
+"Oscillator Pulse": [
+-18.98,
+-24.31,
+-12.74
+],
+"Oscillator Scan": [
+-19.42,
+-19.42,
+-7.91
+],
+"Oscillator Studio": [
+-19.58,
+-19.33,
+-7.13
+],
+"Oscillator Take": [
+-21.61,
+-21.17,
+-8.16
+],
+"Oscillator Veil": [
+-20.1,
+-19.53,
+-7.77
+],
+"Ossuary Descent": [
+-20.01,
+-18.97,
+-8.02
+],
+"Ouija Expanse": [
+-21.17,
+-21.13,
+-7.32
+],
+"Ouija Voice": [
+-19.09,
+-19.18,
+-12.78
+],
+"Outback Bed": [
+-20.36,
+-18.42,
+-5.75
+],
+"Outback Glow": [
+-19.87,
+-17.63,
+-3.86
+],
+"Outback Vigil": [
+-19.64,
+-25.77,
+-11.59
+],
+"Outback Walk": [
+-19.92,
+-17.57,
+-6.59
+],
+"Overcast Horn": [
+-17.71,
+-17.52,
+-4.02
+],
+"Overpass Drift": [
+-19.49,
+-16.86,
+-3.45
+],
+"Overpass Field": [
+-20.37,
+-21.06,
+-8.58
+],
+"Overpass Hollow": [
+-19.99,
+-18.8,
+-7.48
+],
+"Overpass Level": [
+-20.25,
+-19.36,
+-6.9
+],
+"Overpass Span": [
+-20.92,
+-22.13,
+-9.77
+],
+"Owlcall Field": [
+-21.27,
+-21.25,
+-8.28
+],
+"Owlcall Shore": [
+-19.74,
+-18.6,
+-7.93
+],
+"Owlcall Swell": [
+-20.2,
+-19.94,
+-6.41
+],
+"Oxide Unfolding": [
+-20.22,
+-18.81,
+-2.77
+],
+"Pail Signal": [
+-19.89,
+-16.67,
+-4.27
+],
+"Painted Air": [
+-20.31,
+-16.08,
+-2.0
+],
+"Painted Field": [
+-20.46,
+-20.27,
+-7.41
+],
+"Painted Reach": [
+-20.75,
+-20.76,
+-8.73
+],
+"Painted Shore": [
+-19.87,
+-19.26,
+-5.68
+],
+"Pane Passage": [
+-20.35,
+-20.35,
+-6.93
+],
+"Pane Shade": [
+-21.88,
+-21.39,
+-7.8
+],
+"Pane Tone": [
+-20.54,
+-19.35,
+-8.12
+],
+"Paper Reach": [
+-20.15,
+-20.4,
+-9.69
+],
+"Parabola Field": [
+-20.34,
+-19.57,
+-7.42
+],
+"Parabola Hollow": [
+-19.58,
+-20.56,
+-6.24
+],
+"Parchment Bed": [
+-20.88,
+-20.15,
+-8.97
+],
+"Parchment Interval": [
+-19.41,
+-19.34,
+-8.54
+],
+"Parity Field": [
+-20.67,
+-20.67,
+-7.2
+],
+"Parlour Signal": [
+-20.26,
+-19.94,
+-8.65
+],
+"Parsec Passage": [
+-21.57,
+-21.86,
+-7.57
+],
+"Parsec Span": [
+-20.61,
+-18.69,
+-6.18
+],
+"Parsec Vigil": [
+-21.39,
+-21.85,
+-9.27
+],
+"Pastel Signal": [
+-20.33,
+-20.43,
+-6.64
+],
+"Patch Interval": [
+-20.4,
+-19.76,
+-9.41
+],
+"Patch Passage": [
+-20.46,
+-19.12,
+-8.01
+],
+"Patch Pattern": [
+-20.44,
+-18.92,
+-7.34
+],
+"Patch Signal": [
+-21.24,
+-20.76,
+-9.53
+],
+"Patch Veil": [
+-24.64,
+-24.45,
+-13.66
+],
+"Patchbay Signal": [
+-21.75,
+-21.75,
+-8.6
+],
+"Patience Basin": [
+-21.1,
+-21.34,
+-9.82
+],
+"Patience Drift": [
+-22.51,
+-22.86,
+-8.44
+],
+"Patience Threshold": [
+-21.34,
+-20.39,
+-6.16
+],
+"Patient Descent": [
+-22.48,
+-22.45,
+-9.18
+],
+"Payload Orbit": [
+-20.25,
+-20.73,
+-8.35
+],
+"Payload Passage": [
+-21.35,
+-19.84,
+-4.62
+],
+"Pearl Bloom": [
+-21.44,
+-20.19,
+-9.73
+],
+"Pearl Expanse": [
+-20.95,
+-20.49,
+-6.91
+],
+"Pearl Glass": [
+-21.14,
+-20.25,
+-7.19
+],
+"Pearl Hours": [
+-20.51,
+-20.23,
+-8.8
+],
+"Pebble Interval": [
+-19.39,
+-19.94,
+-9.47
+],
+"Pedal Basin": [
+-18.77,
+-19.96,
+-6.06
+],
+"Pedal Bed": [
+-21.78,
+-22.65,
+-9.03
+],
+"Pedal Expanse": [
+-20.99,
+-21.32,
+-7.51
+],
+"Pedal Hour": [
+-20.56,
+-20.18,
+-6.41
+],
+"Pedal Reach": [
+-19.75,
+-20.53,
+-7.93
+],
+"Pedal Tone": [
+-21.67,
+-21.08,
+-8.25
+],
+"Pelog Span": [
+-20.13,
+-18.72,
+-6.78
+],
+"Penance Basin": [
+-20.49,
+-21.78,
+-11.22
+],
+"Perigee Threshold": [
+-20.16,
+-19.5,
+-6.12
+],
+"Perihelion Passage": [
+-20.97,
+-20.3,
+-4.88
+],
+"Petroglyph Descent": [
+-24.03,
+-24.31,
+-10.19
+],
+"Petroglyph Threshold": [
+-21.24,
+-20.31,
+-7.07
+],
+"Pewter Hollow": [
+-20.88,
+-20.89,
+-8.26
+],
+"Pewter Interval": [
+-19.35,
+-19.84,
+-3.86
+],
+"Phantasm Sea": [
+-19.2,
+-19.63,
+-6.07
+],
+"Phantasm Vigil": [
+-22.65,
+-22.47,
+-8.2
+],
+"Phase Circuit": [
+-19.61,
+-18.12,
+-6.96
+],
+"Phase Descent": [
+-18.87,
+-18.42,
+-6.13
+],
+"Phase Drift": [
+-23.27,
+-22.71,
+-8.61
+],
+"Phase Pulse": [
+-20.09,
+-18.53,
+-6.08
+],
+"Phase Reach": [
+-19.57,
+-18.31,
+-7.74
+],
+"Phase Veil": [
+-20.51,
+-20.51,
+-6.32
+],
+"Phonograph Dust": [
+-19.43,
+-19.43,
+-5.6
+],
+"Phonograph Signal": [
+-20.8,
+-19.53,
+-5.21
+],
+"Photon Basin": [
+-19.99,
+-15.05,
+-2.73
+],
+"Photon Bed": [
+-20.09,
+-17.35,
+-6.36
+],
+"Photon Descent": [
+-21.32,
+-20.89,
+-9.16
+],
+"Photon Hollow": [
+-22.22,
+-22.18,
+-9.8
+],
+"Pier Signal": [
+-25.2,
+-24.99,
+-8.93
+],
+"Pier Swell": [
+-19.36,
+-17.92,
+-5.5
+],
+"Pilgrim Bed": [
+-21.13,
+-20.15,
+-6.7
+],
+"Pilgrim Passage": [
+-20.68,
+-19.37,
+-5.16
+],
+"Pilgrim Vigil": [
+-22.04,
+-22.48,
+-7.57
+],
+"Pin Expanse": [
+-23.18,
+-23.18,
+-9.23
+],
+"Pine Clearing": [
+-20.49,
+-18.84,
+-5.97
+],
+"Pistachio Night": [
+-20.36,
+-17.46,
+-7.12
+],
+"Pistachio Tribe": [
+-20.37,
+-16.8,
+-3.82
+],
+"Pith Morning": [
+-22.99,
+-22.89,
+-7.96
+],
+"Pixel Span": [
+-24.35,
+-25.07,
+-10.47
+],
+"Plasma Array": [
+-19.3,
+-18.76,
+-6.78
+],
+"Plasma Basin": [
+-20.61,
+-19.85,
+-7.51
+],
+"Plasma Bloom": [
+-19.14,
+-16.76,
+-4.24
+],
+"Plasma Descent": [
+-20.28,
+-19.96,
+-9.45
+],
+"Plasma Flux": [
+-19.22,
+-19.22,
+-6.37
+],
+"Plasma Hollow": [
+-22.86,
+-22.9,
+-9.15
+],
+"Plasma Horizon": [
+-20.76,
+-20.27,
+-7.6
+],
+"Plasma Interval": [
+-20.51,
+-19.86,
+-9.13
+],
+"Plasma Passage": [
+-20.72,
+-22.36,
+-10.51
+],
+"Plasma Span": [
+-20.89,
+-19.7,
+-5.93
+],
+"Plasma Threshold": [
+-19.77,
+-24.7,
+-10.58
+],
+"Plasma Veil": [
+-21.11,
+-22.72,
+-10.85
+],
+"Plasma Void": [
+-21.02,
+-21.04,
+-9.96
+],
+"Plaza March": [
+-19.1,
+-21.56,
+-10.91
+],
+"Plover Reach": [
+-19.34,
+-19.35,
+-7.78
+],
+"Plover Season": [
+-24.27,
+-24.28,
+-12.07
+],
+"Plover Span": [
+-21.29,
+-21.95,
+-10.91
+],
+"Plover Vigil": [
+-20.7,
+-20.49,
+-9.05
+],
+"Pneumatic Drift": [
+-20.16,
+-20.16,
+-9.67
+],
+"Pneumatic Field": [
+-21.93,
+-21.17,
+-7.79
+],
+"Polar Descent": [
+-23.83,
+-24.11,
+-9.52
+],
+"Polar Night": [
+-18.67,
+-18.9,
+-4.5
+],
+"Polar Passage": [
+-20.18,
+-25.88,
+-9.16
+],
+"Polyhedron Expanse": [
+-24.03,
+-22.62,
+-8.72
+],
+"Polyhedron Threshold": [
+-24.99,
+-24.95,
+-11.72
+],
+"Pomegranate Interval": [
+-24.02,
+-22.87,
+-7.66
+],
+"Pomegranate Span": [
+-21.02,
+-20.85,
+-9.07
+],
+"Pool Bowing": [
+-21.22,
+-19.73,
+-2.95
+],
+"Pool Descent": [
+-25.38,
+-26.45,
+-12.86
+],
+"Pool Passage": [
+-20.17,
+-20.52,
+-8.25
+],
+"Positron Bloom": [
+-20.12,
+-18.9,
+-7.0
+],
+"Positron Descent": [
+-20.84,
+-19.56,
+-9.75
+],
+"Positron Expanse": [
+-20.02,
+-19.25,
+-7.89
+],
+"Positron Field": [
+-20.18,
+-17.84,
+-4.55
+],
+"Positron Flux": [
+-19.13,
+-18.91,
+-5.9
+],
+"Positron Glow": [
+-20.33,
+-19.16,
+-6.04
+],
+"Positron Horizon": [
+-18.65,
+-19.29,
+-6.07
+],
+"Positron Space": [
+-20.04,
+-19.9,
+-7.46
+],
+"Positron Span": [
+-20.32,
+-19.69,
+-9.06
+],
+"Prana Bed": [
+-29.53,
+-36.32,
+-20.83
+],
+"Prana Dawn": [
+-20.4,
+-20.79,
+-10.11
+],
+"Precession Signal": [
+-20.84,
+-19.02,
+-5.41
+],
+"Precession Threshold": [
+-19.19,
+-18.12,
+-3.95
+],
+"Primeval Storm": [
+-42.26,
+-42.25,
+-16.5
+],
+"Prism Fold": [
+-21.82,
+-21.32,
+-9.91
+],
+"Prism Passage": [
+-21.93,
+-20.75,
+-9.11
+],
+"Probe Hollow": [
+-22.17,
+-21.78,
+-5.81
+],
+"Protein Interval": [
+-20.57,
+-19.8,
+-7.53
+],
+"Pulsar Basin": [
+-20.36,
+-20.95,
+-8.12
+],
+"Pulsar Dock": [
+-21.73,
+-22.52,
+-9.15
+],
+"Pulsar Message": [
+-21.27,
+-20.97,
+-6.3
+],
+"Pulsar Passage": [
+-20.95,
+-20.84,
+-9.55
+],
+"Pumphouse Pit": [
+-20.56,
+-19.11,
+-5.66
+],
+"Pylon Drift": [
+-21.44,
+-24.25,
+-10.59
+],
+"Pylon Hollow": [
+-20.47,
+-19.82,
+-6.82
+],
+"Pylon Signal": [
+-21.19,
+-19.6,
+-6.47
+],
+"Pylon Veil": [
+-24.02,
+-24.02,
+-9.46
+],
+"Pyramid Gate": [
+-20.46,
+-20.8,
+-9.3
+],
+"Pyramid Throne": [
+-20.33,
+-19.7,
+-5.68
+],
+"Qanat Span": [
+-22.46,
+-22.45,
+-9.27
+],
+"Qanat Veil": [
+-19.64,
+-20.56,
+-6.83
+],
+"Quantum Drift": [
+-21.2,
+-20.81,
+-8.18
+],
+"Quark Bed": [
+-20.4,
+-19.28,
+-6.09
+],
+"Quark Bloom": [
+-18.2,
+-18.01,
+-6.7
+],
+"Quark Descent": [
+-19.74,
+-18.04,
+-5.25
+],
+"Quark Flux": [
+-20.52,
+-19.97,
+-7.94
+],
+"Quark Hollow": [
+-20.84,
+-20.07,
+-6.63
+],
+"Quark Interval": [
+-20.21,
+-19.28,
+-7.9
+],
+"Quark Passage": [
+-19.86,
+-21.12,
+-9.36
+],
+"Quark Span": [
+-20.67,
+-20.17,
+-6.97
+],
+"Quark Vigil": [
+-20.2,
+-21.26,
+-8.01
+],
+"Quartz Drift": [
+-22.79,
+-23.13,
+-1.26
+],
+"Quartz Tone": [
+-19.85,
+-20.26,
+-8.24
+],
+"Quasar Relay": [
+-19.8,
+-18.27,
+-6.81
+],
+"Quasar Veil": [
+-20.11,
+-19.74,
+-8.49
+],
+"Quayside Field": [
+-22.33,
+-22.33,
+-9.66
+],
+"Quayside Interval": [
+-18.99,
+-19.34,
+-7.9
+],
+"Quiet Basin": [
+-21.33,
+-22.1,
+-5.86
+],
+"Radiance Chord": [
+-19.95,
+-20.95,
+-3.4
+],
+"Radiance Wall": [
+-21.49,
+-20.94,
+-7.05
+],
+"Radiant Source": [
+-18.75,
+-18.75,
+-6.36
+],
+"Radiosonde Beacon": [
+-19.01,
+-18.69,
+-6.55
+],
+"Radiosonde Descent": [
+-20.44,
+-19.44,
+-7.52
+],
+"Rainfall Vapour": [
+-21.01,
+-19.93,
+-7.18
+],
+"Rainline Interval": [
+-20.34,
+-20.33,
+-8.89
+],
+"Rainline Vigil": [
+-20.06,
+-18.6,
+-6.19
+],
+"Rainstick Bloom": [
+-18.99,
+-18.99,
+-4.99
+],
+"Rainstick Vigil": [
+-20.31,
+-18.39,
+-4.56
+],
+"Rainwater Environment": [
+-19.14,
+-19.15,
+-6.32
+],
+"Rainwater Threshold": [
+-35.84,
+-35.38,
+-21.9
+],
+"Ramp Bed": [
+-18.83,
+-18.53,
+-6.79
+],
+"Ramp Expanse": [
+-19.77,
+-19.77,
+-7.25
+],
+"Ramp Passage": [
+-19.81,
+-19.18,
+-8.04
+],
+"Ramp Pulse": [
+-20.08,
+-21.74,
+-9.13
+],
+"Ratio Hollow": [
+-20.1,
+-18.72,
+-5.33
+],
+"Ratio Hours": [
+-21.72,
+-19.21,
+-6.25
+],
+"Rattle Descent": [
+-25.41,
+-27.06,
+-14.19
+],
+"Rattle Drift": [
+-22.89,
+-22.9,
+-10.24
+],
+"Rawhide Objects": [
+-20.76,
+-20.06,
+-6.75
+],
+"Reactor Array": [
+-20.01,
+-20.01,
+-7.49
+],
+"Reactor Flux": [
+-19.39,
+-18.83,
+-6.48
+],
+"Reactor Horizon": [
+-20.8,
+-20.8,
+-6.86
+],
+"Reactor Space": [
+-20.55,
+-20.38,
+-5.36
+],
+"Reactor Veil": [
+-17.24,
+-24.96,
+-13.96
+],
+"Recess Descent": [
+-19.32,
+-18.97,
+-8.02
+],
+"Recess Reach": [
+-20.67,
+-21.33,
+-6.39
+],
+"Redrock Basin": [
+-20.57,
+-21.61,
+-11.25
+],
+"Redrock Bed": [
+-19.64,
+-21.07,
+-6.87
+],
+"Redrock Hollow": [
+-20.2,
+-18.99,
+-6.17
+],
+"Redrock Night": [
+-20.42,
+-19.49,
+-7.08
+],
+"Redrock Signal": [
+-20.33,
+-19.19,
+-7.59
+],
+"Redshift Band": [
+-21.38,
+-20.77,
+-6.4
+],
+"Redshift Threshold": [
+-20.95,
+-21.38,
+-7.86
+],
+"Reel Bed": [
+-20.04,
+-20.71,
+-8.77
+],
+"Reel Interval": [
+-20.32,
+-20.32,
+-7.98
+],
+"Refinery Drift": [
+-20.1,
+-19.93,
+-9.93
+],
+"Refinery Horn": [
+-18.72,
+-17.64,
+-6.72
+],
+"Regal Veil": [
+-20.86,
+-20.55,
+-7.98
+],
+"Relay Veil": [
+-19.29,
+-19.24,
+-8.36
+],
+"Relic Field": [
+-20.77,
+-19.92,
+-7.29
+],
+"Relic Memory": [
+-19.94,
+-19.95,
+-6.85
+],
+"Reliquary Passage": [
+-20.46,
+-19.47,
+-6.99
+],
+"Reservoir Bed": [
+-20.53,
+-20.97,
+-6.87
+],
+"Reservoir Vigil": [
+-20.78,
+-21.3,
+-8.65
+],
+"Resin Signal": [
+-19.54,
+-19.21,
+-6.09
+],
+"Resonant Chant": [
+-19.39,
+-19.83,
+-5.04
+],
+"Reverie Drift": [
+-23.01,
+-23.15,
+-10.3
+],
+"Rhizome Descent": [
+-20.27,
+-18.21,
+-7.32
+],
+"Rhizome Drift": [
+-20.42,
+-18.07,
+-5.25
+],
+"Rhombus Expanse": [
+-24.19,
+-21.68,
+-7.33
+],
+"Rigging Bed": [
+-21.7,
+-21.59,
+-8.53
+],
+"Rigging Veil": [
+-26.9,
+-26.9,
+-10.79
+],
+"Rill Signal": [
+-20.07,
+-20.08,
+-9.27
+],
+"Rime Shelf": [
+-19.42,
+-21.09,
+-7.68
+],
+"Ripple Calm": [
+-19.35,
+-19.07,
+-6.56
+],
+"River Basin": [
+-17.61,
+-16.23,
+-3.19
+],
+"River Bloom": [
+-20.22,
+-19.05,
+-8.58
+],
+"River Veil": [
+-20.04,
+-20.05,
+-7.19
+],
+"Riverbed Span": [
+-20.35,
+-20.37,
+-7.86
+],
+"Rivet Hollow": [
+-21.38,
+-22.17,
+-9.07
+],
+"Rookery Drift": [
+-20.97,
+-21.61,
+-12.3
+],
+"Rookery Reach": [
+-20.56,
+-19.65,
+-6.75
+],
+"Rookery Recording": [
+-23.61,
+-26.62,
+-14.69
+],
+"Root Field": [
+-20.17,
+-21.38,
+-8.34
+],
+"Root Reach": [
+-20.3,
+-20.11,
+-9.61
+],
+"Root Veil": [
+-20.13,
+-20.83,
+-3.95
+],
+"Rose Circle": [
+-20.12,
+-19.17,
+-6.36
+],
+"Rose Drift": [
+-20.33,
+-20.02,
+-7.25
+],
+"Rose Night": [
+-22.25,
+-22.25,
+-12.54
+],
+"Rosewater Interval": [
+-19.96,
+-19.95,
+-8.96
+],
+"Rosewater Signal": [
+-19.79,
+-19.3,
+-6.54
+],
+"Rosin Decrescendo": [
+-21.79,
+-20.25,
+-7.32
+],
+"Rotunda Expanse": [
+-20.23,
+-21.19,
+-8.11
+],
+"Rune Signal": [
+-20.55,
+-21.06,
+-7.59
+],
+"Rushes Veil": [
+-19.8,
+-18.85,
+-4.81
+],
+"Rushes Window": [
+-20.2,
+-20.78,
+-9.26
+],
+"Rushwater Passage": [
+-20.4,
+-21.06,
+-7.82
+],
+"Rushwater Pool": [
+-19.39,
+-19.4,
+-8.52
+],
+"Rust Veil": [
+-21.58,
+-19.7,
+-5.56
+],
+"Rust Vigil": [
+-21.2,
+-20.76,
+-8.89
+],
+"Sackcloth Span": [
+-19.18,
+-22.05,
+-11.07
+],
+"Saffron Bed": [
+-22.52,
+-22.25,
+-10.42
+],
+"Saffron Bloom": [
+-23.83,
+-23.56,
+-10.91
+],
+"Saffron Garden": [
+-21.15,
+-18.42,
+-5.71
+],
+"Sage Drift": [
+-19.02,
+-19.58,
+-8.18
+],
+"Sage Fire": [
+-20.15,
+-16.67,
+-2.92
+],
+"Sage Passage": [
+-20.13,
+-18.22,
+-5.72
+],
+"Sage Sky": [
+-20.65,
+-19.21,
+-5.31
+],
+"Saguaro Crossing": [
+-23.16,
+-23.76,
+-11.63
+],
+"Saguaro Hollow": [
+-20.95,
+-20.95,
+-9.21
+],
+"Saguaro Interval": [
+-18.07,
+-12.18,
+-1.28
+],
+"Saguaro Night": [
+-18.65,
+-25.63,
+-12.37
+],
+"Saguaro Plain": [
+-20.77,
+-20.25,
+-6.41
+],
+"Saguaro Span": [
+-23.48,
+-22.1,
+-8.99
+],
+"Saguaro Walk": [
+-19.87,
+-18.96,
+-6.99
+],
+"Saltmarsh Chorus": [
+-19.54,
+-19.54,
+-6.12
+],
+"Saltmarsh Drift": [
+-25.14,
+-28.73,
+-15.15
+],
+"Saltmarsh Span": [
+-20.94,
+-20.2,
+-9.3
+],
+"Samadhi Hollow": [
+-21.68,
+-21.67,
+-8.35
+],
+"Samadhi Pillar": [
+-22.62,
+-22.45,
+-7.61
+],
+"Sanctuary Hours": [
+-19.0,
+-19.68,
+-5.15
+],
+"Sanctum Breath": [
+-21.52,
+-20.49,
+-5.75
+],
+"Sandalwood Field": [
+-20.11,
+-20.92,
+-7.42
+],
+"Sandalwood Road": [
+-20.6,
+-21.43,
+-10.24
+],
+"Sandstone Descent": [
+-20.65,
+-20.58,
+-7.8
+],
+"Sandstone Reach": [
+-20.78,
+-21.13,
+-7.41
+],
+"Sandstone Smoke": [
+-20.58,
+-20.58,
+-6.15
+],
+"Sap Morning": [
+-21.14,
+-20.68,
+-6.62
+],
+"Sastrugi Hollow": [
+-19.67,
+-19.34,
+-6.22
+],
+"Sastrugi Shelf": [
+-19.18,
+-20.42,
+-9.06
+],
+"Saturate Interval": [
+-19.23,
+-18.31,
+-4.38
+],
+"Scaffold Descent": [
+-25.52,
+-25.52,
+-9.95
+],
+"Scaffold Drift": [
+-19.69,
+-19.6,
+-5.99
+],
+"Scaffold Hour": [
+-20.74,
+-20.47,
+-6.89
+],
+"Seafloor Bloom": [
+-20.29,
+-28.74,
+-12.94
+],
+"Sealion Night": [
+-21.44,
+-21.23,
+-8.61
+],
+"Sealskin Sheet": [
+-20.98,
+-24.07,
+-11.7
+],
+"Seance Memory": [
+-21.04,
+-21.83,
+-7.72
+],
+"Seance Voice": [
+-20.17,
+-20.16,
+-5.21
+],
+"Season Expanse": [
+-21.93,
+-21.13,
+-6.97
+],
+"Seawall Channel": [
+-19.57,
+-18.52,
+-4.56
+],
+"Sediment Distance": [
+-21.4,
+-21.29,
+-7.43
+],
+"Sediment Interval": [
+-21.17,
+-19.4,
+-6.67
+],
+"Seedpod Threshold": [
+-19.64,
+-19.78,
+-8.39
+],
+"Seismic Bed": [
+-14.56,
+-15.61,
+-1.63
+],
+"Seismic Vigil": [
+-21.0,
+-21.17,
+-6.4
+],
+"Sepia Fold": [
+-24.73,
+-24.19,
+-10.96
+],
+"Sepia Span": [
+-15.9,
+-31.28,
+-17.98
+],
+"Sepulchre Prayer": [
+-20.64,
+-20.66,
+-7.32
+],
+"Sepulchre Signal": [
+-20.19,
+-20.91,
+-8.17
+],
+"Sequencer Bed": [
+-17.91,
+-17.14,
+-5.55
+],
+"Sequencer Bloom": [
+-19.13,
+-18.7,
+-6.68
+],
+"Sequencer Interval": [
+-20.72,
+-18.78,
+-8.32
+],
+"Sequencer Loop": [
+-20.14,
+-19.74,
+-7.17
+],
+"Sequencer Signal": [
+-20.87,
+-19.77,
+-8.24
+],
+"Sequencer Threshold": [
+-27.6,
+-26.89,
+-15.61
+],
+"Serac Signal": [
+-20.08,
+-19.83,
+-4.3
+],
+"Seventh Passage": [
+-18.42,
+-18.79,
+-7.01
+],
+"Sextant Bloom": [
+-23.88,
+-24.63,
+-8.51
+],
+"Shard Drift": [
+-19.69,
+-19.96,
+-7.56
+],
+"Shard Figure": [
+-20.6,
+-20.6,
+-7.58
+],
+"Shard Form": [
+-21.56,
+-20.72,
+-6.67
+],
+"Shard Passage": [
+-24.44,
+-24.31,
+-10.51
+],
+"Shatter Bed": [
+-20.14,
+-20.05,
+-6.86
+],
+"Shatter Drift": [
+-20.32,
+-20.32,
+-6.86
+],
+"Sheepbell Basin": [
+-26.0,
+-26.65,
+-15.3
+],
+"Sheepbell Vigil": [
+-20.44,
+-20.89,
+-7.24
+],
+"Shell Air": [
+-22.07,
+-22.09,
+-9.82
+],
+"Shell Basin": [
+-18.65,
+-18.95,
+-7.44
+],
+"Shellac Signal": [
+-19.69,
+-19.0,
+-6.09
+],
+"Shore Descent": [
+-19.25,
+-17.64,
+-6.07
+],
+"Shore Field": [
+-20.44,
+-21.71,
+-10.13
+],
+"Shortwave Descent": [
+-20.99,
+-19.61,
+-8.0
+],
+"Shortwave Drift": [
+-20.22,
+-25.59,
+-11.6
+],
+"Shortwave Fade": [
+-24.77,
+-24.98,
+-10.95
+],
+"Shroud Bed": [
+-19.55,
+-20.25,
+-7.78
+],
+"Sibyl Dream": [
+-18.7,
+-18.43,
+-4.32
+],
+"Sibyl Drift": [
+-21.3,
+-21.3,
+-7.88
+],
+"Sibyl Vigil": [
+-20.79,
+-21.34,
+-10.17
+],
+"Sideband Bloom": [
+-20.91,
+-18.93,
+-5.28
+],
+"Sideband Call": [
+-22.06,
+-22.65,
+-9.05
+],
+"Sideband Veil": [
+-19.85,
+-19.34,
+-7.12
+],
+"Sideshow Basin": [
+-20.91,
+-21.4,
+-6.37
+],
+"Sideshow Veil": [
+-20.17,
+-17.89,
+-6.22
+],
+"Siding Bloom": [
+-20.42,
+-24.73,
+-11.08
+],
+"Siding Drift": [
+-23.48,
+-23.87,
+-8.56
+],
+"Siding Expanse": [
+-19.27,
+-19.13,
+-7.22
+],
+"Siding Resonance": [
+-21.44,
+-21.41,
+-8.76
+],
+"Sigil Descent": [
+-19.64,
+-19.18,
+-4.98
+],
+"Sigil Order": [
+-20.1,
+-20.23,
+-8.54
+],
+"Signal Fog": [
+-19.57,
+-17.56,
+-5.85
+],
+"Silhouette Span": [
+-20.01,
+-19.4,
+-7.66
+],
+"Silk Span": [
+-20.26,
+-20.14,
+-7.73
+],
+"Silo Bed": [
+-22.25,
+-24.95,
+-12.58
+],
+"Silo Chamber": [
+-26.27,
+-26.23,
+-12.31
+],
+"Silo Descent": [
+-22.74,
+-23.22,
+-6.75
+],
+"Silo Echo": [
+-24.22,
+-24.88,
+-9.8
+],
+"Silt Travel": [
+-20.83,
+-19.53,
+-7.16
+],
+"Silt Veil": [
+-22.01,
+-23.15,
+-9.89
+],
+"Silver Hollow": [
+-20.2,
+-20.17,
+-9.96
+],
+"Silvered Interval": [
+-20.48,
+-20.48,
+-7.46
+],
+"Single Hour": [
+-26.03,
+-25.67,
+-10.9
+],
+"Siren Threshold": [
+-20.34,
+-21.05,
+-7.89
+],
+"Sirius Bloom": [
+-20.85,
+-21.52,
+-8.37
+],
+"Sirius Gate": [
+-20.65,
+-24.9,
+-10.36
+],
+"Skerry Hollow": [
+-19.51,
+-18.94,
+-8.69
+],
+"Skip Night": [
+-22.07,
+-21.7,
+-6.54
+],
+"Skyline District": [
+-19.04,
+-18.58,
+-4.84
+],
+"Skyline Signal": [
+-20.19,
+-20.22,
+-10.31
+],
+"Skyline Stars": [
+-23.54,
+-21.67,
+-8.53
+],
+"Slate Passage": [
+-23.62,
+-23.52,
+-5.64
+],
+"Slate Span": [
+-21.41,
+-20.03,
+-8.79
+],
+"Slate Threshold": [
+-21.75,
+-21.02,
+-6.3
+],
+"Slate Unfolding": [
+-21.56,
+-21.95,
+-10.63
+],
+"Sleep Expanse": [
+-21.02,
+-21.02,
+-8.78
+],
+"Sleep Field": [
+-19.96,
+-20.19,
+-7.18
+],
+"Slew Basin": [
+-20.57,
+-16.32,
+-4.78
+],
+"Slew Passage": [
+-20.79,
+-19.5,
+-9.37
+],
+"Slew Reach": [
+-19.32,
+-18.96,
+-5.37
+],
+"Slew Scan": [
+-21.09,
+-20.15,
+-7.16
+],
+"Slew Span": [
+-20.99,
+-19.77,
+-6.9
+],
+"Slew Vigil": [
+-20.08,
+-17.93,
+-6.13
+],
+"Sloth Descent": [
+-23.95,
+-23.94,
+-11.29
+],
+"Sloth Interval": [
+-20.73,
+-26.03,
+-14.6
+],
+"Sludge Field": [
+-25.66,
+-25.75,
+-10.65
+],
+"Sluice Drift": [
+-22.41,
+-21.78,
+-7.31
+],
+"Sluicegate Signal": [
+-20.01,
+-20.29,
+-6.49
+],
+"Slumber Depth": [
+-22.38,
+-20.54,
+-5.49
+],
+"Slumber Vigil": [
+-20.91,
+-20.52,
+-7.19
+],
+"Smear Loop": [
+-20.36,
+-20.17,
+-7.13
+],
+"Smoke Passage": [
+-20.7,
+-20.23,
+-7.58
+],
+"Smokestack Bed": [
+-21.91,
+-21.81,
+-9.84
+],
+"Smokestack Reach": [
+-21.92,
+-22.02,
+-8.93
+],
+"Smokestack Ward": [
+-19.96,
+-19.62,
+-7.75
+],
+"Snowfield Drift": [
+-20.27,
+-17.69,
+-5.3
+],
+"Sodium Interval": [
+-26.72,
+-24.59,
+-11.44
+],
+"Sodium Reach": [
+-20.38,
+-18.35,
+-6.98
+],
+"Soft Passage": [
+-20.53,
+-19.38,
+-6.77
+],
+"Soft Reach": [
+-20.13,
+-20.79,
+-8.44
+],
+"Solace Descent": [
+-19.36,
+-19.01,
+-7.29
+],
+"Solace Sustain": [
+-19.93,
+-20.43,
+-6.4
+],
+"Solar Dark": [
+-20.58,
+-20.54,
+-8.17
+],
+"Solitary Interval": [
+-26.26,
+-25.64,
+-11.45
+],
+"Solitary Vigil": [
+-20.27,
+-20.28,
+-7.13
+],
+"Solstice Light": [
+-19.96,
+-20.47,
+-8.35
+],
+"Somnia Basin": [
+-19.79,
+-20.64,
+-4.01
+],
+"Somnolent Afternoon": [
+-20.52,
+-19.52,
+-4.2
+],
+"Somnolent Decrescendo": [
+-20.31,
+-17.38,
+-5.13
+],
+"Somnolent Expanse": [
+-19.63,
+-19.65,
+-7.83
+],
+"Somnolent Span": [
+-20.06,
+-20.06,
+-5.95
+],
+"Sonar Basin": [
+-19.54,
+-18.76,
+-4.38
+],
+"Sonar Passage": [
+-20.46,
+-18.98,
+-8.96
+],
+"Sonar Shelf": [
+-20.6,
+-21.2,
+-7.48
+],
+"Sonar Signal": [
+-20.28,
+-20.7,
+-8.21
+],
+"Sonar Vigil": [
+-20.9,
+-20.1,
+-7.55
+],
+"Songline Basin": [
+-20.85,
+-19.39,
+-7.42
+],
+"Songline Expanse": [
+-20.94,
+-19.66,
+-6.38
+],
+"Songline Glow": [
+-20.3,
+-19.62,
+-5.94
+],
+"Songline Interval": [
+-20.38,
+-20.38,
+-7.21
+],
+"Songline Night": [
+-19.59,
+-18.99,
+-5.69
+],
+"Songline Passage": [
+-20.33,
+-20.33,
+-8.56
+],
+"Songline Threshold": [
+-25.58,
+-25.72,
+-6.36
+],
+"Soot Basin": [
+-20.84,
+-20.18,
+-8.12
+],
+"Soot Bed": [
+-20.11,
+-20.42,
+-8.42
+],
+"Soot Bloom": [
+-21.24,
+-21.91,
+-9.18
+],
+"Soot Loop": [
+-19.72,
+-19.94,
+-7.79
+],
+"Sounding Dub": [
+-19.52,
+-20.24,
+-8.22
+],
+"Sounding Passage": [
+-19.88,
+-20.39,
+-7.05
+],
+"Sousaphone Plate": [
+-21.28,
+-19.42,
+-7.05
+],
+"Sousaphone Veil": [
+-20.62,
+-20.62,
+-7.92
+],
+"Spectre Haunt": [
+-19.49,
+-20.1,
+-6.56
+],
+"Spectre Signal": [
+-19.56,
+-18.65,
+-5.71
+],
+"Spectre Span": [
+-23.09,
+-23.09,
+-8.82
+],
+"Spice Night": [
+-20.47,
+-20.47,
+-8.49
+],
+"Spillway Bloom": [
+-18.8,
+-18.0,
+-4.44
+],
+"Spillway Interval": [
+-20.6,
+-19.89,
+-7.96
+],
+"Spiral Passage": [
+-22.75,
+-22.29,
+-5.15
+],
+"Spirit Bed": [
+-19.17,
+-19.99,
+-6.99
+],
+"Spirit Circle": [
+-20.84,
+-20.8,
+-9.01
+],
+"Spirit Field": [
+-20.06,
+-20.06,
+-5.0
+],
+"Spirit Hollow": [
+-20.28,
+-19.27,
+-6.65
+],
+"Spirit Sky": [
+-26.99,
+-25.01,
+-14.16
+],
+"Spool Circle": [
+-20.45,
+-21.15,
+-9.62
+],
+"Spool Descent": [
+-21.13,
+-20.87,
+-8.14
+],
+"Spool Drift": [
+-19.67,
+-18.08,
+-4.85
+],
+"Sporangium Bed": [
+-19.55,
+-19.64,
+-5.82
+],
+"Sporangium Ground": [
+-20.8,
+-21.64,
+-8.27
+],
+"Spore Hollow": [
+-20.62,
+-20.29,
+-9.07
+],
+"Spring Vigil": [
+-20.05,
+-19.93,
+-6.59
+],
+"Spruce Descent": [
+-30.24,
+-28.8,
+-12.72
+],
+"Spruce Hollow": [
+-18.27,
+-18.31,
+-3.64
+],
+"Sputnik Grid": [
+-20.04,
+-20.04,
+-8.62
+],
+"Sputnik Sequence": [
+-19.77,
+-20.02,
+-9.23
+],
+"Sputnik Veil": [
+-19.75,
+-18.78,
+-5.38
+],
+"Squall Bloom": [
+-20.54,
+-24.43,
+-8.78
+],
+"Squall Dub": [
+-21.1,
+-21.58,
+-9.06
+],
+"Squall Pulse": [
+-19.4,
+-18.98,
+-8.2
+],
+"Squall Reach": [
+-19.87,
+-19.36,
+-9.02
+],
+"Squall Veil": [
+-19.91,
+-19.95,
+-6.17
+],
+"Stairwell Hour": [
+-19.67,
+-18.79,
+-4.8
+],
+"Stairwell Reach": [
+-21.44,
+-22.06,
+-7.96
+],
+"Standing Field": [
+-24.61,
+-24.63,
+-10.7
+],
+"Standing Horizon": [
+-21.55,
+-19.22,
+-5.47
+],
+"Standpipe Bed": [
+-20.14,
+-20.87,
+-10.52
+],
+"Starboard Bed": [
+-21.46,
+-20.6,
+-5.97
+],
+"Starlit Bed": [
+-21.36,
+-20.21,
+-7.41
+],
+"Static Bed": [
+-21.5,
+-21.59,
+-6.22
+],
+"Static Passage": [
+-19.79,
+-19.02,
+-4.85
+],
+"Static Reach": [
+-19.5,
+-18.48,
+-5.26
+],
+"Steel Bed": [
+-21.07,
+-18.9,
+-4.82
+],
+"Steel Cycle": [
+-19.01,
+-18.66,
+-4.41
+],
+"Steel Grove": [
+-19.27,
+-20.29,
+-7.98
+],
+"Steel Hours": [
+-20.32,
+-20.03,
+-9.09
+],
+"Stellar Basin": [
+-21.51,
+-22.0,
+-7.46
+],
+"Stellar Drift": [
+-29.91,
+-30.19,
+-12.66
+],
+"Stellar Hollow": [
+-20.05,
+-20.47,
+-8.36
+],
+"Stellar Span": [
+-19.75,
+-18.66,
+-4.9
+],
+"Stellar Throne": [
+-20.38,
+-18.97,
+-6.48
+],
+"Stellar Wall": [
+-19.69,
+-20.53,
+-6.26
+],
+"Stile Drift": [
+-23.32,
+-24.94,
+-12.63
+],
+"Stile Span": [
+-20.71,
+-20.08,
+-6.73
+],
+"Still Hour": [
+-20.53,
+-21.52,
+-8.34
+],
+"Still Pattern": [
+-19.34,
+-19.35,
+-5.85
+],
+"Still Piece": [
+-19.8,
+-20.06,
+-8.49
+],
+"Stilled Note": [
+-18.43,
+-17.64,
+-4.14
+],
+"Stillwater Distance": [
+-21.46,
+-17.69,
+-2.2
+],
+"Stillwater Signal": [
+-20.09,
+-19.55,
+-6.71
+],
+"Stillwater Span": [
+-20.94,
+-21.26,
+-6.81
+],
+"Stone Dusk": [
+-24.34,
+-21.86,
+-5.63
+],
+"Stone Hours": [
+-20.83,
+-21.53,
+-7.08
+],
+"Stonefloor Bed": [
+-20.91,
+-20.54,
+-5.65
+],
+"Stonefloor Crowd": [
+-19.95,
+-19.98,
+-5.53
+],
+"Stonefloor March": [
+-19.65,
+-18.97,
+-3.91
+],
+"Stonefloor Square": [
+-18.84,
+-18.32,
+-4.6
+],
+"Storm Bloom": [
+-19.78,
+-17.76,
+-4.52
+],
+"Storm Hollow": [
+-19.58,
+-19.43,
+-5.65
+],
+"Storm Night": [
+-20.62,
+-20.04,
+-6.6
+],
+"Storm Station": [
+-20.48,
+-17.15,
+-4.45
+],
+"Stowage Bed": [
+-19.41,
+-19.06,
+-6.06
+],
+"Stratos Circle": [
+-18.45,
+-17.47,
+-4.01
+],
+"Stratos Descent": [
+-17.91,
+-17.19,
+-5.8
+],
+"Stratos Gate": [
+-20.14,
+-20.14,
+-7.36
+],
+"Streetlamp Expanse": [
+-18.63,
+-19.11,
+-5.73
+],
+"Streetlamp Interval": [
+-20.26,
+-20.26,
+-8.3
+],
+"Stretched Vigil": [
+-20.74,
+-20.43,
+-8.42
+],
+"Struck Body": [
+-19.94,
+-20.68,
+-7.29
+],
+"Stupa Pillar": [
+-21.19,
+-21.18,
+-6.85
+],
+"Stupa Span": [
+-20.2,
+-19.06,
+-5.3
+],
+"Stupa Vow": [
+-21.05,
+-22.69,
+-8.88
+],
+"Substation Signal": [
+-19.74,
+-18.39,
+-7.84
+],
+"Substation Station": [
+-21.94,
+-22.91,
+-8.91
+],
+"Subterranean Passage": [
+-20.11,
+-23.95,
+-10.64
+],
+"Summit Bed": [
+-23.55,
+-21.21,
+-6.93
+],
+"Sunstone Basin": [
+-19.76,
+-19.81,
+-7.21
+],
+"Sunstone Night": [
+-21.96,
+-20.73,
+-8.13
+],
+"Sunstone Passage": [
+-20.17,
+-20.17,
+-6.24
+],
+"Sunstone Reach": [
+-24.08,
+-23.66,
+-11.56
+],
+"Sunstone Veil": [
+-18.66,
+-19.32,
+-5.33
+],
+"Sustained Drift": [
+-20.24,
+-19.9,
+-7.99
+],
+"Sustained Glacier": [
+-19.45,
+-20.11,
+-7.23
+],
+"Sustained Hollow": [
+-20.27,
+-20.27,
+-7.94
+],
+"Sustained Line": [
+-27.3,
+-26.89,
+-10.43
+],
+"Sustained Threshold": [
+-21.2,
+-21.9,
+-7.43
+],
+"Swamp Expanse": [
+-20.32,
+-20.36,
+-7.54
+],
+"Swamp Interval": [
+-21.79,
+-20.73,
+-3.86
+],
+"Synchrotron Expanse": [
+-20.19,
+-20.94,
+-6.57
+],
+"Synchrotron Passage": [
+-21.44,
+-20.92,
+-6.24
+],
+"Synchrotron Signal": [
+-20.24,
+-19.69,
+-6.32
+],
+"Syzygy Bloom": [
+-20.22,
+-19.21,
+-7.33
+],
+"Syzygy Dark": [
+-21.14,
+-21.14,
+-7.32
+],
+"Syzygy Span": [
+-18.78,
+-18.9,
+-5.67
+],
+"Tallow Field": [
+-21.34,
+-21.89,
+-9.21
+],
+"Tamboura Expanse": [
+-22.88,
+-21.6,
+-8.01
+],
+"Tamboura Interval": [
+-21.53,
+-20.59,
+-7.55
+],
+"Tamboura Vigil": [
+-22.22,
+-21.45,
+-8.3
+],
+"Tanpura Circle": [
+-17.55,
+-18.33,
+-2.75
+],
+"Tapehead Bloom": [
+-20.49,
+-20.35,
+-7.96
+],
+"Tapehead Fog": [
+-19.04,
+-19.04,
+-4.0
+],
+"Tapestry Bloom": [
+-19.09,
+-18.4,
+-7.96
+],
+"Tapestry Vigil": [
+-21.21,
+-20.75,
+-6.5
+],
+"Tapir Blind": [
+-18.73,
+-19.11,
+-5.77
+],
+"Tapir Passage": [
+-19.6,
+-19.6,
+-5.62
+],
+"Tapir Place": [
+-20.2,
+-19.79,
+-5.98
+],
+"Tarn Bed": [
+-21.21,
+-17.78,
+-3.63
+],
+"Tarn Hollow": [
+-21.52,
+-20.93,
+-7.4
+],
+"Tarn Reach": [
+-19.88,
+-19.88,
+-6.66
+],
+"Tectonic Hollow": [
+-20.32,
+-20.32,
+-6.34
+],
+"Tectonic Pressure": [
+-21.97,
+-22.09,
+-8.28
+],
+"Tectonic Span": [
+-19.69,
+-19.81,
+-6.17
+],
+"Tectonic Weight": [
+-24.6,
+-25.28,
+-11.06
+],
+"Telemetry Expanse": [
+-21.59,
+-17.17,
+-2.46
+],
+"Telemetry Orbit": [
+-20.12,
+-18.79,
+-4.67
+],
+"Telemetry Signal": [
+-20.06,
+-18.32,
+-4.02
+],
+"Telescope Expanse": [
+-21.04,
+-18.42,
+-4.73
+],
+"Telescope Span": [
+-20.66,
+-20.95,
+-9.39
+],
+"Tempest Signal": [
+-21.42,
+-21.43,
+-10.24
+],
+"Temple Air": [
+-21.7,
+-21.34,
+-6.52
+],
+"Tendril Morning": [
+-22.35,
+-21.97,
+-9.72
+],
+"Tension Bed": [
+-20.13,
+-20.58,
+-11.09
+],
+"Terminator Basin": [
+-23.65,
+-23.27,
+-9.04
+],
+"Terminator Frontier": [
+-21.56,
+-21.23,
+-9.42
+],
+"Terminator Reach": [
+-26.45,
+-26.67,
+-14.46
+],
+"Terminus Bed": [
+-18.92,
+-18.63,
+-4.07
+],
+"Tessera Bloom": [
+-20.08,
+-20.45,
+-8.28
+],
+"Tessera Fold": [
+-20.58,
+-20.58,
+-8.05
+],
+"Tether Cycle": [
+-22.33,
+-23.28,
+-9.82
+],
+"Tether Span": [
+-21.34,
+-20.92,
+-7.7
+],
+"Thistle Span": [
+-20.75,
+-18.76,
+-4.29
+],
+"Thistle Veil": [
+-20.86,
+-20.14,
+-8.1
+],
+"Thistle Weather": [
+-20.84,
+-20.78,
+-6.65
+],
+"Threnody Passage": [
+-23.22,
+-23.22,
+-7.24
+],
+"Threnody Wave": [
+-27.05,
+-26.83,
+-8.83
+],
+"Tide Current": [
+-20.02,
+-25.89,
+-14.11
+],
+"Tideline Drift": [
+-20.76,
+-20.75,
+-8.25
+],
+"Tideline Span": [
+-20.68,
+-20.26,
+-7.02
+],
+"Tidewater Bed": [
+-21.21,
+-19.57,
+-5.64
+],
+"Tidewater Bloom": [
+-20.03,
+-20.3,
+-6.43
+],
+"Tidewater Interval": [
+-20.58,
+-21.69,
+-12.02
+],
+"Tidewater Reach": [
+-21.21,
+-21.21,
+-7.5
+],
+"Tin Descent": [
+-18.77,
+-26.78,
+-11.77
+],
+"Tin Interval": [
+-20.42,
+-20.41,
+-7.69
+],
+"Tinsel Signal": [
+-19.53,
+-19.99,
+-10.23
+],
+"Tinsel Vigil": [
+-19.4,
+-19.53,
+-8.03
+],
+"Titan Bed": [
+-23.9,
+-24.56,
+-10.29
+],
+"Torch Drift": [
+-19.84,
+-19.84,
+-9.27
+],
+"Torch Span": [
+-21.33,
+-25.99,
+-9.92
+],
+"Totem Expanse": [
+-21.12,
+-20.81,
+-6.18
+],
+"Tower Descent": [
+-19.73,
+-20.09,
+-7.35
+],
+"Tower Level": [
+-20.56,
+-21.01,
+-8.88
+],
+"Tower Light": [
+-20.59,
+-20.6,
+-6.87
+],
+"Tower Reach": [
+-19.82,
+-19.39,
+-8.68
+],
+"Towpath Survey": [
+-23.34,
+-28.2,
+-13.01
+],
+"Towpath Vigil": [
+-20.38,
+-20.76,
+-9.83
+],
+"Tramline Bed": [
+-20.26,
+-20.26,
+-9.59
+],
+"Tramline Bloom": [
+-19.78,
+-18.37,
+-4.01
+],
+"Tramline Level": [
+-19.99,
+-20.87,
+-8.27
+],
+"Trance Bed": [
+-19.86,
+-20.83,
+-5.82
+],
+"Trance Descent": [
+-24.17,
+-24.97,
+-10.88
+],
+"Trance Interval": [
+-20.93,
+-20.12,
+-6.7
+],
+"Transept Veil": [
+-20.25,
+-19.73,
+-5.2
+],
+"Transformer Passage": [
+-23.57,
+-23.3,
+-9.71
+],
+"Transit Cycle": [
+-25.42,
+-26.18,
+-9.24
+],
+"Trench Reach": [
+-26.24,
+-26.96,
+-15.03
+],
+"Trigger Circuit": [
+-20.75,
+-22.97,
+-10.49
+],
+"Trigger Expanse": [
+-20.07,
+-19.59,
+-8.76
+],
+"Trigger Field": [
+-19.47,
+-19.93,
+-8.57
+],
+"Trigger Night": [
+-20.28,
+-20.28,
+-7.5
+],
+"Trigger Veil": [
+-18.9,
+-18.53,
+-6.82
+],
+"Tritium Expanse": [
+-20.38,
+-19.49,
+-7.63
+],
+"Tritium Interval": [
+-19.25,
+-16.91,
+-3.84
+],
+"Tritium Pulse": [
+-19.36,
+-21.28,
+-9.11
+],
+"Tritium Reach": [
+-19.59,
+-20.22,
+-8.53
+],
+"Tritium Signal": [
+-20.16,
+-21.04,
+-8.11
+],
+"Tritium Space": [
+-20.17,
+-17.63,
+-5.27
+],
+"Tuba Bed": [
+-21.51,
+-21.89,
+-7.89
+],
+"Tuba Interval": [
+-19.7,
+-20.48,
+-7.66
+],
+"Tuba Threshold": [
+-27.21,
+-27.01,
+-11.33
+],
+"Tuber Field": [
+-20.87,
+-20.9,
+-8.82
+],
+"Tugboat Basin": [
+-20.22,
+-19.61,
+-5.3
+],
+"Tundra Basin": [
+-21.46,
+-20.57,
+-8.86
+],
+"Tundra Hollow": [
+-18.5,
+-23.32,
+-9.54
+],
+"Tundra Signal": [
+-19.76,
+-24.36,
+-11.67
+],
+"Tunnel Field": [
+-21.07,
+-20.8,
+-8.77
+],
+"Tunnel Hollow": [
+-21.48,
+-20.64,
+-6.2
+],
+"Turbine Bed": [
+-21.43,
+-22.24,
+-6.45
+],
+"Turbine Hum": [
+-23.51,
+-20.11,
+-6.37
+],
+"Turbine Watch": [
+-22.11,
+-25.67,
+-11.17
+],
+"Turnstile Basin": [
+-19.33,
+-19.53,
+-6.69
+],
+"Turnstile Survey": [
+-20.28,
+-24.9,
+-10.67
+],
+"Turnstile Threshold": [
+-23.93,
+-23.14,
+-9.8
+],
+"Turquoise Descent": [
+-21.65,
+-21.65,
+-8.41
+],
+"Twilight Bed": [
+-27.82,
+-27.57,
+-11.84
+],
+"Twilight Bloom": [
+-21.68,
+-21.01,
+-7.09
+],
+"Twilight Signal": [
+-21.17,
+-19.56,
+-7.57
+],
+"Twilight Span": [
+-20.15,
+-19.98,
+-7.89
+],
+"Twilight Threshold": [
+-23.62,
+-24.14,
+-10.45
+],
+"Umber Field": [
+-18.93,
+-18.55,
+-5.69
+],
+"Umbra Cloud": [
+-20.98,
+-21.89,
+-9.63
+],
+"Umbra Descent": [
+-19.61,
+-19.65,
+-5.24
+],
+"Umbra Passage": [
+-19.35,
+-19.37,
+-6.89
+],
+"Umbra Signal": [
+-20.31,
+-20.79,
+-6.8
+],
+"Umbral Drift": [
+-20.51,
+-20.49,
+-10.0
+],
+"Undercroft Sleep": [
+-21.43,
+-21.45,
+-4.7
+],
+"Undercroft Vigil": [
+-19.55,
+-18.68,
+-6.43
+],
+"Undertone Drone": [
+-21.49,
+-21.01,
+-5.8
+],
+"Undertone Field": [
+-20.21,
+-18.62,
+-6.49
+],
+"Undertone Plate": [
+-20.25,
+-19.38,
+-7.62
+],
+"Undertone Reach": [
+-20.73,
+-19.82,
+-6.33
+],
+"Undertone Vigil": [
+-21.83,
+-22.64,
+-9.45
+],
+"Undertow Basin": [
+-21.7,
+-20.76,
+-9.09
+],
+"Undertow Span": [
+-20.23,
+-20.02,
+-6.46
+],
+"Unmoving Basin": [
+-22.15,
+-21.76,
+-6.85
+],
+"Unmoving Drift": [
+-20.39,
+-20.12,
+-8.2
+],
+"Unmoving Horizon": [
+-26.43,
+-26.44,
+-10.32
+],
+"Valve Interval": [
+-20.1,
+-18.71,
+-5.47
+],
+"Valve Layer": [
+-22.3,
+-19.93,
+-5.6
+],
+"Valve Passage": [
+-20.66,
+-21.58,
+-7.44
+],
+"Varispeed Machine": [
+-19.67,
+-19.01,
+-7.68
+],
+"Vector Field": [
+-19.59,
+-19.45,
+-4.64
+],
+"Vellum Shore": [
+-20.26,
+-20.35,
+-8.95
+],
+"Velvet Veil": [
+-20.45,
+-19.44,
+-7.02
+],
+"Vent Vigil": [
+-22.99,
+-23.22,
+-7.74
+],
+"Vertex Bed": [
+-20.34,
+-19.75,
+-7.23
+],
+"Vertex Dusk": [
+-20.51,
+-19.44,
+-7.03
+],
+"Vertex Fold": [
+-20.02,
+-17.38,
+-4.1
+],
+"Vertex Melancholy": [
+-20.21,
+-20.34,
+-5.17
+],
+"Vesperal Descent": [
+-21.57,
+-22.69,
+-9.12
+],
+"Vesperal Drift": [
+-21.9,
+-21.54,
+-9.68
+],
+"Vesperal Hollow": [
+-27.98,
+-28.52,
+-13.18
+],
+"Vesperal Threshold": [
+-25.57,
+-24.64,
+-10.28
+],
+"Vesperal Vigil": [
+-20.24,
+-20.23,
+-10.4
+],
+"Vestibule Bloom": [
+-20.21,
+-20.73,
+-6.91
+],
+"Vestibule Drift": [
+-19.74,
+-19.35,
+-5.49
+],
+"Vestibule Passage": [
+-27.45,
+-29.36,
+-15.58
+],
+"Vestibule Signal": [
+-19.66,
+-25.67,
+-11.7
+],
+"Viaduct Hollow": [
+-25.16,
+-16.29,
+-4.23
+],
+"Viaduct Interval": [
+-22.49,
+-22.49,
+-7.81
+],
+"Violet Field": [
+-18.31,
+-19.38,
+-6.26
+],
+"Violet Passage": [
+-23.33,
+-20.45,
+-6.43
+],
+"Vitrine Span": [
+-23.48,
+-22.8,
+-8.27
+],
+"Voltage Basin": [
+-19.38,
+-20.11,
+-8.85
+],
+"Voltage Drift": [
+-18.96,
+-17.12,
+-4.54
+],
+"Voltage Hollow": [
+-20.15,
+-19.58,
+-8.07
+],
+"Voltage Interval": [
+-20.29,
+-17.23,
+-5.71
+],
+"Voltage Passage": [
+-20.55,
+-22.52,
+-11.52
+],
+"Voltage Pulse": [
+-19.95,
+-19.32,
+-7.86
+],
+"Voltage Reach": [
+-20.68,
+-22.22,
+-8.31
+],
+"Voltage Signal": [
+-18.79,
+-18.37,
+-5.22
+],
+"Vowel Signal": [
+-20.59,
+-21.71,
+-10.36
+],
+"Vowel Span": [
+-20.12,
+-21.1,
+-7.44
+],
+"Wainscot Quiet": [
+-20.19,
+-21.23,
+-7.3
+],
+"Wallpaper Veil": [
+-20.12,
+-18.99,
+-8.1
+],
+"Waning Horns": [
+-21.79,
+-22.5,
+-9.8
+],
+"Waning Signal": [
+-20.5,
+-20.5,
+-7.99
+],
+"Warehouse District": [
+-22.18,
+-22.17,
+-8.51
+],
+"Warehouse Haze": [
+-20.36,
+-20.99,
+-8.3
+],
+"Warm Basin": [
+-25.56,
+-25.14,
+-12.56
+],
+"Warm Chord": [
+-20.02,
+-17.79,
+-4.39
+],
+"Warm System": [
+-17.81,
+-19.13,
+-5.92
+],
+"Warp Bloom": [
+-18.76,
+-18.71,
+-3.74
+],
+"Warp Descent": [
+-19.07,
+-18.84,
+-7.31
+],
+"Warp Field": [
+-18.78,
+-19.51,
+-6.95
+],
+"Watercolour Study": [
+-18.93,
+-19.93,
+-8.51
+],
+"Watercolour Vigil": [
+-20.25,
+-20.16,
+-7.99
+],
+"Wavelength Source": [
+-20.98,
+-21.66,
+-7.93
+],
+"Wavetrap Night": [
+-19.04,
+-19.14,
+-5.88
+],
+"Wavetrap Signal": [
+-18.79,
+-18.22,
+-4.64
+],
+"Wax Passage": [
+-20.53,
+-21.29,
+-7.26
+],
+"Wax Signal": [
+-23.43,
+-23.49,
+-8.05
+],
+"Wax Vigil": [
+-20.3,
+-18.82,
+-7.41
+],
+"Weather Drift": [
+-21.3,
+-22.03,
+-10.31
+],
+"Weather Room": [
+-20.71,
+-21.96,
+-10.38
+],
+"Weir Stone": [
+-27.43,
+-27.84,
+-14.4
+],
+"Wetland Bed": [
+-19.74,
+-19.01,
+-5.47
+],
+"Wetland Bloom": [
+-18.92,
+-18.79,
+-7.43
+],
+"Wetland Vigil": [
+-22.45,
+-21.65,
+-9.13
+],
+"Whalesong Basin": [
+-19.32,
+-19.8,
+-6.04
+],
+"Wharfside Bed": [
+-20.21,
+-18.55,
+-6.86
+],
+"Wharfside Hollow": [
+-22.0,
+-21.17,
+-9.54
+],
+"Whiteout Depth": [
+-19.62,
+-18.11,
+-6.21
+],
+"Whiteout Drift": [
+-21.88,
+-21.22,
+-8.83
+],
+"Wick Descent": [
+-23.43,
+-22.94,
+-7.54
+],
+"Willow Basin": [
+-19.84,
+-17.02,
+-4.37
+],
+"Willow Garden": [
+-18.95,
+-18.85,
+-4.86
+],
+"Willow Hollow": [
+-20.19,
+-20.09,
+-6.44
+],
+"Willow Interval": [
+-20.8,
+-21.19,
+-8.31
+],
+"Willow Signal": [
+-20.47,
+-21.7,
+-9.11
+],
+"Wind Signal": [
+-18.54,
+-17.22,
+-4.84
+],
+"Wire Expanse": [
+-20.88,
+-21.23,
+-10.58
+],
+"Wireless Veil": [
+-20.6,
+-20.6,
+-7.42
+],
+"Wobble Dream": [
+-18.75,
+-17.53,
+-7.37
+],
+"Wobble Vigil": [
+-19.79,
+-16.7,
+-5.9
+],
+"Wold Descent": [
+-20.18,
+-20.79,
+-8.73
+],
+"Wold Interval": [
+-20.72,
+-20.45,
+-8.28
+],
+"Wold Threshold": [
+-20.73,
+-21.2,
+-8.56
+],
+"Wolfden Reach": [
+-21.24,
+-21.11,
+-8.81
+],
+"Wormhole Sleep": [
+-21.99,
+-21.59,
+-8.08
+],
+"Zenith Belt": [
+-20.22,
+-19.77,
+-7.71
+],
+"Zenith Breath": [
+-23.52,
+-23.44,
+-8.86
+],
+"Zenith Expanse": [
+-22.01,
+-20.78,
+-7.74
+],
+"Zenith Field": [
+-21.22,
+-16.71,
+-5.14
+],
+"Zenith Wall": [
+-20.1,
+-20.72,
+-9.37
+],
+"Ziggurat Reach": [
+-19.41,
+-20.24,
+-5.16
+],
+"Zoetrope Hollow": [
+-19.59,
+-19.42,
+-7.67
+],
+"Zoetrope Signal": [
+-20.46,
+-18.34,
+-7.51
+]
+},
+"what": "dB louder on the circuit than on the filter it replaced, at the old level, 30 s, notes 45 52 59 (retrofit_circuit.py --measure)"
+}

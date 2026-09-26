@@ -786,7 +786,7 @@ void Voice::control(int blockLen, const VoiceParams& p)
                         + p.slideCutoff * slide_
                         - 2.5f * distEff_;
     const float cut = p.cutoff * cutoffMul_ * std::pow(2.0f, octaves);
-    filt_.set(static_cast<FilterModel>(clampv(p.filterModel, 0, kNumFilterModels - 1)), cut, p.resonance, p.filterDrive);
+    filt_.set(static_cast<FilterModel>(clampv(p.filterModel, 0, kNumFilterModels - 1)), cut, p.resonance, p.filterDrive, p.filterMorph);
     // Binaural phase field: the two ears' all-pass corners drift apart and back on one slow curve;
     // the phase relation changes, not the level, so the room seems to breathe in size.
     phaseOn_ = p.phaseWidth > 0.0f;
@@ -953,17 +953,22 @@ void Voice::render(float* nearL, float* nearR, float* farL, float* farR, int n, 
             }
             float outL, outR;
             // The dry sum as a Parallel z-plane hears it: in step with the filter branch, whose drive
-            // runs oversampled and so 29.5 samples late while it is on.
+            // runs oversampled and so 29.5 samples late while it is on -- and a circuit model 25, always.
             dryRingL_[dryW_] = accL; dryRingR_[dryW_] = accR;
             dryW_ = (dryW_ + 1) & (kDryRing - 1);
             if (fOn && zOn) {
                 filt_.tick(accL, accR, outL, outR);
                 float zl = outL, zr = outR;
                 if (parallel) {
-                    if (filt_.driving()) {
-                        const int a = (dryW_ - 30) & (kDryRing - 1), b = (dryW_ - 31) & (kDryRing - 1);
-                        zl = 0.5f * (dryRingL_[a] + dryRingL_[b]);
-                        zr = 0.5f * (dryRingR_[a] + dryRingR_[b]);
+                    const float lat = filt_.latency();
+                    if (lat > 0.0f) {
+                        // Delayed by the filter's latency: 29.5 samples between two taps of the
+                        // ring for the Drive, 25 on one for a circuit model.
+                        const int whole = static_cast<int>(lat);
+                        const float frac = lat - static_cast<float>(whole);
+                        const int a = (dryW_ - 1 - whole) & (kDryRing - 1), b = (dryW_ - 2 - whole) & (kDryRing - 1);
+                        zl = dryRingL_[a] + frac * (dryRingL_[b] - dryRingL_[a]);
+                        zr = dryRingR_[a] + frac * (dryRingR_[b] - dryRingR_[a]);
                     } else { zl = accL; zr = accR; }
                 }
                 zRun(zl, zr);

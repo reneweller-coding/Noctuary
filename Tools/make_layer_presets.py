@@ -729,11 +729,17 @@ def main():
     gain_path = os.path.join(ROOT, "Tools", "library", "near_gain.json")
     gains = json.load(open(gain_path, encoding="utf-8")).get("gain_db", {}) if os.path.isfile(gain_path) else {}
 
+    # The circuit filters (26.09.2026, Tools/library/circuit.py): the Ladder's presets to the Moog,
+    # a share of the LP 24's to a four-pole circuit, what its pass band gives up added to the Gain.
+    sys.path.insert(0, os.path.join(HERE, "library"))
+    import circuit
+
     def fmt_clip(nm, kw):
         kw = dict(kw)
         clip = kw.pop("__clip__", None)
         if nm in gains:
             kw["fore_gain"] = round(float(gains[nm]), 1)
+        circuit.apply(kw, None, nm, circuit.NEAR)
         return fmt(**kw) + ("|" + clip if clip else "")
     fams = [(f, [(nm, fmt_clip(nm, kw)) for nm, kw in ps]) for f, ps in NEAR]
     unmeasured = [nm for _, ps in NEAR for nm, _ in ps if nm not in gains]

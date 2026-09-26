@@ -152,7 +152,7 @@ const Preset kPresets[] = {
       "master_gain=3.769;partials=22;tilt=1.312;brightness=0.5023;odd_even=-0.2837;inharmonic=0.09953;"
       "shimmer=0.5887;shimmer_rate=0.01998;detune=4;drift=8.168;drift_rate=0.06252;spread=0.6543;"
       "bloom=0.5927;bloom_time=80.21;rate_wander=0.3891;attack=45.3;decay=6.252;sustain=0.9046;"
-      "release=42.09;cutoff=1733;resonance=0.1293;filter_env=0.2088;filter_drift=0.08187;keytrack=0.503;"
+      "release=42.09;cutoff=1733;resonance=0;filter_env=0.2088;filter_drift=0.08187;keytrack=0.503;"
       "depth=0.9333;pan_drift=0.4178;itd=0.758;arc=0.2281;arc_period=40.61;breath=0.1234;"
       "breath_rate=0.03188;air=0;air_color=1.61;air_q=13.3;ens_mix=0.5824;ens_depth=0.2211;ens_rate=0.3293;"
       "dly_time_l=1.272;dly_time_r=0.8879;dly_feedback=0.3609;dly_cross=0.3663;dly_damp=0.5951;"
@@ -186,7 +186,7 @@ const Preset kPresets[] = {
       "lfo1_depth=0.7;lfo1_table=9;chaos_period=386.8;lfo3_rate=0.0008;lfo3_shape=Sine;lfo3_phase=0.091;"
       "lfo3_depth=0.794;src2_delay=5.6;src2_rise=3.54;brain_release_gap=3.104;far_unmask=0.1737;"
       "far_unmask_spread=0.435;presence=2.5;subsonic=18;purity_adapt=0.5054;brain_root_targets=Modal;"
-      "brain_utonal=0.1889;brain_series=0.2956;arc_harmony=0.2686",
+      "brain_utonal=0.1889;brain_series=0.2956;arc_harmony=0.2686;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>shimmer:0.333;rossler_z>body_tone:-0.248;lfo3>inharmonic:-0.089;pressure>resonance:0.105:u;"
       "slide>tilt:0.333:u" },
@@ -254,7 +254,7 @@ const Preset kPresets[] = {
       "master_gain=-8.814;partials=2;tilt=1.016;brightness=0.7;odd_even=0.3579;inharmonic=0.06835;"
       "shimmer=0.504;shimmer_rate=0.04886;strands=1;detune=4;drift=8.358;drift_rate=0.1284;spread=0.59;"
       "bloom=0.3527;bloom_time=90.08;rate_wander=0.4944;attack=11.65;decay=8.463;sustain=0.8435;"
-      "release=18.08;cutoff=4341;resonance=0.1654;filter_env=0.003796;filter_drift=0.3666;keytrack=0.5672;"
+      "release=18.08;cutoff=4341;resonance=0;filter_env=0.003796;filter_drift=0.3666;keytrack=0.5672;"
       "depth=0.9566;pan_drift=0.4862;itd=0.7569;arc=0.1698;arc_period=115.2;breath=0.111;"
       "breath_rate=0.01917;air=0;air_color=3.923;air_q=7.717;ens_mix=0.4084;ens_depth=0.4319;ens_rate=0.24;"
       "dly_time_l=0.4374;dly_time_r=0.8114;dly_feedback=0.3316;dly_cross=0.362;dly_damp=0.7663;"
@@ -292,7 +292,7 @@ const Preset kPresets[] = {
       "lfo1_phase=0.277;lfo1_depth=0.62;lfo1_mode=Retrigger;src2_delay=15.77;src2_env=Own;"
       "src2_env_mode=One Shot;src2_env_time=1.575;src3_delay=14.87;src3_rise=10.06;brain_release_gap=3.44;"
       "far_unmask=0.1527;far_unmask_spread=0.442;presence=2.59;subsonic=18;brain_root_targets=Modal;"
-      "brain_utonal=0.04536;brain_series=0.2031",
+      "brain_utonal=0.04536;brain_series=0.2031;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>presence:-0.198",
       "~~~~~~~0:0/2.13:1:-0.45" },
@@ -300,7 +300,7 @@ const Preset kPresets[] = {
       "master_gain=-7.33;partials=25;tilt=1.547;brightness=0.5028;odd_even=0.1421;inharmonic=0.191;"
       "shimmer=0.4338;shimmer_rate=0.06277;strands=4;detune=4;drift=3.424;drift_rate=0.05498;spread=0.7121;"
       "bloom=0.357;bloom_time=38.29;rate_wander=0.329;attack=11.43;decay=2.617;sustain=0.8407;release=31.1;"
-      "cutoff=2735;resonance=0.2065;filter_env=0.191;filter_drift=0.3181;keytrack=0.5991;depth=0.9228;"
+      "cutoff=2735;resonance=0;filter_env=0.191;filter_drift=0.3181;keytrack=0.5991;depth=0.9228;"
       "pan_drift=0.4664;itd=0.672;arc=0.169;arc_period=31.37;breath=0.04598;breath_rate=0.0146;air=0;"
       "air_color=6.713;air_q=6.689;ens_mix=0.6711;ens_depth=0.2764;ens_rate=0.2107;dly_time_l=0.7171;"
       "dly_time_r=1.873;dly_feedback=0.413;dly_cross=0.3405;dly_damp=0.4461;dly_mix=0.2446;"
@@ -342,7 +342,7 @@ const Preset kPresets[] = {
       "env3_mode=One Shot;env3_depth=0.77;env4_time=20;env4_mode=One Shot;env4_depth=0.513;"
       "brain_release_gap=2.32;far_unmask=0.1607;far_unmask_spread=0.307;presence=2.3;subsonic=18;"
       "purity_adapt=0.4567;brain_root_targets=Modal;brain_utonal=0.1042;brain_series=0.4671;"
-      "arc_harmony=0.313",
+      "arc_harmony=0.313;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>src3_level:0.120;lfo2>pan_drift:0.188:macro_f;lfo3>far_unmask_spread:-0.148;lfo4>brightness:0.181;"
       "env1>sub_pulse:-0.126;env2>dly_mix:0.144;env3>presence:0.198;env4>brain_cascade:0.212",
@@ -354,7 +354,7 @@ const Preset kPresets[] = {
       "master_gain=-7.84;partials=15;tilt=1.192;brightness=0.4993;odd_even=0.3729;inharmonic=0.3438;"
       "shimmer=0.438;shimmer_rate=0.1734;strands=4;detune=4;drift=8.665;drift_rate=0.02253;spread=0.5557;"
       "bloom=0.2421;bloom_time=136.4;rate_wander=0.3443;attack=25.4;decay=10.84;sustain=0.9463;"
-      "release=19.73;cutoff=2186;resonance=0.2109;filter_env=0.02386;filter_drift=0.1535;keytrack=0.3116;"
+      "release=19.73;cutoff=2186;resonance=0;filter_env=0.02386;filter_drift=0.1535;keytrack=0.3116;"
       "depth=0.9078;pan_drift=0.5425;itd=0.5518;arc=0.2095;arc_period=82.61;breath=0.3134;"
       "breath_rate=0.01776;air=0;air_color=4.825;air_q=6.525;ens_mix=0.3275;ens_depth=0.5498;"
       "ens_rate=0.2709;dly_time_l=1.943;dly_time_r=3.079;dly_feedback=0.3022;dly_cross=0.6497;"
@@ -391,7 +391,8 @@ const Preset kPresets[] = {
       "env2_time=4.344;env2_mode=Sustain Loop;env2_depth=0.552;env3_time=7.029;env3_mode=Sustain Loop;"
       "env3_depth=0.752;env4_time=11.37;env4_mode=Loop;env4_depth=0.779;src3_delay=20.8;src3_rise=5.2;"
       "brain_release_gap=2.471;far_unmask=0.1583;far_unmask_spread=0.479;presence=2.06;subsonic=18;"
-      "sub_beat=0.25;brain_root_targets=Modal;brain_utonal=0.1722;brain_series=0.3456;arc_harmony=0.2448",
+      "sub_beat=0.25;brain_root_targets=Modal;brain_utonal=0.1722;brain_series=0.3456;arc_harmony=0.2448;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "rossler_x>depth:0.117;lenia4>partials:-0.232;lfo3>presence:0.150;lfo4>width:0.177;env1>cosmos_shift:0.098;"
       "env2>fb_drive:-0.177;env3>far_decay:-0.178;env4>brain_spread:0.206;pressure>resonance:0.242:u",
@@ -453,7 +454,7 @@ const Preset kPresets[] = {
       "master_gain=-6.27;partials=14;tilt=1.431;brightness=0.3898;odd_even=0.08471;inharmonic=0.01823;"
       "shimmer=0.2087;shimmer_rate=0.08163;detune=4;drift=3.67;drift_rate=0.02315;spread=0.5961;"
       "bloom=0.4597;bloom_time=32.35;rate_wander=0.2285;attack=16.03;decay=5.642;sustain=0.7284;"
-      "release=18.13;cutoff=426.1;resonance=0.2095;filter_env=0.166;filter_drift=0.4902;keytrack=0.4331;"
+      "release=18.13;cutoff=426.1;resonance=0;filter_env=0.166;filter_drift=0.4902;keytrack=0.4331;"
       "depth=0.855;pan_drift=0.4517;itd=0.7456;arc=0.236;arc_period=31.98;breath=0.1263;"
       "breath_rate=0.02968;air=0;air_color=1.606;air_q=17.87;ens_mix=0.4966;ens_depth=0.4833;"
       "ens_rate=0.108;dly_time_l=1.569;dly_time_r=1.321;dly_feedback=0.6522;dly_cross=0.6656;"
@@ -485,7 +486,8 @@ const Preset kPresets[] = {
       "chaos_period=43;env1_time=8.686;env1_mode=One Shot;env1_depth=0.926;env2_time=14.05;env2_mode=Loop;"
       "env2_depth=0.939;lfo8_shape=Steps;lfo8_rate=0.00362;lfo8_depth=0.53;src2_delay=9.57;src2_rise=8.78;"
       "brain_release_gap=2.964;far_unmask=0.158;far_unmask_spread=0.417;subsonic=18;purity_adapt=0.7483;"
-      "brain_root_targets=Modal;brain_utonal=0.07079;brain_series=0.3983;arc_harmony=0.3802",
+      "brain_root_targets=Modal;brain_utonal=0.07079;brain_series=0.3983;arc_harmony=0.3802;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>brightness:0.090;rossler_z>far_unmask_spread:-0.097;env1>far_rotate:0.089;env2>brightness:0.116;"
       "lfo8>stack:0.317;wheel>air:0.328:u;pressure>resonance:0.258:u",
@@ -583,10 +585,10 @@ const Preset kPresets[] = {
       "lfo1>brain_cascade:0.175;env1>body_tone:0.172;slide>tilt:0.173:u;wheel>dly_mix:0.262:u",
       "0:0:0.12/1.31:-0.544:0.07/4.04:-0.166:-0.48/6.57:0.142:0.54/8.67:-0.176:0.17/10.8:-0.31:0.56/12.9:0:-0.31!l0-5" },
     { "Warm Chord",
-      "master_gain=-4.82;partials=23;tilt=1.07;brightness=0.6785;odd_even=0.1467;inharmonic=0.1286;"
+      "master_gain=-7.05;partials=23;tilt=1.07;brightness=0.6785;odd_even=0.1467;inharmonic=0.1286;"
       "shimmer=0.4922;shimmer_rate=0.8308;strands=6;detune=4;drift=7.296;drift_rate=0.08661;spread=0.7605;"
       "bloom=0.4007;bloom_time=106.7;rate_wander=0.4549;attack=15.53;decay=14.34;sustain=0.8644;"
-      "release=31.17;cutoff=1518;resonance=0.7377;filter_env=0.05944;filter_drift=0.382;keytrack=0.399;"
+      "release=31.17;cutoff=2353;resonance=0.5442;filter_env=0.05944;filter_drift=0.382;keytrack=0.399;"
       "depth=0.9206;pan_drift=0.6601;itd=0.4782;arc=0.1737;arc_period=81.43;breath=0.1163;"
       "breath_rate=0.0224;air=0;air_color=1.501;air_q=15.71;ens_mix=0.4163;ens_depth=0.7496;"
       "ens_rate=0.08572;dly_time_l=1.765;dly_time_r=0.667;dly_feedback=0.5858;dly_cross=0.2939;"
@@ -617,7 +619,7 @@ const Preset kPresets[] = {
       "cosmos_return=0.6219;cosmos_to_far=0.3518;cosmos_shift=2.133;cosmos_shift_drift=0.4992;"
       "dly2_mix=0.1595;dly2_time_l=3.303;dly2_time_r=2.498;dly2_feedback=0.6628;dly2_cross=0.868;"
       "dly2_damp=0.4433;coherence=0.5495;coherence_depth=0.4688;coherence_rate=0.8064;portamento=6.242;"
-      "porta_gravity=0.6283;filter_model=Ladder;filter_drive=0.2679;tide=4.965;tide_period=12.95;"
+      "porta_gravity=0.6283;filter_model=Moog;filter_drive=0.2679;tide=4.965;tide_period=12.95;"
       "far_rotate=0.2444;brain2_depth=0.697;brain2_consonance=0.202;purity_adapt=0.7367;early_level=0.186;"
       "early_size=22.37;early_absorb=0.469;early_width=0.803;partial_spread=0.331;cosmos_swell=0.489;"
       "vec_amount=0.784;vec_x=0.382;vec_y=0.164;vec_wander=0.611;vec_rate=0.05472;mono_guard=on;"
@@ -693,7 +695,7 @@ const Preset kPresets[] = {
       "master_gain=-5.275;partials=15;tilt=0.8246;brightness=0.5733;odd_even=0.1023;inharmonic=0.02898;"
       "shimmer=0.2868;shimmer_rate=0.09076;detune=4;drift=7.607;drift_rate=0.1044;spread=0.5636;"
       "bloom=0.5961;bloom_time=179.4;rate_wander=0.498;attack=17.84;decay=2.923;sustain=0.756;"
-      "release=32.05;cutoff=4648;resonance=0.2604;filter_env=0.2107;filter_drift=0.42;keytrack=0.4662;"
+      "release=32.05;cutoff=4648;resonance=0;filter_env=0.2107;filter_drift=0.42;keytrack=0.4662;"
       "depth=0.868;pan_drift=0.4116;itd=0.4465;arc=0.4363;arc_period=55.4;breath=0.0717;"
       "breath_rate=0.03717;air=0;air_color=2.406;air_q=17;ens_mix=0.7391;ens_depth=0.3015;ens_rate=0.1479;"
       "dly_time_l=0.946;dly_time_r=1.37;dly_feedback=0.6206;dly_cross=0.3148;dly_damp=0.7352;"
@@ -730,7 +732,7 @@ const Preset kPresets[] = {
       "lfo3_shape=Random;lfo3_phase=0.946;lfo3_depth=0.979;lfo3_mode=Retrigger;src3_delay=2.75;"
       "src3_rise=3.7;brain_release_gap=3.163;far_unmask=0.1333;far_unmask_spread=0.357;subsonic=18;"
       "purity_adapt=0.4524;brain_root_targets=Modal;brain_utonal=0.1514;brain_series=0.3624;"
-      "arc_harmony=0.3594",
+      "arc_harmony=0.3594;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>src3_bright:-0.189;lfo2>body_tone:-0.173;lfo3>src2_level:0.242:none:u;cascade>brain_cascade:0.207;"
       "pressure>resonance:0.123:u" },
@@ -829,7 +831,7 @@ const Preset kPresets[] = {
       "master_gain=-7.25;partials=19;tilt=0.9666;brightness=1;odd_even=-0.1649;inharmonic=0.1871;"
       "shimmer=0.4112;shimmer_rate=0.08534;strands=5;detune=3.901;drift=8.416;drift_rate=0.09806;"
       "spread=0.7931;bloom=0.3212;bloom_time=128.1;rate_wander=0.1511;attack=9.666;decay=5.649;"
-      "sustain=0.9408;release=16.88;cutoff=2328;resonance=0.1686;filter_env=0.1943;filter_drift=0.4606;"
+      "sustain=0.9408;release=16.88;cutoff=2328;resonance=0;filter_env=0.1943;filter_drift=0.4606;"
       "keytrack=0.4977;depth=0.8682;pan_drift=0.5136;itd=0.6003;arc=0.4689;arc_period=99.44;breath=0.3949;"
       "breath_rate=0.0552;air=0;air_color=1.631;air_q=4.018;ens_mix=0.3596;ens_depth=0.695;ens_rate=0.0534;"
       "dly_time_l=1.026;dly_time_r=0.7766;dly_feedback=0.6973;dly_cross=0.5707;dly_damp=0.6818;"
@@ -868,7 +870,8 @@ const Preset kPresets[] = {
       "lfo4_depth=0.713;lfo4_sync=16 bars;env1_time=3.369;env1_mode=One Shot;env1_depth=0.671;"
       "env2_time=5.45;env2_mode=One Shot;env2_depth=0.667;env2_sync=8 bars;brain_release_gap=3.54;"
       "far_unmask=0.1583;far_unmask_spread=0.356;subsonic=18;purity_adapt=0.6568;"
-      "brain_root_targets=Mediant;brain_utonal=0.02244;brain_series=0.04757;arc_harmony=0.3711",
+      "brain_root_targets=Mediant;brain_utonal=0.02244;brain_series=0.04757;arc_harmony=0.3711;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>purity_adapt:0.222;lfo2>air:-0.246;lfo3>purity_drift:0.206:macro_a;lfo4>patina:0.275;env1>detune:0.222;"
       "env2>src4_level:-0.091;pressure>cutoff:0.233:u",
@@ -1260,7 +1263,7 @@ const Preset kPresets[] = {
       "master_gain=-9.85;partials=19;tilt=1.619;brightness=0.8029;odd_even=-0.3317;inharmonic=0.06564;"
       "shimmer=0.2156;shimmer_rate=0.02791;strands=4;detune=4;drift=6.343;drift_rate=0.05549;spread=0.8223;"
       "bloom=0.3245;bloom_time=42.42;rate_wander=0.3924;attack=12.16;decay=4.68;sustain=0.8916;"
-      "release=22.88;cutoff=4343;resonance=0.2767;filter_env=0.2385;filter_drift=0.09702;keytrack=0.4667;"
+      "release=22.88;cutoff=4343;resonance=0;filter_env=0.2385;filter_drift=0.09702;keytrack=0.4667;"
       "depth=0.8955;pan_drift=0.3533;itd=0.4252;arc=0.374;arc_period=98.95;breath=0.3046;"
       "breath_rate=0.02997;air=0;air_color=5.893;air_q=5.575;ens_mix=0.3216;ens_depth=0.707;ens_rate=0.031;"
       "dly_time_l=1.429;dly_time_r=2.045;dly_feedback=0.5307;dly_cross=0.3189;dly_damp=0.7886;"
@@ -1296,17 +1299,18 @@ const Preset kPresets[] = {
       "cosmos_shimmer=0.75;cosmos_nebula=0.2;seed=8769;env1_time=6.006;env1_mode=One Shot;env1_depth=0.868;"
       "env2_time=9.718;env2_mode=One Shot;env2_depth=0.762;src3_delay=4.2;src3_rise=1.5;"
       "brain_release_gap=2.384;far_unmask=0.1587;far_unmask_spread=0.455;subsonic=18;"
-      "brain_root_targets=Mediant;brain_utonal=0.03391;brain_series=0.002639;arc_harmony=0.38",
+      "brain_root_targets=Mediant;brain_utonal=0.03391;brain_series=0.002639;arc_harmony=0.38;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "velocity>osc_level:0.194;env1>far_unmask_spread:-0.155;env2>src3_pos:-0.140;wheel>dly_mix:0.226:u;"
       "slide>cosmos_vowel:0.491:u",
       "0:0:-0.03/0.635:0.195:-0.44/2.79:0.376:-0.56/4.79:0.373:-0.03/6.35:0.03:0.03/8.23:-0.304:-0.34/9.61:-0.846:-0.2/10.7:0:0.24~"
       "0:0:0.6/1.31:-0.478:0.18/2.16:0.613:-0.43/3.38:-0.529:-0.37/4.56:0.089:0.06/6.24:0:0.42" },
     { "Icicle Expanse",
-      "master_gain=3.673;partials=24;tilt=1.17;brightness=0.8505;odd_even=-0.3011;inharmonic=0.0509;"
+      "master_gain=1.843;partials=24;tilt=1.17;brightness=0.8505;odd_even=-0.3011;inharmonic=0.0509;"
       "shimmer=0.2855;shimmer_rate=0.8384;strands=2;detune=4;drift=4.368;drift_rate=0.03266;spread=0.7702;"
       "bloom=0.2659;bloom_time=143.9;rate_wander=0.5648;attack=4.374;decay=5.417;sustain=0.8979;"
-      "release=30.12;cutoff=1270;resonance=0.8317;filter_env=0.0408;filter_drift=0.5288;keytrack=0.5915;"
+      "release=30.12;cutoff=1968;resonance=0.6917;filter_env=0.0408;filter_drift=0.5288;keytrack=0.5915;"
       "depth=0.954;pan_drift=0.5002;itd=0.588;arc=0.1279;arc_period=99.93;breath=0.3346;breath_rate=0.0123;"
       "air=0;air_color=2.954;air_q=9.142;ens_mix=0.4243;ens_depth=0.824;ens_rate=0.0227;dly_time_l=0.5793;"
       "dly_time_r=1.871;dly_feedback=0.522;dly_cross=0.1281;dly_damp=0.4053;dly_mix=0.1784;"
@@ -1337,7 +1341,7 @@ const Preset kPresets[] = {
       "z_res=0.4056;z_keytrack=0.1537;z_mix=0.7442;dly_duck=0.7191;cosmos_send=0.5691;cosmos_return=0.6793;"
       "cosmos_to_far=0.6741;cosmos_shift=72.68;cosmos_shift_drift=0.5214;cosmos_vowel=0.3124;"
       "cosmos_vowel_rate=0.03328;phase_width=0.3741;phase_rate=0.01435;doppler=0.2503;blur_mix=0.5332;"
-      "blur_smear=0.7591;filter_model=Ladder;filter_drive=0.4881;strike_level=0.4418;strike_type=String;"
+      "blur_smear=0.7591;filter_model=Moog;filter_drive=0.4881;strike_level=0.4418;strike_type=String;"
       "strike_decay=0.345;strike_damp=0.7056;tide=2.121;tide_period=9.455;ens_mode=Microshift;"
       "brain2_depth=0.558;brain2_consonance=0.297;hold=on;near_ild=0.544;presence=3.94;far_mode=Rotating;"
       "far_rotate=0.587;strike_who=Keys + Brain;strike_chance=0.233;strike_cluster=0.73;patina=0.224;"
@@ -1454,10 +1458,10 @@ const Preset kPresets[] = {
       "0:0:-0.52/2.48:0.206:0.21/3.62:-0.958:0/6.18:0.342:-0.2/8.91:0.409:-0.4/11.1:0:0.5!l0-4~"
       "0:0:0.05/1.91:0.958:-0.43/3.69:0.149:-0.09/6.54:-0.366:-0.07/7.4:-0.759:-0.13/10.2:0.31:0.36/11.1:0:-0.17!s2" },
     { "Silver Hollow",
-      "master_gain=-4.53;partials=9;tilt=1.663;brightness=0.7329;odd_even=0.2524;inharmonic=0.2795;"
+      "master_gain=-4.56;partials=9;tilt=1.663;brightness=0.7329;odd_even=0.2524;inharmonic=0.2795;"
       "shimmer=0.5082;shimmer_rate=0.1604;strands=4;detune=4;drift=8.923;drift_rate=0.1044;spread=0.8845;"
       "bloom=0.03305;bloom_time=54.87;rate_wander=0.1456;attack=14.27;decay=5.237;sustain=0.8383;"
-      "release=27.91;cutoff=74.59;resonance=0.2424;filter_env=0.2485;filter_drift=0.3409;keytrack=0.3065;"
+      "release=27.91;cutoff=74.59;resonance=0;filter_env=0.2485;filter_drift=0.3409;keytrack=0.3065;"
       "depth=0.9523;pan_drift=0.2846;itd=0.7711;arc=0.3883;arc_period=24.32;breath=0.2215;"
       "breath_rate=0.05972;air=0;air_color=2.88;air_q=6.158;ens_mix=0.512;ens_depth=0.539;ens_rate=0.0426;"
       "dly_time_l=1.085;dly_time_r=1.864;dly_feedback=0.619;dly_cross=0.2355;dly_damp=0.4616;"
@@ -1483,7 +1487,7 @@ const Preset kPresets[] = {
       "src2_level=0.2515;src2_ratio=2/1;src2_pan=-0.3706;src2_fm_ratio=3;src2_fm_index=2.798;"
       "cosmos_send=0.339;cosmos_return=0.3056;cosmos_to_far=0.4;cosmos_shimmer=0.5877;"
       "cosmos_shimmer_pitch=-12;cosmos_vowel=0.6084;cosmos_vowel_rate=0.09666;blur_mix=0.2852;"
-      "blur_smear=0.6106;filter_model=HP 12;strike_level=0.4939;strike_type=Metal;strike_decay=1.107;"
+      "blur_smear=0.6106;filter_model=SEM;strike_level=0.4939;strike_type=Metal;strike_decay=1.107;"
       "strike_damp=0.7168;strike_who=Keys + Brain;tide=7.523;tide_period=18.3;ens_mode=Microshift;"
       "brain2_depth=0.88;brain2_consonance=0.523;match=0.657;elev_near=0.42;elev_far=0.691;presence=3.9;"
       "far_diffuse=0.835;partial_spread=0.875;strike_chance=0.176;strike_cluster=0.447;near_lowcut=93.7;"
@@ -1494,7 +1498,8 @@ const Preset kPresets[] = {
       "lfo4_depth=0.808;env1_time=2.881;env1_mode=Loop;env1_depth=0.574;env2_time=4.662;"
       "env2_mode=Sustain Loop;env2_depth=0.702;env3_time=7.543;env3_mode=Loop;env3_depth=0.905;"
       "brain_release_gap=2.294;far_unmask=0.1823;far_unmask_spread=0.491;subsonic=18;purity_adapt=0.6364;"
-      "brain_root_targets=Mediant;brain_utonal=0.002597;brain_series=0.08685;arc_harmony=0.4055",
+      "brain_root_targets=Mediant;brain_utonal=0.002597;brain_series=0.08685;arc_harmony=0.4055;"
+      "filter_morph=1",
       nullptr, nullptr, nullptr,
       "lfo1>cosmos_shift:-0.050:none:u;lfo2>shimmer:0.341;lfo3>blur_smear:0.219;lfo4>far_decay:0.054;"
       "kura2>patina:0.179;env1>doppler:0.105;env2>far_highcut:0.129;env3>resonance:0.158",
@@ -1848,7 +1853,7 @@ const Preset kPresets[] = {
       "master_gain=-8.642;partials=13;tilt=1.451;brightness=0.4644;odd_even=-0.3747;inharmonic=0.2346;"
       "shimmer=0.5602;shimmer_rate=0.03275;detune=3.688;drift=5.979;drift_rate=0.02364;spread=0.8864;"
       "bloom=0.01449;bloom_time=167.8;rate_wander=0.3483;attack=29.6;decay=8.507;sustain=0.9063;"
-      "release=42.12;cutoff=1417;resonance=0.3765;filter_env=0.03088;filter_drift=0.3066;keytrack=0.5588;"
+      "release=42.12;cutoff=1417;resonance=0.1085;filter_env=0.03088;filter_drift=0.3066;keytrack=0.5588;"
       "depth=0.8973;pan_drift=0.5442;itd=0.7032;arc=0.47;arc_period=44.82;breath=0.02881;"
       "breath_rate=0.05969;air=0;air_color=5.722;air_q=13.66;ens_mix=0.255;ens_depth=0.5933;"
       "ens_rate=0.1618;dly_time_l=0.673;dly_time_r=1.573;dly_feedback=0.5356;dly_cross=0.1693;"
@@ -1884,7 +1889,8 @@ const Preset kPresets[] = {
       "env3_mode=Loop;env3_depth=0.579;env3_sync=4 bars;env4_time=20;env4_mode=One Shot;env4_depth=0.97;"
       "src3_delay=19.61;src3_env=Own;src3_env_mode=One Shot;src3_env_time=1.091;brain_release_gap=2.754;"
       "far_unmask=0.1583;far_unmask_spread=0.406;presence=1.48;subsonic=18;purity_adapt=0.7242;"
-      "brain_root_targets=Phrygian;brain_utonal=0.64;brain_series=0.05557;arc_harmony=0.3837",
+      "brain_root_targets=Phrygian;brain_utonal=0.64;brain_series=0.05557;arc_harmony=0.3837;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lenia1>osc_level:-0.148;lfo2>brain_cascade:0.233:none:u;note>itd:0.072;env1>brain_dejavu:0.216;"
       "env2>detune:0.241;env3>near_ild:0.220;env4>early_size:0.203;pressure>far_level:0.221:u",
@@ -2326,7 +2332,7 @@ const Preset kPresets[] = {
       "master_gain=1.49;partials=21;tilt=2.64;brightness=0.008086;odd_even=0.2756;inharmonic=0.1679;"
       "shimmer=0.4391;shimmer_rate=0.1383;strands=6;detune=3.2;drift=8.12;drift_rate=0.02536;spread=0.8817;"
       "bloom=0.2875;bloom_time=95.78;rate_wander=0.1407;attack=16.58;decay=4.4;sustain=0.7877;"
-      "release=48.71;cutoff=180.8;resonance=0.2935;filter_env=0.02139;filter_drift=0.258;keytrack=0.3592;"
+      "release=48.71;cutoff=180.8;resonance=0;filter_env=0.02139;filter_drift=0.258;keytrack=0.3592;"
       "depth=0.9292;pan_drift=0.3451;itd=0.538;arc=0.2938;arc_period=66.72;breath=0.1332;"
       "breath_rate=0.01959;air=0;air_color=3.711;air_q=15.4;ens_mix=0.4398;ens_depth=0.5082;"
       "ens_rate=0.3839;dly_time_l=0.6434;dly_time_r=0.9042;dly_feedback=0.5075;dly_cross=0.2193;"
@@ -2356,7 +2362,8 @@ const Preset kPresets[] = {
       "doppler=0.4066;arc_harmony=0.2268;seed=1804;src2_delay=4.92;src2_env=Own;src2_env_mode=One Shot;"
       "src2_env_time=1.025;src3_delay=11.91;src3_env=Own;src3_env_mode=Sustain Loop;src3_env_time=2.211;"
       "brain_release_gap=3.2;far_unmask=0.15;far_unmask_spread=0.347;presence=1;subsonic=18;"
-      "purity_adapt=0.7793;brain_root_targets=Modal;brain_utonal=0.7481;brain_series=0.04314",
+      "purity_adapt=0.7793;brain_root_targets=Modal;brain_utonal=0.7481;brain_series=0.04314;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "cascade>far_size:0.110;beat>itd:-0.070;wheel>air:0.238:u",
       "~~~~~~~0:0/2.85:1:-0.39/8.12:0.83:0.16~0:0/4.57:1:-0.4/7.81:0.828:0.03/19.5:0:-0.56!s2" },
@@ -2414,7 +2421,7 @@ const Preset kPresets[] = {
       "master_gain=-9.312;partials=8;tilt=1.851;brightness=0.325;odd_even=-0.1372;inharmonic=0.1176;"
       "shimmer=0.5032;shimmer_rate=0.07147;strands=5;detune=3.835;drift=2.05;drift_rate=0.05927;"
       "spread=0.8748;bloom=0.1694;bloom_time=120.6;rate_wander=0.1827;attack=27.7;decay=3.087;"
-      "sustain=0.9262;release=45.03;cutoff=1177;resonance=0.2883;filter_env=0.3193;filter_drift=0.1854;"
+      "sustain=0.9262;release=45.03;cutoff=1177;resonance=0;filter_env=0.3193;filter_drift=0.1854;"
       "keytrack=0.6345;depth=0.924;pan_drift=0.4185;itd=0.5542;arc=0.4399;arc_period=25.58;breath=0.248;"
       "breath_rate=0.04197;air=0.04615;air_color=1.988;air_q=4.499;ens_mix=0.5238;ens_depth=0.3266;"
       "ens_rate=0.0983;dly_time_l=0.4648;dly_time_r=2.98;dly_feedback=0.5509;dly_cross=0.3272;"
@@ -2453,7 +2460,7 @@ const Preset kPresets[] = {
       "env3_time=11.9;env3_mode=One Shot;env3_depth=0.538;src2_delay=5.94;src2_env=Own;"
       "src2_env_mode=One Shot;src2_env_time=0.89;brain_release_gap=3.243;far_unmask=0.163;"
       "far_unmask_spread=0.486;presence=1;subsonic=18;sub_beat=0.25;brain_root_targets=Modal;"
-      "brain_utonal=0.893;brain_series=0.02504;arc_harmony=0.193",
+      "brain_utonal=0.893;brain_series=0.02504;arc_harmony=0.193;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>purity:-0.107;env1>purity_drift:0.107;env2>src4_bright:-0.168;env3>dly_mix:0.176",
       "0:0:-0.57/1.1:0.387:0.56/3.92:-0.116:-0.2/5.81:0.06:0.4/7.51:-0.153:0.17/9.64:0.535:-0.5/10.9:0.926:-0.55/11.7:-0.569:0.11/12.5:-0.104:0.31/14.9:-0.417:-0.55/17.2:0.845:0.49/18.8:0.546:0.43/20.2:0.349:-0.39/21.8:0:-0.34!l0-12~"
@@ -2614,7 +2621,7 @@ const Preset kPresets[] = {
       "master_gain=12;partials=19;tilt=2.433;brightness=0.2848;odd_even=0.197;inharmonic=0.228;"
       "shimmer=0.4544;shimmer_rate=0.3253;strands=2;detune=4;drift=3.901;drift_rate=0.119;spread=0.8784;"
       "bloom=0.2382;bloom_time=37.29;rate_wander=0.1704;attack=0.524;decay=13.88;sustain=0.7999;"
-      "release=11.47;cutoff=303.6;resonance=0.3997;filter_env=0.2219;filter_drift=0.4689;keytrack=0.502;"
+      "release=11.47;cutoff=470.6;resonance=0.1598;filter_env=0.2219;filter_drift=0.4689;keytrack=0.502;"
       "depth=0.9165;pan_drift=0.5693;itd=0.6771;arc=0.2504;arc_period=31.37;breath=0.05571;"
       "breath_rate=0.01382;air=0;air_color=6.774;air_q=9.464;ens_mix=0.5065;ens_depth=0.3842;"
       "ens_rate=0.07267;dly_time_l=0.455;dly_time_r=1.955;dly_feedback=0.6764;dly_cross=0.2962;"
@@ -2644,7 +2651,7 @@ const Preset kPresets[] = {
       "z_rate=0.009505;z_depth=0.8269;z_res=0.5878;z_keytrack=0.5641;z_mix=0.8757;dly_duck=0.2953;"
       "cosmos_send=0.3829;cosmos_return=0.4949;cosmos_to_far=0.36;cosmos_res=0.2542;cosmos_res_pitch=0.5;"
       "cosmos_res_fb=0.793;cosmos_vowel=0.3099;cosmos_vowel_rate=0.06868;fb_bus=0.1029;fb_tone=1702;"
-      "fb_drive=0.7645;fb_tape=0.3685;phase_width=0.5578;phase_rate=0.009643;filter_model=Ladder;"
+      "fb_drive=0.7645;fb_tape=0.3685;phase_width=0.5578;phase_rate=0.009643;filter_model=Moog;"
       "filter_drive=0.185;dly_absorb=0.3056;brain2_depth=0.95;brain2_consonance=0.348;purity_guard=0.369;"
       "chaos_period=275.8;cosmos_swell=0.586;src1_unison=3;src1_uni_detune=14.52;src1_uni_width=0.709;"
       "seed=5454;lfo2_rate=0.00201;lfo2_shape=Table;lfo2_phase=0.807;lfo2_depth=0.899;lfo2_table=14;"
@@ -2658,10 +2665,10 @@ const Preset kPresets[] = {
       "env1>dly_feedback:0.094",
       "0:0:-0.2/2.64:-0.947:0.4/3.46:-0.902:-0.04/5.41:-0.331:0.11/7.57:0.7:-0.09/8.87:-0.303:-0.35/11.7:0.523:-0.31/14.3:-0.531:0.54/15.9:-0.626:-0.44/16.5:0.255:-0.2/17.6:-0.141:0.34/19.4:0.232:0.3/21.2:0:-0.38" },
     { "Seafloor Bloom",
-      "master_gain=1.38;partials=22;tilt=2.689;brightness=0.1928;odd_even=0.108;shimmer=0.2606;"
+      "master_gain=9.83;partials=22;tilt=2.689;brightness=0.1928;odd_even=0.108;shimmer=0.2606;"
       "shimmer_rate=0.08063;detune=2.743;drift=8.702;drift_rate=0.02932;spread=0.827;bloom=0.3057;"
       "bloom_time=79.72;rate_wander=0.4016;attack=14.07;decay=8.862;sustain=0.8539;release=22.24;"
-      "cutoff=303.3;resonance=0.547;filter_env=0.2655;filter_drift=0.3696;keytrack=0.383;depth=0.9516;"
+      "cutoff=470.1;resonance=0.2992;filter_env=0.2655;filter_drift=0.3696;keytrack=0.383;depth=0.9516;"
       "pan_drift=0.42;itd=0.5477;arc=0.3696;arc_period=109;breath=0.2009;breath_rate=0.01092;air=0;"
       "air_color=2.687;air_q=8.818;ens_mix=0.3666;ens_depth=0.5332;ens_rate=0.0685;dly_time_l=1.353;"
       "dly_time_r=0.8269;dly_feedback=0.4991;dly_cross=0.2252;dly_damp=0.6028;dly_mix=0.1181;"
@@ -2692,7 +2699,7 @@ const Preset kPresets[] = {
       "src4_noise_q=0.7546;src4_pos=0.2489;src4_pos_drift=0.6997;src4_follow=Free;cosmos_send=0.4585;"
       "cosmos_return=0.6119;cosmos_to_far=0.2645;cosmos_shift=8.034;cosmos_shift_drift=0.4372;"
       "dly2_mix=0.2741;dly2_time_l=1.02;dly2_time_r=1.506;dly2_feedback=0.3886;dly2_cross=0.2627;"
-      "dly2_damp=0.7743;filter_model=Ladder;filter_drive=0.3673;dly_absorb=0.9441;dly2_absorb=0.7925;"
+      "dly2_damp=0.7743;filter_model=Moog;filter_drive=0.3673;dly_absorb=0.9441;dly2_absorb=0.7925;"
       "far_width=1;haas=0.418;haas_time=14.9;brain2_depth=0.794;brain2_consonance=0.652;near_ild=0.596;"
       "depth_law=0.619;far_mode=Colourless;partial_spread=0.52;cosmos_swell=0.376;seed=1658;"
       "lenia_rate=0.913;lenia_growth=0.147;lfo3_rate=0.0239;lfo3_shape=Sine;lfo3_phase=0.41;"
@@ -3123,7 +3130,7 @@ const Preset kPresets[] = {
       "master_gain=-2.82;partials=14;tilt=0.9139;brightness=0.9097;odd_even=0.08222;inharmonic=0.1731;"
       "shimmer=0.5512;shimmer_rate=0.09652;detune=4;drift=6.289;drift_rate=0.03238;spread=0.8933;"
       "bloom=0.08875;bloom_time=36.16;rate_wander=0.4057;attack=9.587;decay=6.885;sustain=0.8388;"
-      "release=17.88;cutoff=1876;resonance=0.05721;filter_env=0.2045;filter_drift=0.3159;keytrack=0.4568;"
+      "release=17.88;cutoff=1876;resonance=0;filter_env=0.2045;filter_drift=0.3159;keytrack=0.4568;"
       "depth=0.9526;pan_drift=0.2017;itd=0.7189;arc=0.3695;arc_period=71.04;breath=0.2464;"
       "breath_rate=0.01281;air=0;air_color=1.74;air_q=5.412;ens_mix=0.5466;ens_depth=0.2581;"
       "ens_rate=0.2009;dly_time_l=0.5989;dly_time_r=0.9476;dly_feedback=0.5947;dly_cross=0.1408;"
@@ -3158,7 +3165,7 @@ const Preset kPresets[] = {
       "lfo3_depth=0.721;src2_delay=3.06;src2_env=Own;src2_env_mode=One Shot;src2_env_time=1.738;"
       "brain_release_gap=3.747;far_unmask=0.1337;far_unmask_spread=0.373;presence=1;subsonic=18;"
       "purity_adapt=0.6952;brain_root_targets=Modal;brain_utonal=0.1636;brain_series=0.0634;"
-      "arc_harmony=0.06525",
+      "arc_harmony=0.06525;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>osc_level:-0.118;lfo2>itd:0.081;lfo3>brain_wander:0.212",
       "~~~~~~~0:0/5.97:1:-0.14" },
@@ -3202,10 +3209,10 @@ const Preset kPresets[] = {
       nullptr, nullptr, nullptr,
       "lfo1>shimmer:0.243:none:u;lfo2>width:0.159:macro_h;slide>tilt:0.173:u" },
     { "Fiddle Strings",
-      "master_gain=-7.384;partials=19;tilt=1.618;brightness=0.4728;odd_even=-0.2725;inharmonic=0.07808;"
+      "master_gain=-7.364;partials=19;tilt=1.618;brightness=0.4728;odd_even=-0.2725;inharmonic=0.07808;"
       "shimmer=0.4612;shimmer_rate=0.8597;strands=5;detune=3.508;drift=4.052;drift_rate=0.04081;"
       "spread=0.7723;bloom=0.2224;bloom_time=88.03;rate_wander=0.4269;attack=11.34;decay=4.104;"
-      "sustain=0.8146;release=16.3;cutoff=2271;resonance=0.0904;filter_env=0.2939;filter_drift=0.5994;"
+      "sustain=0.8146;release=16.3;cutoff=2279;resonance=0.02;filter_env=0.2939;filter_drift=0.5994;"
       "keytrack=0.3403;depth=0.9199;pan_drift=0.5145;itd=0.564;arc=0.2599;arc_period=41.78;breath=0.3154;"
       "breath_rate=0.01057;air=0.07;air_color=6.158;air_q=12.93;ens_mix=0.5758;ens_depth=0.4482;"
       "ens_rate=0.3515;dly_time_l=0.4243;dly_time_r=1.838;dly_feedback=0.3191;dly_cross=0.1535;"
@@ -3236,11 +3243,11 @@ const Preset kPresets[] = {
       "cosmos_res=0.6675;cosmos_res_pitch=0.5;cosmos_res_fb=0.6126;cosmos_vowel=0.2741;"
       "cosmos_vowel_rate=0.09422;dly2_mix=0.2702;dly2_time_l=3.21;dly2_time_r=0.7753;dly2_feedback=0.4038;"
       "dly2_cross=0.3961;dly2_damp=0.6294;coherence=0.7929;coherence_depth=0.6686;coherence_rate=1.669;"
-      "phase_width=0.7772;phase_rate=0.01016;doppler=0.6085;filter_model=LP 24;tide=3.608;"
-      "tide_period=11.16;filter_fold=0.128;hold=on;far_comod=0.553;far_mode=Rotating;far_rotate=0.692;"
-      "early_level=0.538;early_size=6.15;early_absorb=0.542;early_width=0.46;lenia_rate=0.994;"
-      "lenia_growth=0.112;patina=0.144;patina_wow=0.496;patina_age=0.65;master_tilt=-1.42;tilt_pivot=762;"
-      "seed=6860;lfo3_rate=0.1529;lfo3_shape=Triangle;lfo3_phase=0.99;lfo3_depth=0.78;lfo3_mode=Retrigger;"
+      "phase_width=0.7772;phase_rate=0.01016;doppler=0.6085;filter_model=Juno;tide=3.608;tide_period=11.16;"
+      "filter_fold=0.128;hold=on;far_comod=0.553;far_mode=Rotating;far_rotate=0.692;early_level=0.538;"
+      "early_size=6.15;early_absorb=0.542;early_width=0.46;lenia_rate=0.994;lenia_growth=0.112;"
+      "patina=0.144;patina_wow=0.496;patina_age=0.65;master_tilt=-1.42;tilt_pivot=762;seed=6860;"
+      "lfo3_rate=0.1529;lfo3_shape=Triangle;lfo3_phase=0.99;lfo3_depth=0.78;lfo3_mode=Retrigger;"
       "lfo4_rate=0.09448;lfo4_shape=Steps;lfo4_phase=0.751;lfo4_depth=0.835;lfo4_mode=Retrigger;"
       "lfo5_rate=0.05839;lfo5_shape=Sine;lfo5_phase=0.287;lfo5_depth=0.886;lfo6_rate=0.03609;"
       "lfo6_shape=Steps;lfo6_phase=0.583;lfo6_depth=0.946;lfo6_mode=Retrigger;chaos_period=171.6;"
@@ -3348,10 +3355,10 @@ const Preset kPresets[] = {
       "lfo1>body_tone:0.214;lfo2>src3_bow_speed:0.274:macro_d;kura2>dly_mix:-0.057;lfo4>src2_bright:-0.233;"
       "lfo5>src2_level:0.080:none:u" },
     { "Bow Field",
-      "master_gain=-6.57;partials=12;tilt=0.9499;brightness=0.579;odd_even=0.01496;inharmonic=0.3815;"
+      "master_gain=-7.17;partials=12;tilt=0.9499;brightness=0.579;odd_even=0.01496;inharmonic=0.3815;"
       "shimmer=0.3456;shimmer_rate=0.06239;strands=5;detune=4;drift=4.56;drift_rate=0.03142;spread=0.6631;"
       "bloom=0.2574;bloom_time=37.63;rate_wander=0.1183;attack=16.86;decay=13.23;sustain=0.7809;"
-      "release=46.04;cutoff=3707;resonance=0.4891;filter_env=0.2232;filter_drift=0.4243;keytrack=0.499;"
+      "release=46.04;cutoff=5746;resonance=0.2392;filter_env=0.2232;filter_drift=0.4243;keytrack=0.499;"
       "depth=0.9299;pan_drift=0.3173;itd=0.5271;arc=0.306;arc_period=41.99;breath=0.2918;"
       "breath_rate=0.02592;air=0.06;air_color=2.606;air_q=16.15;ens_mix=0.2259;ens_depth=0.5329;"
       "ens_rate=0.108;dly_time_l=0.7413;dly_time_r=0.6741;dly_feedback=0.3426;dly_cross=0.4418;"
@@ -3378,7 +3385,7 @@ const Preset kPresets[] = {
       "src2_drift=1.685;src2_octave=1;src2_ratio=5/3;src2_pan=-0.2574;src2_partials=17;src2_tilt=1.25;"
       "src2_bright=0.7431;src2_odd_even=-0.2957;src2_shimmer=0.2161;src2_shimmer_rate=0.1479;"
       "cloud_send=0.318;cloud_density=10.66;cloud_size=445.1;cloud_pitch=0.2353;cloud_spray=0.386;"
-      "cloud_level=0.8432;filter_model=Ladder;filter_drive=0.2636;far_envelop=0.502;depth_law=0.529;"
+      "cloud_level=0.8432;filter_model=Moog;filter_drive=0.2636;far_envelop=0.502;depth_law=0.529;"
       "elev_near=-0.017;elev_far=0.795;partial_spread=0.513;mem_send=0.331;mem_return=0.636;"
       "mem_to_far=0.239;mem_lines=2;mem_size=9.98;mem_blur=0.693;mem_drift=0.573;mem_hold=0.686;"
       "mem_age=0.258;mem_drive=0.425;seed=7814;lfo1_rate=0.02692;lfo1_shape=Sine;lfo1_phase=0.159;"
@@ -3490,7 +3497,7 @@ const Preset kPresets[] = {
       "master_gain=-8.033;partials=13;tilt=0.9694;brightness=0.6096;odd_even=-0.08503;inharmonic=0.1596;"
       "shimmer=0.3731;shimmer_rate=0.0897;strands=5;detune=4;drift=7.541;drift_rate=0.02599;spread=0.7021;"
       "bloom=0.02218;bloom_time=81.4;rate_wander=0.3338;attack=8.129;decay=3.645;sustain=0.8584;"
-      "release=27.32;cutoff=3349;resonance=0.2036;filter_env=0.3464;filter_drift=0.2452;keytrack=0.5168;"
+      "release=27.32;cutoff=3349;resonance=0;filter_env=0.3464;filter_drift=0.2452;keytrack=0.5168;"
       "depth=0.9525;pan_drift=0.3775;itd=0.6387;arc=0.4256;arc_period=35.47;breath=0.1732;"
       "breath_rate=0.01502;air=0;air_color=4.183;air_q=7.493;ens_mix=0.4736;ens_depth=0.5644;"
       "ens_rate=0.1097;dly_time_l=2.082;dly_time_r=3.182;dly_feedback=0.3286;dly_cross=0.4374;"
@@ -3524,7 +3531,8 @@ const Preset kPresets[] = {
       "lfo3_mode=Retrigger;env1_time=10.6;env1_mode=One Shot;env1_depth=0.95;env2_time=17.14;"
       "env2_mode=One Shot;env2_depth=0.954;src3_delay=5.97;src3_rise=3.09;brain_release_gap=3.1;"
       "far_unmask=0.12;far_unmask_spread=0.323;presence=1;subsonic=18;sub_beat=0.25;"
-      "brain_root_targets=Modal;brain_utonal=0.02771;brain_series=0.03621;arc_harmony=0.1339",
+      "brain_root_targets=Modal;brain_utonal=0.02771;brain_series=0.03621;arc_harmony=0.1339;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>src3_bow_speed:0.293;lenia4>src1_bow_force:0.216;lfo3>src1_bow_speed:-0.123;env1>air:-0.229;"
       "env2>tide:-0.151;pressure>far_level:0.129:u",
@@ -3534,7 +3542,7 @@ const Preset kPresets[] = {
       "master_gain=-6.42;partials=18;tilt=1.348;brightness=0.6958;odd_even=-0.1851;inharmonic=0.009455;"
       "shimmer=0.3103;shimmer_rate=0.01973;strands=4;detune=4;drift=4.524;drift_rate=0.02402;spread=0.5317;"
       "bloom=0.2201;bloom_time=61.15;rate_wander=0.2896;attack=33.11;decay=2.641;sustain=0.7695;"
-      "release=33.5;cutoff=2949;resonance=0.1508;filter_env=0.1882;filter_drift=0.2031;keytrack=0.3254;"
+      "release=33.5;cutoff=2949;resonance=0;filter_env=0.1882;filter_drift=0.2031;keytrack=0.3254;"
       "depth=0.8902;pan_drift=0.3775;itd=0.5665;arc=0.1953;arc_period=59.51;breath=0.3351;"
       "breath_rate=0.05908;air=0.061;air_color=5.095;air_q=5.779;ens_mix=0.5339;ens_depth=0.14;"
       "ens_rate=0.05727;dly_time_l=1.337;dly_time_r=1.593;dly_feedback=0.5411;dly_cross=0.2664;"
@@ -3569,7 +3577,7 @@ const Preset kPresets[] = {
       "env2_depth=0.853;env3_time=20;env3_mode=Loop;env3_depth=0.529;src2_delay=3.25;src2_rise=1.89;"
       "brain_release_gap=2.795;far_unmask=0.139;far_unmask_spread=0.412;presence=1;subsonic=18;"
       "purity_adapt=0.4875;brain_root_targets=Modal;brain_utonal=0.09934;brain_series=0.05935;"
-      "arc_harmony=0.02109",
+      "arc_harmony=0.02109;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lenia3>cosmos_smear:0.100;env1>blur_smear:0.146;env2>far_highcut:0.153;env3>air:0.108",
       "0:0:0.38/1.72:0.83:-0.44/2.75:0:-0.18~"
@@ -3664,10 +3672,10 @@ const Preset kPresets[] = {
       "0:0:0.22/2.37:-0.386:-0.52/3.82:-0.455:0.49/5.88:-0.94:-0.43/8.51:0.508:-0.12/10.8:-0.707:-0.31/12.9:0:0.21!s3~"
       "0:0:-0.13/1.8:0.577:0.03/4.79:-0.327:0.19/6.53:0.323:0.16/8.74:-0.087:0.24/10.6:-0.717:-0.42/12.6:0.049:0.5/15.4:-0.075:-0.26/18.3:0:-0.39!l0-7" },
     { "Bridge Descent",
-      "master_gain=-2.28;partials=19;tilt=1.055;brightness=0.7516;odd_even=0.1604;inharmonic=0.1715;"
+      "master_gain=-3.82;partials=19;tilt=1.055;brightness=0.7516;odd_even=0.1604;inharmonic=0.1715;"
       "shimmer=0.5666;shimmer_rate=0.0307;strands=5;detune=4;drift=2.304;drift_rate=0.08387;spread=0.6513;"
       "bloom=0.003636;bloom_time=47.14;rate_wander=0.3436;attack=13.34;decay=2.125;sustain=0.7514;"
-      "release=31.48;cutoff=1536;resonance=0.8074;filter_env=0.04975;filter_drift=0.4012;keytrack=0.6791;"
+      "release=31.48;cutoff=2381;resonance=0.6519;filter_env=0.04975;filter_drift=0.4012;keytrack=0.6791;"
       "depth=0.8967;pan_drift=0.427;itd=0.5887;arc=0.1848;arc_period=29.75;breath=0.1279;"
       "breath_rate=0.0124;air=0;air_color=7.046;air_q=6.035;ens_mix=0.4779;ens_depth=0.763;ens_rate=0.0432;"
       "dly_time_l=0.9313;dly_time_r=1.436;dly_feedback=0.3014;dly_cross=0.3569;dly_damp=0.6536;"
@@ -3694,7 +3702,7 @@ const Preset kPresets[] = {
       "src4_drift=1.433;src4_ratio=4/3;src4_pan=-0.2322;src4_partials=6;src4_tilt=1.013;src4_bright=0.4029;"
       "src4_shimmer=0.2011;src4_shimmer_rate=0.3406;z_mode=Series;z_shape=Sub Sweep;z_z=0.1;z_x=0.35;"
       "z_y=0.55;z_rate=0.04;z_depth=0.55;z_res=0.6;z_mix=0.5419;cosmos_send=0.241;cosmos_return=0.3326;"
-      "cosmos_to_far=0.55;cosmos_nebula=0.5;cosmos_smear=0.85;filter_model=Ladder;filter_drive=0.2197;"
+      "cosmos_to_far=0.55;cosmos_nebula=0.5;cosmos_smear=0.85;filter_model=Moog;filter_drive=0.2197;"
       "ens_mode=Microshift;near_ild=0.784;early_level=0.523;early_size=4.47;early_absorb=0.286;"
       "early_width=0.716;sympathy=0.199;coherence=0.302;patina=0.441;patina_wow=0.301;patina_hiss=0.089;"
       "patina_age=0.107;dly_sync_l=8 bars;dly_sync_r=8 bars;arc_sync=64 bars;ensemble_sync=8 bars;"
@@ -3708,10 +3716,10 @@ const Preset kPresets[] = {
       "lfo1>ens_depth:-0.230;lfo2>body_tone:0.181;lfo3>patina:0.236;note>near_ild:0.264;env1>brain_spread:0.151",
       "0:0:-0.34/2.04:0.027:0.09/4.03:0:0.48" },
     { "Horsehair Passage",
-      "master_gain=3.091;partials=17;tilt=1.377;brightness=0.7372;odd_even=-0.06535;inharmonic=0.2286;"
+      "master_gain=1.661;partials=17;tilt=1.377;brightness=0.7372;odd_even=-0.06535;inharmonic=0.2286;"
       "shimmer=0.3442;shimmer_rate=0.3184;strands=5;detune=4;drift=6.221;drift_rate=0.02074;spread=0.5637;"
       "bloom=0.4594;bloom_time=90.74;rate_wander=0.2659;attack=8.74;decay=7.267;sustain=0.715;"
-      "release=18.35;cutoff=2732;resonance=0.6597;filter_env=0.241;filter_drift=0.4061;keytrack=0.4116;"
+      "release=18.35;cutoff=4235;resonance=0.4352;filter_env=0.241;filter_drift=0.4061;keytrack=0.4116;"
       "depth=0.8894;pan_drift=0.461;itd=0.7905;arc=0.4026;arc_period=86.54;breath=0.1948;"
       "breath_rate=0.01317;air=0;air_color=2.264;air_q=4.749;ens_mix=0.3997;ens_depth=0.3082;"
       "ens_rate=0.2041;dly_time_l=0.903;dly_time_r=2.219;dly_feedback=0.3382;dly_cross=0.4777;"
@@ -3741,7 +3749,7 @@ const Preset kPresets[] = {
       "src3_bow_force=0.1166;src3_bow_speed=0.5699;src3_pos=0.7864;src3_bright=0.6009;src3_drift=6.247;"
       "z_mode=Series;z_shape=Piano Board;z_z=0.5712;z_x=0.7235;z_y=0.1222;z_rate=0.1263;z_depth=0.3237;"
       "z_res=0.3504;z_mix=0.6377;dly_duck=0.6991;fb_bus=0.1002;fb_tone=648;fb_drive=0.4379;fb_tape=0.6377;"
-      "phase_width=0.6971;phase_rate=0.03801;filter_model=Ladder;filter_drive=0.4554;haas=0.277;"
+      "phase_width=0.6971;phase_rate=0.03801;filter_model=Moog;filter_drive=0.4554;haas=0.277;"
       "haas_time=18.6;filter_fold=0.225;brain2_depth=0.861;brain2_consonance=0.618;depth_law=0.472;"
       "partial_spread=0.317;press_bright=0.525;press_level=0.313;slide_cutoff=0.471;bend_range=7;seed=9690;"
       "lfo1_rate=0.01243;lfo1_shape=Random;lfo1_phase=0.585;lfo1_depth=0.704;lfo2_rate=0.007682;"
@@ -3756,10 +3764,10 @@ const Preset kPresets[] = {
       "rossler_z>brain_bias:-0.097;env1>src1_bow_force:0.273",
       "0:0:0.33/1.74:0.166:-0.35/4.2:0.715:-0.09/5.51:0.534:-0.12/8.07:0:0.44!l0-3~~~~~~~~0:0/7.79:1:0.14" },
     { "Tension Bed",
-      "master_gain=-2.98;partials=14;tilt=1.232;brightness=0.7524;odd_even=-0.2088;inharmonic=0.02534;"
+      "master_gain=-2.53;partials=14;tilt=1.232;brightness=0.7524;odd_even=-0.2088;inharmonic=0.02534;"
       "shimmer=0.5459;shimmer_rate=0.3459;strands=2;detune=4;drift=6.296;drift_rate=0.1104;spread=0.6666;"
       "bloom=0.1718;bloom_time=30.96;rate_wander=0.3791;attack=15.61;decay=9.435;sustain=0.8187;"
-      "release=23.03;cutoff=1090;resonance=0.1499;filter_env=0.01701;filter_drift=0.1736;keytrack=0.5791;"
+      "release=23.03;cutoff=1080;resonance=0.04;filter_env=0.01701;filter_drift=0.1736;keytrack=0.5791;"
       "depth=0.9268;pan_drift=0.4108;itd=0.4703;arc=0.4729;arc_period=49.08;breath=0.1961;"
       "breath_rate=0.02021;air=0;air_color=5.481;air_q=5.366;ens_mix=0.2124;ens_depth=0.3973;"
       "ens_rate=0.1197;dly_time_l=1.583;dly_time_r=0.7147;dly_feedback=0.4107;dly_cross=0.2679;"
@@ -3784,7 +3792,7 @@ const Preset kPresets[] = {
       "src1_ratio=3/2;src1_pan=-0.6282;src1_bow_force=0.3516;src1_bow_speed=0.6605;src1_pos=0.1103;"
       "src1_drift=1.55;dly_duck=0.5731;dly2_mix=0.2953;dly2_time_l=1.34;dly2_time_r=1.189;"
       "dly2_feedback=0.7159;dly2_cross=0.2227;dly2_damp=0.5581;phase_width=0.5918;phase_rate=0.0502;"
-      "doppler=0.5921;filter_model=LP 24;dly_absorb=0.4693;dly2_absorb=0.8559;match=0.76;depth_law=0.317;"
+      "doppler=0.5921;filter_model=Prophet;dly_absorb=0.4693;dly2_absorb=0.8559;match=0.76;depth_law=0.317;"
       "elev_near=-0.385;elev_far=0.346;far_diffuse=0.24;partial_spread=0.744;patina=0.426;patina_wow=0.148;"
       "patina_hiss=0.099;patina_age=0.29;mono_guard=on;near_lowcut=109.7;dly2_to_far=0.664;"
       "press_bright=0.683;press_level=0.247;slide_cutoff=0.468;seed=614;lfo1_rate=0.001029;lfo1_shape=Sine;"
@@ -3896,10 +3904,10 @@ const Preset kPresets[] = {
       "0:0:0.07/0.853:0.712:0.09/2.46:0.182:0.42/4.73:-0.648:-0.5/6.52:0:0.14!l0-3~~~~~~~"
       "0:0/3.99:1:-0.1/10.7:0.547:0.2" },
     { "Regal Veil",
-      "master_gain=-0.541;partials=17;tilt=1.509;brightness=0.6283;odd_even=-0.2765;inharmonic=0.09777;"
+      "master_gain=-0.851;partials=17;tilt=1.509;brightness=0.6283;odd_even=-0.2765;inharmonic=0.09777;"
       "shimmer=0.4711;shimmer_rate=0.1395;strands=6;detune=4;drift=5.77;drift_rate=0.06135;spread=0.7955;"
       "bloom=0.4632;bloom_time=30.31;rate_wander=0.1966;attack=31.91;decay=2.924;sustain=0.705;"
-      "release=30.53;cutoff=125.5;resonance=0.1423;filter_env=0.001784;filter_drift=0;keytrack=0.4974;"
+      "release=30.53;cutoff=125.5;resonance=0;filter_env=0.001784;filter_drift=0;keytrack=0.4974;"
       "depth=0.9133;pan_drift=0.5079;itd=0.7173;arc=0.2693;arc_period=38.23;breath=0.266;"
       "breath_rate=0.01206;air=0;air_color=7.294;air_q=9.047;ens_mix=0.5606;ens_depth=0.1835;"
       "ens_rate=0.1799;dly_time_l=0.7776;dly_time_r=0.6426;dly_feedback=0.4157;dly_cross=0.2819;"
@@ -3928,15 +3936,16 @@ const Preset kPresets[] = {
       "src4_pan=-0.005499;src4_table=Organ;src4_pos=0.5444;src4_pos_drift=0.1641;z_mode=Series;z_shape=Wow;"
       "z_z=0.1995;z_x=0.4453;z_y=0.7796;z_rate=0.01179;z_depth=0.6057;z_res=0.4143;z_mix=0.5809;"
       "dly_duck=0.5542;cosmos_send=0.5004;cosmos_return=0.6233;cosmos_to_far=0.2676;cosmos_shimmer=0.316;"
-      "cosmos_shimmer_pitch=-12;phase_width=0.3447;phase_rate=0.01011;filter_model=HP 12;"
-      "brain2_depth=0.899;brain2_consonance=0.356;far_diffuse=0.791;chaos_period=131.7;"
-      "src3_transport=0.411;src4_transport=0.683;vec_amount=0.578;vec_x=0.278;vec_y=0.309;master_tilt=0.53;"
-      "tilt_pivot=1083;mem_send=0.122;mem_return=0.564;mem_to_far=0.425;mem_lines=2;mem_size=23.42;"
-      "mem_blur=0.451;mem_drift=0.274;mem_hold=0.684;mem_age=0.607;src4_unison=4;src4_uni_detune=4.34;"
+      "cosmos_shimmer_pitch=-12;phase_width=0.3447;phase_rate=0.01011;filter_model=SEM;brain2_depth=0.899;"
+      "brain2_consonance=0.356;far_diffuse=0.791;chaos_period=131.7;src3_transport=0.411;"
+      "src4_transport=0.683;vec_amount=0.578;vec_x=0.278;vec_y=0.309;master_tilt=0.53;tilt_pivot=1083;"
+      "mem_send=0.122;mem_return=0.564;mem_to_far=0.425;mem_lines=2;mem_size=23.42;mem_blur=0.451;"
+      "mem_drift=0.274;mem_hold=0.684;mem_age=0.607;src4_unison=4;src4_uni_detune=4.34;"
       "src4_uni_width=0.574;cosmos_shimmer_mode=Grain;seed=2089;lfo1_rate=0.02523;lfo1_shape=Sine;"
       "lfo1_phase=0.235;lfo1_depth=0.821;src4_delay=2.79;src4_rise=2.14;brain_release_gap=2.796;"
       "far_unmask=0.1397;far_unmask_spread=0.427;presence=1.42;subsonic=18;purity_adapt=0.6808;"
-      "brain_root_targets=Phrygian;brain_utonal=0.6532;brain_series=0.0471;arc_harmony=0.2652",
+      "brain_root_targets=Phrygian;brain_utonal=0.6532;brain_series=0.0471;arc_harmony=0.2652;"
+      "filter_morph=1",
       nullptr, nullptr, nullptr,
       "lfo1>brain_spread:-0.245;cascade>brain_bias:0.207;wheel>z_y:0.297:u;slide>tilt:0.190:u" },
     { "Stop Signal",
@@ -4126,10 +4135,10 @@ const Preset kPresets[] = {
       "0:0:-0.24/1.86:-0.729:-0.34/2.58:-0.091:0.38/3.22:0:-0.48~~~~~~~"
       "0:0/3.54:1:-0.05/7:0.557:0.05/12.6:0:-0.14!s2" },
     { "Organ Passage",
-      "master_gain=-2.086;partials=14;tilt=0.8666;brightness=0.5146;odd_even=-0.08884;shimmer=0.5053;"
+      "master_gain=-2.076;partials=14;tilt=0.8666;brightness=0.5146;odd_even=-0.08884;shimmer=0.5053;"
       "shimmer_rate=0.1117;strands=2;detune=2.779;drift=3.989;drift_rate=0.144;spread=0.8617;bloom=0.1383;"
       "bloom_time=59.51;rate_wander=0.4138;attack=14.8;decay=6.665;sustain=0.8652;release=22.81;"
-      "cutoff=2711;resonance=0.7794;filter_env=0.3558;filter_drift=0.4169;keytrack=0.3181;depth=0.8826;"
+      "cutoff=2711;resonance=0.6498;filter_env=0.3558;filter_drift=0.4169;keytrack=0.3181;depth=0.8826;"
       "pan_drift=0.2198;itd=0.4448;arc=0.242;arc_period=117.2;breath=0.04467;breath_rate=0.05746;air=0;"
       "air_color=1.983;air_q=6.3;ens_mix=0.2658;ens_depth=0.478;ens_rate=0.0614;dly_time_l=0.6019;"
       "dly_time_r=1.278;dly_feedback=0.6707;dly_cross=0.2508;dly_damp=0.56;dly_mix=0.1659;"
@@ -4156,7 +4165,7 @@ const Preset kPresets[] = {
       "src4_type=Wavetable;src4_level=0.2463;src4_drift=2.728;src4_ratio=5/3;src4_pan=0.2184;"
       "src4_table=Organ;src4_pos=0.8108;src4_pos_drift=0.6459;z_mode=Series;z_shape=Nasal;z_z=0.15;z_x=0.3;"
       "z_y=0.4;z_rate=0.03;z_depth=0.4;z_res=0.55;z_mix=0.6318;phase_width=0.5725;phase_rate=0.05783;"
-      "filter_model=Notch;far_rotate=0.2196;ens_mode=Microshift;brain2_depth=0.652;brain2_consonance=0.256;"
+      "filter_model=SEM;far_rotate=0.2196;ens_mode=Microshift;brain2_depth=0.652;brain2_consonance=0.256;"
       "depth_law=0.569;master_tilt=-1.45;tilt_pivot=616;press_bright=0.437;press_distance=0.404;"
       "slide_cutoff=0.158;bend_range=7;src1_unison=2;src1_uni_detune=7.58;src1_uni_width=0.876;"
       "src2_unison=3;src2_uni_detune=14.95;src2_uni_width=0.337;seed=5129;lenia_rate=1.041;"
@@ -4165,7 +4174,7 @@ const Preset kPresets[] = {
       "lfo4_mode=Retrigger;env1_time=15.71;env1_mode=Loop;env1_depth=0.772;src2_delay=3.88;src2_rise=8.18;"
       "brain_release_gap=3.849;far_unmask=0.1513;far_unmask_spread=0.491;presence=1.94;subsonic=18;"
       "purity_adapt=0.6737;brain_root_targets=Phrygian;brain_utonal=0.5923;brain_series=0.06308;"
-      "arc_harmony=0.2677",
+      "arc_harmony=0.2677;filter_morph=0.5",
       nullptr, nullptr, nullptr,
       "lenia3>brain_dejavu:0.097;kura1>brain_spread:0.177;lfo3>body_tone:-0.241:macro_g;lfo4>ens_depth:0.104;"
       "env1>sub_pulse:0.175",
@@ -4415,10 +4424,10 @@ const Preset kPresets[] = {
       "0:0:0.22/2.81:0.662:-0.59/3.65:-0.992:-0.17/4.3:0.782:-0.39/6.17:0.281:0.04/7.21:0:-0.33~"
       "0:0:-0.16/1.47:-0.684:0.23/3.17:-0.139:-0.14/3.87:0.2:0.02/5.41:0:0.21" },
     { "Chapel Veil",
-      "master_gain=2.308;partials=26;tilt=1.425;brightness=0.5302;odd_even=-0.08752;inharmonic=0.1753;"
+      "master_gain=1.638;partials=26;tilt=1.425;brightness=0.5302;odd_even=-0.08752;inharmonic=0.1753;"
       "shimmer=0.3295;shimmer_rate=0.26;strands=6;detune=4;drift=2.975;drift_rate=0.06848;spread=0.6592;"
       "bloom=0.3632;bloom_time=50.57;rate_wander=0.1016;attack=17.11;decay=6.979;sustain=0.8188;"
-      "release=31.11;cutoff=3214;resonance=0.4235;filter_env=0.04943;filter_drift=0.2991;keytrack=0.4612;"
+      "release=31.11;cutoff=4982;resonance=0.1794;filter_env=0.04943;filter_drift=0.2991;keytrack=0.4612;"
       "depth=0.9132;pan_drift=0.5128;itd=0.5574;arc=0.3503;arc_period=76.41;breath=0.2678;"
       "breath_rate=0.05002;air=0;air_color=4.619;air_q=6.617;ens_mix=0.6136;ens_depth=0.518;"
       "ens_rate=0.1709;dly_time_l=0.8961;dly_time_r=0.6311;dly_feedback=0.5968;dly_cross=0.2803;"
@@ -4447,7 +4456,7 @@ const Preset kPresets[] = {
       "src4_table=Vocal;src4_pos=0.3741;src4_pos_drift=0.4185;z_mode=Series;z_shape=Piano Board;z_z=0.15;"
       "z_x=0.45;z_y=0.55;z_rate=0.02;z_depth=0.3;z_res=0.7;z_mix=0.6611;cloud_send=0.3956;"
       "cloud_density=7.033;cloud_size=142.7;cloud_pitch=0.1719;cloud_spray=0.2832;cloud_level=0.832;"
-      "filter_model=Ladder;filter_drive=0.2779;dly_absorb=0.579;tide=5.595;tide_period=18.43;far_width=1;"
+      "filter_model=Moog;filter_drive=0.2779;dly_absorb=0.579;tide=5.595;tide_period=18.43;far_width=1;"
       "brain2_depth=0.91;brain2_consonance=0.43;purity_guard=0.436;hold=on;far_envelop=0.814;"
       "elev_near=0.056;elev_far=0.288;far_mode=Rotating;far_rotate=0.435;early_level=0.358;"
       "early_size=29.01;early_absorb=0.514;early_width=0.425;seed=3808;lfo2_rate=0.0008292;"
@@ -4604,7 +4613,7 @@ const Preset kPresets[] = {
       "master_gain=0.22;partials=24;tilt=0.9396;brightness=0.8471;odd_even=-0.005571;inharmonic=0.1006;"
       "shimmer=0.6531;shimmer_rate=0.06525;strands=5;detune=4;drift=7.003;drift_rate=0.02435;spread=0.6123;"
       "bloom=0.4863;bloom_time=67.5;rate_wander=0.2436;attack=1.102;decay=2.657;sustain=0.7933;"
-      "release=13.18;cutoff=3082;resonance=0.1865;filter_env=0.03936;filter_drift=0.3065;keytrack=0.6866;"
+      "release=13.18;cutoff=3082;resonance=0;filter_env=0.03936;filter_drift=0.3065;keytrack=0.6866;"
       "depth=0.9492;pan_drift=0.353;itd=0.6158;arc=0.1885;arc_period=106.3;breath=0.388;"
       "breath_rate=0.01838;air=0;air_color=1.96;air_q=18.95;ens_mix=0.2129;ens_depth=0.497;ens_rate=0.0676;"
       "dly_time_l=0.561;dly_time_r=1.255;dly_feedback=0.6115;dly_cross=0.1179;dly_damp=0.7115;"
@@ -4643,7 +4652,7 @@ const Preset kPresets[] = {
       "env1_depth=0.997;env2_time=18.93;env2_mode=One Shot;env2_depth=0.885;env3_time=20;env3_mode=Loop;"
       "env3_depth=0.666;env4_time=20;env4_mode=Sustain Loop;env4_depth=0.562;brain_release_gap=2.279;"
       "far_unmask=0.155;far_unmask_spread=0.351;presence=2.41;subsonic=18;brain_root_targets=Mediant;"
-      "brain_utonal=0.03569;brain_series=0.04544;arc_harmony=0.4758",
+      "brain_utonal=0.03569;brain_series=0.04544;arc_harmony=0.4758;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>cosmos_smear:0.136;lfo2>purity_drift:0.149;lfo3>sub_pulse:0.236;lfo4>cosmos_shimmer:0.114;"
       "cascade>far_comod:-0.120;env1>dly_feedback:0.088;env2>blur_smear:-0.249;env3>far_highcut:0.161;"
@@ -4913,7 +4922,7 @@ const Preset kPresets[] = {
       "master_gain=-2.96;partials=11;tilt=1.35;brightness=0.7285;odd_even=0.3895;shimmer=0.2972;"
       "shimmer_rate=0.03593;strands=5;detune=4;drift=8.925;drift_rate=0.119;spread=0.5919;bloom=0.09984;"
       "bloom_time=49.47;rate_wander=0.1325;attack=0.8039;decay=6.857;sustain=0.7836;release=7.023;"
-      "cutoff=1327;resonance=0.1992;filter_env=0.07137;filter_drift=0.4324;keytrack=0.603;depth=0.9357;"
+      "cutoff=1327;resonance=0;filter_env=0.07137;filter_drift=0.4324;keytrack=0.603;depth=0.9357;"
       "pan_drift=0.4009;itd=0.6664;arc=0.3084;arc_period=72;breath=0.2403;breath_rate=0.05761;air=0;"
       "air_color=2.431;air_q=16.52;ens_mix=0.3764;ens_depth=0.3247;ens_rate=0.4099;dly_time_l=2.477;"
       "dly_time_r=2.478;dly_feedback=0.5134;dly_cross=0.4629;dly_damp=0.557;dly_mix=0.2603;"
@@ -4948,7 +4957,7 @@ const Preset kPresets[] = {
       "lenia_growth=0.114;env1_time=15.2;env1_mode=One Shot;env1_depth=0.761;env2_time=20;"
       "env2_mode=Sustain Loop;env2_depth=0.513;src2_delay=6.16;src2_rise=2.58;brain_release_gap=2.055;"
       "far_unmask=0.137;far_unmask_spread=0.405;subsonic=18;purity_adapt=0.7987;brain_root_targets=Mediant;"
-      "brain_utonal=0.08884;brain_series=0.09672;arc_harmony=0.41",
+      "brain_utonal=0.08884;brain_series=0.09672;arc_harmony=0.41;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>osc_level:-0.149;kura3>brain_spread:0.242;lenia3>brain_wander:0.110;env1>src2_level:0.107;"
       "env2>resonance:0.165",
@@ -5047,10 +5056,10 @@ const Preset kPresets[] = {
       "kura3>purity_drift:0.072;env1>brain_cascade:0.118",
       "0:0:0.59/1.84:0.135:-0.19/4.13:0.23:0.22/7:-0.949:0.2/9.04:0:0.53!s1" },
     { "Near Bloom",
-      "master_gain=1.615;partials=13;tilt=1.467;brightness=0.605;odd_even=-0.3821;inharmonic=0.13;"
+      "master_gain=1.255;partials=13;tilt=1.467;brightness=0.605;odd_even=-0.3821;inharmonic=0.13;"
       "shimmer=0.5927;shimmer_rate=0.02312;strands=6;detune=4;drift=2.11;drift_rate=0.01901;spread=0.7842;"
       "bloom=0.08233;bloom_time=42.51;rate_wander=0.4997;attack=4.014;decay=5.882;sustain=0.8402;"
-      "release=4.542;cutoff=151.5;resonance=0.2422;filter_env=0.3584;filter_drift=0.05689;keytrack=0.6898;"
+      "release=4.542;cutoff=151.5;resonance=0;filter_env=0.3584;filter_drift=0.05689;keytrack=0.6898;"
       "depth=0.9515;pan_drift=0.5347;itd=0.7877;arc=0.309;arc_period=55.57;breath=0.1211;"
       "breath_rate=0.04939;air=0;air_color=4.944;air_q=8.821;ens_mix=0.4362;ens_depth=0.243;"
       "ens_rate=0.06969;dly_time_l=1.028;dly_time_r=1.559;dly_feedback=0.3982;dly_cross=0.5569;"
@@ -5077,14 +5086,14 @@ const Preset kPresets[] = {
       "src2_type=Additive;src2_level=0.4803;src2_drift=1.646;src2_octave=1;src2_ratio=5/3;src2_pan=-0.2159;"
       "src2_partials=7;src2_tilt=1.24;src2_bright=0.3323;src2_shimmer=0.4533;src2_shimmer_rate=0.3306;"
       "cloud_send=0.2504;cloud_density=9.147;cloud_size=229.5;cloud_pitch=0.5368;cloud_spray=0.3231;"
-      "cloud_level=0.7879;filter_model=HP 12;dly_absorb=0.9562;brain2_depth=0.566;brain2_consonance=0.679;"
+      "cloud_level=0.7879;filter_model=SEM;dly_absorb=0.9562;brain2_depth=0.566;brain2_consonance=0.679;"
       "transpose=Fifth up;presence=2.7;far_diffuse=0.813;sub_pulse=0.0337;near_lowcut=83.4;"
       "cloud_resonance=0.57;cloud_res_mode=Comb;cloud_res_notes=Chord;cloud_res_decay=1.3;"
       "cloud_scatter=0.42;seed=2377;lfo1_rate=0.006458;lfo1_shape=Table;lfo1_phase=0.028;lfo1_depth=0.735;"
       "lfo1_table=27;env1_time=4.256;env1_mode=Loop;env1_depth=0.86;env2_time=6.886;env2_mode=One Shot;"
       "env2_depth=0.504;src2_delay=2.63;src2_rise=3.65;brain_release_gap=2.507;far_unmask=0.1437;"
       "far_unmask_spread=0.47;subsonic=18;purity_adapt=0.6092;brain_root_targets=Mediant;"
-      "brain_utonal=0.01044;brain_series=0.06301;arc_harmony=0.3686",
+      "brain_utonal=0.01044;brain_series=0.06301;arc_harmony=0.3686;filter_morph=1",
       nullptr, nullptr, nullptr,
       "lfo1>cutoff:0.051;env1>purity_drift:-0.208;env2>early_size:0.176",
       "0:0:0.2/2.83:-0.394:0.15/4.19:-0.612:0.1/6.35:-0.172:-0.41/8.3:0.032:-0.33/11.3:0.708:0.11/12.4:0.342:-0.09/15.2:0.416:0.17/16.9:-0.676:0.22/18.4:0:0.25!l0-8~"
@@ -5146,7 +5155,7 @@ const Preset kPresets[] = {
       "master_gain=1.071;partials=3;tilt=1.657;brightness=0.6212;odd_even=0.01211;inharmonic=0.0113;"
       "shimmer=0.2793;shimmer_rate=0.08951;detune=3.736;drift=7.364;drift_rate=0.02098;spread=0.8174;"
       "bloom=0.4913;bloom_time=123.5;rate_wander=0.1285;attack=3.317;decay=6.037;sustain=0.9469;"
-      "release=5.097;cutoff=1864;resonance=0.144;filter_env=0.3443;filter_drift=0.2922;keytrack=0.4114;"
+      "release=5.097;cutoff=1864;resonance=0;filter_env=0.3443;filter_drift=0.2922;keytrack=0.4114;"
       "depth=0.9008;pan_drift=0.4377;itd=0.4782;arc=0.1507;arc_period=24.34;breath=0.2988;"
       "breath_rate=0.03993;air=0;air_color=2.473;air_q=19.14;ens_mix=0.3336;ens_depth=0.2401;"
       "ens_rate=0.2165;dly_time_l=0.4219;dly_time_r=1.86;dly_feedback=0.3193;dly_cross=0.5059;"
@@ -5186,7 +5195,7 @@ const Preset kPresets[] = {
       "lfo1_shape=Random;lfo1_phase=0.237;lfo1_depth=0.853;lfo2_rate=0.005232;lfo2_shape=Triangle;"
       "lfo2_phase=0.972;lfo2_depth=0.647;chaos_period=47.7;brain_release_gap=3.967;far_unmask=0.1767;"
       "far_unmask_spread=0.437;subsonic=18;sub_beat=0.25;purity_adapt=0.7466;brain_root_targets=Mediant;"
-      "brain_utonal=0.03439;brain_series=0.03863",
+      "brain_utonal=0.03439;brain_series=0.03863;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>brain_cascade:-0.119;lfo2>blur_smear:0.146;lorenz_z>cosmos_nebula:-0.238;slide>odd_even:0.364:u;"
       "wheel>cosmos_send:0.212:u" },
@@ -5194,7 +5203,7 @@ const Preset kPresets[] = {
       "master_gain=-5.82;partials=26;tilt=1.287;brightness=0.5619;odd_even=-0.1498;inharmonic=0.01593;"
       "shimmer=0.2087;shimmer_rate=0.07396;strands=6;detune=4;drift=8;drift_rate=0.0207;spread=0.5828;"
       "bloom=0.03702;bloom_time=30.39;rate_wander=0.4101;attack=1.242;decay=7.514;sustain=0.8393;"
-      "release=10.5;cutoff=1128;resonance=0.2882;filter_env=0.203;filter_drift=0.3648;keytrack=0.4602;"
+      "release=10.5;cutoff=1128;resonance=0;filter_env=0.203;filter_drift=0.3648;keytrack=0.4602;"
       "depth=0.9226;pan_drift=0.4858;itd=0.5335;arc=0.4218;arc_period=44.78;breath=0.3618;"
       "breath_rate=0.0192;air=0.1;air_color=2.132;air_q=7.177;ens_mix=0.3643;ens_depth=0.4702;"
       "ens_rate=0.1105;dly_time_l=0.6534;dly_time_r=2.61;dly_feedback=0.3643;dly_cross=0.331;"
@@ -5229,7 +5238,7 @@ const Preset kPresets[] = {
       "src1_unison=3;src1_uni_detune=17.56;src1_uni_width=0.784;seed=3300;src2_delay=9.14;src2_env=Own;"
       "src2_env_mode=One Shot;src2_env_time=1.275;src3_delay=5.14;src3_rise=10.69;brain_release_gap=2.422;"
       "far_unmask=0.1723;far_unmask_spread=0.351;subsonic=18;purity_adapt=0.5288;"
-      "brain_root_targets=Mediant;brain_utonal=0.03746;brain_series=0.1834",
+      "brain_root_targets=Mediant;brain_utonal=0.03746;brain_series=0.1834;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "kura1>resonance:-0.069;distance>far_comod:0.221;kura4>src3_pos:0.107;pressure>cutoff:0.346:u",
       "~~~~~~~0:0/6.26:1:-0.57" },
@@ -5325,10 +5334,10 @@ const Preset kPresets[] = {
 
     // ---------------------------------------------------------------- 112..127 Generative Chords
     { "Chord Turn",
-      "master_gain=-3.59;tilt=1.787;brightness=0.5191;odd_even=0.1716;inharmonic=0.1505;shimmer=0.2108;"
+      "master_gain=-3.96;tilt=1.787;brightness=0.5191;odd_even=0.1716;inharmonic=0.1505;shimmer=0.2108;"
       "shimmer_rate=0.03649;strands=4;detune=3.499;drift=3.219;drift_rate=0.1376;spread=0.7542;"
       "bloom=0.1998;bloom_time=38.43;rate_wander=0.4339;attack=15.83;decay=13.18;sustain=0.8583;"
-      "release=32.51;cutoff=1235;resonance=0.302;filter_env=0.3547;filter_drift=0.2468;keytrack=0.5678;"
+      "release=32.51;cutoff=1914;resonance=0.0912;filter_env=0.3547;filter_drift=0.2468;keytrack=0.5678;"
       "depth=0.8506;pan_drift=0.4209;itd=0.5075;arc=0.4292;arc_period=101.3;breath=0.1743;"
       "breath_rate=0.03543;air=0;air_color=3.328;air_q=6.269;ens_mix=0.2448;ens_depth=0.724;"
       "ens_rate=0.0342;dly_time_l=1.338;dly_time_r=0.7662;dly_feedback=0.6254;dly_cross=0.16;"
@@ -5358,7 +5367,7 @@ const Preset kPresets[] = {
       "src3_pan=-0.2254;src3_table=Vocal;src3_pos=0.3606;src3_pos_drift=0.583;z_mode=Series;"
       "z_shape=Quarter Tone;z_z=0.01711;z_x=0.8294;z_y=0.1755;z_rate=0.06872;z_depth=0.4437;z_res=0.438;"
       "z_keytrack=0.5417;z_mix=0.4094;dly_duck=0.3566;fb_bus=0.09424;fb_tone=508;fb_drive=0.8334;"
-      "fb_tape=0.5475;phase_width=0.6705;phase_rate=0.03635;doppler=0.2638;filter_model=Ladder;"
+      "fb_tape=0.5475;phase_width=0.6705;phase_rate=0.03635;doppler=0.2638;filter_model=Moog;"
       "filter_drive=0.05168;far_rotate=0.5736;far_width=1;haas=0.34;haas_time=21.4;ens_mode=Microshift;"
       "purity_adapt=0.638;purity_guard=0.685;transpose=Fourth up;depth_law=0.895;binaural=Headphones;"
       "externalise=0.667;presence=3.53;far_diffuse=0.245;lenia_rate=1.638;lenia_growth=0.143;fb_bias=0.361;"
@@ -5379,7 +5388,7 @@ const Preset kPresets[] = {
       "master_gain=-6.19;partials=15;tilt=0.7365;brightness=0.7836;odd_even=-0.3727;inharmonic=0.1257;"
       "shimmer=0.6508;shimmer_rate=0.03771;strands=4;detune=4;drift=8.01;drift_rate=0.07519;spread=0.7874;"
       "bloom=0.1694;bloom_time=32.66;rate_wander=0.3563;attack=20.8;decay=4.557;sustain=0.7939;"
-      "release=28.96;cutoff=3783;resonance=0.2291;filter_env=0.1439;filter_drift=0.297;keytrack=0.6424;"
+      "release=28.96;cutoff=3783;resonance=0;filter_env=0.1439;filter_drift=0.297;keytrack=0.6424;"
       "depth=0.8898;pan_drift=0.5855;itd=0.6216;arc=0.1809;arc_period=42.71;breath=0.1115;"
       "breath_rate=0.03378;air=0;air_color=2.343;air_q=7.72;ens_mix=0.5535;ens_depth=0.5356;"
       "ens_rate=0.06683;dly_time_l=0.6161;dly_time_r=1.884;dly_feedback=0.43;dly_cross=0.5441;"
@@ -5412,7 +5421,8 @@ const Preset kPresets[] = {
       "lfo4_shape=Ramp Up;lfo4_phase=0.991;lfo4_depth=0.993;lfo4_sync=Free;env1_time=3.736;env1_mode=Loop;"
       "env1_depth=0.891;env2_time=6.045;env2_mode=One Shot;env2_depth=0.534;src2_delay=3.02;src2_rise=4.93;"
       "brain_release_gap=2.962;far_unmask=0.1647;far_unmask_spread=0.44;presence=2.23;subsonic=18;"
-      "brain_root_targets=Mediant;brain_utonal=0.08941;brain_series=0.152;arc_harmony=0.3396",
+      "brain_root_targets=Mediant;brain_utonal=0.08941;brain_series=0.152;arc_harmony=0.3396;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "kura3>near_ild:0.084;lfo2>brightness:0.221;lfo3>dly_mix:0.107;lfo4>purity_adapt:-0.146;"
       "env1>early_size:0.298;env2>purity_adapt:-0.261",
@@ -5560,10 +5570,10 @@ const Preset kPresets[] = {
       "0:0:0.35/1.49:-0.734:0.57/4.32:0.699:-0.49/6.47:0:0.21~"
       "0:0:-0.17/1.84:-0.296:-0.29/4.39:0.538:0.42/5.79:-0.647:-0.54/7.09:0.921:0.41/8.57:0:0.28!s3" },
     { "Exchange Drift",
-      "master_gain=12;partials=21;tilt=1.567;brightness=0.6548;odd_even=0.3407;inharmonic=0.0757;"
+      "master_gain=11.81;partials=21;tilt=1.567;brightness=0.6548;odd_even=0.3407;inharmonic=0.0757;"
       "shimmer=0.4909;shimmer_rate=0.322;strands=6;detune=4;drift=6.695;drift_rate=0.03489;spread=0.573;"
       "bloom=0.3233;bloom_time=159.6;rate_wander=0.4564;attack=0.5859;decay=6.769;sustain=0.947;"
-      "release=8.374;cutoff=2670;resonance=0.4541;filter_env=0.04972;filter_drift=0.4595;keytrack=0.3349;"
+      "release=8.374;cutoff=4138;resonance=0.2062;filter_env=0.04972;filter_drift=0.4595;keytrack=0.3349;"
       "depth=0.8903;pan_drift=0.3223;itd=0.6065;arc=0.3746;arc_period=24.54;breath=0.3342;"
       "breath_rate=0.01133;air=0.098;air_color=5.053;air_q=15.62;ens_mix=0.4314;ens_depth=0.5327;"
       "ens_rate=0.09545;dly_time_l=0.4376;dly_time_r=0.6314;dly_feedback=0.3275;dly_cross=0.3016;"
@@ -5592,7 +5602,7 @@ const Preset kPresets[] = {
       "z_shape=Glockenspiel;z_decay=0.4784;z_damp=0.5939;z_z=0.5264;z_x=0.8096;z_y=0.2219;z_rate=0.095;"
       "z_depth=0.3096;z_res=0.6317;z_keytrack=0.3546;z_mix=0.671;cosmos_send=0.4776;cosmos_return=0.7653;"
       "cosmos_to_far=0.3678;cosmos_shift=-51.64;cosmos_shift_drift=0.3251;cosmos_vowel=0.3941;"
-      "cosmos_vowel_rate=0.05533;phase_width=0.7518;phase_rate=0.01584;filter_model=Ladder;"
+      "cosmos_vowel_rate=0.05533;phase_width=0.7518;phase_rate=0.01584;filter_model=Moog;"
       "filter_drive=0.002744;strike_level=0.3651;strike_type=String;strike_decay=1.184;strike_damp=0.6645;"
       "strike_who=Keys + Brain;far_comod=0.259;src1_transport=0.791;press_bright=0.432;"
       "press_distance=0.361;press_level=0.203;slide_cutoff=0.386;src1_unison=3;src1_uni_detune=4.82;"
@@ -5655,7 +5665,7 @@ const Preset kPresets[] = {
       "master_gain=5.49;partials=23;tilt=1.374;brightness=0.6353;odd_even=0.1542;shimmer=0.4189;"
       "shimmer_rate=0.1276;detune=4;drift=4.71;drift_rate=0.05129;spread=0.7476;bloom=0.04894;"
       "bloom_time=41.13;rate_wander=0.385;attack=6.387;decay=13.53;sustain=0.9131;release=19.02;"
-      "cutoff=3899;resonance=0.1353;filter_env=0.1078;filter_drift=0.1693;keytrack=0.3933;depth=0.8945;"
+      "cutoff=3899;resonance=0;filter_env=0.1078;filter_drift=0.1693;keytrack=0.3933;depth=0.8945;"
       "pan_drift=0.2547;itd=0.5433;arc=0.3571;arc_period=48.31;breath=0.0777;breath_rate=0.02425;air=0;"
       "air_color=4.566;air_q=10.15;ens_mix=0.4313;ens_depth=0.4926;ens_rate=0.1869;dly_time_l=0.4406;"
       "dly_time_r=2.837;dly_feedback=0.5488;dly_cross=0.281;dly_damp=0.4479;dly_mix=0.1273;"
@@ -5686,7 +5696,8 @@ const Preset kPresets[] = {
       "lfo2_phase=0.931;lfo2_depth=0.806;lfo3_rate=0.001658;lfo3_shape=Sine;lfo3_phase=0.481;"
       "lfo3_depth=0.663;lfo3_mode=Retrigger;src2_delay=2.98;src2_rise=9;brain_release_gap=2.151;"
       "far_unmask=0.155;far_unmask_spread=0.462;presence=3.12;subsonic=18;purity_adapt=0.7037;"
-      "brain_root_targets=Mediant;brain_utonal=0.09586;brain_series=0.01924;arc_harmony=0.446",
+      "brain_root_targets=Mediant;brain_utonal=0.09586;brain_series=0.01924;arc_harmony=0.446;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>dly_feedback:0.060;lfo2>brain_bias:0.223;lfo3>doppler:0.084" },
     { "Pivot Bloom",
@@ -5886,7 +5897,7 @@ const Preset kPresets[] = {
       "master_gain=3.845;partials=12;tilt=1.692;brightness=0.7582;odd_even=0.2526;inharmonic=0.1493;"
       "shimmer=0.547;shimmer_rate=0.05441;strands=1;detune=4;drift=7.891;drift_rate=0.1067;spread=0.8486;"
       "bloom=0.02617;bloom_time=58.12;rate_wander=0.3112;attack=10.56;decay=5.316;sustain=0.7998;"
-      "release=27.6;cutoff=4613;resonance=0.1909;filter_env=0.1652;filter_drift=0.4821;keytrack=0.5968;"
+      "release=27.6;cutoff=4613;resonance=0;filter_env=0.1652;filter_drift=0.4821;keytrack=0.5968;"
       "depth=0.8773;pan_drift=0.3148;itd=0.4669;arc=0.1236;arc_period=36.31;breath=0.09789;"
       "breath_rate=0.04712;air=0;air_color=4.659;air_q=14.15;ens_mix=0.3322;ens_depth=0.4295;"
       "ens_rate=0.4831;dly_time_l=0.8576;dly_time_r=1.502;dly_feedback=0.3684;dly_cross=0.6297;"
@@ -5925,7 +5936,7 @@ const Preset kPresets[] = {
       "env1_depth=0.727;src2_delay=3.81;src2_env=Own;src2_env_mode=One Shot;src2_env_time=0.98;"
       "src3_delay=18.6;src3_rise=4.48;brain_release_gap=3.509;far_unmask=0.153;far_unmask_spread=0.421;"
       "presence=2.05;subsonic=18;brain_root_targets=Mediant;brain_utonal=0.06729;brain_series=0.1941;"
-      "arc_harmony=0.444",
+      "arc_harmony=0.444;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "rossler_z>resonance:0.131;lorenz_y>detune:-0.249;env1>early_size:0.276;pressure>cutoff:0.333:u;"
       "slide>inharmonic:0.155:u",
@@ -6482,7 +6493,7 @@ const Preset kPresets[] = {
       "master_gain=-6.56;partials=22;tilt=2.208;brightness=0.3562;odd_even=-0.2407;inharmonic=0.06684;"
       "shimmer=0.5489;shimmer_rate=0.3338;strands=2;detune=4;drift=2.68;drift_rate=0.04508;spread=0.6608;"
       "bloom=0.2831;bloom_time=74.4;rate_wander=0.4287;attack=16.07;decay=12.02;sustain=0.9493;"
-      "release=35.53;cutoff=1022;resonance=0.1763;filter_env=0.07186;filter_drift=0.224;keytrack=0.4643;"
+      "release=35.53;cutoff=1022;resonance=0;filter_env=0.07186;filter_drift=0.224;keytrack=0.4643;"
       "depth=0.8857;pan_drift=0.258;itd=0.4651;arc=0.4801;arc_period=35.15;breath=0.3885;"
       "breath_rate=0.03885;air=0;air_color=2.146;air_q=4.328;ens_mix=0.4929;ens_depth=0.3041;"
       "ens_rate=0.1304;dly_time_l=0.8044;dly_time_r=0.6286;dly_feedback=0.3301;dly_cross=0.686;"
@@ -6520,7 +6531,7 @@ const Preset kPresets[] = {
       "env2_time=9.231;env2_mode=One Shot;env2_depth=0.981;env2_sync=16 bars;src3_delay=5;src3_rise=11.12;"
       "brain_release_gap=2.161;far_unmask=0.1523;far_unmask_spread=0.357;presence=1.61;subsonic=18;"
       "sub_beat=0.25;purity_adapt=0.5808;brain_root_targets=Modal;brain_utonal=0.03536;brain_series=0.2759;"
-      "arc_harmony=0.4897",
+      "arc_harmony=0.4897;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>cosmos_shift:0.138;lfo2>body_tone:0.100;cascade>cosmos_shimmer:0.122;env1>cosmos_shimmer:0.222;"
       "env2>src1_pos:-0.309",
@@ -7007,10 +7018,10 @@ const Preset kPresets[] = {
       "0:0:0.39/2.01:0.406:0.44/3.21:0:-0.3~0:0:-0.11/0.658:0.812:-0.05/1.47:-0.022:0.58/2.38:0:-0.54!l0-2~~~~~"
       "0:0/3:0.672:0.26/7.64:0.701:-0.17/11.8:0.389:-0.38/16.1:0.82:0.39/19.7:0.625:0.02!l1-5" },
     { "Memory Return",
-      "master_gain=1.277;partials=14;tilt=1.438;brightness=0.72;odd_even=-0.226;inharmonic=0.09463;"
+      "master_gain=-0.503;partials=14;tilt=1.438;brightness=0.72;odd_even=-0.226;inharmonic=0.09463;"
       "shimmer=0.2294;shimmer_rate=0.6051;strands=4;detune=4;drift=7.474;drift_rate=0.02693;spread=0.5498;"
       "bloom=0.169;bloom_time=121.6;rate_wander=0.4715;attack=22.1;decay=3.019;sustain=0.9029;"
-      "release=21.37;cutoff=4536;resonance=0.746;filter_env=0.06636;filter_drift=0.6839;keytrack=0.5458;"
+      "release=21.37;cutoff=7031;resonance=0.5565;filter_env=0.06636;filter_drift=0.6839;keytrack=0.5458;"
       "depth=0.9249;pan_drift=0.6658;itd=0.6399;arc=0.1498;arc_period=67.68;breath=0.08193;"
       "breath_rate=0.01795;air=0;air_color=3.579;air_q=5.865;ens_mix=0.4967;ens_depth=0.841;ens_rate=0.053;"
       "dly_time_l=1.114;dly_time_r=0.553;dly_feedback=0.3456;dly_cross=0.1814;dly_damp=0.4737;"
@@ -7037,7 +7048,7 @@ const Preset kPresets[] = {
       "src2_table=Metal;src2_pos=0.555;src2_pos_drift=0.3862;z_mode=Series;z_shape=Flange Golden;z_z=0.42;"
       "z_x=0.4925;z_y=0.437;z_rate=0.08472;z_depth=0.3481;z_res=0.5479;z_keytrack=0.04476;z_mix=0.4939;"
       "cloud_send=0.2942;cloud_density=3.924;cloud_size=295;cloud_pitch=0.2915;cloud_spray=0.4872;"
-      "cloud_level=0.5097;phase_width=0.2819;phase_rate=0.02355;filter_model=Ladder;filter_drive=0.4415;"
+      "cloud_level=0.5097;phase_width=0.2819;phase_rate=0.02355;filter_model=Moog;filter_drive=0.4415;"
       "far_width=1;ens_mode=Microshift;brain2_depth=0.953;brain2_consonance=0.637;near_ild=0.875;"
       "depth_law=0.586;far_mode=Rotating;far_rotate=0.439;press_bright=0.533;press_distance=0.49;"
       "slide_z=0.497;mem_send=0.169;mem_return=0.351;mem_to_far=0.259;mem_lines=4;mem_size=7.01;"
@@ -7357,10 +7368,10 @@ const Preset kPresets[] = {
       "env1>body_tone:0.136;wheel>dly_mix:0.302:u",
       "0:0:0.26/2.08:0.088:0.02/2.68:0.708:0.02/4.07:-0.453:0.15/4.79:0:-0.09!l0-3" },
     { "Memory Threshold",
-      "master_gain=-0.6;partials=19;tilt=1.088;brightness=0.5693;odd_even=0.2719;inharmonic=0.1378;"
+      "master_gain=-2.89;partials=19;tilt=1.088;brightness=0.5693;odd_even=0.2719;inharmonic=0.1378;"
       "shimmer=0.4559;shimmer_rate=0.06205;strands=5;detune=4;drift=8.926;drift_rate=0.0258;spread=0.857;"
       "bloom=0.2333;bloom_time=110.4;rate_wander=0.303;attack=14.79;decay=11.17;sustain=0.9076;"
-      "release=56.26;cutoff=1190;resonance=0.5494;filter_env=0.2371;filter_drift=0;keytrack=0.6283;"
+      "release=56.26;cutoff=1844;resonance=0.3018;filter_env=0.2371;filter_drift=0;keytrack=0.6283;"
       "depth=0.962;pan_drift=0.4764;itd=0.5705;arc=0.3648;arc_period=50.25;breath=0.2404;"
       "breath_rate=0.01032;air=0;air_color=2.21;air_q=13.79;ens_mix=0.3731;ens_depth=0.03289;"
       "ens_rate=0.2363;dly_time_l=2.056;dly_time_r=3.098;dly_feedback=0.3974;dly_cross=0.4369;"
@@ -7389,7 +7400,7 @@ const Preset kPresets[] = {
       "src3_ratio=6/5;src3_pan=-0.6925;src3_partials=22;src3_tilt=1.439;src3_bright=0.5339;"
       "src3_odd_even=-0.1848;src3_shimmer=0.5611;src3_shimmer_rate=0.1535;dly_duck=0.632;cloud_send=0.1549;"
       "cloud_density=9.143;cloud_size=210.7;cloud_pitch=0.2957;cloud_spray=0.4812;cloud_level=0.7019;"
-      "phase_width=0.7818;phase_rate=0.06429;blur_mix=0.2668;blur_smear=0.4592;filter_model=Ladder;"
+      "phase_width=0.7818;phase_rate=0.06429;blur_mix=0.2668;blur_smear=0.4592;filter_model=Moog;"
       "filter_drive=0.4859;dly_absorb=0.5143;haas=0.449;haas_time=11.4;purity_adapt=0.486;match=0.579;"
       "far_comod=0.356;arc_harmony=0.0218;chaos_period=32.5;press_bright=0.641;slide_cutoff=0.473;"
       "cloud_resonance=0.279;cloud_res_mode=Comb;cloud_res_notes=Chord;cloud_res_decay=5.81;"
@@ -7409,7 +7420,7 @@ const Preset kPresets[] = {
       "master_gain=-8.86;partials=8;tilt=0.9353;brightness=0.6654;odd_even=0.05843;inharmonic=0.1708;"
       "shimmer=0.2848;shimmer_rate=0.2632;strands=5;detune=4;drift=7.189;drift_rate=0.0489;spread=0.5848;"
       "bloom=0.244;bloom_time=43.93;rate_wander=0.4528;attack=14.49;decay=8.401;sustain=0.9292;"
-      "release=37.81;cutoff=947;resonance=0.1633;filter_env=0.3671;filter_drift=0.6701;keytrack=0.4839;"
+      "release=37.81;cutoff=947;resonance=0;filter_env=0.3671;filter_drift=0.6701;keytrack=0.4839;"
       "depth=0.902;pan_drift=0.7493;itd=0.5143;arc=0.2852;arc_period=36.51;breath=0.3951;"
       "breath_rate=0.01037;air=0;air_color=1.962;air_q=8.321;ens_mix=0.2992;ens_depth=0.7509;"
       "ens_rate=0.2935;dly_time_l=0.7125;dly_time_r=2.452;dly_feedback=0.4677;dly_cross=0.423;"
@@ -7451,7 +7462,7 @@ const Preset kPresets[] = {
       "lfo7_shape=Table;lfo7_phase=0.092;lfo7_depth=0.883;lfo7_table=16;env1_time=4.674;env1_mode=One Shot;"
       "env1_depth=0.755;env2_time=7.563;env2_mode=Loop;env2_depth=0.658;brain_release_gap=2.185;"
       "far_unmask=0.121;far_unmask_spread=0.438;subsonic=18;purity_adapt=0.617;brain_root_targets=Modal;"
-      "brain_utonal=0.5259;brain_series=0.01689;arc_harmony=0.1451",
+      "brain_utonal=0.5259;brain_series=0.01689;arc_harmony=0.1451;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>src2_noise_q:0.141;lfo2>osc_level:0.127;lfo3>cosmos_shift:0.063;lenia3>cosmos_swell:0.282;"
       "lfo5>patina:0.273;lfo6>near_ild:-0.248:macro_a;lfo7>src1_pos:-0.306:macro_g;env1>far_decay:0.052;"
@@ -7800,7 +7811,7 @@ const Preset kPresets[] = {
       "master_gain=-9.2;partials=10;tilt=1.599;brightness=0.7505;odd_even=0.1751;inharmonic=0.08892;"
       "shimmer=0.3415;shimmer_rate=0.8173;strands=6;detune=4;drift=2.08;drift_rate=0.06903;spread=0.642;"
       "bloom=0.3617;bloom_time=32.4;rate_wander=0.6412;attack=10.46;decay=5.584;sustain=0.76;release=59.8;"
-      "cutoff=2433;resonance=0.2214;filter_env=0.2243;filter_drift=0.5023;keytrack=0.371;depth=0.8533;"
+      "cutoff=2433;resonance=0;filter_env=0.2243;filter_drift=0.5023;keytrack=0.371;depth=0.8533;"
       "pan_drift=0.4198;itd=0.7964;arc=0.3718;arc_period=22.56;breath=0.4675;breath_rate=0.03145;air=0;"
       "air_color=3.146;air_q=7.018;ens_mix=0.2394;ens_depth=0.659;ens_rate=0.0637;dly_time_l=0.9818;"
       "dly_time_r=0.5768;dly_feedback=0.6575;dly_cross=0.4016;dly_damp=0.5657;dly_mix=0.1496;"
@@ -7836,7 +7847,8 @@ const Preset kPresets[] = {
       "env2_mode=One Shot;env2_depth=0.751;env3_time=10.62;env3_mode=One Shot;env3_depth=0.696;"
       "env4_time=17.19;env4_mode=Loop;env4_depth=0.519;src3_delay=3.45;src3_rise=2.34;"
       "brain_release_gap=3.486;far_unmask=0.141;far_unmask_spread=0.474;subsonic=18;purity_adapt=0.5701;"
-      "brain_root_targets=Modal;brain_utonal=0.5379;brain_series=0.06145;arc_harmony=0.1741",
+      "brain_root_targets=Modal;brain_utonal=0.5379;brain_series=0.06145;arc_harmony=0.1741;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>far_unmask_spread:-0.202:macro_a;velocity>far_highcut:0.134;lfo3>pan_drift:0.119:macro_f;"
       "lorenz_x>early_size:-0.189;lfo5>brain_bias:0.185:macro_d;lorenz_x>sub_pulse:-0.192;lenia4>brightness:0.175;"
@@ -7845,10 +7857,10 @@ const Preset kPresets[] = {
       "0:0:-0.08/2.22:-0.525:0.22/5.15:0:-0.59~"
       "0:0:-0.05/2.33:-0.082:0.52/3.39:-0.517:0.15/4.02:-0.24:-0.52/6.08:-0.315:-0.47/7.52:0.323:-0.37/9.07:0.022:-0.25/11.4:0.505:0.22/12.5:-0.313:-0.07/13.6:0:-0.54!l0-8" },
     { "Fog Air",
-      "master_gain=-5.99;partials=12;tilt=1.787;brightness=0.4776;odd_even=0.2825;inharmonic=0.0312;"
+      "master_gain=-6.41;partials=12;tilt=1.787;brightness=0.4776;odd_even=0.2825;inharmonic=0.0312;"
       "shimmer=0.2553;shimmer_rate=0.06575;strands=2;detune=4;drift=7.453;drift_rate=0.02451;spread=0.7644;"
       "bloom=0.1684;bloom_time=32.16;rate_wander=0.1306;attack=1.544;decay=4.898;sustain=0.7157;"
-      "release=5.984;cutoff=1067;resonance=0.5385;filter_env=0.146;filter_drift=0.2263;keytrack=0.5246;"
+      "release=5.984;cutoff=1654;resonance=0.29;filter_env=0.146;filter_drift=0.2263;keytrack=0.5246;"
       "depth=0.927;pan_drift=0.5105;itd=0.6921;arc=0.2934;arc_period=30.87;breath=0.3556;"
       "breath_rate=0.04645;air=0.05834;air_color=2.192;air_q=10.69;ens_mix=0.143;ens_depth=0.4654;"
       "ens_rate=0.1738;dly_time_l=0.8476;dly_time_r=2.333;dly_feedback=0.3939;dly_cross=0.5425;"
@@ -7878,7 +7890,7 @@ const Preset kPresets[] = {
       "src3_pos=0.1805;src3_pos_drift=0.1396;src3_density=4.275;src3_follow=Free;src4_type=Noise;"
       "src4_level=0.1634;src4_octave=-1;src4_ratio=7/4;src4_pan=0.622;src4_noise=Blue;src4_noise_q=0.7816;"
       "src4_pos=0.761;src4_pos_drift=0.5467;src4_follow=Free;dly2_mix=0.2279;dly2_time_l=0.818;"
-      "dly2_time_r=0.7559;dly2_feedback=0.3938;dly2_cross=0.8961;dly2_damp=0.6217;filter_model=Ladder;"
+      "dly2_time_r=0.7559;dly2_feedback=0.3938;dly2_cross=0.8961;dly2_damp=0.6217;filter_model=Moog;"
       "filter_drive=0.06137;strike_level=0.4032;strike_type=Metal;strike_decay=0.2065;strike_damp=0.2074;"
       "tide=9.63;tide_period=9.645;far_mode=Colourless;far_diffuse=0.281;arc_harmony=0.06388;"
       "partial_spread=0.861;dly2_to_far=0.202;press_bright=0.477;slide_cutoff=0.376;seed=6073;"
@@ -7937,10 +7949,10 @@ const Preset kPresets[] = {
       "lfo1>doppler:0.181;lfo2>brain_cascade:-0.193;lfo3>near_mix:0.066;lfo4>cosmos_smear:0.126;"
       "lfo5>src2_shimmer:-0.104:macro_h;lfo8>strike_type:0.180" },
     { "Wind Signal",
-      "master_gain=-2.403;partials=17;tilt=1.495;brightness=0.4776;odd_even=0.126;inharmonic=0.2578;"
+      "master_gain=-3.723;partials=17;tilt=1.495;brightness=0.4776;odd_even=0.126;inharmonic=0.2578;"
       "shimmer=0.5825;shimmer_rate=0.3312;strands=5;detune=4;drift=7.235;drift_rate=0.1053;spread=0.6755;"
       "bloom=0.3512;bloom_time=36.12;rate_wander=0.461;attack=13.56;decay=9.144;sustain=0.7322;"
-      "release=49.46;cutoff=2730;resonance=0.8349;filter_env=0.3803;filter_drift=0.2237;keytrack=0.5586;"
+      "release=49.46;cutoff=4232;resonance=0.6971;filter_env=0.3803;filter_drift=0.2237;keytrack=0.5586;"
       "depth=0.9327;pan_drift=0.4333;itd=0.5167;arc=0.1646;arc_period=25;breath=0.2231;breath_rate=0.01756;"
       "air=0.1001;air_color=4.636;air_q=16.13;ens_mix=0.3443;ens_depth=0.2311;ens_rate=0.2506;"
       "dly_time_l=0.4763;dly_time_r=0.7391;dly_feedback=0.6309;dly_cross=0.5949;dly_damp=0.7006;"
@@ -7970,7 +7982,7 @@ const Preset kPresets[] = {
       "src3_noise=Blue;src3_noise_q=0.8047;src3_pos=0.2217;src3_pos_drift=0.4167;src3_follow=Free;"
       "src4_type=Harmonic;src4_level=1;src4_drift=8.82;src4_ratio=5/3;src4_pan=-0.2575;src4_table=Glass;"
       "src4_pos=0.8938;src4_pos_drift=0.6364;dly_duck=0.4769;phase_width=0.6582;phase_rate=0.01047;"
-      "doppler=0.2589;filter_model=Ladder;filter_drive=0.4259;far_rotate=0.7077;haas=0.247;haas_time=18.2;"
+      "doppler=0.2589;filter_model=Moog;filter_drive=0.4259;far_rotate=0.7077;haas=0.247;haas_time=18.2;"
       "brain2_depth=0.628;brain2_consonance=0.269;keys_filter=One Euro;vec_amount=0.998;vec_x=0.429;"
       "vec_y=0.412;vec_wander=0.496;vec_rate=0.00968;master_tilt=1.48;tilt_pivot=1538;press_bright=0.181;"
       "press_distance=0.404;slide_cutoff=0.273;seed=8066;chaos_period=55.8;lfo3_rate=0.004749;"
@@ -8032,10 +8044,10 @@ const Preset kPresets[] = {
       "velocity>sub_pulse:0.082:none:u;lfo2>z_y:0.202;env1>doppler:0.129;wheel>air:0.329:u",
       "0:0:0.27/2.5:-0.402:-0.49/3.57:0:-0.06" },
     { "Breath Expanse",
-      "master_gain=-6.81;partials=21;tilt=1.512;brightness=0.2907;odd_even=0.2027;inharmonic=0.1418;"
+      "master_gain=-6.57;partials=21;tilt=1.512;brightness=0.2907;odd_even=0.2027;inharmonic=0.1418;"
       "shimmer=0.2138;shimmer_rate=0.03549;detune=4;drift=3.633;drift_rate=0.06938;spread=0.7276;"
       "bloom=0.07186;bloom_time=111.4;rate_wander=0.3332;attack=16.93;decay=8.207;sustain=0.8114;"
-      "release=24.4;cutoff=1890;resonance=0.1281;filter_env=0.1407;filter_drift=0.3006;keytrack=0.669;"
+      "release=24.4;cutoff=1873;resonance=0.04;filter_env=0.1407;filter_drift=0.3006;keytrack=0.669;"
       "depth=0.881;pan_drift=0.2173;itd=0.6398;arc=0.4069;arc_period=21.1;breath=0.1624;"
       "breath_rate=0.01802;air=0.1966;air_color=4.634;air_q=8.326;ens_mix=0.4041;ens_depth=0.5825;"
       "ens_rate=0.05547;dly_time_l=1.237;dly_time_r=0.7266;dly_feedback=0.4911;dly_cross=0.4721;"
@@ -8062,7 +8074,7 @@ const Preset kPresets[] = {
       "src2_pan=0.2101;src2_table=Metal;src2_pos=0.9576;src2_pos_drift=0.05899;src3_type=Additive;"
       "src3_level=0.3035;src3_drift=2.486;src3_ratio=5/4;src3_pan=0.1227;src3_partials=9;src3_tilt=1.329;"
       "src3_bright=0.4077;src3_shimmer=0.4123;src3_shimmer_rate=0.3133;dly_duck=0.67;portamento=1.191;"
-      "porta_gravity=0.472;phase_width=0.4253;phase_rate=0.02615;filter_model=LP 24;dly_absorb=0.3334;"
+      "porta_gravity=0.472;phase_width=0.4253;phase_rate=0.02615;filter_model=Moog;dly_absorb=0.3334;"
       "far_rotate=0.6323;far_width=1;filter_fold=0.358;purity_adapt=0.4623;far_comod=0.624;depth_law=0.632;"
       "lenia_rate=1.414;lenia_growth=0.229;partial_spread=0.573;src2_transport=0.331;press_bright=0.697;"
       "slide_cutoff=0.226;mem_send=0.231;mem_return=0.496;mem_to_far=0.391;mem_lines=4;mem_size=7.2;"
@@ -8183,7 +8195,7 @@ const Preset kPresets[] = {
       "master_gain=-2.83;partials=11;tilt=0.9356;brightness=0.5918;odd_even=0.04744;inharmonic=0.166;"
       "shimmer=0.4032;shimmer_rate=0.8071;strands=4;detune=4;drift=4.714;drift_rate=0.07427;spread=0.5016;"
       "bloom=0.4206;bloom_time=52.03;rate_wander=0.3179;attack=0.6322;decay=8.246;sustain=0.7657;"
-      "release=10.29;cutoff=3195;resonance=0.1586;filter_env=0.1043;filter_drift=0.6569;keytrack=0.6499;"
+      "release=10.29;cutoff=3195;resonance=0;filter_env=0.1043;filter_drift=0.6569;keytrack=0.6499;"
       "depth=0.9463;pan_drift=0.576;itd=0.4882;arc=0.2443;arc_period=57.48;breath=0.3405;"
       "breath_rate=0.02839;air=0;air_color=6.723;air_q=11.81;ens_mix=0.3329;ens_depth=0.4425;"
       "ens_rate=0.05147;dly_time_l=0.7517;dly_time_r=2.361;dly_feedback=0.3213;dly_cross=0.4744;"
@@ -8225,7 +8237,7 @@ const Preset kPresets[] = {
       "env6_depth=0.938;src2_delay=12.32;src2_env=Own;src2_env_mode=One Shot;src2_env_time=0.926;"
       "src2_env_depth=0.895;brain_release_gap=3.737;far_unmask=0.1217;far_unmask_spread=0.374;presence=1;"
       "subsonic=18;purity_adapt=0.628;brain_root_targets=Modal;brain_utonal=0.5232;brain_series=0.06598;"
-      "arc_harmony=0.1321",
+      "arc_harmony=0.1321;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>tide:0.212;amp>detune:-0.206;kura3>ens_depth:0.210;lfo4>sub_pulse:0.233;lfo5>purity_adapt:-0.173;"
       "lfo6>far_decay:-0.142;lfo7>inharmonic:-0.115:none:u;env1>near_ild:0.191;env2>brain_cascade:0.257;"
@@ -8370,7 +8382,7 @@ const Preset kPresets[] = {
       "master_gain=-6.21;partials=11;tilt=1.593;brightness=0.7711;odd_even=0.3382;shimmer=0.243;"
       "shimmer_rate=0.06778;strands=6;detune=4;drift=3.481;drift_rate=0.09098;spread=0.8028;bloom=0.4065;"
       "bloom_time=56.65;rate_wander=0.3168;attack=20.85;decay=3.837;sustain=0.7429;release=58.04;"
-      "cutoff=1936;resonance=0.2853;filter_env=0.3394;filter_drift=0.2716;keytrack=0.3592;depth=0.9015;"
+      "cutoff=1936;resonance=0;filter_env=0.3394;filter_drift=0.2716;keytrack=0.3592;depth=0.9015;"
       "pan_drift=0.3591;itd=0.5852;arc=0.166;arc_period=29.54;breath=0.4921;breath_rate=0.01183;air=0;"
       "air_color=4.134;air_q=8.539;ens_mix=0.5885;ens_depth=0.643;ens_rate=0.0721;dly_time_l=0.7278;"
       "dly_time_r=1.495;dly_feedback=0.6914;dly_cross=0.2334;dly_damp=0.6931;dly_mix=0.2741;"
@@ -8411,7 +8423,7 @@ const Preset kPresets[] = {
       "env4_time=10.81;env4_mode=Loop;env4_depth=0.725;src3_delay=24.59;src3_rise=2.46;src4_delay=2.8;"
       "src4_env=Own;src4_env_mode=One Shot;src4_env_time=0.825;brain_release_gap=2.907;far_unmask=0.1433;"
       "far_unmask_spread=0.311;presence=1;subsonic=18;brain_root_targets=Modal;brain_utonal=0.5932;"
-      "brain_series=0.02333;arc_harmony=0.08163",
+      "brain_series=0.02333;arc_harmony=0.08163;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>doppler:0.197;lfo2>cosmos_swell:0.145;rossler_y>cosmos_shimmer:0.143;env1>sub_pulse:0.151;"
       "env2>dly_mix:-0.175;env3>brightness:0.226;env4>inharmonic:0.281;wheel>cosmos_send:0.337:u;"
@@ -8567,7 +8579,7 @@ const Preset kPresets[] = {
       "master_gain=-6.07;partials=12;tilt=1.205;brightness=0.668;odd_even=-0.2567;inharmonic=0.2686;"
       "shimmer=0.4578;shimmer_rate=0.3394;detune=4;drift=7.867;drift_rate=0.1184;spread=0.5145;"
       "bloom=0.3542;bloom_time=79.74;rate_wander=0.3794;attack=14.78;decay=10.75;sustain=0.8938;"
-      "release=20.43;cutoff=2134;resonance=0.05942;filter_env=0.03677;filter_drift=0.5998;keytrack=0.5769;"
+      "release=20.43;cutoff=2134;resonance=0;filter_env=0.03677;filter_drift=0.5998;keytrack=0.5769;"
       "depth=0.8956;pan_drift=0.6305;itd=0.4207;arc=0.4623;arc_period=32.48;breath=0.3773;"
       "breath_rate=0.01589;air=0;air_color=6.085;air_q=4.025;ens_mix=0.2152;ens_depth=0.482;"
       "ens_rate=0.0272;dly_time_l=0.4751;dly_time_r=3.146;dly_feedback=0.3826;dly_cross=0.4347;"
@@ -8608,7 +8620,8 @@ const Preset kPresets[] = {
       "lfo8_shape=Steps;lfo8_rate=0.002455;lfo8_depth=0.891;src2_delay=10.77;src2_env=Own;"
       "src2_env_mode=One Shot;src2_env_time=1.892;src3_delay=13.33;src3_rise=1.67;brain_release_gap=3.987;"
       "far_unmask=0.14;far_unmask_spread=0.467;presence=1;subsonic=18;purity_adapt=0.69;"
-      "brain_root_targets=Modal;brain_utonal=0.8762;brain_series=0.09189;arc_harmony=0.2751",
+      "brain_root_targets=Modal;brain_utonal=0.8762;brain_series=0.09189;arc_harmony=0.2751;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>src2_pos:-0.166:none:u;lfo2>purity_adapt:0.081;lfo3>air:-0.086;lfo4>tide:0.071;"
       "kura4>src1_transport:0.272;env1>near_ild:0.283;env2>src3_level:0.236;env3>far_size:-0.210;"
@@ -8805,7 +8818,7 @@ const Preset kPresets[] = {
       "master_gain=-3.88;partials=21;tilt=1.612;brightness=0.2662;odd_even=-0.1025;inharmonic=0.2922;"
       "shimmer=0.4798;shimmer_rate=0.09918;detune=4;drift=3.659;drift_rate=0.05675;spread=0.5488;"
       "bloom=0.193;bloom_time=44.3;rate_wander=0.4798;attack=13.62;decay=8.643;sustain=0.7269;"
-      "release=33.46;cutoff=436.9;resonance=0.1369;filter_env=0.1425;filter_drift=0.2581;keytrack=0.4246;"
+      "release=33.46;cutoff=436.9;resonance=0;filter_env=0.1425;filter_drift=0.2581;keytrack=0.4246;"
       "depth=0.9003;pan_drift=0.2962;itd=0.4345;arc=0.4129;arc_period=53.41;breath=0.09386;"
       "breath_rate=0.0233;air=0;air_color=2.204;air_q=6.573;ens_mix=0.2866;ens_depth=0.3861;"
       "ens_rate=0.08689;dly_time_l=0.5155;dly_time_r=2.602;dly_feedback=0.3662;dly_cross=0.575;"
@@ -8841,7 +8854,7 @@ const Preset kPresets[] = {
       "env2_depth=0.626;env3_time=6.47;env3_mode=Loop;env3_depth=0.744;src2_delay=22.24;src2_rise=3.32;"
       "brain_release_gap=3.984;far_unmask=0.1473;far_unmask_spread=0.479;presence=1;subsonic=18;"
       "purity_adapt=0.7399;brain_root_targets=Modal;brain_utonal=0.7929;brain_series=0.09406;"
-      "arc_harmony=0.234",
+      "arc_harmony=0.234;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>itd:0.186:macro_d;lfo2>cloud_size:0.189;env1>fb_tone:0.071;env2>fb_drive:0.139;env3>detune:-0.152;"
       "slide>tilt:0.256:u;pressure>far_level:0.104:u",
@@ -9083,10 +9096,10 @@ const Preset kPresets[] = {
       "wheel>cosmos_send:0.312:u",
       "0:0:0.07/2.27:-0.182:0.53/3.92:0.685:-0.25/4.87:0:-0.14" },
     { "Tin Interval",
-      "master_gain=-2.06;partials=12;tilt=1.439;brightness=0.5113;odd_even=-0.3259;inharmonic=0.5714;"
+      "master_gain=-2.07;partials=12;tilt=1.439;brightness=0.5113;odd_even=-0.3259;inharmonic=0.5714;"
       "shimmer=0.2446;shimmer_rate=0.3821;strands=6;detune=4;drift=2.46;drift_rate=0.02788;spread=0.5453;"
       "bloom=0.02958;bloom_time=109.9;rate_wander=0.2702;attack=5.775;decay=2.035;sustain=0.7876;"
-      "release=12.17;cutoff=257.7;resonance=0.2799;filter_env=0.1576;filter_drift=0.452;keytrack=0.4439;"
+      "release=12.17;cutoff=257.7;resonance=0;filter_env=0.1576;filter_drift=0.452;keytrack=0.4439;"
       "depth=0.9393;pan_drift=0.536;itd=0.7945;arc=0.4212;arc_period=107.8;breath=0.09021;"
       "breath_rate=0.01288;air=0;air_color=4.185;air_q=14.69;ens_mix=0.2167;ens_depth=0.963;"
       "ens_rate=0.0324;dly_time_l=0.929;dly_time_r=0.5413;dly_feedback=0.3989;dly_cross=0.1433;"
@@ -9115,7 +9128,7 @@ const Preset kPresets[] = {
       "src4_level=0.4866;src4_ratio=3/2;src4_pan=-0.2528;src4_fm_ratio=1;src4_fm_index=0.8524;z_mode=Modal;"
       "z_shape=Gong;z_decay=2.724;z_damp=0.4296;z_z=0.06966;z_x=0.3486;z_y=0.5931;z_rate=0.1308;"
       "z_depth=0.4843;z_res=0.411;z_mix=0.5435;dly_duck=0.3294;fb_tone=439.4;fb_fm=0.1525;fb_tape=0.3875;"
-      "filter_model=HP 12;dly_absorb=0.7159;tide=8.389;tide_period=14.77;ens_mode=Microshift;"
+      "filter_model=SEM;dly_absorb=0.7159;tide=8.389;tide_period=14.77;ens_mode=Microshift;"
       "keys_filter=One Euro;far_envelop=0.511;presence=1;far_diffuse=0.488;arc_harmony=0.2212;"
       "chaos_period=28.6;patina=0.291;patina_wow=0.52;patina_hiss=0.198;patina_age=0.566;vec_amount=0.906;"
       "vec_x=0.838;vec_y=0.394;vec_wander=0.21;vec_rate=0.01959;src4_unison=3;src4_uni_detune=23.74;"
@@ -9126,7 +9139,8 @@ const Preset kPresets[] = {
       "env5_time=20;env5_mode=Loop;env5_depth=0.68;lfo8_shape=Steps;lfo8_rate=0.00878;lfo8_depth=0.566;"
       "src2_delay=13.97;src2_env=Own;src2_env_mode=Loop;src2_env_time=2.027;src4_delay=13.41;"
       "src4_rise=7.37;brain_release_gap=2.288;far_unmask=0.1447;far_unmask_spread=0.316;subsonic=18;"
-      "purity_adapt=0.4154;brain_root_targets=Modal;brain_utonal=0.8359;brain_series=0.01561",
+      "purity_adapt=0.4154;brain_root_targets=Modal;brain_utonal=0.8359;brain_series=0.01561;"
+      "filter_morph=1",
       nullptr, nullptr, nullptr,
       "lenia1>cutoff:0.122;lfo2>src4_level:0.089:none:u;note>brain_bias:-0.203;distance>fb_drive:0.109;"
       "cascade>brain_dejavu:0.273;env1>pan_drift:-0.109;env2>partial_spread:0.108;env3>dly_feedback:0.123;"
@@ -9246,7 +9260,7 @@ const Preset kPresets[] = {
       "master_gain=-2.61;partials=11;tilt=0.8692;brightness=0.5998;odd_even=0.2094;inharmonic=0.1113;"
       "shimmer=0.5464;shimmer_rate=0.05121;strands=4;detune=4;drift=5.021;drift_rate=0.0441;spread=0.5318;"
       "bloom=0.1672;bloom_time=42.1;rate_wander=0.2594;attack=15.14;decay=6.1;sustain=0.8614;release=16.91;"
-      "cutoff=3392;resonance=0.05341;filter_env=0.1482;filter_drift=0.4914;keytrack=0.3796;depth=0.9429;"
+      "cutoff=3392;resonance=0;filter_env=0.1482;filter_drift=0.4914;keytrack=0.3796;depth=0.9429;"
       "pan_drift=0.3685;itd=0.5055;arc=0.4426;arc_period=109.6;breath=0.3257;breath_rate=0.02979;air=0;"
       "air_color=3.095;air_q=19.06;ens_mix=0.2341;ens_depth=0.715;ens_rate=0.0348;dly_time_l=0.7429;"
       "dly_time_r=1.23;dly_feedback=0.5492;dly_cross=0.6287;dly_damp=0.6885;dly_mix=0.2951;"
@@ -9282,16 +9296,17 @@ const Preset kPresets[] = {
       "lfo2_rate=0.04102;lfo2_shape=Sine;lfo2_phase=0.494;lfo2_depth=0.738;env1_time=8.652;env1_mode=Loop;"
       "env1_depth=0.905;env2_time=14;env2_mode=One Shot;env2_depth=0.797;src3_delay=3.52;src3_rise=4.79;"
       "brain_release_gap=2.965;far_unmask=0.1527;far_unmask_spread=0.349;presence=2.64;subsonic=18;"
-      "brain_root_targets=Modal;brain_utonal=0.03088;brain_series=0.2688;arc_harmony=0.443",
+      "brain_root_targets=Modal;brain_utonal=0.03088;brain_series=0.2688;arc_harmony=0.443;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "kura2>depth:0.084;lfo2>brain_cascade:0.189:none:u;beat>early_size:0.184;env1>far_unmask_spread:0.089;"
       "env2>far_comod:0.222;slide>tilt:0.150:u",
       "0:0:-0.48/2.43:-0.258:-0.54/4.32:-0.016:0.36/6.47:0:0.08!l0-2~0:0:-0.28/2.99:0.705:0.03/5.41:0:0.56" },
     { "Spiral Passage",
-      "master_gain=1.54;tilt=1.451;brightness=0.5513;odd_even=0.1926;inharmonic=0.06872;shimmer=0.4047;"
+      "master_gain=1.08;tilt=1.451;brightness=0.5513;odd_even=0.1926;inharmonic=0.06872;shimmer=0.4047;"
       "shimmer_rate=0.05176;strands=4;detune=4;drift=2.867;drift_rate=0.01;spread=0.8312;bloom=0.2231;"
       "bloom_time=30.14;rate_wander=0.3337;attack=4.412;decay=2.759;sustain=0.7796;release=5.429;"
-      "cutoff=267.3;resonance=0.1445;filter_env=0.02846;filter_drift=0.1602;keytrack=0.6457;depth=0.9409;"
+      "cutoff=267.3;resonance=0;filter_env=0.02846;filter_drift=0.1602;keytrack=0.6457;depth=0.9409;"
       "pan_drift=0.4537;itd=0.4787;arc=0.1323;arc_period=99.57;breath=0.03927;breath_rate=0.02138;air=0;"
       "air_color=4.971;air_q=5.107;ens_mix=0.4876;ens_depth=0.3458;ens_rate=0.3179;dly_time_l=2.045;"
       "dly_time_r=1.511;dly_feedback=0.6395;dly_cross=0.3811;dly_damp=0.7517;dly_mix=0.2112;"
@@ -9319,7 +9334,7 @@ const Preset kPresets[] = {
       "src2_bright=0.5463;src2_shimmer=0.3564;src2_shimmer_rate=0.09397;src3_type=Wavetable;"
       "src3_level=0.4948;src3_drift=1.002;src3_ratio=1/1;src3_pan=0.6533;src3_table=Metal;src3_pos=0.279;"
       "src3_pos_drift=0.4268;src4_type=Bow;src4_level=0.5368;src4_octave=-1;src4_ratio=2/1;src4_pan=-0.17;"
-      "src4_bow_force=0.4671;src4_bow_speed=0.2352;src4_pos=0.6191;src4_bright=0.4451;filter_model=HP 12;"
+      "src4_bow_force=0.4671;src4_bow_speed=0.2352;src4_pos=0.6191;src4_bright=0.4451;filter_model=SEM;"
       "dly_absorb=0.4235;far_rotate=0.721;filter_fold=0.151;brain2_depth=0.866;brain2_consonance=0.751;"
       "purity_adapt=0.67;purity_guard=0.884;transpose=Fourth down;hold=on;far_comod=0.709;elev_near=0.167;"
       "elev_far=0.129;far_mode=Rotating;early_level=0.433;early_size=13.94;early_absorb=0.461;"
@@ -9328,7 +9343,7 @@ const Preset kPresets[] = {
       "seed=20;chaos_period=202.7;env1_time=10.44;env1_mode=Loop;env1_depth=0.797;env1_sync=32 bars;"
       "src3_delay=21.88;src3_rise=3.98;src4_delay=16.09;src4_rise=1.59;brain_release_gap=2.558;"
       "far_unmask=0.1667;far_unmask_spread=0.427;presence=2.94;subsonic=18;sub_beat=0.25;"
-      "brain_root_targets=Modal;brain_utonal=0.1262;brain_series=0.2952",
+      "brain_root_targets=Modal;brain_utonal=0.1262;brain_series=0.2952;filter_morph=1",
       nullptr, nullptr, nullptr,
       "rossler_x>width:0.164;env1>near_ild:0.240",
       "0:0:0.41/1.2:0.765:-0.59/1.97:0.572:0.57/4.02:-0.741:0.57/6.92:0:0.38!l0-3" },
@@ -9524,7 +9539,7 @@ const Preset kPresets[] = {
       "master_gain=-7.078;partials=19;tilt=1.113;brightness=0.619;odd_even=0.05805;shimmer=0.397;"
       "shimmer_rate=0.05005;strands=4;detune=2.955;drift=7.475;drift_rate=0.0607;spread=0.5897;"
       "bloom=0.3332;bloom_time=47.5;rate_wander=0.2475;attack=6.991;decay=6.018;sustain=0.8493;"
-      "release=22.19;cutoff=2981;resonance=0.2509;filter_env=0.1689;filter_drift=0.15;keytrack=0.5268;"
+      "release=22.19;cutoff=2981;resonance=0;filter_env=0.1689;filter_drift=0.15;keytrack=0.5268;"
       "depth=0.9108;pan_drift=0.3548;itd=0.5641;arc=0.4138;arc_period=55.93;breath=0.2236;"
       "breath_rate=0.01561;air=0;air_color=3.493;air_q=4.838;ens_mix=0.3017;ens_depth=0.5088;"
       "ens_rate=0.126;dly_time_l=0.4636;dly_time_r=0.8661;dly_feedback=0.4886;dly_cross=0.5824;"
@@ -9562,7 +9577,7 @@ const Preset kPresets[] = {
       "env5_depth=0.858;env6_time=20;env6_mode=Loop;env6_depth=0.689;brain_release_gap=2.889;"
       "far_unmask=0.1427;far_unmask_spread=0.494;presence=2.11;subsonic=18;sub_beat=0.25;"
       "purity_adapt=0.4849;brain_root_targets=Modal;brain_utonal=0.1922;brain_series=0.4493;"
-      "arc_harmony=0.3901",
+      "arc_harmony=0.3901;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>pan_drift:0.160;lorenz_y>brain_wander:0.072;lenia4>detune:0.156;lfo4>far_highcut:-0.134:none:u;"
       "env1>far_decay:-0.100;env2>shimmer:0.213;env3>src3_level:0.236;env4>brain_wander:0.197;env5>pan_drift:0.163;"
@@ -9674,17 +9689,17 @@ const Preset kPresets[] = {
       "master_gain=-6.705;partials=18;tilt=0.9127;brightness=0.5052;odd_even=-0.2045;inharmonic=0.0933;"
       "shimmer=0.2053;shimmer_rate=0.05297;detune=3.147;drift=2.607;drift_rate=0.05364;spread=0.5389;"
       "bloom=0.06862;bloom_time=79.3;rate_wander=0.1529;attack=11.32;decay=10.13;sustain=0.7821;"
-      "release=25.66;cutoff=2176;resonance=0.05007;filter_env=0.3709;filter_drift=0;keytrack=0.5599;"
-      "depth=0.8806;pan_drift=0.3572;itd=0.5148;arc=0.3967;arc_period=41.14;breath=0.2483;"
-      "breath_rate=0.01046;air=0;air_color=2.628;air_q=17.33;ens_mix=0.2002;ens_depth=0.03884;"
-      "ens_rate=0.3983;dly_time_l=0.4794;dly_time_r=1.977;dly_feedback=0.4777;dly_cross=0.6571;"
-      "dly_damp=0.7636;dly_mix=0.2272;dly_to_far=0.5689;near_mix=0.2941;near_decay=0.7891;near_damp=0.5548;"
-      "far_level=0.9218;far_size=1.871;far_decay=40;far_damp=0.3483;far_predelay=3;far_asym=0.5284;"
-      "far_highcut=3000;bass_mono=101.2;side_air=2.612;width=0.6998;brain_density=4;brain_rate=47.48;"
-      "brain_hold_min=82.72;brain_hold_max=344.6;brain_low=37;brain_high=93;brain_consonance=0.7218;"
-      "brain_wander=0.3233;scale=JI 7-limit;root=F;purity=0.9;sub_tone=0.2268;pad_low_cut=70;"
-      "brain_quantize=Free;brain_timbre=0.1885;brain_spacing=0.4466;brain_harmonic=0.6452;brain_key=0.6493;"
-      "brain_even=0.3737;brain_smooth=0.7671;brain_blend=0.09289;brain_cascade=0.2151;brain_surprise=0.551;"
+      "release=25.66;cutoff=2176;resonance=0;filter_env=0.3709;filter_drift=0;keytrack=0.5599;depth=0.8806;"
+      "pan_drift=0.3572;itd=0.5148;arc=0.3967;arc_period=41.14;breath=0.2483;breath_rate=0.01046;air=0;"
+      "air_color=2.628;air_q=17.33;ens_mix=0.2002;ens_depth=0.03884;ens_rate=0.3983;dly_time_l=0.4794;"
+      "dly_time_r=1.977;dly_feedback=0.4777;dly_cross=0.6571;dly_damp=0.7636;dly_mix=0.2272;"
+      "dly_to_far=0.5689;near_mix=0.2941;near_decay=0.7891;near_damp=0.5548;far_level=0.9218;"
+      "far_size=1.871;far_decay=40;far_damp=0.3483;far_predelay=3;far_asym=0.5284;far_highcut=3000;"
+      "bass_mono=101.2;side_air=2.612;width=0.6998;brain_density=4;brain_rate=47.48;brain_hold_min=82.72;"
+      "brain_hold_max=344.6;brain_low=37;brain_high=93;brain_consonance=0.7218;brain_wander=0.3233;"
+      "scale=JI 7-limit;root=F;purity=0.9;sub_tone=0.2268;pad_low_cut=70;brain_quantize=Free;"
+      "brain_timbre=0.1885;brain_spacing=0.4466;brain_harmonic=0.6452;brain_key=0.6493;brain_even=0.3737;"
+      "brain_smooth=0.7671;brain_blend=0.09289;brain_cascade=0.2151;brain_surprise=0.551;"
       "brain_homeostat=0.3929;brain_dejavu=0.3471;brain_loop=10;brain_spread=0.5438;brain_bias=0.1321;"
       "auto_mode=Free;auto_rate=81.41;auto_sync=Free;auto_lead=6;auto_tension=0.3378;auto_root_move=0.2482;"
       "brain2_on=off;brain2_rate=196;brain2_hold_min=165.9;brain2_hold_max=463.2;brain2_low=27;"
@@ -9711,7 +9726,8 @@ const Preset kPresets[] = {
       "lfo1_sync=64 bars;env1_time=18.2;env1_mode=Sustain Loop;env1_depth=0.882;env1_sync=4 bars;"
       "env2_time=20;env2_mode=One Shot;env2_depth=0.785;env3_time=20;env3_mode=One Shot;env3_depth=0.583;"
       "brain_release_gap=3.702;far_unmask=0.1253;far_unmask_spread=0.421;presence=2.32;subsonic=18;"
-      "purity_adapt=0.71;brain_root_targets=Modal;brain_utonal=0.06679;brain_series=0.2786",
+      "purity_adapt=0.71;brain_root_targets=Modal;brain_utonal=0.06679;brain_series=0.2786;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>partial_spread:0.115:macro_f;env1>shimmer:0.290;env2>src2_level:0.238;env3>purity_adapt:0.165",
       "0:0:0.24/1.91:0.106:-0.05/4.64:-0.033:0.52/6.96:-0.999:-0.52/7.73:-0.455:-0.09/9.28:0:0.04!s1~"
@@ -9819,7 +9835,7 @@ const Preset kPresets[] = {
       "master_gain=-5.376;partials=15;tilt=1.141;brightness=0.6061;odd_even=0.3697;inharmonic=0.1836;"
       "shimmer=0.2253;shimmer_rate=0.3304;strands=6;detune=4;drift=4.57;drift_rate=0.09971;spread=0.5264;"
       "bloom=0.2411;bloom_time=109;rate_wander=0.4439;attack=6.152;decay=5.833;sustain=0.8105;release=35.5;"
-      "cutoff=1597;resonance=0.2987;filter_env=0.3941;filter_drift=0.2789;keytrack=0.6364;depth=0.8813;"
+      "cutoff=1597;resonance=0.003911;filter_env=0.3941;filter_drift=0.2789;keytrack=0.6364;depth=0.8813;"
       "pan_drift=0.5498;itd=0.7303;arc=0.2381;arc_period=35.84;breath=0.2094;breath_rate=0.05237;air=0;"
       "air_color=2.616;air_q=7.929;ens_mix=0.4301;ens_depth=0.4018;ens_rate=0.05806;dly_time_l=0.6762;"
       "dly_time_r=2.398;dly_feedback=0.5603;dly_cross=0.1088;dly_damp=0.5699;dly_mix=0.1654;"
@@ -9861,7 +9877,8 @@ const Preset kPresets[] = {
       "env3_mode=One Shot;env3_depth=0.806;env4_time=9.754;env4_mode=Loop;env4_depth=0.535;env5_time=15.78;"
       "env5_mode=Loop;env5_depth=0.751;src2_delay=6.47;src2_rise=1.6;brain_release_gap=2.15;"
       "far_unmask=0.1523;far_unmask_spread=0.432;presence=1.81;subsonic=18;purity_adapt=0.5412;"
-      "brain_root_targets=Modal;brain_utonal=0.06844;brain_series=0.247;arc_harmony=0.4202",
+      "brain_root_targets=Modal;brain_utonal=0.06844;brain_series=0.247;arc_harmony=0.4202;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>src2_bright:0.215;lorenz_x>cosmos_swell:0.242;lfo3>brain_bias:-0.271;lfo4>early_size:-0.111:none:u;"
       "kura1>purity_adapt:0.262;env1>cosmos_shimmer:0.237;env2>brain_dejavu:0.141;env3>brain_cascade:-0.226;"
@@ -10126,7 +10143,7 @@ const Preset kPresets[] = {
       "master_gain=-4.44;partials=17;tilt=1.774;brightness=0.7136;odd_even=0.108;inharmonic=0.006633;"
       "shimmer=0.5116;shimmer_rate=0.1916;detune=4;drift=6.617;drift_rate=0.07213;spread=0.8416;"
       "bloom=0.2787;bloom_time=42.88;rate_wander=0.6318;attack=42.42;decay=13.45;sustain=0.8462;"
-      "release=69.56;cutoff=3672;resonance=0.2136;filter_env=0.09336;filter_drift=0.5584;keytrack=0.3603;"
+      "release=69.56;cutoff=3672;resonance=0;filter_env=0.09336;filter_drift=0.5584;keytrack=0.3603;"
       "depth=0.9558;pan_drift=0.3659;itd=0.661;arc=0.1528;arc_period=40.67;breath=0.1367;"
       "breath_rate=0.03626;air=0;air_color=1.509;air_q=11.32;ens_mix=0.4987;ens_depth=0.7238;"
       "ens_rate=0.2043;dly_time_l=2.314;dly_time_r=2.76;dly_feedback=0.4485;dly_cross=0.1081;"
@@ -10168,7 +10185,8 @@ const Preset kPresets[] = {
       "env1_mode=One Shot;env1_depth=0.725;env2_time=9.288;env2_mode=Loop;env2_depth=0.607;env3_time=15.03;"
       "env3_mode=Loop;env3_depth=0.547;src3_delay=3.57;src3_rise=7.64;src4_delay=3.26;src4_rise=2.45;"
       "brain_release_gap=2.472;far_unmask=0.1767;far_unmask_spread=0.476;presence=2.91;subsonic=18;"
-      "brain_root_targets=Modal;brain_utonal=0.09855;brain_series=0.2506;arc_harmony=0.3651",
+      "brain_root_targets=Modal;brain_utonal=0.09855;brain_series=0.2506;arc_harmony=0.3651;filter_morph=0;"
+      "filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>far_highcut:0.083;lfo2>src2_level:0.188;lorenz_z>src3_noise_q:-0.179;lfo4>early_size:-0.120;"
       "velocity>far_decay:0.108;random>src4_transport:-0.337;env1>resonance:0.153;env2>brain_dejavu:0.282;"
@@ -10694,10 +10712,10 @@ const Preset kPresets[] = {
       "env1>fb_drive:0.186;env2>depth:0.117",
       "0:0:-0.41/2.71:0.325:-0.53/4.13:-0.983:0.5/6.23:0:0.26~0:0:-0.58/2.16:-0.047:0.07/3.72:0:-0.12" },
     { "Season Expanse",
-      "master_gain=-2.32;partials=10;tilt=1.283;brightness=0.7282;odd_even=-0.06746;shimmer=0.4424;"
+      "master_gain=-3.12;partials=10;tilt=1.283;brightness=0.7282;odd_even=-0.06746;shimmer=0.4424;"
       "shimmer_rate=0.3881;detune=4;drift=7.646;drift_rate=0.04181;spread=0.7545;bloom=0.05371;"
       "bloom_time=45.52;rate_wander=0.2283;attack=18.23;decay=7.03;sustain=0.8721;release=68.69;"
-      "cutoff=2204;resonance=0.3354;filter_env=0.05282;filter_drift=0.2719;keytrack=0.3572;depth=0.9448;"
+      "cutoff=3416;resonance=0.1125;filter_env=0.05282;filter_drift=0.2719;keytrack=0.3572;depth=0.9448;"
       "pan_drift=0.3382;itd=0.6896;arc=0.4719;arc_period=83.18;breath=0.3705;breath_rate=0.05948;air=0;"
       "air_color=4.141;air_q=15.81;ens_mix=0.5119;ens_depth=0.5507;ens_rate=0.05294;dly_time_l=0.8704;"
       "dly_time_r=0.666;dly_feedback=0.3097;dly_cross=0.3775;dly_damp=0.6042;dly_mix=0.2276;"
@@ -10726,7 +10744,7 @@ const Preset kPresets[] = {
       "src2_shimmer_rate=0.03064;src2_drift=5.914;src3_type=Additive;src3_level=0.4774;src3_octave=1;"
       "src3_ratio=3/2;src3_pan=-0.3771;src3_partials=7;src3_tilt=1.795;src3_bright=0.585;"
       "src3_shimmer=0.4525;src3_shimmer_rate=0.1276;src3_drift=3.283;dly_duck=0.4544;phase_width=0.6327;"
-      "phase_rate=0.01531;doppler=0.4383;filter_model=Ladder;filter_drive=0.3909;tide=9.572;"
+      "phase_rate=0.01531;doppler=0.4383;filter_model=Moog;filter_drive=0.3909;tide=9.572;"
       "tide_period=23.31;far_width=1;haas=0.305;haas_time=20.5;filter_fold=0.339;match=0.448;"
       "far_envelop=0.299;lenia_rate=0.775;lenia_growth=0.153;chaos_period=239.7;press_bright=0.666;"
       "press_distance=0.275;press_level=0.499;slide_cutoff=0.625;seed=8797;lfo3_rate=0.01633;"
@@ -10802,10 +10820,10 @@ const Preset kPresets[] = {
       "0:0:0.29/2.25:-0.299:0.01/3.27:0.867:0.18/6.13:0.387:0.44/6.97:-0.473:-0.13/9.9:0:0.52!l0-4~"
       "0:0:0.26/2.17:-0.049:0.49/3.99:-0.534:0.3/5.57:0.774:0.54/8.16:0.823:-0.17/9.11:0:-0.09!l0-4" },
     { "Stretched Vigil",
-      "master_gain=6.897;partials=8;tilt=1.288;brightness=0.9486;odd_even=0.3045;inharmonic=0.0206;"
+      "master_gain=6.587;partials=8;tilt=1.288;brightness=0.9486;odd_even=0.3045;inharmonic=0.0206;"
       "shimmer=0.559;shimmer_rate=0.09798;strands=2;detune=4;drift=3.005;drift_rate=0.02076;spread=0.6244;"
       "bloom=0.002773;bloom_time=95.79;rate_wander=0.1643;attack=2.262;decay=5.66;sustain=0.8592;"
-      "release=12.36;cutoff=1980;resonance=0.7065;filter_env=0.3384;filter_drift=0.3832;keytrack=0.5039;"
+      "release=12.36;cutoff=3069;resonance=0.4991;filter_env=0.3384;filter_drift=0.3832;keytrack=0.5039;"
       "depth=0.9462;pan_drift=0.2776;itd=0.4409;arc=0.1602;arc_period=56.72;breath=0.2118;"
       "breath_rate=0.01327;air=0;air_color=6.396;air_q=12.34;ens_mix=0.5127;ens_depth=0.3768;"
       "ens_rate=0.08256;dly_time_l=1.894;dly_time_r=0.6403;dly_feedback=0.5706;dly_cross=0.6815;"
@@ -10832,7 +10850,7 @@ const Preset kPresets[] = {
       "z_shape=Odd Notches;z_z=0.15;z_x=0.4;z_y=0.55;z_rate=0.018;z_depth=0.35;z_res=0.72;"
       "z_keytrack=0.1264;z_mix=0.4562;dly_duck=0.6377;cosmos_send=0.3564;cosmos_return=0.3674;"
       "cosmos_to_far=0.4913;cosmos_shift=-9.126;cosmos_shift_drift=0.6661;phase_width=0.3816;"
-      "phase_rate=0.00975;doppler=0.6793;blur_mix=0.3422;blur_smear=0.6284;filter_model=Ladder;"
+      "phase_rate=0.00975;doppler=0.6793;blur_mix=0.3422;blur_smear=0.6284;filter_model=Moog;"
       "filter_drive=0.05385;dly_absorb=0.6022;brain2_depth=0.954;brain2_consonance=0.343;"
       "purity_adapt=0.449;match=0.627;far_mode=Scattering;sympathy=0.364;coherence=0.294;"
       "press_bright=0.222;press_distance=0.344;press_level=0.286;slide_cutoff=0.348;seed=9263;"
@@ -10843,10 +10861,10 @@ const Preset kPresets[] = {
       nullptr, nullptr, nullptr,
       "lfo1>far_comod:-0.234;lfo2>far_rotate:0.137:none:u;lenia1>src1_pos:-0.395;cascade>purity_adapt:0.249" },
     { "Comma Reach",
-      "master_gain=-5.4;partials=13;tilt=1.749;brightness=0.6505;odd_even=0.1565;inharmonic=0.1279;"
+      "master_gain=-5.27;partials=13;tilt=1.749;brightness=0.6505;odd_even=0.1565;inharmonic=0.1279;"
       "shimmer=0.4137;shimmer_rate=0.03478;strands=6;detune=4;drift=6.376;drift_rate=0.02039;spread=0.7424;"
       "bloom=0.0883;bloom_time=56.95;rate_wander=0.4129;attack=3.154;decay=3.123;sustain=0.8141;"
-      "release=17.95;cutoff=1629;resonance=0.07464;filter_env=0.3646;filter_drift=0.2845;keytrack=0.6847;"
+      "release=17.95;cutoff=1614;resonance=0.02;filter_env=0.3646;filter_drift=0.2845;keytrack=0.6847;"
       "depth=0.8663;pan_drift=0.3605;itd=0.7873;arc=0.1469;arc_period=46.07;breath=0.06661;"
       "breath_rate=0.02046;air=0;air_color=7.98;air_q=9.877;ens_mix=0.4958;ens_depth=0.3957;"
       "ens_rate=0.05246;dly_time_l=0.9624;dly_time_r=1.022;dly_feedback=0.6996;dly_cross=0.5539;"
@@ -10874,7 +10892,7 @@ const Preset kPresets[] = {
       "src2_bow_force=0.3347;src2_bow_speed=0.7227;src2_pos=0.5048;src2_bright=0.3907;src4_type=Additive;"
       "src4_level=0.4304;src4_drift=3.773;src4_ratio=4/3;src4_pan=-0.4502;src4_partials=7;src4_tilt=1.853;"
       "src4_bright=0.8127;src4_odd_even=0.4938;src4_shimmer=0.3362;src4_shimmer_rate=0.1131;doppler=0.2669;"
-      "filter_model=LP 24;dly_absorb=0.9981;far_width=1;haas=0.38;haas_time=19;purity_guard=0.48;"
+      "filter_model=Prophet;dly_absorb=0.9981;far_width=1;haas=0.38;haas_time=19;purity_guard=0.48;"
       "match=0.313;far_envelop=0.857;depth_law=0.462;vec_amount=0.376;vec_x=0.254;vec_y=0.501;"
       "vec_wander=0.366;vec_rate=0.01421;mono_guard=on;near_lowcut=97;press_bright=0.562;"
       "press_distance=0.336;slide_cutoff=0.509;seed=6175;chaos_period=94.6;lfo2_rate=0.009077;"
@@ -10897,7 +10915,7 @@ const Preset kPresets[] = {
       "master_gain=-2.23;partials=12;tilt=1.492;brightness=0.5444;odd_even=-0.2515;inharmonic=0.01813;"
       "shimmer=0.3059;shimmer_rate=0.09246;detune=4;drift=6.659;drift_rate=0.02025;spread=0.8415;"
       "bloom=0.4845;bloom_time=86.64;rate_wander=0.5564;attack=11.46;decay=5.37;sustain=0.7096;"
-      "release=37.79;cutoff=1894;resonance=0.1645;filter_env=0.3056;filter_drift=0.5459;keytrack=0.4074;"
+      "release=37.79;cutoff=1894;resonance=0;filter_env=0.3056;filter_drift=0.5459;keytrack=0.4074;"
       "depth=0.9135;pan_drift=0.6391;itd=0.4752;arc=0.3569;arc_period=65.13;breath=0.1008;"
       "breath_rate=0.02298;air=0;air_color=4.371;air_q=10.78;ens_mix=0.4779;ens_depth=0.428;"
       "ens_rate=0.0657;dly_time_l=1.662;dly_time_r=0.7554;dly_feedback=0.5685;dly_cross=0.3691;"
@@ -10937,7 +10955,7 @@ const Preset kPresets[] = {
       "env2_time=14.45;env2_mode=Loop;env2_depth=0.863;env3_time=20;env3_mode=Loop;env3_depth=0.559;"
       "env4_time=20;env4_mode=One Shot;env4_depth=0.776;brain_release_gap=2.19;far_unmask=0.1397;"
       "far_unmask_spread=0.369;presence=2.26;subsonic=18;brain_root_targets=Modal;brain_utonal=0.1854;"
-      "brain_series=0.2588;arc_harmony=0.4551",
+      "brain_series=0.2588;arc_harmony=0.4551;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>resonance:-0.146;lfo2>brain_cascade:0.148;lfo3>cosmos_shift:-0.082:none:u;"
       "rossler_y>partial_spread:-0.266;env1>cloud_density:0.171;env2>depth:0.214;env3>cosmos_nebula:0.276;"
@@ -11372,10 +11390,10 @@ const Preset kPresets[] = {
       "beat>dly_mix:0.141;distance>presence:-0.199;env1>far_comod:0.098;pressure>brightness:0.258:u",
       "0:0:0.59/2.97:0.584:0.48/5.15:0.904:0.02/6.18:0.854:-0.16/7.36:0.002:0.26/10.3:0.122:0.33/12.2:0:-0.14" },
     { "Pelog Span",
-      "master_gain=-0.64;partials=21;tilt=1.591;brightness=0.5985;odd_even=0.2862;inharmonic=0.08078;"
+      "master_gain=-2.05;partials=21;tilt=1.591;brightness=0.5985;odd_even=0.2862;inharmonic=0.08078;"
       "shimmer=0.3826;shimmer_rate=0.1853;strands=4;detune=4;drift=6.412;drift_rate=0.02171;spread=0.543;"
       "bloom=0.3409;bloom_time=151.1;rate_wander=0.426;attack=12.58;decay=3.846;sustain=0.8294;"
-      "release=50.78;cutoff=1394;resonance=0.5788;filter_env=0.2777;filter_drift=0.3888;keytrack=0.3019;"
+      "release=50.78;cutoff=2161;resonance=0.335;filter_env=0.2777;filter_drift=0.3888;keytrack=0.3019;"
       "depth=0.949;pan_drift=0.5151;itd=0.5809;arc=0.1547;arc_period=72.23;breath=0.1005;"
       "breath_rate=0.0104;air=0;air_color=5.234;air_q=14.76;ens_mix=0.6083;ens_depth=0.353;ens_rate=0.2756;"
       "dly_time_l=0.7919;dly_time_r=0.8723;dly_feedback=0.3418;dly_cross=0.3634;dly_damp=0.6397;"
@@ -11404,21 +11422,21 @@ const Preset kPresets[] = {
       "src3_pos_drift=0.5041;src4_type=Wavetable;src4_level=0.2369;src4_drift=2.577;src4_octave=1;"
       "src4_ratio=7/4;src4_pan=-0.03536;src4_table=Metal;src4_pos=0.9314;src4_pos_drift=0.1458;"
       "coherence=0.2983;coherence_depth=0.7743;coherence_rate=0.7407;doppler=0.667;blur_mix=0.2004;"
-      "blur_smear=0.6115;filter_model=Ladder;filter_drive=0.214;haas=0.435;haas_time=18.2;"
-      "brain2_depth=0.721;brain2_consonance=0.285;transpose=Octave down;far_comod=0.698;far_envelop=0.735;"
-      "elev_near=0.2;elev_far=0.771;vec_amount=0.566;vec_x=0.533;vec_y=0.277;vec_wander=0.631;"
-      "vec_rate=0.02667;master_tilt=-1.22;tilt_pivot=616;mem_send=0.281;mem_return=0.528;mem_to_far=0.347;"
-      "mem_lines=2;mem_size=7.94;mem_blur=0.673;mem_drift=0.117;mem_hold=0.764;mem_age=0.548;"
-      "mem_recall=0.62;mem_seek=0.795;mem_grain=471.2;seed=7518;lfo1_rate=0.0048;lfo1_shape=Random;"
-      "lfo1_phase=0.869;lfo1_depth=0.901;lfo2_rate=0.002967;lfo2_shape=Table;lfo2_phase=0.568;"
-      "lfo2_depth=0.921;lfo2_table=19;lfo3_rate=0.001833;lfo3_shape=Ramp Up;lfo3_phase=0.177;"
-      "lfo3_depth=0.889;lfo4_rate=0.001133;lfo4_shape=Random;lfo4_phase=0.867;lfo4_depth=0.608;"
-      "lfo4_mode=Retrigger;env1_time=6.232;env1_mode=One Shot;env1_depth=0.612;env2_time=10.08;"
-      "env2_mode=Loop;env2_depth=0.783;src2_delay=12.44;src2_env=Own;src2_env_mode=Sustain Loop;"
-      "src2_env_time=1.015;src2_env_depth=0.614;src3_delay=16.87;src3_rise=2.67;src4_delay=5.82;"
-      "src4_env=Own;src4_env_mode=One Shot;src4_env_time=2.692;brain_release_gap=3.105;far_unmask=0.1533;"
-      "far_unmask_spread=0.332;presence=3;subsonic=18;purity_adapt=0.6964;brain_root_targets=Modal;"
-      "brain_utonal=0.1202;brain_series=0.4057;arc_harmony=0.433",
+      "blur_smear=0.6115;filter_model=Moog;filter_drive=0.214;haas=0.435;haas_time=18.2;brain2_depth=0.721;"
+      "brain2_consonance=0.285;transpose=Octave down;far_comod=0.698;far_envelop=0.735;elev_near=0.2;"
+      "elev_far=0.771;vec_amount=0.566;vec_x=0.533;vec_y=0.277;vec_wander=0.631;vec_rate=0.02667;"
+      "master_tilt=-1.22;tilt_pivot=616;mem_send=0.281;mem_return=0.528;mem_to_far=0.347;mem_lines=2;"
+      "mem_size=7.94;mem_blur=0.673;mem_drift=0.117;mem_hold=0.764;mem_age=0.548;mem_recall=0.62;"
+      "mem_seek=0.795;mem_grain=471.2;seed=7518;lfo1_rate=0.0048;lfo1_shape=Random;lfo1_phase=0.869;"
+      "lfo1_depth=0.901;lfo2_rate=0.002967;lfo2_shape=Table;lfo2_phase=0.568;lfo2_depth=0.921;"
+      "lfo2_table=19;lfo3_rate=0.001833;lfo3_shape=Ramp Up;lfo3_phase=0.177;lfo3_depth=0.889;"
+      "lfo4_rate=0.001133;lfo4_shape=Random;lfo4_phase=0.867;lfo4_depth=0.608;lfo4_mode=Retrigger;"
+      "env1_time=6.232;env1_mode=One Shot;env1_depth=0.612;env2_time=10.08;env2_mode=Loop;env2_depth=0.783;"
+      "src2_delay=12.44;src2_env=Own;src2_env_mode=Sustain Loop;src2_env_time=1.015;src2_env_depth=0.614;"
+      "src3_delay=16.87;src3_rise=2.67;src4_delay=5.82;src4_env=Own;src4_env_mode=One Shot;"
+      "src4_env_time=2.692;brain_release_gap=3.105;far_unmask=0.1533;far_unmask_spread=0.332;presence=3;"
+      "subsonic=18;purity_adapt=0.6964;brain_root_targets=Modal;brain_utonal=0.1202;brain_series=0.4057;"
+      "arc_harmony=0.433",
       nullptr, nullptr, nullptr,
       "lfo1>purity_drift:0.090;lfo2>purity:0.046:macro_c;lfo3>doppler:0.120;lfo4>partial_spread:-0.200;"
       "env1>dly_feedback:0.107;env2>src4_level:0.194;wheel>blur_mix:0.389:u;slide>inharmonic:0.269:u",
@@ -11625,10 +11643,10 @@ const Preset kPresets[] = {
       "0:0:-0.06/1.33:-0.578:0.33/4.16:0:-0.12~~~~~~0:0/1.66:1:0.06/5.31:0.745:0.07/8.91:0:-0.43!s2~"
       "0:0/4.94:1:-0.37" },
     { "Struck Body",
-      "master_gain=-5;partials=23;tilt=0.8209;brightness=0.4897;odd_even=0.1705;inharmonic=0.004394;"
+      "master_gain=-4.26;partials=23;tilt=0.8209;brightness=0.4897;odd_even=0.1705;inharmonic=0.004394;"
       "shimmer=0.3328;shimmer_rate=0.02217;strands=5;detune=4;drift=2.887;drift_rate=0.01634;spread=0.8445;"
       "bloom=0.3244;bloom_time=36.59;rate_wander=0.4211;attack=13.92;decay=7.054;sustain=0.8741;"
-      "release=41.65;cutoff=933.2;resonance=0.2343;filter_env=0.09601;filter_drift=0;keytrack=0.4011;"
+      "release=41.65;cutoff=924.7;resonance=0.06744;filter_env=0.09601;filter_drift=0;keytrack=0.4011;"
       "depth=0.9444;pan_drift=0.4439;itd=0.5661;arc=0.2908;arc_period=103.4;breath=0.2509;"
       "breath_rate=0.01346;air=0;air_color=4.124;air_q=4.651;ens_mix=0.5219;ens_depth=0.28;"
       "ens_rate=0.06572;dly_time_l=0.8656;dly_time_r=2.703;dly_feedback=0.6568;dly_cross=0.3518;"
@@ -11655,7 +11673,7 @@ const Preset kPresets[] = {
       "src2_octave=1;src2_ratio=5/4;src2_pan=-0.5287;src2_bow_force=0.3576;src2_bow_speed=0.516;"
       "src2_pos=0.4489;src2_bright=0.4813;src2_drift=5.657;src3_type=FM;src3_level=0.4805;src3_ratio=2/1;"
       "src3_pan=-0.1492;src3_fm_ratio=1.5;src3_fm_index=0.3482;dly_duck=0.5767;doppler=0.5118;"
-      "filter_model=LP 24;strike_level=0.5524;strike_type=Metal;strike_decay=1.2;strike_damp=0.35;"
+      "filter_model=Moog;strike_level=0.5524;strike_type=Metal;strike_decay=1.2;strike_damp=0.35;"
       "strike_who=Keys + Brain;tide=2.385;tide_period=8.376;far_rotate=0.6746;far_width=1;match=0.335;"
       "presence=1.9;lenia_rate=1.928;lenia_growth=0.197;sympathy=0.578;coherence=0.47;strike_chance=0.483;"
       "strike_cluster=0.767;patina=0.188;patina_wow=0.59;patina_hiss=0.088;patina_age=0.613;"
@@ -12067,7 +12085,7 @@ const Preset kPresets[] = {
       "master_gain=-3.24;partials=19;tilt=1.697;brightness=0.5084;odd_even=-0.3248;inharmonic=0.01155;"
       "shimmer=0.2955;shimmer_rate=0.0801;strands=5;detune=4;drift=8.3;drift_rate=0.04728;spread=0.5315;"
       "bloom=0.01592;bloom_time=146.3;rate_wander=0.6742;attack=3.898;decay=13.82;sustain=0.925;"
-      "release=18.44;cutoff=2334;resonance=0.1879;filter_env=0.1517;filter_drift=0.5953;keytrack=0.4562;"
+      "release=18.44;cutoff=2334;resonance=0;filter_env=0.1517;filter_drift=0.5953;keytrack=0.4562;"
       "depth=0.9146;pan_drift=0.4474;itd=0.7252;arc=0.3608;arc_period=21.12;breath=0.1138;"
       "breath_rate=0.01215;air=0;air_color=4.613;air_q=15.58;ens_mix=0.5923;ens_depth=0.6425;"
       "ens_rate=0.1877;dly_time_l=0.8556;dly_time_r=1.031;dly_feedback=0.3518;dly_cross=0.2325;"
@@ -12104,7 +12122,8 @@ const Preset kPresets[] = {
       "lfo2_mode=Retrigger;lfo4_rate=0.001959;lfo4_shape=Triangle;lfo4_phase=0.618;lfo4_depth=0.83;"
       "lfo4_sync=4 bars;lenia_rate=0.655;lenia_growth=0.108;env1_time=8.215;env1_mode=One Shot;"
       "env1_depth=0.614;brain_release_gap=3.848;far_unmask=0.1363;far_unmask_spread=0.324;presence=2.21;"
-      "subsonic=18;brain_root_targets=Phrygian;brain_utonal=0.5812;brain_series=0.03974;arc_harmony=0.3097",
+      "subsonic=18;brain_root_targets=Phrygian;brain_utonal=0.5812;brain_series=0.03974;arc_harmony=0.3097;"
+      "filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr,
       "lfo1>presence:0.069:none:u;lfo2>air:0.243;lorenz_y>brain_cascade:-0.256;lfo4>elev_far:0.210;"
       "lenia2>osc_level:0.171;env1>depth:0.170",

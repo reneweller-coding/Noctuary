@@ -812,6 +812,7 @@ void Engine::readParams()
     vp_.filterParallel = std::lround(g(ParamId::ZRoute)) == 1;
     vp_.filterModel = static_cast<int>(std::lround(g(ParamId::FilterModel)));
     vp_.filterDrive = g(ParamId::FilterDrive);
+    vp_.filterMorph = g(ParamId::FilterMorph);
     vp_.fold = g(ParamId::FilterFold);
     vp_.binaural = std::lround(getParam(ParamId::Binaural)) == 1;
     vp_.headYawDeg = headYawDeg_.load(std::memory_order_relaxed);
@@ -1360,6 +1361,7 @@ void Engine::readParams()
         vpNear_.filterOn    = true;
         vpNear_.filterParallel = false;
         vpNear_.filterDrive = 0.0f;
+        vpNear_.filterMorph = 0.0f;
         vpNear_.fold        = 0.0f;
         vpNear_.zMode       = 0;
         vpNear_.air         = 0.0f;

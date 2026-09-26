@@ -117,6 +117,7 @@ struct FilterCurve {
         sr = sampleRate;
         cutoff = rawParam(proc, "cutoff");
         res    = rawParam(proc, "resonance");
+        morph  = rawParam(proc, "filter_morph");
         model  = juce::jlimit(0, ambient::kNumFilterModels - 1, static_cast<int>(std::lround(rawParam(proc, "filter_model"))));
         zMode  = static_cast<int>(std::lround(rawParam(proc, "z_mode")));
         zShape = juce::jlimit(0, ambient::kZShapes - 1, static_cast<int>(std::lround(rawParam(proc, "z_shape"))));
@@ -150,7 +151,7 @@ struct FilterCurve {
      */
     float magnitude(float hz) const
     {
-        const float hs = fOn ? ambient::VoiceFilter::magnitude(static_cast<ambient::FilterModel>(model), cutoff, res, hz, sr) : 1.0f;
+        const float hs = fOn ? ambient::VoiceFilter::magnitude(static_cast<ambient::FilterModel>(model), cutoff, res, hz, sr, morph) : 1.0f;
         float hzm = 1.0f;
         if (zUsed > 0) {
             if (isModal) hzm = modal.magnitudeAt(hz);        // the modes add, they do not multiply
@@ -172,7 +173,7 @@ struct FilterCurve {
      */
     float branchFilter(float hz) const
     {
-        return fOn ? ambient::VoiceFilter::magnitude(static_cast<ambient::FilterModel>(model), cutoff, res, hz, sr) : 1.0f;
+        return fOn ? ambient::VoiceFilter::magnitude(static_cast<ambient::FilterModel>(model), cutoff, res, hz, sr, morph) : 1.0f;
     }
 
     /**
@@ -206,6 +207,7 @@ struct FilterCurve {
     ambient::ZModal  modal;                         ///< the modal bank as capture() built it (Modal)
     /** @brief The sample rate the response is computed at, in Hz. */
     float sr = 48000.0f, cutoff = 1000.0f, res = 0.0f, zMix = 0.0f, zNorm = 1.0f;   ///< zNorm: the cascade's normalisation from zBuildCascade
+    float morph = 0.0f;   ///< the Morph knob, the SEM's response
     /** @var float edt::FilterCurve::cutoff
      *  @brief the voice filter's cutoff in Hz */
     /** @var float edt::FilterCurve::res

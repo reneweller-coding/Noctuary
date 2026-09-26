@@ -141,13 +141,14 @@ const HelpEntry kHelp[] = {
 
     // ---- filter
     { "filter_on", "Switches the voice filter in or out. Off leaves the sources to the z-plane alone (or dry, if that is off too)." },
-    { "filter_model", "The filter's character behind the same knobs: LP 6/12/24 low passes, HP 12, BP 12, Notch, Peak (a bell), Ladder (four-pole with saturating feedback), Comb (tuned to Cutoff, a resonating body)." },
+    { "filter_model", "The filter's character behind the same knobs: LP 6/12/24 low passes, HP 12, BP 12, Notch, Peak (a bell), Ladder (four-pole with saturating feedback), Comb (tuned to Cutoff, a resonating body), Formant (a vowel). Then five analogue filters modelled on their circuits, running at twice the rate: Moog (the transistor ladder, warm, its resonance singing exactly on Cutoff), SEM (Oberheim's 12 dB state-variable filter, soft and wide, with Morph from low pass through notch to high pass), Prophet (the Prophet-5's cascade, its resonance saturating first, so it stays round when pushed), Juno (the Juno's cleaner cascade, the classic pad) and Diode (the EMS and TB-303 ladder, thinner and more nasal). On these five Drive pushes the circuit itself instead of a clip ahead of it." },
     { "cutoff", "The filter's frequency. Key Track, Env Amount, Drift and the voice's distance move it from here." },
-    { "resonance", "Emphasis at the cutoff. On the Ladder it self-oscillates near the top; on the Comb it deepens the dips between the peaks." },
+    { "resonance", "Emphasis at the cutoff. On the Ladder it self-oscillates near the top; on the Comb it deepens the dips between the peaks. Prophet, Juno and Diode begin to sing on their own just at 1, the Moog stops a hair short of it and rings for a moment after every change -- all of them on Cutoff, so with Key Track at 1 the ringing plays the note. The SEM stays a filter, its Q reaching about 40." },
     { "filter_env", "How far the amplitude envelope opens the filter, in octaves times four. Negative closes it as the note swells." },
     { "filter_drift", "Depth of the cutoff's slow random wander, in octaves times two." },
     { "keytrack", "How much the cutoff follows the note: 1 keeps the same partials in the passband on every key." },
-    { "filter_drive", "Soft saturation ahead of the filter, level-compensated: adds harmonics, not loudness." },
+    { "filter_drive", "Soft saturation ahead of the filter, level-compensated: adds harmonics, not loudness. On Moog, SEM, Prophet, Juno and Diode it is the level into the circuit, whose own stages saturate -- the way these filters were overdriven." },
+    { "filter_morph", "The SEM's response: low pass at 0, a notch at 0.5 (low pass and high pass together, a hole at Cutoff), high pass at 1, and every blend on the way. Slowly modulated it moves a drone's colour without the sound of a sweep. Only the SEM listens to it." },
     { "filter_fold", "A wavefolder after both filters. Drive flattens what will not fit; a folder turns it back on itself, and a wave mirrored at the fold grows a family of high partials that no saturation makes -- the metallic edge of an industrial record. The positive half folds a third sooner than the negative one, which is where the even harmonics and the body come from. Off at 0." },
 
     // ---- z-plane
@@ -747,7 +748,7 @@ THE VECTOR is the four slots read as a place rather than as four levels, after t
     { "Filters and Z-plane",
 R"(Two filters, each with its own switch, in series or in parallel.
 
-THE VOICE FILTER (Filter section) has ten models behind the same knobs:
+THE VOICE FILTER (Filter section) has fifteen models behind the same knobs:
   LP 6      one pole, warm and gentle
   LP 12     the state-variable low pass -- the default, the one the instrument always had
   LP 24     two stages, steep
@@ -758,6 +759,13 @@ THE VOICE FILTER (Filter section) has ten models behind the same knobs:
   Ladder    four one-poles with saturating feedback, self-oscillating near full Resonance
   Comb      a feedback comb tuned to Cutoff; Resonance deepens the dips -- on a cluster, a second resonating body
   Formant  three tracked bands: the filter sings a vowel
+and five analogue filters modelled on their circuits, at twice the rate:
+  Moog      the transistor ladder, 24 dB, warm; its resonance rings exactly on Cutoff
+  SEM       Oberheim's 12 dB state-variable filter, soft and wide; Morph goes from low pass through notch to high pass
+  Prophet   the Prophet-5's cascade, 24 dB; its resonance saturates first, so it stays round when pushed
+  Juno      the Juno's cleaner cascade, 24 dB, the classic pad filter
+  Diode     the diode ladder of the EMS and the TB-303, thinner and more nasal
+On these five, Drive is the level into the circuit, and its own stages saturate.
 FOLD is a wavefolder after both filters. Drive flattens what will not fit through the filter; a folder turns it back on itself instead, and a wave mirrored at the fold grows a family of high partials that no saturation makes -- the metallic edge of an industrial record. Its positive half folds a third sooner than the negative one, so the even harmonics are there too. Off at 0.
 
 Cutoff is moved by Key Track (1 keeps the same partials in the passband on every key), Env Amount (the amplitude envelope, negative closes), Drift (a slow wander) and by the voice's distance (2.5 octaves darker on the far plane). Drive saturates ahead of the filter. On switches it out.
@@ -1192,6 +1200,8 @@ and the reason it matters is that a filter built this way can be swept quickly w
     y[n] = x[n] + fb * LP(y[n - D]),   D = f_s / f_c,   out = (1 - fb) y
 
 -- on a sustained cluster less a filter than a second resonating body. The formant model is three band-passes on the formant frequencies of the sung vowels u-o-a-e-i (the classic tables of Peterson and Barney 1952), morphed by Cutoff. Every model reports its own magnitude response from the same arithmetic as the audio path, which is what the filter display draws.
+
+The five circuit models (26.09.2026, from Ephemeris, the Berlin School generator) are the circuits' differential equations with their nonlinearities where the circuits have them: the transistor pairs of the Moog ladder (Huovilainen's model), the OTAs of the Prophet's SSM2040 and the Juno's IR3109 cascades, the saturating integrators of the SEM, the diode pairs of the diode ladder with its last capacitor half the size (Stinchcombe). Each capacitor is integrated trapezoidally as above, but the loop through the resonance is solved exactly every sample -- three Newton-Raphson steps on the circuit's own Jacobian -- instead of being broken by a sample of delay, so the resonance rings on Cutoff at every setting, and a Key Track of 1 plays it in tune. They run at twice the rate, as in Ephemeris, both channels in one register, which gives the saturation of their stages room and costs them the oversampler's half millisecond. The display draws them for a quiet input; loud, the Prophet and the Juno let more through, because their feedback saturates before their stages do, as in the instruments.
 
 THE Z-PLANE
 

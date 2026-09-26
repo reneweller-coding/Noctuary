@@ -3742,6 +3742,102 @@ moved least, as expected: it is a property of the material -- a bed without tran
 knob of this round was aimed at it. The loudness range is under 8 LU for nearly every preset, which
 over one measured minute of a drone says nothing: the guide's 8 to 20 LU are for a whole piece.
 
+## Circuit filters from Ephemeris (26.09.2026)
+
+Rene: "Kannst du dir vielleicht mal die Filtermodelle im BerlinSchool-Generator anschauen. Wäre das
+vielleicht auch was für Noctuary?" Ephemeris had, the same day, got ten filter models that are the
+circuits of classic instruments rather than textbook filters. Four of them suit a drone instrument
+and came over; the Polivoks, the Wasp and the MS-20 are built to scream and stayed behind, and a comb
+was there already.
+
+**The five new models** (`filter_model`, appended after Formant so every existing preset keeps its
+model): **Moog** (the transistor ladder, tanh in every stage, Huovilainen), **SEM** (Oberheim's
+state-variable filter with saturating integrators, and a new knob, **Morph** -- `filter_morph`,
+Filter, 0 .. 1 -- from low pass through notch to high pass), **Prophet** and **Juno** (the OTA
+cascades of the SSM2040 and the IR3109, the Prophet's feedback saturating before its stages) and
+**Diode** (the diode ladder of the EMS and the TB-303, its last capacitor half the size, after
+Stinchcombe). `Core/include/ambient/CircuitFilter.h` holds them, as templates like in Ephemeris.
+
+What makes them different from the old Ladder is not the curve but the loop. The old one breaks the
+path through its resonance with a sample of delay, and that sample detunes it: its corner has to sit
+1.55 times over Cutoff and its resonance drifts with the cutoff. The circuit models solve the loop
+exactly every sample, three Newton-Raphson steps on the circuit's own Jacobian, so their resonance
+rings on Cutoff -- after an impulse at 440 Hz and full Resonance all four ladders and cascades ring
+within 1.4 per cent of it, and Prophet, Juno and Diode go on singing by themselves, within 2.3 per
+cent (the Moog is voiced a hair under the threshold, as in Ephemeris, and rings out). With Key Track 1 the ringing
+plays the note. Drive on these five is the level into the circuit, whose own stages saturate, not a
+clip ahead of it.
+
+**What they cost, and what was done about it.** As first ported -- scalar, one channel after the
+other, at four times the rate as the guide asks of everything nonlinear -- a circuit model cost 2500
+to 3000 cycles a stereo sample against 32 for LP 12, and "Consonant Expanse" went from 11 times
+realtime to 2.4. Measured one by one:
+
+* **Twice the rate is enough.** A circuit is not a bare curve: the stages after each saturation
+  low-pass what it makes. A full-scale sine into a fully driven Moog at a 5 kHz cutoff aliases at
+  -75 dB at the base rate and at -101 dB, the measurement's floor, at twice the rate; four times
+  measured no better in any case tried (what is left at 12 and 18 kHz cutoffs is the same at two and
+  four times: the half-band's transition above 19 kHz). Ephemeris runs them at twice the rate too.
+  `StereoOversampler2` is the first half-band stage of Oversampler4 alone, 25 samples late.
+* **Three Newton steps.** Warm-started from the last sample, two leave an error under -128 dB of the
+  signal for quiet and pushed inputs, but -33 to -52 dB with the cutoff swept to 21 kHz at a
+  resonance of 0.8; three leave -72 to -103 dB there.
+* **Both channels in one register.** The Newton steps are chains of dependent divisions: a second
+  lane rides along for nothing. The Jacobian's diagonal is inverted as soon as it is known, off the
+  chain of the substitution.
+* **The oversampler's sums as vector sums.** Its 26-tap sums were added one after the other. The
+  first vector version came out twice as slow -- a wide load over a history whose newest sample has
+  just been stored waits for that store -- so the histories are Lines now: the newest sample is
+  multiplied on its own, the vector reads only older ones, and the line jumps back to the top of its
+  buffer every 64 samples instead of wrapping. 197 cycles for a stereo round trip at four times
+  became 96, which every Drive, fold, Patina, air and feedback stage in the instrument gets as well
+  (LP 12 with Drive: 237 cycles a stereo sample before, 147 now).
+
+Now: Moog 470 cycles a stereo sample, SEM 520, Prophet and Juno 600, Diode 730, and "Consonant
+Expanse" plays at 13.1 times realtime on LP 12 and 5 to 7 times on the circuit models -- the dearest
+filters in the instrument, about as dear as the rest of a voice together, and there only where a
+preset asks for one. The old Ladder stays in the menu (45 cycles).
+
+**The library moved** (Rene, after the A/B renders: "Ja, bitte umziehen. Bitte auch noch andere
+Presets auf die anderen neuen Filter umstellen, auch aus den Packs (aber nur die, die bislang nicht
+ausschließlich den z-Filter benutzen). Ich denke, das Neuvermessen können wir uns trotzdem sparen.")
+`Tools/library/circuit.py` is the rule, applied like guide.py and review.py -- by make_presets.py to
+every preset it generates, by make_layer_presets.py to the near bank, and by retrofit_circuit.py to
+what exists: every Ladder to the Moog (at 1.55 times the Cutoff and the Resonance squared, where the
+old ladder had its corner and its feedback), seven in ten LP 24 to a four-pole circuit by the family
+(cold to the diode ladder, deep and ritual to the Moog, luminous and sleep to the Juno, the rest
+between Prophet and Juno), six in ten Notch and one in two HP 12 to the SEM at Morph 0.5 and 1, one
+in five LP 12 to the SEM -- never a preset whose voice filter is not heard (a Replace z-plane, a
+parallel one at a Mix of 0.95 and more). The SEM takes the state-variable filter's Q; a four-pole
+circuit is fitted to the LP 24's small-signal curve. 3583 presets moved: 3510 of the packs (950
+Ladder, 521 LP 24, 198 Notch, 135 HP 12, 1706 LP 12), 63 built-ins, 10 of the near bank.
+
+Not measured again, as asked -- but not unchecked either. A reckoning of what each circuit's pass
+band gives up held for the SEM and the cascades and not for the diode ladder (-8 to +4 dB on a
+sample), and the old Ladder turned out to have been measured wrongly: its sample of delay turns the
+loop positive at Nyquist, and with its corner pushed near the top by the envelope or key tracking it
+oscillated at 24 kHz at full scale. Inaudible, and in 15 presets the loudest thing in them: the
+library's measurement had turned them down for it, "Envelope Hollow" by sixteen decibels (its
+measured spectral centroid was 23.9 kHz). So every move but LP 12 to the SEM was rendered on both
+filters, 30 seconds at the preset's old level (1832 presets, `Tools/library/circuit_measured.json`),
+and each preset's master_gain corrected by what it measured, as far as its true peak allowed:
+Ladder to Moog median +0.7 dB (-19.4 .. +8.9), LP 24 to the circuits -0.7 (-7.3 .. 0), HP 12 and
+Notch to the SEM 0.0 (-0.4 .. +1.3). Against the library's own measurement, 96 moved presets
+rendered as it was made (60 s) came out at a median of -0.1 dB, 94 of them within 2 dB. The old
+Ladder's loop is held under a gain of 0.8 at Nyquist now (its corner stops near 9 kHz on the knob
+at the top of Resonance), and `testCircuitFilters` holds it there.
+
+What the move leaves stale: the map, the groups and the CLAP embeddings are the last measurement's,
+and for the fifteen Ladder presets that were a 24 kHz tone to it, their place on the map is that
+tone's. The next measurement of the library puts them right.
+
+The parallel filter route (`z_route`) delays its dry branch by the filter's latency, which the filter
+now reports as a number (`VoiceFilter::latency()`: 29.5 samples with Drive, 25 for a circuit model,
+0 otherwise). `testCircuitFilters` holds the ringing, the bounds when pushed (the cascades let a loud
+input through at up to 3.3 times its peak at full Drive and Resonance, as their saturating feedback
+gives the pass band back; Ephemeris tests 6.4), the SEM's notch (-61 dB on Cutoff at Morph 0.5) and
+the latency; `testFilterModels` holds the small-signal curves the display draws.
+
 ## Roadmap
 
 1. **Sound** — done since v0.2: spectral freeze (Nebula), head-shadow
