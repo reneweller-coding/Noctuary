@@ -13,8 +13,10 @@
  * scaleFrequency() is the one function the voices call: MIDI note in, hertz out, with the root key
  * sounding ratios[0] at its equal-tempered pitch and the keyboard either snapped to the nearest
  * degree (twelve keys an octave, for octave-periodic scales) or walked degree by degree.
- * intervalConsonance() ranks a ratio by the Tenney height of the nearest simple fraction within
- * ten cents; the cluster brain uses it to prefer the intervals a just scale makes consonant.
+ * intervalConsonance() ranks a ratio by its harmonic entropy, read from a table of one value per
+ * cent (HarmonicEntropy.inc, since 25.09.2026; before, the Tenney height of the nearest simple
+ * fraction within ten cents); the cluster brain uses it to prefer the intervals a just scale makes
+ * consonant.
  */
 #include "ambient/Tuning.h"
 #include "ambient/Params.h"
@@ -202,23 +204,26 @@ double scaleFrequency(const FixedScale& s, int midiNote, int rootNote, double re
     return rootFreq * std::pow(s.period, oct) * s.ratios[deg];
 }
 
+namespace {
+#include "HarmonicEntropy.inc"
+}
+
 double intervalConsonance(double ratio)
 {
-    if (!(ratio > 0.0)) return 0.0;
+    if (!(ratio > 0.0) || !(ratio < 1.0e30)) return 0.0;
     while (ratio >= 2.0) ratio *= 0.5;
     while (ratio < 1.0) ratio *= 2.0;
-    // Nearest simple ratio p/q with q <= 32 within 10 cents; rank by Tenney height.
-    double best = 1e9; long bp = 0;
-    for (long q = 1; q <= 32; ++q) {
-        const long p = static_cast<long>(std::lround(ratio * static_cast<double>(q)));
-        if (p < q) continue;
-        const double err = std::fabs(std::log2((static_cast<double>(p) / static_cast<double>(q)) / ratio)) * 1200.0;
-        if (err > 10.0) continue;
-        const double height = std::log2(static_cast<double>(p * q));
-        if (height < best) { best = height; bp = p; }
-    }
-    if (bp == 0) return 0.05;
-    return 1.0 / (1.0 + best);
+    // Harmonic entropy, cent by cent (25.09.2026; the table and how it was made are in
+    // Tools/make_harmonic_entropy.py). It used to be the Tenney height of the simplest ratio within
+    // ten cents, which is a step function: a tempered major third, fourteen cents from 5/4, fell
+    // from 0.19 to 0.11 and was judged as rough as a semitone, and a chord under Purity Drift
+    // jumped between neighbouring ratios. The entropy agrees with the old score at the just
+    // intervals within a few hundredths and moves smoothly in between.
+    const double cents = 1200.0 * std::log2(ratio);
+    const int i = static_cast<int>(cents);
+    if (i >= 1200) return kHarmonicEntropy[1200];
+    const double f = cents - static_cast<double>(i);
+    return static_cast<double>(kHarmonicEntropy[i]) + f * static_cast<double>(kHarmonicEntropy[i + 1] - kHarmonicEntropy[i]);
 }
 
 } // namespace ambient

@@ -49,8 +49,11 @@ TARGET_LO = -30.0
 # since the meter was built, K-weighted so a bass-heavy bed and a bright one are held to the same
 # heard level. The RMS window stays as the fallback and the tenth meta token stays RMS, which is
 # what the plugin's level match reads.
-LUFS_HI = -18.0
-LUFS_LO = -24.0
+LUFS_HI = -16.0
+LUFS_LO = -20.0
+# -20 .. -16 since the second round of the guide (25.09.2026): the guide's window for dark ambient.
+# The first round held -24 .. -18, the target this file's own comment had quoted; Rene chose the
+# guide's numbers.
 # The production guide's gates a gain cannot fix, reported rather than corrected: a crest (true
 # peak over short-term loudness) under 12 dB is a bed without transients, a mono loss over 3 dB a
 # stereo image that folds, a true peak over -1 dBTP a preset that clips a codec.
@@ -58,6 +61,19 @@ GUIDE_CREST_MIN = 12.0
 GUIDE_MONO_MAX = 3.0
 GUIDE_TRUEPEAK_MAX = -1.0
 GAIN_MIN, GAIN_MAX = -40.0, 12.0
+
+
+def sub_balance(m):
+    """The guide's sub balance (25.09.2026): the sub's octaves (31.5 and 63 Hz) over 250 and 500 Hz,
+    in dB of long-term power -- three to six is the window. None without a bands line."""
+    b = m.get("bands") if m else None
+    if not b or len(b) < 5:
+        return None
+    p = [10.0 ** (v / 10.0) for v in b]
+    sub, mid = p[0] + p[1], p[3] + p[4]
+    if mid <= 1e-30:
+        return None
+    return 10.0 * math.log10(max(sub, 1e-30) / mid)
 
 
 # Every field of a pack line, in order. Reading a short list and writing it back is how the
@@ -98,6 +114,9 @@ LOUDNESS = re.compile(r"^loudness: (.*)$", re.M)
 # is like; this says what it is, which is the difference between "dark and wide" and "a
 # goods yard" -- two presets can agree on every descriptor and share no material at all.
 TIMBRE = re.compile(r"^timbre:\s*(.*)$", re.M)
+# Ten octave bands, 31.5 Hz to 16 kHz, in dB (the renderer's --bands, 25.09.2026): the guide's sub
+# balance is read from them -- the sub (31.5 and 63 Hz) three to six decibels over 250 and 500 Hz.
+BANDS = re.compile(r"^bands:\s*(.*)$", re.M)
 
 
 # Renders run below normal priority. Five of them at full speed on a 24-thread machine still
@@ -148,6 +167,12 @@ def parse_measure(text):
                     d[k] = float(v)
                 except ValueError:
                     continue
+    b = BANDS.search(text or "")
+    if b:
+        try:
+            d["bands"] = [float(x) for x in b.group(1).split()]
+        except ValueError:
+            pass
     t = TIMBRE.search(text or "")
     if t:
         try:
@@ -170,7 +195,7 @@ def render_batch(names, packs, seconds, tapdir=None, skip=0.0):
         # --hour pins the arc clock: without it the 496 presets that follow the time of day
         # measure differently every run, and the map's axes wander with them.
         cmd = [RENDER, "--packs", packs, "--batch", listing, "--seconds", str(seconds),
-               "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure", "--loudness"]
+               "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure", "--loudness", "--bands"]
         if tapdir:
             cmd += ["--tap-dir", tapdir]
         if skip > 0.0:
@@ -198,7 +223,7 @@ def render(name, packs, seconds, tapdir=None):
     twenty-three gigabytes written and read for nothing, and every byte stayed in the file cache
     afterwards, which is what made the machine unusable."""
     cmd = [RENDER, "--packs", packs, "--preset", name, "--seconds", str(seconds),
-           "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure", "--loudness"]
+           "--notes", "45,52,59", "--set", "brain_rate=6", "--hour", "21", "--measure", "--loudness", "--bands"]
     if tapdir:
         # A twelve-second mono excerpt beside the numbers, for a learned embedding to listen to.
         safe = re.sub(r"[^A-Za-z0-9]+", "_", name)[:80]
@@ -310,8 +335,18 @@ def main():
                     help="presets per renderer process (one process for many; 1 = one each)")
     ap.add_argument("--resume", action="store_true",
                     help="skip presets the cache already holds (the cache is written as it goes)")
+    # A second correction pass (26.09.2026): with --resume the window is otherwise applied to every
+    # preset again, and one that sat under it after a capped lift would be lifted a second time.
+    ap.add_argument("--gain-only-rendered", action="store_true",
+                    help="correct the gain only of the presets this run rendered, not of those taken from the cache")
+    # And by name, for a pass that was cut off: the gain is written only at the end of a run, so the
+    # presets an interrupted pass had already measured sit in the cache without it -- and a rerun
+    # renders only the rest (26.09.2026, a pass C stopped from outside at 3317 of 5603).
+    ap.add_argument("--gain-names", default="",
+                    help="a file of preset names, one per line: correct the gain of these only")
     a = ap.parse_args()
     a.chunk = max(1, a.chunk)   # zero would be range(0, n, 0)
+    rendered = set()
 
     if a.taps:
         os.makedirs(a.taps, exist_ok=True)
@@ -360,6 +395,7 @@ def main():
         elif have:
             print("  no fingerprints beside the cache: trusting it by name, as before")
         todo = [r for r in rows if r["name"] not in have]
+        rendered = {r["name"] for r in todo}
         for r in rows:
             r["m"] = have.get(r["name"])
         if have:
@@ -411,9 +447,13 @@ def main():
                 for name, m in got.items():
                     if name in by_name:
                         by_name[name]["m"] = m
+                before = done
                 done += len(got)
                 el = time.time() - t0
-                if done % max(a.chunk, 1) == 0 or done >= len(todo):
+                # Whenever a multiple of the chunk is crossed, not landed on: one short chunk (a
+                # preset that did not render) put every later count off the multiples, and the
+                # progress went silent for the rest of the run (26.09.2026).
+                if done // max(a.chunk, 1) != before // max(a.chunk, 1) or done >= len(todo):
                     print(f"  {done}/{len(todo)}  {el/60:.0f} min, noch etwa {el/max(done,1)*(len(todo)-done)/60:.0f} min", flush=True)
                 flush()
         flush()
@@ -434,14 +474,32 @@ def main():
     moved = 0
     def has_lufs(r):
         return r["m"].get("lufs_i", -200.0) > -100.0
+    gain_names = None
+    if a.gain_names:
+        with open(a.gain_names, encoding="utf-8") as fh:
+            gain_names = {ln.strip() for ln in fh if ln.strip()}
     for r in [] if a.no_gain else good:
+        if a.gain_only_rendered and r["name"] not in rendered:
+            continue
+        if gain_names is not None and r["name"] not in gain_names:
+            continue
         delta = 0.0
         if has_lufs(r):
             lufs = r["m"]["lufs_i"]
             if lufs > LUFS_HI:
                 delta = LUFS_HI - lufs
             elif lufs < LUFS_LO:
-                delta = min(LUFS_LO - lufs, 6.0)       # never shout a quiet preset awake
+                # Never shout a quiet preset awake -- but a lift of twelve decibels, not six, since
+                # 26.09.2026: the guide's engine (the horizon twenty decibels down, the halls fed no
+                # fundamentals, the sub an octave lower) took the whole library down by about eight,
+                # median -28.1 LUFS measured, and at six the window stayed out of reach for most of
+                # it. The true peak below still has the last word.
+                delta = min(LUFS_LO - lufs, 12.0)
+            # And never past the guide's true peak (25.09.2026): a lift stops at -1 dBTP, and a
+            # preset already over it comes down to it, whatever that leaves of the window.
+            tp = r["m"].get("truepeak", -120.0)
+            if tp > -100.0 and tp + delta > GUIDE_TRUEPEAK_MAX:
+                delta = GUIDE_TRUEPEAK_MAX - tp
         else:
             rms = r["m"]["rms_db"]
             if rms > TARGET_HI:
@@ -461,15 +519,22 @@ def main():
         print(f"LUFS before: median {np.median(lv):.1f}, {int((lv > LUFS_HI).sum())} above {LUFS_HI:.0f}, "
               f"{int((lv < LUFS_LO).sum())} below {LUFS_LO:.0f} (window {LUFS_LO:.0f} .. {LUFS_HI:.0f} LUFS)")
         # The guide's gates a gain does not fix: listed, counted, written beside the cache.
-        report = {"crest_under_12": [], "mono_loss_over_3": [], "true_peak_over_-1": []}
+        report = {"crest_under_12": [], "mono_loss_over_3": [], "true_peak_over_-1": [],
+                  "correlation_outside_0.3_0.7": [], "lra_under_8": [], "sub_balance_outside_3_6": []}
         for r in withl:
             m = r["m"]; g = r.get("gain_delta", 0.0)
             if m.get("crest", 99.0) < GUIDE_CREST_MIN: report["crest_under_12"].append([r["name"], round(m["crest"], 1)])
             if m.get("monoloss", 0.0) > GUIDE_MONO_MAX: report["mono_loss_over_3"].append([r["name"], round(m["monoloss"], 2)])
             if m.get("truepeak", -99.0) + g > GUIDE_TRUEPEAK_MAX: report["true_peak_over_-1"].append([r["name"], round(m["truepeak"] + g, 1)])
+            if "corr" in m and not (0.3 <= m["corr"] <= 0.7): report["correlation_outside_0.3_0.7"].append([r["name"], round(m["corr"], 2)])
+            if "lra" in m and m["lra"] < 8.0: report["lra_under_8"].append([r["name"], round(m["lra"], 1)])
+            sb = sub_balance(m)
+            if sb is not None and not (3.0 <= sb <= 6.0): report["sub_balance_outside_3_6"].append([r["name"], round(sb, 1)])
         print("guide gates: crest < %.0f dB: %d, mono loss > %.0f dB: %d, true peak > %.0f dBTP: %d (of %d measured)"
               % (GUIDE_CREST_MIN, len(report["crest_under_12"]), GUIDE_MONO_MAX, len(report["mono_loss_over_3"]),
                  GUIDE_TRUEPEAK_MAX, len(report["true_peak_over_-1"]), len(withl)))
+        print("guide targets: correlation outside 0.3 .. 0.7: %d, loudness range under 8 LU: %d, sub balance outside 3 .. 6 dB: %d"
+              % (len(report["correlation_outside_0.3_0.7"]), len(report["lra_under_8"]), len(report["sub_balance_outside_3_6"])))
         if a.cache:
             path = os.path.join(os.path.dirname(os.path.abspath(a.cache)), "guide-report.json")
             with open(path, "w", encoding="utf-8") as f:
@@ -506,9 +571,16 @@ def main():
     # it. Without this a second --resume run calls every corrected preset stale and renders the
     # whole library again for nothing.
     if a.cache and not a.from_cache:
+        # Every level the correction moved, not the RMS alone: with only rms_db following the gain, a
+        # --resume run read the LUFS of before the correction and applied it a second time (25.09.2026).
+        def moved(m, g):
+            out = dict(m, rms_db=m["rms_db"] + g)
+            for k in ("lufs_i", "lufs_s", "lufs_m", "truepeak"):
+                if k in out and out[k] > -100.0:
+                    out[k] = out[k] + g
+            return out
         with open(a.cache, "w", encoding="utf-8") as fh:
-            json.dump({r["name"]: dict(r["m"], rms_db=r["m"]["rms_db"] + r.get("gain_delta", 0.0))
-                       for r in rows if r["m"]}, fh)
+            json.dump({r["name"]: moved(r["m"], r.get("gain_delta", 0.0)) for r in rows if r["m"]}, fh)
         with open(a.cache + ".fp", "w", encoding="utf-8") as fh:
             json.dump({r["name"]: _fingerprint(r, f"sec={a.seconds}|notes=45,52,59|hour=21|rate=6|loud=1")
                        for r in rows if r["m"]}, fh)

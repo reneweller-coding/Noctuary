@@ -1411,6 +1411,28 @@ private:
     std::vector<float> coupleBuf_;      ///< the previous block's foreground, for the sympathetic coupling
     float        sympathy_ = 0.0f;      ///< how much of the foreground the voices hear of each other
     Unmask       unmask_;               ///< the background giving way to the foreground band by band
+    /// The same for the convolution room's return (25.09.2026): the production guide ducks the
+    /// main room under the near bus as well as the far hall, on the one Unmask knob.
+    Unmask       roomUnmask_;
+    /**
+     * @name The guide's second round (25.09.2026)
+     * The serial rooms, the far return's mid high-pass, the Foundation's ceiling, and the two
+     * saturations of the master path that run at four times the rate.
+     * @{ */
+    float        roomToFar_ = 0.15f;    ///< To Far: the room's return into the far hall, 0 .. 0.5
+    Smoother     smRoomToFar_;          ///< per-sample smoothing of roomToFar_
+    float        farMidLowcut_ = 300.0f;   ///< Mid Low Cut, Hz; at or below 21 it is off
+    Svf          farMidHp_;             ///< the far return's mid high-pass, second order
+    float        subCeiling_ = -6.0f;   ///< Ceiling, dBFS at the output
+    float        subPeak_ = 0.0f,       ///< the sub's peak envelope, instant up and half a second down
+                 subLimGain_ = 1.0f;    ///< the limiter's gain on the sub, smoothed
+    Oversampler4 airOsL_,   ///< @brief the air saturation ahead of the far hall, oversampled, left
+                 airOsR_,   ///< and right
+                 fbOsL_,    ///< @brief the feedback loop's saturation, oversampled, left
+                 fbOsR_;    ///< and right
+    bool         airOsOn_ = false,      ///< the air saturation ran in the last block
+                 fbOsOn_ = false;       ///< the feedback loop ran in the last block
+    /** @} */
     HaasBand     haas_;                 ///< the Haas widening of the foreground
     EarlyRoom    early_;                ///< the room's early reflections, on the near bus
     Body         body_;                 ///< the resonant body the whole mix passes through

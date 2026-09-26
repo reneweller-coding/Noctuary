@@ -483,6 +483,18 @@ private:
     Envelope env_;                    ///< the amplitude envelope
     VoiceFilter filt_;                ///< the voice filter (one of the models in Filter.h)
     bool     lastFilterOn_ = true;    ///< filterOn as of the last block, to reset the filter when it is switched back in
+    /// The wavefolder at four times the rate (25.09.2026). A fold turns a sine into a whole family
+    /// of upper partials, which is its point -- and at the base rate most of them came back down
+    /// as aliases. One oversampler per ear, cleared when the fold comes back on.
+    Oversampler4 foldOsL_,   ///< @brief the left ear's folder, oversampled
+                 foldOsR_;   ///< the right ear's
+    bool     folding_ = false;        ///< the fold was on at the last sample
+    /// The dry sum a Parallel z-plane hears, delayed by the drive's oversampling (29.5 samples, as
+    /// the mean of 29 and 30) so the two branches meet in time; without it they combed.
+    static constexpr int kDryRing = 32;   ///< the ring's length, a power of two over the latency
+    float    dryRingL_[kDryRing] = {},   ///< @brief the dry sum, left
+             dryRingR_[kDryRing] = {};   ///< the dry sum, right
+    int      dryW_ = 0;               ///< the ring's write position
     /// Binaural phase field: two first-order all-passes per ear, corners drifting apart
     Drifter  phaseDrift_;             ///< the one slow curve both ears' corners follow, in opposite directions
     bool     phaseOn_ = false;        ///< phaseWidth > 0 this block

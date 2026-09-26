@@ -236,14 +236,31 @@ python Tools/preset_check.py --packs Library/Packs --sample 300 --jobs 6
 `preset_check.py` renders presets and fails the ones that are too loud, clip, click, carry DC or come
 out silent -- and, since 25.09.2026, the production guide's gates: a mono loss over 3 dB, a crest (true
 peak over short-term loudness) under 12 dB, a true peak over -1 dBTP. `measure_packs.py` holds every
-preset to -24 .. -18 LUFS integrated over its minute (it used to be an unweighted RMS window) and
-writes `guide-report.json` beside its cache with the presets that fail a gate a gain cannot fix.
+preset to -20 .. -16 LUFS integrated over its minute -- the guide's window for dark ambient since
+26.09.2026 (the first round held -24 .. -18; before that it was an unweighted RMS window) -- never
+lifts a preset past -1 dBTP, measures ten octave bands as well (`--bands`), and writes
+`guide-report.json` beside its cache with the presets outside a gate or a target: crest, mono loss,
+true peak, the correlation (0.3 .. 0.7), the loudness range (8 LU and more) and the sub balance
+(the sub three to six decibels over 250 and 500 Hz).
 
 `Tools/library/guide.py` is the table of the production guide's windows for a preset's parameters
-(the plane, the rooms, the low end, clarity, the grains, the LFOs' sync), applied to every preset
-`make_presets.py` generates; `Tools/library/retrofit_guide.py` runs the same table over the packs
-and the built-ins that existed before it. It has run over all 14591; after any change of this kind
-the library is re-measured, because the loudness of every preset moves with it.
+(the plane, the rooms, the low end, clarity, the grains, the LFOs' sync, the duck), applied to every
+preset `make_presets.py` generates; `Tools/library/retrofit_guide.py` runs the same table over the
+packs and the built-ins that existed before it. `Tools/library/review.py` is its twin for the
+conductor -- the ranges the review against ambient harmony asked for (adaptive intonation where the
+root moves, the deep family's background register, Root Targets, Utonal, Series, Arc Harmony),
+family by family -- with `retrofit_review.py` beside it. Both have run over all 14591; after any
+change of this kind the library is re-measured, because the loudness of every preset moves with it.
+
+The guide's two targets that are no parameter, the sub balance and the correlation, are pulled
+towards from a measurement by `guide_fit.py` (Sub Level, the master's Width; sixty per cent of the
+way, jittered by the name). A round is measured in two passes so that every preset gets its gain
+once: `measure_packs.py --no-gain`, `guide_fit.py --write`, `measure_packs.py --resume`. The
+built-ins go through the same passes as a pack: `builtin_pack.py export` writes the rows of
+`Core/src/Presets.cpp` out under their own names and `builtin_pack.py import` writes back the gain,
+Sub Level and Width the measurement moved. Do NOT run `rebuild_all.py` from step 5 for this: it
+compiles the built-ins from the staging packs make_library.py wrote on 13.09.2026, and every change
+made to `Presets.cpp` since would be lost.
 
 ## Fitting new features into old presets
 

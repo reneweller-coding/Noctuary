@@ -30,6 +30,12 @@ hours long, and two at once is how a workstation stops responding (--anyway over
 file. Steps are skipped when their output is already there, so an interrupted run continues where
 it stopped; --force redoes them anyway.
 
+A run that starts at step 4 or later compiles the built-ins from <work>/builtin_packs as step 1 last
+wrote them. Since 25.09.2026 Core/src/Presets.cpp has been changed in place (the production guide's
+retrofit, the harmony review's ranges, the measured gains of round two), so a staging folder older
+than that would undo all of it: re-measure the built-ins through builtin_pack.py instead (export, the
+two passes of measure_packs.py, import), as Library/README.md describes.
+
 A few presets again -- after an engine fix, a hand edit -- is NOT a --from balance run of this: the
 balance's --resume would take the whole library (its fingerprint covers the line the measurement
 rewrote) and the measurement's loudness window would lift every preset still under it once more.

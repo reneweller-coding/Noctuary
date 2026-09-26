@@ -310,7 +310,7 @@ void NoctuaryEditor::TuningView::paint(juce::Graphics& g)
     // The words: the key the conductor has found, the comma's offset, the tide.
     const ambient::KeyEstimate key = proc.engine().brainKey();
     juce::String txt = key.key >= 0 && key.confidence > 0.0f
-        ? "key " + juce::MidiMessage::getMidiNoteName(key.tonic(), true, false, 0) + (key.minor() ? " minor" : " major") + "  r " + juce::String(key.confidence, 2)
+        ? "key " + juce::MidiMessage::getMidiNoteName(key.tonic(), true, false, 0) + (key.modal ? juce::String(" (scale)") : juce::String(key.minor() ? " minor" : " major")) + "  r " + juce::String(key.confidence, 2)
         : juce::String("no key yet");
     if (rawParam(proc, "purity_adapt") > 0.0f) txt += "   comma " + juce::String(proc.engine().commaCents(), 1) + " ct";
     if (rawParam(proc, "tide") > 0.0f) txt += "   tide " + juce::String(proc.engine().tideNow(), 1) + " ct";
@@ -1273,11 +1273,14 @@ void NoctuaryEditor::LoudnessView::paint(juce::Graphics& g)
                             + "   LRA " + juce::String(ld.range, 1)
                             + "   TP " + num(ld.truePeak)
                             + "   crest " + juce::String(ld.crest, 1)
+                            + "   corr " + juce::String(ld.correlation, 2)
                             + "   " + juce::String(ld.sones, 1) + " sone";
     // Red when the true peak is over the -1 dBTP a lossy codec needs as headroom, amber when the
-    // crest factor has fallen under the 14 dB that says the dynamics are still there.
+    // crest factor has fallen under the 14 dB that says the dynamics are still there, or when the
+    // two channels have turned against each other (a correlation under zero folds away in mono;
+    // the production guide wants the master between 0.3 and 0.7, and under zero only for a moment).
     const bool tpHot = ld.truePeak > -1.0f;
-    g.setColour(tpHot ? juce::Colour(0xffe06060)
-                      : (ld.crest > 0.0f && ld.crest < 14.0f ? juce::Colour(0xffe0a060) : ui::dim));
+    const bool warn = (ld.crest > 0.0f && ld.crest < 14.0f) || (ld.seconds > 3.0f && ld.correlation < 0.0f);
+    g.setColour(tpHot ? juce::Colour(0xffe06060) : (warn ? juce::Colour(0xffe0a060) : ui::dim));
     g.drawText(text, plot.withTrimmedLeft(plot.getWidth() * 0.44f), juce::Justification::centredLeft, false);
 }

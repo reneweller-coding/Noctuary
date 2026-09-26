@@ -1246,10 +1246,12 @@ static int runOnce(int argc, char** argv)
         // Sones as well as LUFS. The two disagree whenever the spectrum changes, which for an
         // instrument that makes beds rather than tracks is most of the time, and the sone figure
         // is the one that says whether a preset will feel loud after an hour of it.
+        // And the correlation of the two channels over the whole render (25.09.2026): the production
+        // guide wants the master's mean between 0.3 and 0.7.
         std::printf("loudness: lufs_i=%.2f lufs_s=%.2f lufs_m=%.2f lra=%.2f truepeak=%.2f crest=%.2f"
-                    " sone=%.2f sone_n5=%.2f sone_max=%.2f seconds=%.1f\n",
+                    " sone=%.2f sone_n5=%.2f sone_max=%.2f seconds=%.1f corr=%.3f\n",
                     ld.integrated, ld.shortTerm, ld.momentary, ld.range, ld.truePeak, ld.crest,
-                    ld.sones, ld.sonesN5, ld.sonesMax, ld.seconds);
+                    ld.sones, ld.sonesN5, ld.sonesMax, ld.seconds, ld.correlationMean);
     }
     if (!tapPath.empty()) {
         // The last twelve seconds, mono, decimated to about 22 kHz by averaging -- a plain box

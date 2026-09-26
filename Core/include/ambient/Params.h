@@ -359,6 +359,21 @@ enum class ParamId : int {
     /// a hertz above the first, in both ears alike, so the level breathes over two to ten seconds
     /// -- the slow swell of a Lustmord sub, which the Binaural offset between the ears is not.
     SubHarmonics, SubBeat,   ///< the sub's 2nd and 3rd harmonics (0 .. 1); a second sine this many Hz above the sub, beating in mono
+    /// The rest of the production guide's rooms and low end (25.09.2026, the second round). To Far
+    /// sends the convolution room's return into the far hall, the guide's serial rooms: the main
+    /// room's output feeds the room behind it, so the horizon sounds like the same place going on
+    /// rather than a second, foreign one. Mid Low Cut high-passes the middle of the far hall's
+    /// return and leaves its sides, so the centre stays free for the near plane. Ceiling is the
+    /// Foundation's own limiter, in dBFS at the output: a beating sub swings its peaks by up to
+    /// six decibels, and without a limiter of its own it pushed the whole mix into the clipper.
+    RoomToFar, FarMidLowcut, SubCeiling,   ///< the room's return into the far hall (0 .. 0.5); the far return's mid high-pass (Hz, 20 = off); the sub's ceiling (dBFS)
+    /// The review of the conductor against ambient harmony (25.09.2026). Root Targets: which
+    /// intervals the root's next step aims at, and how often (kRootTargetNames) -- the six the
+    /// conductor always drew alike, or the modal weighting with the whole tone the genre moves by.
+    /// Utonal: Harmonic also hears undertone sets, so a dark family can listen for rootedness
+    /// without being pulled into major. Series: the Harmonic Cloud, candidates drawn to the
+    /// harmonics of the root's fundamental rather than to the scale's degrees alone.
+    BrainRootTargets, BrainUtonal, BrainSeries,   ///< root targets (kRootTargetNames); utonal (0 .. 1); series (0 .. 1)
     Count   ///< one past the last: kNumParams
 };
 
@@ -366,6 +381,7 @@ extern const char* const kNearKindNames[3];     ///< "Note", "Phrase", "Sequence
 extern const char* const kNearPitchNames[5];    ///< "Consonant", "Highest", "Lowest", "Root", "Cluster"
 
 extern const char* const kRootStepNames[4];     ///< "Any", "Fifths", "Diatonic", "Falling"
+extern const char* const kRootTargetNames[4];   ///< "Classic", "Modal", "Mediant", "Phrygian": the weightings of BrainParams::rootTargets
 extern const char* const kShimmerModeNames[2];  ///< "Spectral" (phase-locked peak shifting), "Grain" (the two-head shifter)
 extern const char* const kCloudShiftNames[7];   ///< "Off", "+12", "+7", "+5", "-5", "-7", "-12"
 extern const float kCloudShiftSemitones[7];     ///< the semitones behind kCloudShiftNames: 0, 12, 7, 5, -5, -7, -12

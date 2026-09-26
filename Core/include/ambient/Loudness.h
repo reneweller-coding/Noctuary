@@ -21,6 +21,7 @@
  * (LoudnessLog), so nothing here allocates after prepare().
  */
 #pragma once
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <vector>
@@ -57,6 +58,12 @@ struct LoudnessReading {
     float truePeak   = -120.0f;   ///< dBTP, 4x oversampled, since the last reset
     float crest      = 0.0f;      ///< dB: true peak over the short-term loudness
     float seconds    = 0.0f;      ///< how long it has been measuring
+    /// The correlation of left and right (25.09.2026, the production guide's correlation meter):
+    /// +1 mono, 0 two unrelated signals, -1 one channel the other upside down. The guide wants the
+    /// master's mean between 0.3 and 0.7 -- under it the image falls apart in mono, over it there
+    /// is no width left.
+    float correlation     = 0.0f;   ///< over the last 3 s, -1 .. 1; 0 while there is nothing to measure
+    float correlationMean = 0.0f;   ///< since the last reset, energy-weighted, -1 .. 1
 };
 
 /**
@@ -360,6 +367,21 @@ private:
      *  @brief the left channel's K-weighted squares summed over the current hop */
     double hopL_ = 0.0, hopR_ = 0.0;   ///< hopR_: the right channel's
     long   hopSamples_ = 0;   ///< samples summed into the current hop
+    /**
+     * @name The correlation meter (25.09.2026)
+     * Unweighted sums of L x R, L x L and R x R: per hop, in a ring of the last three seconds, and
+     * since the reset.
+     * @{ */
+    double hopLR_ = 0.0,   ///< L x R summed over the current hop
+           hopLL_ = 0.0,   ///< L x L summed over the current hop
+           hopRR_ = 0.0;   ///< R x R summed over the current hop
+    std::array<double, kHopsPerShort> corrLR_{},   ///< @brief the ring of per-hop L x R sums
+                           corrLL_{},   ///< the ring of per-hop L x L sums
+                           corrRR_{};   ///< the ring of per-hop R x R sums
+    double totLR_ = 0.0,   ///< L x R since the reset
+           totLL_ = 0.0,   ///< L x L since the reset
+           totRR_ = 0.0;   ///< R x R since the reset
+    /** @} */
     /**
      * @brief Gating needs every block's loudness, not a running mean: the relative gate is a threshold
      *        computed from all of them and then applied to all of them.

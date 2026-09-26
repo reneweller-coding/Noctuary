@@ -331,6 +331,31 @@
    "key": "strand_low_detune",
    "unit": "",
    "section": "Source 1 (neu)"
+  },
+  {
+   "key": "purity_adapt",
+   "unit": "",
+   "section": "Tuning (Review 25.09.2026)"
+  },
+  {
+   "key": "brain_root_targets",
+   "unit": "",
+   "section": "Brain (Review 25.09.2026)"
+  },
+  {
+   "key": "brain_utonal",
+   "unit": "",
+   "section": "Brain (Review 25.09.2026)"
+  },
+  {
+   "key": "brain_series",
+   "unit": "",
+   "section": "Brain (Review 25.09.2026)"
+  },
+  {
+   "key": "arc_harmony",
+   "unit": "",
+   "section": "Space (Review 25.09.2026)"
   }
  ],
  "families": {
@@ -676,6 +701,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -857,13 +906,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -1020,6 +1069,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -1363,6 +1436,30 @@
      "type": "uniform",
      "min": 0.5,
      "max": 0.8
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Phrygian"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.7
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -1701,6 +1798,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -2039,6 +2160,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -2376,6 +2521,30 @@
      "max": 0.5
     },
     "strand_low_detune": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Mediant"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "arc_harmony": {
      "type": "uniform",
      "min": 0.3,
      "max": 0.5
@@ -2728,6 +2897,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   }
@@ -3080,6 +3273,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -3436,6 +3653,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -3789,6 +4030,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -4143,6 +4408,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -4490,6 +4779,30 @@
      "max": 0.5
     },
     "strand_low_detune": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Mediant"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "arc_harmony": {
      "type": "uniform",
      "min": 0.3,
      "max": 0.5
@@ -4846,6 +5159,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -5190,6 +5527,30 @@
      "type": "uniform",
      "min": 0.5,
      "max": 0.8
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Phrygian"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.7
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -5548,6 +5909,30 @@
      "type": "uniform",
      "min": 0.5,
      "max": 0.8
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Phrygian"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.7
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -5899,6 +6284,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -6262,6 +6671,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -6453,13 +6886,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
-     "max": 19
+     "min": 20,
+     "max": 22
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -6613,6 +7046,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -6801,13 +7258,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -6962,6 +7419,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -7312,6 +7793,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -7658,6 +8163,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -8006,6 +8535,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -8353,6 +8906,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -8705,6 +9282,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -9053,6 +9654,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -9405,6 +10030,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -9752,6 +10401,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -10099,6 +10772,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -10446,6 +11143,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -10790,6 +11511,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.6
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.15
     }
    }
   },
@@ -11138,6 +11883,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -11493,6 +12262,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -11683,13 +12476,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -11845,6 +12638,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -12201,6 +13018,30 @@
      "type": "uniform",
      "min": 0.5,
      "max": 0.8
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Phrygian"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.7
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -12556,6 +13397,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -12917,6 +13782,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -13279,6 +14168,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -13637,6 +14550,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -13827,13 +14764,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -13989,6 +14926,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -14183,13 +15144,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -14345,6 +15306,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -14690,6 +15675,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -14883,13 +15892,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -15044,6 +16053,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -15392,6 +16425,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -15745,6 +16802,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -16099,6 +17180,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -16288,13 +17393,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -16450,6 +17555,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -16641,13 +17770,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -16802,6 +17931,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -16996,13 +18149,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -17157,6 +18310,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -17350,13 +18527,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -17512,6 +18689,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -17872,6 +19073,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -18221,6 +19446,30 @@
      "max": 0.8
     },
     "strand_low_detune": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Mediant"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "arc_harmony": {
      "type": "uniform",
      "min": 0.3,
      "max": 0.5
@@ -18582,6 +19831,30 @@
      "type": "uniform",
      "min": 0.3,
      "max": 0.5
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Mediant"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -18778,13 +20051,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -18940,6 +20213,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -19131,13 +20428,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
+     "min": 20,
      "max": 24
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -19293,6 +20590,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   },
@@ -19665,6 +20986,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -20024,6 +21369,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.5
     }
    }
   },
@@ -20383,6 +21752,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -20740,6 +22133,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -21103,6 +22520,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -21462,6 +22903,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -21816,6 +23281,30 @@
      "type": "uniform",
      "min": 0.4,
      "max": 0.7
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.5
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.2,
+     "max": 0.4
     }
    }
   },
@@ -22177,6 +23666,30 @@
      "type": "uniform",
      "min": 0.6,
      "max": 0.9
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.3,
+     "max": 0.6
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.2
     }
    }
   },
@@ -22370,13 +23883,13 @@
     },
     "brain2_low": {
      "type": "uniform",
-     "min": 12,
-     "max": 19
+     "min": 20,
+     "max": 22
     },
     "brain2_high": {
      "type": "uniform",
      "min": 36,
-     "max": 48
+     "max": 40
     },
     "scale": {
      "type": "choice",
@@ -22532,6 +24045,30 @@
      "type": "uniform",
      "min": 0.7,
      "max": 1
+    },
+    "purity_adapt": {
+     "type": "uniform",
+     "min": 0.4,
+     "max": 0.8
+    },
+    "brain_root_targets": {
+     "type": "fixed",
+     "value": "Modal"
+    },
+    "brain_utonal": {
+     "type": "uniform",
+     "min": 0.6,
+     "max": 0.9
+    },
+    "brain_series": {
+     "type": "uniform",
+     "min": 0.0,
+     "max": 0.1
+    },
+    "arc_harmony": {
+     "type": "uniform",
+     "min": 0.1,
+     "max": 0.3
     }
    }
   }

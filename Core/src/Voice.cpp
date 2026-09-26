@@ -150,6 +150,10 @@ void Voice::prepare(double sampleRate, uint64_t seed)
     for (int k = 3; k < kSlots; ++k) slots_[k].prepare(sr_, seed ^ (0xC2B2AE3D27D4EB4Full + static_cast<uint64_t>(k)));
     filt_.prepare(sr_);
     airL_.reset();  airR_.reset();
+    foldOsL_.reset(); foldOsR_.reset(); folding_ = false;
+    std::memset(dryRingL_, 0, sizeof(dryRingL_));
+    std::memset(dryRingR_, 0, sizeof(dryRingR_));
+    dryW_ = 0;
     std::memset(itdBufL_, 0, sizeof(itdBufL_));
     std::memset(itdBufR_, 0, sizeof(itdBufR_));
     itdW_ = 0;
@@ -235,6 +239,9 @@ void Voice::noteOn(int note, double freqHz, float velocity, int owner, float dis
         }
         filt_.reset();
         airL_.reset();  airR_.reset();
+        foldOsL_.reset(); foldOsR_.reset(); folding_ = false;
+        std::memset(dryRingL_, 0, sizeof(dryRingL_));
+        std::memset(dryRingR_, 0, sizeof(dryRingR_));
         std::memset(itdBufL_, 0, sizeof(itdBufL_));
         std::memset(itdBufR_, 0, sizeof(itdBufR_));
         std::fill(farDlyL_.begin(), farDlyL_.end(), 0.0f);
@@ -945,9 +952,20 @@ void Voice::render(float* nearL, float* nearR, float* farL, float* farR, int n, 
                 accR += sum * s.gainR;
             }
             float outL, outR;
+            // The dry sum as a Parallel z-plane hears it: in step with the filter branch, whose drive
+            // runs oversampled and so 29.5 samples late while it is on.
+            dryRingL_[dryW_] = accL; dryRingR_[dryW_] = accR;
+            dryW_ = (dryW_ + 1) & (kDryRing - 1);
             if (fOn && zOn) {
                 filt_.tick(accL, accR, outL, outR);
-                float zl = parallel ? accL : outL, zr = parallel ? accR : outR;
+                float zl = outL, zr = outR;
+                if (parallel) {
+                    if (filt_.driving()) {
+                        const int a = (dryW_ - 30) & (kDryRing - 1), b = (dryW_ - 31) & (kDryRing - 1);
+                        zl = 0.5f * (dryRingL_[a] + dryRingL_[b]);
+                        zr = 0.5f * (dryRingR_[a] + dryRingR_[b]);
+                    } else { zl = accL; zr = accR; }
+                }
                 zRun(zl, zr);
                 outL = outL * zDry_ + zl * zNorm_ * zWet_;
                 outR = outR * zDry_ + zr * zNorm_ * zWet_;
@@ -962,9 +980,13 @@ void Voice::render(float* nearL, float* nearR, float* farL, float* farR, int n, 
                 outL = accL; outR = accR;
             }
             if (foldAmt > 0.0f) {
-                outL = wavefold(outL, foldAmt);
-                outR = wavefold(outR, foldAmt);
-            }
+                // At four times the rate (25.09.2026): what the fold makes above Nyquist is filtered
+                // away instead of folding back down as tones in no relation to the note.
+                if (!folding_) { foldOsL_.reset(); foldOsR_.reset(); folding_ = true; }
+                auto fold = [foldAmt](float v) { return wavefold(v, foldAmt); };
+                outL = foldOsL_.process(outL, fold);
+                outR = foldOsR_.process(outR, fold);
+            } else folding_ = false;
             if (air) {
                 float lp, bp, hp;
                 airL_.tick(rng_.bipolar(), lp, bp, hp); outL += airGain_ * bp;

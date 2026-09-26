@@ -2963,7 +2963,7 @@ void NoctuaryEditor::paint(juce::Graphics& g)
     {   // what the conductor has found itself in, when it has found anything
         const ambient::KeyEstimate key = proc_.engine().brainKey();
         if (key.key >= 0 && key.confidence > 0.0f)
-            keyText = "   key " + juce::MidiMessage::getMidiNoteName(key.tonic(), true, false, 0) + (key.minor() ? " minor" : " major") + " r " + juce::String(key.confidence, 2);
+            keyText = "   key " + juce::MidiMessage::getMidiNoteName(key.tonic(), true, false, 0) + (key.modal ? juce::String(" (scale)") : juce::String(key.minor() ? " minor" : " major")) + " r " + juce::String(key.confidence, 2);
     }
     juce::String info = juce::String(voices) + " voice" + (voices == 1 ? "" : "s")
         + "   root " + juce::MidiMessage::getMidiNoteName(root, true, true, 4)

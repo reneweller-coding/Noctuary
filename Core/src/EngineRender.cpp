@@ -577,6 +577,51 @@ void Engine::renderChunk(float* L, float* R, int n)
         }
         roomTailLeft_ = roomLevel_ > 0.0005f ? room_.tailSamples() : std::max(0L, roomTailLeft_ - n);
     }
+    // The room's answer is made here, ahead of the far hall, rather than after it (25.09.2026): the
+    // production guide's rooms are serial -- the main room's output feeds the far room at ten to
+    // twenty per cent, so the horizon sounds like the same place going on and not like a second,
+    // foreign one (Lustmord's "endless" rooms). Its input was taken above either way, so moving the
+    // convolution up changes nothing about what the room itself hears. The return goes into the mix
+    // further down, ducked under the near bus like the far hall.
+    float* ol = roomOutL_.data(); float* orr = roomOutR_.data();
+    if (roomOn) {
+        // Morph: the second impulse is blended into the first inside the convolution, which is the
+        // same as fading from one room's answer to the other's and costs one room. The smoother
+        // moves a block at a time; each stage of the convolver takes its value as its blocks begin.
+        smRoomMorph_.value = roomMorph_ + (smRoomMorph_.value - roomMorph_) * std::pow(1.0f - smRoomMorph_.coef, static_cast<float>(n));
+        if (std::fabs(smRoomMorph_.value - roomMorph_) < 1.0e-4f) smRoomMorph_.value = roomMorph_;
+        room_.setMorph(smRoomMorph_.value);
+        room_.process(rl, rr, ol, orr, n);
+        const float lpc = 1.0f - std::exp(-kTwoPi * roomHighcut_ / static_cast<float>(sr_));
+        const float rhpc = roomLowcut_ <= 21.0f ? 0.0f
+                         : 1.0f - std::exp(-kTwoPi * (roomLowcut_ / 1.5538f) / static_cast<float>(sr_));
+        const float levelC = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(sr_)));
+        // An energy-normalised impulse returns the far sends at their own power, which is far
+        // louder than the FDN's output at Far Level 1; 0.35 puts Room Level 1 in the same league
+        // (measured: -15.8 dBFS raw vs. -23 dBFS for the FDN on the default patch).
+        const float roomGain = 0.35f;
+        for (int i = 0; i < n; ++i) {
+            roomLevelCur_ += (roomLevel_ - roomLevelCur_) * levelC;
+            roomLpL_ += lpc * (ol[i] - roomLpL_);
+            roomLpR_ += lpc * (orr[i] - roomLpR_);
+            float tL = roomLpL_, tR = roomLpR_;
+            if (rhpc > 0.0f) {   // the low end out of the room, 12 dB/oct
+                roomHpL1_ += rhpc * (tL - roomHpL1_);  const float aL = tL - roomHpL1_;
+                roomHpR1_ += rhpc * (tR - roomHpR1_);  const float aR = tR - roomHpR1_;
+                roomHpL2_ += rhpc * (aL - roomHpL2_);  tL = aL - roomHpL2_;
+                roomHpR2_ += rhpc * (aR - roomHpR2_);  tR = aR - roomHpR2_;
+            }
+            ol[i] = tL * roomLevelCur_ * roomGain;
+            orr[i] = tR * roomLevelCur_ * roomGain;
+            // To Far: the room's return, before it is ducked, into the far hall's input.
+            const float tf = smRoomToFar_.next(roomToFar_);
+            fl[i] += ol[i] * tf;
+            fr[i] += orr[i] * tf;
+        }
+    } else {
+        roomLpL_ = roomLpR_ = 0.0f;
+        smRoomToFar_.snap(roomToFar_);
+    }
     diffuser_.process(fl, fr, n);
     {
         // Air saturates. A real room is not linear at a peak -- the medium itself gives a little,
@@ -584,18 +629,24 @@ void Engine::renderChunk(float* L, float* R, int n)
         // is a very gentle asymmetric shaper between the diffuser and the reverb's own feedback
         // network, so only the peaks are touched and the tail is what changes character, not the
         // level. Amount rides on Diffuse, which is already the "how much room" control, so there
-        // is no new knob for a thing nobody would know how to set.
+        // is no new knob for a thing nobody would know how to set. At four times the rate since
+        // 25.09.2026 (the guide's "4x on everything nonlinear"); the far send is only ever heard
+        // through the hall, so the 0.6 ms the oversampling takes is a pre-delay nobody measures.
         const float amt = 0.35f * farDiffuse_;
         if (amt > 0.001f) {
+            if (!airOsOn_) { airOsL_.reset(); airOsR_.reset(); airOsOn_ = true; }
             const float pre = 1.0f + 2.2f * amt, post = 1.0f / (1.0f + 0.55f * amt);
+            // Asymmetric on purpose: a touch of second harmonic reads as warmth, where the
+            // symmetric curve of a plain tanh only ever reads as compression.
+            auto air = [pre, post](float x) {
+                const float a = x * pre, t = std::tanh(a);
+                return (t + 0.06f * a * a * (a > 0.0f ? 1.0f : -1.0f) * (1.0f - std::fabs(t))) * post;
+            };
             for (int i = 0; i < n; ++i) {
-                const float a = fl[i] * pre, b = fr[i] * pre;
-                // Asymmetric on purpose: a touch of second harmonic reads as warmth, where the
-                // symmetric curve of a plain tanh only ever reads as compression.
-                fl[i] = (std::tanh(a) + 0.06f * a * a * (a > 0.0f ? 1.0f : -1.0f) * (1.0f - std::fabs(std::tanh(a)))) * post;
-                fr[i] = (std::tanh(b) + 0.06f * b * b * (b > 0.0f ? 1.0f : -1.0f) * (1.0f - std::fabs(std::tanh(b)))) * post;
+                fl[i] = airOsL_.process(fl[i], air);
+                fr[i] = airOsR_.process(fr[i], air);
             }
-        }
+        } else airOsOn_ = false;
     }
     farReverb_.process(fl, fr, n);
     if (farRotate_ > 0.0f) {   // the background slowly turns: left and right rotate into each other
@@ -675,6 +726,19 @@ void Engine::renderChunk(float* L, float* R, int n)
             fl[i] *= g; fr[i] *= g;
         }
     }
+    // Mid Low Cut (25.09.2026): the production guide thinks of the far return in mid and side --
+    // its sides may be as wide as they like, its middle is high-passed from 300 Hz, so the centre
+    // below that belongs to the near plane and the sub alone. Second order, on the middle only;
+    // the sides pass untouched, and so does everything with the knob at 20 Hz.
+    if (farMidLowcut_ > 21.0f) {
+        for (int i = 0; i < n; ++i) {
+            const float mid = 0.5f * (fl[i] + fr[i]), side = 0.5f * (fl[i] - fr[i]);
+            float lp, bp, hp;
+            farMidHp_.tick(mid, lp, bp, hp);
+            fl[i] = hp + side;
+            fr[i] = hp - side;
+        }
+    }
     // The Haas band, on the foreground only: the background has the reverb's own width and does
     // not need help. After the unmask, so what the side chain measured is the plane as it was.
     haas_.process(nl, nr, n);
@@ -726,40 +790,15 @@ void Engine::renderChunk(float* L, float* R, int n)
         }
     }
     if (roomOn) {
-        float* ol = roomOutL_.data(); float* orr = roomOutR_.data();
-        // Morph: the second impulse is blended into the first inside the convolution, which is the
-        // same as fading from one room's answer to the other's and costs one room. The smoother
-        // moves a block at a time; each stage of the convolver takes its value as its blocks begin.
-        smRoomMorph_.value = roomMorph_ + (smRoomMorph_.value - roomMorph_) * std::pow(1.0f - smRoomMorph_.coef, static_cast<float>(n));
-        if (std::fabs(smRoomMorph_.value - roomMorph_) < 1.0e-4f) smRoomMorph_.value = roomMorph_;
-        room_.setMorph(smRoomMorph_.value);
-        room_.process(rl, rr, ol, orr, n);
-        const float lpc = 1.0f - std::exp(-kTwoPi * roomHighcut_ / static_cast<float>(sr_));
-        const float rhpc = roomLowcut_ <= 21.0f ? 0.0f
-                         : 1.0f - std::exp(-kTwoPi * (roomLowcut_ / 1.5538f) / static_cast<float>(sr_));
-        const float levelC = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(sr_)));
-        // An energy-normalised impulse returns the far sends at their own power, which is far
-        // louder than the FDN's output at Far Level 1; 0.35 puts Room Level 1 in the same league
-        // (measured: -15.8 dBFS raw vs. -23 dBFS for the FDN on the default patch).
-        const float roomGain = 0.35f;
+        // The room's return, made above, ducked under the near bus band by band like the far hall
+        // (the guide: "the near bus ducks the main room"), and added to the mix.
+        roomUnmask_.process(nl, nr, ol, orr, n);
         for (int i = 0; i < n; ++i) {
-            roomLevelCur_ += (roomLevel_ - roomLevelCur_) * levelC;
-            roomLpL_ += lpc * (ol[i] - roomLpL_);
-            roomLpR_ += lpc * (orr[i] - roomLpR_);
-            float tL = roomLpL_, tR = roomLpR_;
-            if (rhpc > 0.0f) {   // the low end out of the room, 12 dB/oct
-                roomHpL1_ += rhpc * (tL - roomHpL1_);  const float aL = tL - roomHpL1_;
-                roomHpR1_ += rhpc * (tR - roomHpR1_);  const float aR = tR - roomHpR1_;
-                roomHpL2_ += rhpc * (aL - roomHpL2_);  tL = aL - roomHpL2_;
-                roomHpR2_ += rhpc * (aR - roomHpR2_);  tR = aR - roomHpR2_;
-            }
-            const float rL = tL * roomLevelCur_ * roomGain, rR = tR * roomLevelCur_ * roomGain;
-            L[i] += rL;
-            R[i] += rR;
-            if (stems_ != nullptr) { stems_[6][stemPos_ + i] = rL; stems_[7][stemPos_ + i] = rR; }
+            L[i] += ol[i];
+            R[i] += orr[i];
+            if (stems_ != nullptr) { stems_[6][stemPos_ + i] = ol[i]; stems_[7][stemPos_ + i] = orr[i]; }
         }
     } else {
-        roomLpL_ = roomLpR_ = 0.0f;
         if (stems_ != nullptr) for (int i = 0; i < n; ++i) { stems_[6][stemPos_ + i] = 0.0f; stems_[7][stemPos_ + i] = 0.0f; }
     }
 
@@ -770,6 +809,7 @@ void Engine::renderChunk(float* L, float* R, int n)
     // the clipper -- and the loop can thicken a drone without taking it over (a higher
     // ceiling let Distant Storm climb 10 dB and collapse to a correlation of 0.6).
     if (fbOn) {
+        if (!fbOsOn_) { fbOsL_.reset(); fbOsR_.reset(); }   // back on: from silence, not from what it heard last time
         const float lpc  = 1.0f - std::exp(-kTwoPi * fbTone_ / static_cast<float>(sr_));
         const float envC = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(sr_)));
         const float drive = 1.0f + 9.0f * fbDrive_;
@@ -807,16 +847,18 @@ void Engine::renderChunk(float* L, float* R, int n)
             const float mag = 0.5f * (std::fabs(L[i]) + std::fabs(R[i]));
             fbEnv_ += envC * (mag - fbEnv_);
             const int idx = (fbW_ + i) & fbMask_;
+            // Tape: asymmetric saturation (an even-order term the DC blocker cleans up on the next
+            // pass) and a noise floor that rises with the level in the loop. The curve runs at four
+            // times the rate (25.09.2026): in a loop an alias comes round again on every pass.
+            const float asym = fbTape_ > 0.0f ? 0.2f * fbTape_ : 0.0f;
+            auto curveL = [&](float v) { return sat((v + asym * v * v) * drive - biasL) * comp; };
+            auto curveR = [&](float v) { return sat((v + asym * v * v) * drive - biasR) * comp; };
+            fbRingL_[static_cast<size_t>(idx)] = fbOsL_.process(xl, curveL);
+            fbRingR_[static_cast<size_t>(idx)] = fbOsR_.process(xr, curveR);
             if (fbTape_ > 0.0f) {
-                // Tape: asymmetric saturation (an even-order term the DC blocker cleans up on the
-                // next pass) and a noise floor that rises with the level in the loop.
-                const float asym = 0.2f * fbTape_;
                 const float noise = 0.02f * fbTape_ * fbEnv_;
-                fbRingL_[static_cast<size_t>(idx)] = sat((xl + asym * xl * xl) * drive - biasL) * comp + noise * rng_.bipolar();
-                fbRingR_[static_cast<size_t>(idx)] = sat((xr + asym * xr * xr) * drive - biasR) * comp + noise * rng_.bipolar();
-            } else {
-                fbRingL_[static_cast<size_t>(idx)] = sat(xl * drive - biasL) * comp;
-                fbRingR_[static_cast<size_t>(idx)] = sat(xr * drive - biasR) * comp;
+                fbRingL_[static_cast<size_t>(idx)] += noise * rng_.bipolar();
+                fbRingR_[static_cast<size_t>(idx)] += noise * rng_.bipolar();
             }
         }
         fbW_ = (fbW_ + n) & fbMask_;
@@ -825,6 +867,7 @@ void Engine::renderChunk(float* L, float* R, int n)
         fbHpXL_ = fbHpXR_ = fbHpYL_ = fbHpYR_ = 0.0f;
         fbReg_ = 1.0f;
     }
+    fbOsOn_ = fbOn;
 
     // Foundation: a dry sub voice on the brain's root, gliding between roots; the two ears
     // may run a few Hz apart (binaural beat), which Bass Mono leaves alone below its crossover
@@ -966,8 +1009,27 @@ void Engine::renderChunk(float* L, float* R, int n)
         body_.process(mono, L, R, n, 1.0f);
     }
     midSide_.process(L, R, n);
-    if (subOn)
-        for (int i = 0; i < n; ++i) { L[i] += subL[i]; R[i] += subR[i]; }
+    if (subOn) {
+        // The Foundation's own ceiling (25.09.2026). A beating sub swings its peaks by up to six
+        // decibels (the production guide, section 8), and summed straight into the master it was the
+        // sub that drove the soft clipper -- which then pumped everything else with it. The guide's
+        // answer is a limiter on the sub alone, before the sum: here, at Ceiling dBFS at the output
+        // (the master gain is taken out of it), instant to hold a peak, 5 ms to act on it and half a
+        // second to let go -- slow enough that a 25 Hz sine is not distorted by its own limiter.
+        const float master = dbToGain(masterGain_);
+        const float ceiling = dbToGain(subCeiling_) / std::max(master, 1.0e-3f);
+        const float hold = std::exp(-1.0f / (0.5f * static_cast<float>(sr_)));
+        const float att = 1.0f - std::exp(-1.0f / (0.005f * static_cast<float>(sr_)));
+        const float rel = 1.0f - std::exp(-1.0f / (0.5f * static_cast<float>(sr_)));
+        for (int i = 0; i < n; ++i) {
+            const float peak = std::max(std::fabs(subL[i]), std::fabs(subR[i]));
+            subPeak_ = peak > subPeak_ ? peak : subPeak_ * hold;
+            const float target = subPeak_ > ceiling ? ceiling / subPeak_ : 1.0f;
+            subLimGain_ += (target < subLimGain_ ? att : rel) * (target - subLimGain_);
+            L[i] += subL[i] * subLimGain_;
+            R[i] += subR[i] * subLimGain_;
+        }
+    } else { subPeak_ = 0.0f; subLimGain_ = 1.0f; }
     // Output DC blocker at 4 Hz, below the lowest sub the Foundation can reach. Several paths
     // can leave an offset behind -- FM at an integer ratio, the asymmetric tape term, a granular
     // window over a clip that carries one, the shimmer's pitch shifter -- and an offset costs

@@ -14,6 +14,7 @@
  */
 #pragma once
 #include "Dsp.h"
+#include "Oversample.h"
 
 namespace ambient {
 
@@ -77,14 +78,20 @@ public:
     /**
      * @brief One sample of both channels through the drive and the model.
      *
-     * Audio thread, once per sample. Each channel goes through sat() and then one(); the comb's
-     * write pointer advances afterwards, once for both channels.
+     * Audio thread, once per sample. Each channel goes through the drive and then one(); the comb's
+     * write pointer advances afterwards, once for both channels. The drive runs at four times the
+     * rate (Oversample.h) since 25.09.2026, and is 29.5 samples late for it while it is on.
      * @param inL   left input sample
      * @param inR   right input sample
      * @param outL  left output
      * @param outR  right output
      */
     inline void tick(float inL, float inR, float& outL, float& outR);
+    /**
+     * @brief Whether the drive ran on the last tick -- and so whether the output is Oversampler4::kLatency late.
+     * @return true while Drive is above 0
+     */
+    bool driving() const { return driving_; }
 
     /**
      * @brief |H(f)| of a model at these settings, for the display (Drive is not a linear quantity and is
@@ -138,14 +145,30 @@ private:
      * @{ */
     float driveIn_ = 1.0f,    ///< gain into the soft clip, 1 + 6 x Drive; exactly 1 means the clip is skipped
           driveOut_ = 1.0f;   ///< gain out of it, (1 + Drive / 2) / driveIn_
+    /// The drive at four times the rate (25.09.2026, the production guide's "4x on everything
+    /// nonlinear"): a soft clip at Drive 1 turns every partial above a third of Nyquist into an
+    /// alias. One oversampler per channel, cleared whenever the drive comes back on so it does not
+    /// start with a fragment of whatever it heard the last time.
+    Oversampler4 osL_,   ///< @brief the left channel's drive, oversampled
+                 osR_;   ///< the right channel's
+    bool  driving_ = false;   ///< the drive was on at the last tick
     /** @} */
 
     /**
-     * @brief The drive stage: a soft clip with its level compensated, skipped entirely at Drive 0.
-     * @param x  the input sample
-     * @return   softClip(x x driveIn_) x driveOut_, or x itself when the drive is off
+     * @brief The drive stage: a soft clip with its level compensated, at four times the rate;
+     *        skipped entirely at Drive 0.
+     * @param inL  the left input sample, driven in place
+     * @param inR  the right input sample, driven in place
      */
-    inline float sat(float x) const { return driveIn_ == 1.0f ? x : softClip(x * driveIn_) * driveOut_; }
+    inline void drive(float& inL, float& inR)
+    {
+        if (driveIn_ == 1.0f) { driving_ = false; return; }
+        if (!driving_) { osL_.reset(); osR_.reset(); driving_ = true; }
+        const float gi = driveIn_, go = driveOut_;
+        auto curve = [gi, go](float v) { return softClip(v * gi) * go; };
+        inL = osL_.process(inL, curve);
+        inR = osR_.process(inR, curve);
+    }
     /**
      * @brief One sample of one channel through the current model.
      * @param ch  0 left, 1 right: which channel's state to use
@@ -213,8 +236,9 @@ inline float VoiceFilter::one(int ch, float x)
 
 inline void VoiceFilter::tick(float inL, float inR, float& outL, float& outR)
 {
-    outL = one(0, sat(inL));
-    outR = one(1, sat(inR));
+    drive(inL, inR);
+    outL = one(0, inL);
+    outR = one(1, inR);
     if (model_ == FilterModel::Comb) combW_ = (combW_ + 1) & (kCombMax - 1);
 }
 

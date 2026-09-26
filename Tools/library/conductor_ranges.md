@@ -58,8 +58,8 @@ Sieben Familien tragen die Grundbereiche; jeder Künstler gehört zu einer Famil
 | `brain2_rate` | log 120–300 s | log 200–500 s | log 180–400 s | log 240–600 s | log 300–600 s | log 120–300 s | log 90–240 s |
 | `brain2_hold_min` | 120–240 s | 240–480 s | 240–480 s | 300–600 s | 300–600 s | 120–300 s | 90–240 s |
 | `brain2_hold_max` | 480–900 s | 600–1200 s | 600–1000 s | 800–1200 s | 900–1200 s | 400–800 s | 300–600 s |
-| `brain2_low` | 24–31 MIDI | 12–24 MIDI | 24–31 MIDI | 24–36 MIDI | 28–36 MIDI | 31–36 MIDI | 24–31 MIDI |
-| `brain2_high` | 48–55 MIDI | 36–48 MIDI | 43–52 MIDI | 48–60 MIDI | 48–55 MIDI | 55–60 MIDI | 60–72 MIDI |
+| `brain2_low` | 24–31 MIDI | 20–24 MIDI | 24–31 MIDI | 24–36 MIDI | 28–36 MIDI | 31–36 MIDI | 24–31 MIDI |
+| `brain2_high` | 48–55 MIDI | 36–40 MIDI | 43–52 MIDI | 48–60 MIDI | 48–55 MIDI | 55–60 MIDI | 60–72 MIDI |
 | **Tuning** | | | | | | | |
 | `scale` | {Ptolemy major / 7-limit / harmonic 8-16 / otonality 1-3-5-7-9-11 / just pentatonic} | {just minor / subharmonic 16-8 / Pythagorean / 7-limit} | {just minor / Pythagorean / subharmonic 16-8 / 7-limit} | {just pentatonic / Pythagorean / Ptolemy major / 12-TET} | {Ptolemy major / just minor / 12-TET / just pentatonic} | {Ptolemy major / 12-TET / just pentatonic / 7-limit} | {harmonic 8-16 23 % / otonality 1-3-5-7-9-11 23 % / Ptolemy major 23 % / 7-limit 23 % / Bohlen-Pierce 7 %} |
 | `purity` | 0.85–1 | 0.7–0.95 | 0.8–1 | 0.6–0.9 | 0.5–0.9 | 0.6–0.9 | 0.7–1 |
@@ -97,6 +97,14 @@ Sieben Familien tragen die Grundbereiche; jeder Künstler gehört zu einer Famil
 | `env_vel_attack` | 0.3–0.6 | 0.4–0.8 | 0.3–0.6 | 0.5–0.8 | 0.3–0.6 | 0.2–0.5 | 0.3–0.6 |
 | **Source 1 (neu)** | | | | | | | |
 | `strand_low_detune` | 0.4–0.7 | 0.7–1 | 0.5–0.8 | 0.6–0.9 | 0.3–0.6 | 0.3–0.5 | 0.4–0.7 |
+| **Review 25.09.2026** | | | | | | | |
+| `purity_adapt` | 0.4–0.8 | 0.4–0.8 | 0.4–0.8 | 0.4–0.8 | 0.4–0.8 | 0.4–0.8 | 0.4–0.8 |
+| `brain_root_targets` | Modal | Modal | Phrygian | Modal | Modal | Mediant | Modal |
+| `brain_utonal` | 0–0.2 | 0.6–0.9 | 0.4–0.7 | 0.3–0.6 | 0–0.2 | 0–0.1 | 0–0.2 |
+| `brain_series` | 0.2–0.5 | 0–0.1 | 0–0.1 | 0–0.1 | 0–0.1 | 0–0.2 | 0.2–0.5 |
+| `arc_harmony` | 0.2–0.4 | 0.1–0.3 | 0.2–0.4 | 0–0.2 | 0–0.15 | 0.3–0.5 | 0.3–0.5 |
+
+**Review 25.09.2026.** Die Zeilen unter *Review* kommen aus der Prüfung des Conductors gegen die Ambient-Harmonielehre: `purity_adapt` überall dort, wo der Grundton wandert (Befund F3, gilt nur mit `brain_wander` oder `auto_root_move` über null); `brain_root_targets` gewichtet die Grundtonziele statt sie gleichverteilt zu ziehen, mit dem Ganzton als häufigstem Schritt nach Quinte und Quarte (F8); `brain_utonal` lässt Harmonic auch Untertonreihen als verwurzelt hören (F2b); `brain_series` ist die Harmonic Cloud, Teiltöne eines nicht klingenden Fundaments (Abschnitt 4); `arc_harmony` legt den Stundenbogen auf Konsonanz, Tonart und Harmonizität (Abschnitt 4). In *deep* liegt `brain2_low` jetzt bei 20–24 MIDI (26–33 Hz) und `brain2_high` bei 36–40 (F7): 16 Hz spielt kein Wiedergabesystem, aber jeder Limiter hört ihn. Die Tabelle dazu ist `Tools/library/review.py`; `retrofit_review.py` hat sie auf die bestehenden Presets angewandt.
 
 ## Künstler
 
@@ -323,7 +331,7 @@ Der Maschinenraum: ein bis zwei Stimmen an der Haltegrenze, nur Quinten und Okta
 | `brain_consonance` | 0.9–1 | 0.6–0.85 |
 | `brain_cascade` | 0 | 0.1–0.4 |
 | `brain2_on` | on | {on 70 % / off 30 %} |
-| `brain2_low` | 12–19 MIDI | 12–24 MIDI |
+| `brain2_low` | 20–22 MIDI | 20–24 MIDI |
 | `scale` | {Pythagorean / subharmonic 16-8} | {just minor / subharmonic 16-8 / Pythagorean / 7-limit} |
 | `brain_layers` | 1 | 0.7–1 |
 | `brain_bass_hold` | 5–8 x | 3–6 x |
@@ -374,7 +382,7 @@ Tiefe und Kosmos: nur reine Intervalle, Fundament ganz unten, Stille zwischen Si
 | `brain_cascade` | 0.1–0.3 | 0.1–0.4 |
 | `brain_spread` | 0.6–0.9 | 0.6–0.85 |
 | `brain2_on` | on | {on 70 % / off 30 %} |
-| `brain2_low` | 12–24 MIDI | 12–24 MIDI |
+| `brain2_low` | 20–24 MIDI | 20–24 MIDI |
 | `scale` | {Pythagorean / subharmonic 16-8 / otonality 1-3-5-7-9-11} | {just minor / subharmonic 16-8 / Pythagorean / 7-limit} |
 | `brain_silence` | 0.1–0.3 | 0.05–0.2 |
 
@@ -529,7 +537,7 @@ Die Referenz der Familie: Fundament ganz unten, Hintergrund noch tiefer, laut un
 | `brain_cascade` | 0.1–0.3 | 0.1–0.4 |
 | `brain_bias` | 0.3–0.5 | 0.2–0.4 |
 | `brain2_on` | on | {on 70 % / off 30 %} |
-| `brain2_low` | 12–19 MIDI | 12–24 MIDI |
+| `brain2_low` | 20–22 MIDI | 20–24 MIDI |
 | `scale` | {Pythagorean / subharmonic 16-8 / just minor} | {just minor / subharmonic 16-8 / Pythagorean / 7-limit} |
 | `brain_layers` | 0.9–1 | 0.7–1 |
 | `brain_bass_hold` | 4–8 x | 3–6 x |

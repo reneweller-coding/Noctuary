@@ -77,12 +77,15 @@ bool parseScala(const char* text, FixedScale& out);
 double scaleFrequency(const FixedScale& s, int midiNote, int rootNote, double refA4, bool snapToKeys = true);
 
 /**
- * @brief Interval consonance in [0,1]: 1 for a unison/octave, decreasing with the
- *        complexity of the nearest simple ratio (Tenney-height based).
+ * @brief Interval consonance in [0,1]: 1 for a unison/octave, falling with how ambiguous the
+ *        interval is -- harmonic entropy, continuous in the interval.
  *
- * The ratio is folded into one octave, then the nearest p/q with q <= 32 within ten cents is
- * taken and scored 1 / (1 + log2(p q)). An interval that is not within ten cents of any such
- * ratio gets a floor of 0.05, so a wandering pitch is never rated as exactly nothing.
+ * The ratio is folded into one octave and looked up, cent by cent with linear interpolation, in a
+ * table of harmonic entropy (Erlich: a 17-cent Gaussian over every ratio n/d with n d <= 10000,
+ * weighted 1 / sqrt(n d)), mapped onto 0.05 .. 1 (Tools/make_harmonic_entropy.py writes it). At the
+ * just intervals it agrees with the Tenney height it replaced (25.09.2026) within a few hundredths
+ * -- the fifth 0.30, the fourth 0.21, 5/4 0.17, 16/15 0.11 -- and between them it no longer jumps:
+ * a tempered major third is 0.15 where the old step function gave it 0.11.
  *
  * @param ratio  frequency ratio of the two tones, any positive value (0 or less gives 0)
  * @return       the consonance, 0.05 .. 1

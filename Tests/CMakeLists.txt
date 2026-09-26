@@ -4,10 +4,11 @@ if(MSVC)
     target_compile_options(ambient_selftest PRIVATE /W4 /permissive- /utf-8)
     target_compile_definitions(ambient_selftest PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
-# Several Engines live on the stack at once in some tests (an Engine is a few hundred KB), and
+# Several Engines live on the stack at once in some tests (an Engine is a few hundred KB; since the
+# oversamplers of 25.09.2026 somewhat more, and 16 MB no longer held them -- 64 MB now), and
 # that is true of every compiler on Windows -- see Tools/render/CMakeLists.txt.
 if(WIN32)
-    target_link_options(ambient_selftest PRIVATE "LINKER:/STACK:16777216")
+    target_link_options(ambient_selftest PRIVATE "LINKER:/STACK:67108864")
 endif()
 add_test(NAME selftest COMMAND ambient_selftest)
 
@@ -21,7 +22,7 @@ if(MSVC)
     target_compile_definitions(ambient_racetest PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 if(WIN32)
-    target_link_options(ambient_racetest PRIVATE "LINKER:/STACK:16777216")
+    target_link_options(ambient_racetest PRIVATE "LINKER:/STACK:67108864")
 endif()
 add_test(NAME racetest COMMAND ambient_racetest 4)
 
@@ -129,7 +130,7 @@ if(TARGET Noctuary)
     if(MSVC)
         target_compile_options(ambient_hosttest PRIVATE /W4 /permissive- /utf-8)
         target_compile_definitions(ambient_hosttest PRIVATE _CRT_SECURE_NO_WARNINGS)
-        target_link_options(ambient_hosttest PRIVATE "LINKER:/STACK:16777216")
+        target_link_options(ambient_hosttest PRIVATE "LINKER:/STACK:67108864")
     endif()
     add_test(NAME hosttest COMMAND ambient_hosttest)
 endif()

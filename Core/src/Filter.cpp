@@ -54,6 +54,8 @@ void VoiceFilter::reset()
     std::memset(combBuf_, 0, sizeof(combBuf_));
     combW_ = 0;
     combDamp_[0] = combDamp_[1] = 0.0f;
+    osL_.reset(); osR_.reset();
+    driving_ = false;
 }
 
 void VoiceFilter::set(FilterModel model, float cutoffHz, float resonance, float drive)

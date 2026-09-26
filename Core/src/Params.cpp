@@ -59,6 +59,7 @@ const char* const kRootNames[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", 
  * which is the dark profiles' walk.
  */
 const char* const kRootStepNames[4] = { "Any", "Fifths", "Diatonic", "Falling" };
+const char* const kRootTargetNames[4] = { "Classic", "Modal", "Mediant", "Phrygian" };
 const char* const kKeyMapNames[2] = { "Snap to 12 keys", "Consecutive degrees" };
 const char* const kShimmerPitchNames[kNumShimmerPitches] = { "+12", "+7", "+5", "+19", "-12", "+24" };
 const char* const kSubOctaveNames[2] = { "-1", "-2" };
@@ -900,7 +901,7 @@ const std::array<ParamDesc, kNumParams> kTable = {{
     F(ParamId::ForeDistance,     "fore_distance",      "Distance",     "Near Events", 0.f,   1.f,   0.f,   1.f,  ""),
     F(ParamId::ForeDry,          "fore_dry",           "Dry",          "Near Events", 0.f,   1.f,   0.f,   1.f,  ""),
     B(ParamId::ForeAuto,         "fore_auto",          "Auto",         "Near Events", true),
-    F(ParamId::FarUnmaskReturn,  "far_unmask_return",  "Return",       "Far Reverb", 0.2f,  10.f,  1.2f,  0.5f, "s"),
+    F(ParamId::FarUnmaskReturn,  "far_unmask_return",  "Return",       "Far Reverb", 0.2f,  10.f,  0.5f,  0.5f, "s"),   // 0.5 s by default (25.09.2026): the guide's release; it was 1.2
     F(ParamId::ForeDelay2,       "fore_delay2",        "To Delay 2",   "Near Events", 0.f,   1.f,   0.f,   1.f,  ""),
     F(ParamId::ForeCosmos,       "fore_cosmos",        "To Cosmos",    "Near Events", 0.f,   1.f,   0.f,   1.f,  ""),
     F(ParamId::ForeGain,         "fore_gain",          "Gain",         "Near Events", -24.f, 36.f,  0.f,   1.f,  "dB"),
@@ -915,6 +916,18 @@ const std::array<ParamDesc, kNumParams> kTable = {{
     F(ParamId::SendLowcut,       "send_lowcut",        "Send Low Cut", "Far Reverb",  20.f,  400.f, 150.f, 0.5f, "Hz"),
     F(ParamId::SubHarmonics,     "sub_harmonics",      "Harmonics",    "Foundation",  0.f,   1.f,   0.6f,  1.f,  ""),
     F(ParamId::SubBeat,          "sub_beat",           "Beat",         "Foundation",  0.f,   1.f,   0.f,   1.f,  "Hz"),
+    // The second round of the guide (25.09.2026): the serial rooms (10 to 20 per cent of the main
+    // room into the far one), the far return's middle high-passed from 300 Hz, and the sub's own
+    // ceiling at -6 dBFS -- the guide's numbers as the defaults, like the first round's.
+    F(ParamId::RoomToFar,        "room_to_far",        "To Far",       "Room",        0.f,   0.5f,  0.15f, 1.f,  ""),
+    F(ParamId::FarMidLowcut,     "far_mid_lowcut",     "Mid Low Cut",  "Far Reverb",  20.f,  600.f, 300.f, 0.5f, "Hz"),
+    F(ParamId::SubCeiling,       "sub_ceiling",        "Ceiling",      "Foundation",  -24.f, 0.f,   -6.f,  1.f,  "dBFS"),
+    // The review against ambient harmony (25.09.2026): Modal by default, because the whole tone is
+    // the genre's step and the six alike were film music; Utonal and Series off, the library sets
+    // them by family.
+    C(ParamId::BrainRootTargets, "brain_root_targets", "Root Targets", "Cluster Brain", kRootTargetNames, 4, 1),
+    F(ParamId::BrainUtonal,      "brain_utonal",       "Utonal",       "Cluster Brain", 0.f,  1.f,   0.f,  1.f, ""),
+    F(ParamId::BrainSeries,      "brain_series",       "Series",       "Cluster Brain", 0.f,  1.f,   0.f,  1.f, ""),
 }};
 } // namespace
 

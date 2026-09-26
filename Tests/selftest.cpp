@@ -5780,7 +5780,11 @@ void testResearchBatch()
         const double hOff = entropyOf(0.5f, 0.0f, nullptr);
         const double hLow = entropyOf(0.05f, 1.0f, &leanLow), hHigh = entropyOf(0.95f, 1.0f, &leanHigh);
         std::printf("  [probe] interval entropy: %.2f bits untouched, %.2f aiming low (lean %+.2f), %.2f aiming high (lean %+.2f)\n", hOff, hLow, leanLow, hHigh, leanHigh);
-        CHECK(hHigh > hLow + 0.4, "aiming high makes the choices measurably less predictable than aiming low");
+        // A third of a bit and more. It was 0.4 while the consonance was a step function; the
+        // continuous one (25.09.2026) no longer rates every tempered third like a semitone, so the
+        // untouched draw already stands within a tenth of a bit of the twelve classes' maximum and
+        // there is less room to widen it -- what the homeostat can still do is narrow it.
+        CHECK(hHigh > hLow + 0.3, "aiming high makes the choices measurably less predictable than aiming low");
         CHECK(hLow < hOff && hHigh > hOff - 0.05, "the untouched conductor sits between the two");
         CHECK(leanLow < 0.0f && leanHigh > 0.0f, "and the lean has the sign of the gap it is closing");
     }
@@ -7101,25 +7105,30 @@ void testResearchBatch()
         // voice whose envelope dipped under the threshold and came back, a departure and an
         // arrival of the same note. The conductor emits its exchange as a note off immediately
         // followed by a note on, and reading that is exact and needs no envelopes at all.
+        // Over six seeds, not one: since the consonance became continuous (25.09.2026) the chords
+        // mode's own voice-leading factor already keeps the exchanges short, and a single seed
+        // came out a hundredth of a semitone either way.
         auto travel = [](float smooth, double& mean, int& moves) {
-            BrainParams p;
-            p.on = true;
-            p.mode = BrainMode::Chords;
-            p.density = 5;
-            p.rateSeconds = 2.0f;
-            p.low = 36; p.high = 79;
-            p.smooth = smooth;
-            ClusterBrain brain;
-            brain.reset(0x9E3779B9ull, 48);
-            auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
-            int pending = -1;
             double sum = 0.0;
             moves = 0;
-            for (int step = 0; step < 3000; ++step)
-                brain.update(0.1, p, -1, freqOf, [&](const BrainEvent& e) {
-                    if (e.type == BrainEvent::Type::NoteOff) { pending = e.note; return; }
-                    if (pending >= 0) { sum += std::fabs(static_cast<double>(e.note - pending)); ++moves; pending = -1; }
-                });
+            for (uint64_t seed = 0; seed < 6; ++seed) {
+                BrainParams p;
+                p.on = true;
+                p.mode = BrainMode::Chords;
+                p.density = 5;
+                p.rateSeconds = 2.0f;
+                p.low = 36; p.high = 79;
+                p.smooth = smooth;
+                ClusterBrain brain;
+                brain.reset(0x9E3779B9ull + seed * 7919ull, 48);
+                auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
+                int pending = -1;
+                for (int step = 0; step < 3000; ++step)
+                    brain.update(0.1, p, -1, freqOf, [&](const BrainEvent& e) {
+                        if (e.type == BrainEvent::Type::NoteOff) { pending = e.note; return; }
+                        if (pending >= 0) { sum += std::fabs(static_cast<double>(e.note - pending)); ++moves; pending = -1; }
+                    });
+            }
             mean = moves > 0 ? sum / moves : 0.0;
         };
         double tOff = 0.0, tOn = 0.0; int mOff = 0, mOn = 0;
@@ -9016,6 +9025,387 @@ void testGuideRound()
 }
 
 /**
+ * @brief The review of the conductor against ambient harmony (25.09.2026): each finding's fix, measured.
+ *
+ * F5: the consonance is continuous -- a tempered major third stands within 0.03 of the just one
+ * (the step function put it 0.08 under), and the just intervals keep their order. F1: on a just
+ * scale the key is the scale's own -- on Harmonic 8-16 the seventh harmonic's bin outranks the
+ * minor third's, where Krumhansl-Kessler had it the other way round -- and on 12-TET it is still
+ * major and minor (testBrainTimbre checks that Key still pulls the music into its key). F2a: under Thirds -1 the just major triad loses harmonicity against the open fifth. F2b: a minor
+ * triad is more utonal than harmonic. F4: under Low Spacing 1 no close tritone stands below MIDI 55,
+ * and wide tritones and ninths may. F6: on Bohlen-Pierce the conductor finds no key, and its
+ * register rules read cents: no two voices closer than a minor third below MIDI 60. F8: Classic
+ * never steps the root by a whole tone, Modal does. Section 4: Series draws the notes onto the
+ * harmonics of the root's fundamental, and the two lowest voices under MIDI 48 never make a
+ * difference tone under 25 Hz.
+ */
+void testReviewRound()
+{
+    {   // F5: continuous consonance.
+        const double just = intervalConsonance(1.25), tempered = intervalConsonance(std::pow(2.0, 4.0 / 12.0));
+        const double fifth = intervalConsonance(1.5), fourth = intervalConsonance(4.0 / 3.0), second = intervalConsonance(9.0 / 8.0), semi = intervalConsonance(16.0 / 15.0);
+        std::printf("  [probe] consonance: 5/4 %.3f, 400 ct %.3f, 3/2 %.3f, 4/3 %.3f, 9/8 %.3f, 16/15 %.3f\n", just, tempered, fifth, fourth, second, semi);
+        CHECK(just - tempered < 0.03 && tempered > 0.13, "a tempered major third is judged close to the just one, not like a semitone");
+        CHECK(fifth > fourth && fourth > just && just > second && second > semi, "and the just intervals keep their order");
+        double worst = 0.0;
+        for (int c = 0; c < 1199; ++c) worst = std::max(worst, std::fabs(intervalConsonance(std::pow(2.0, (c + 1) / 1200.0)) - intervalConsonance(std::pow(2.0, c / 1200.0))));
+        CHECK(worst < 0.05, "and no step of a cent moves it by more than a twentieth: no more jumps");
+    }
+    {   // F1: the key profile of the scale.
+        FixedScale h;
+        CHECK(makeBuiltinScale(6, h), "Harmonic 8-16 is built-in scale 6");
+        KeyProfile kp;
+        scaleKeyProfile(h, 0.0f, 0.0f, kp);
+        std::printf("  [probe] key profile of Harmonic 8-16: fifth %.2f, 7/4 %.2f, 5/4 %.2f, minor third %.2f\n", kp.p[7], kp.p[10], kp.p[4], kp.p[3]);
+        CHECK(kp.p[10] > kp.p[3], "on Harmonic 8-16 the seventh harmonic outranks the minor third the scale does not have");
+        CHECK(kp.p[7] > kp.p[4] && kp.p[0] == 1.0f, "the fifth outranks the third, the tonic stands highest");
+        FixedScale et;
+        makeBuiltinScale(0, et);
+        CHECK(isTwelveTet(et) && !isTwelveTet(h), "12-TET is recognised as the place for major and minor");
+        float w[12] = {};
+        const int deg[8] = { 0, 2, 4, 6, 7, 9, 10, 11 };   // 1 9/8 5/4 11/8 3/2 13/8 7/4 15/8 on D
+        for (int d : deg) w[(d + 2) % 12] = d == 0 ? 6.0f : (d == 7 ? 4.0f : 2.0f);
+        const KeyEstimate k = findKey(w, &kp);
+        CHECK(k.modal && k.tonic() == 2, "and a harmonic series on D is found on D, as the scale's own key");
+    }
+    {   // F2a and F2b: the prime limit and the undertone mirror.
+        const double triad[3] = { 200.0, 250.0, 300.0 }, fifths[3] = { 200.0, 300.0, 400.0 };
+        const double tFull = chordHarmonicity(triad, 3), tDark = chordHarmonicity(triad, 3, 0.2, 1.0);
+        const double fFull = chordHarmonicity(fifths, 3), fDark = chordHarmonicity(fifths, 3, 0.2, 1.0);
+        std::printf("  [probe] prime limit: just triad %.3f -> %.3f under Thirds -1, open fifths %.3f -> %.3f\n", tFull, tDark, fFull, fDark);
+        // The measure takes the best root, so the triad can lose no more than its third's share: under
+        // Thirds -1 it scores as the fifth 200:300 does with the 250 left out -- (1/log2 3 + 1/log2 4) / 3.
+        const double fifthAlone = (1.0 / std::log2(3.0) + 1.0 / std::log2(4.0)) / 3.0;
+        CHECK(tDark < tFull - 0.01 && std::fabs(tDark - fifthAlone) < 0.005 && std::fabs(fDark - fFull) < 1e-9,
+              "Thirds -1 takes the third's support out of the major triad and leaves the open fifths");
+        const double minor[3] = { 200.0, 240.0, 300.0 };   // 10:12:15
+        const double oto = chordHarmonicity(minor, 3), uto = chordUtonality(minor, 3);
+        std::printf("  [probe] minor triad: harmonicity %.3f, utonality %.3f\n", oto, uto);
+        CHECK(uto > oto, "a minor triad is more utonal than harmonic");
+    }
+    // The conductors below run in JI or 12-TET through a scale.
+    auto runBrain = [](BrainParams p, const FixedScale& s, bool snap, double minutes, uint64_t seed,
+                       std::vector<std::vector<int>>& chords, std::vector<int>& roots, ClusterBrain* keep = nullptr,
+                       std::vector<int>* arrivals = nullptr) {
+        ClusterBrain local;
+        ClusterBrain& brain = keep != nullptr ? *keep : local;
+        brain.reset(seed, 48);
+        auto freqOf = [&](int n) { return scaleFrequency(s, n, 60, 440.0, snap); };
+        p.scale = &s;
+        p.octavePeriodic = std::fabs(s.period - 2.0) < 1e-9;
+        p.consecutive = !snap || !p.octavePeriodic;
+        p.scaleRootHz = scaleFrequency(s, 60, 60, 440.0, snap);
+        int sounding[128] = {};
+        int lastRoot = brain.root();
+        const int steps = static_cast<int>(minutes * 60.0 / 0.05);
+        for (int step = 0; step < steps; ++step) {
+            brain.update(0.05, p, -1, freqOf, [&](const BrainEvent& e) {
+                if (e.type == BrainEvent::Type::NoteOn) {
+                    sounding[e.note] = 1;
+                    std::vector<int> c;
+                    for (int i = 0; i < 128; ++i) if (sounding[i]) c.push_back(i);
+                    chords.push_back(c);
+                    if (arrivals != nullptr) arrivals->push_back(e.note);   // the note that made this chord
+                } else sounding[e.note] = 0;
+            });
+            if (brain.root() != lastRoot) { roots.push_back(brain.root() - lastRoot); lastRoot = brain.root(); }
+        }
+    };
+    {   // F4: close tritones out below 55, wide ones allowed.
+        FixedScale et; makeBuiltinScale(0, et);
+        BrainParams p;
+        p.density = 5; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 30; p.high = 72;
+        p.consonance = 0.2f; p.lowSpacing = 1.0f;
+        std::vector<std::vector<int>> chords; std::vector<int> roots;
+        runBrain(p, et, true, 60.0, 0x71ull, chords, roots);
+        int closeLow = 0, wide = 0;
+        for (const auto& c : chords)
+            for (size_t i = 0; i < c.size(); ++i)
+                for (size_t j = i + 1; j < c.size(); ++j) {
+                    const int d = std::abs(c[j] - c[i]), lower = std::min(c[i], c[j]);
+                    if (d == 6 && lower < 55) ++closeLow;
+                    if (d % 12 == 6 && d >= 18 && lower >= 36) ++wide;
+                }
+        std::printf("  [probe] tritones in an hour under Low Spacing 1: %d close below MIDI 55, %d spread over an octave and more\n", closeLow, wide);
+        CHECK(closeLow == 0, "no close tritone below MIDI 55");
+        CHECK(wide > 0, "and a tritone spread over the registers is allowed again");
+    }
+    {   // F6: Bohlen-Pierce, walked degree by degree.
+        FixedScale bp; makeBuiltinScale(9, bp);
+        BrainParams p;
+        p.density = 4; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 40; p.high = 70;
+        p.key = 1.0f; p.even = 1.0f; p.memory = 10.0f; p.lowSpacing = 1.0f;
+        ClusterBrain brain;
+        std::vector<std::vector<int>> chords; std::vector<int> roots;
+        runBrain(p, bp, false, 30.0, 0x42ull, chords, roots, &brain);
+        auto freq = [&](int n) { return scaleFrequency(bp, n, 60, 440.0, false); };
+        int close = 0;
+        for (const auto& c : chords)
+            for (size_t i = 0; i < c.size(); ++i)
+                for (size_t j = i + 1; j < c.size(); ++j) {
+                    const double lo = std::min(freq(c[i]), freq(c[j])), hi = std::max(freq(c[i]), freq(c[j]));
+                    const double semis = 12.0 * std::log2(hi / lo), pos = 69.0 + 12.0 * std::log2(lo / 440.0);
+                    if (pos < 60.0 && semis > 0.5 && semis < 2.5) ++close;
+                }
+        std::printf("  [probe] Bohlen-Pierce: %zu onsets, %d pairs closer than a minor third below MIDI 60, key %d\n", chords.size(), close, brain.estimatedKey().key);
+        CHECK(chords.size() > 50, "the conductor plays on Bohlen-Pierce");
+        CHECK(brain.estimatedKey().key < 0, "and finds no key on a scale that does not repeat at the octave");
+        CHECK(close == 0, "its register rules read cents, not keys: nothing closer than a minor third below MIDI 60");
+    }
+    {   // F8: the root's targets.
+        FixedScale et; makeBuiltinScale(0, et);
+        auto wholeTones = [&](int targets, int& total) {
+            BrainParams p;
+            p.density = 4; p.rateSeconds = 4.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 36; p.high = 72;
+            p.wander = 1.0f; p.rootTargets = targets;
+            int tones = 0;
+            total = 0;
+            for (uint64_t seed = 0; seed < 4; ++seed) {
+                std::vector<std::vector<int>> chords; std::vector<int> roots;
+                runBrain(p, et, true, 120.0, 0x300ull + seed, chords, roots);
+                for (int r : roots) { ++total; if (std::abs(r) % 12 == 2 || std::abs(r) % 12 == 10) ++tones; }
+            }
+            return tones;
+        };
+        int nClassic = 0, nModal = 0;
+        const int tClassic = wholeTones(0, nClassic), tModal = wholeTones(1, nModal);
+        std::printf("  [probe] root steps by a whole tone: %d of %d under Classic, %d of %d under Modal\n", tClassic, nClassic, tModal, nModal);
+        CHECK(nModal > 10 && nClassic > 10, "the root moves under both");
+        CHECK(tModal * nClassic > tClassic * nModal && tModal >= 2, "and Modal steps by a whole tone where Classic hardly does");
+    }
+    {   // Section 4: the Harmonic Cloud and the difference tone.
+        FixedScale ji; makeBuiltinScale(3, ji);   // JI 7-limit
+        auto onSeries = [&](float series) {
+            BrainParams p;
+            p.density = 5; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 36; p.high = 84;
+            p.series = series; p.wander = 0.0f;
+            std::vector<std::vector<int>> chords; std::vector<int> roots, arrived;
+            runBrain(p, ji, true, 40.0, 0x51ull, chords, roots, nullptr, &arrived);
+            const double root = scaleFrequency(ji, 48, 60, 440.0, true);
+            double f0 = root; while (f0 >= 40.0) f0 *= 0.5;
+            int on = 0, all = 0;
+            for (int note : arrived) {
+                const double f = scaleFrequency(ji, note, 60, 440.0, true), hh = f / f0;
+                const double cents = std::fabs(1200.0 * std::log2(hh / std::max(1.0, std::round(hh))));
+                ++all; if (cents < 15.0 && std::round(hh) <= 16.0) ++on;
+            }
+            return all > 0 ? static_cast<double>(on) / all : 0.0;
+        };
+        const double off = onSeries(0.0f), full = onSeries(1.0f);
+        std::printf("  [probe] harmonic cloud: %.0f %% of the notes on harmonics 1..16 of the fundamental without Series, %.0f %% with it\n", 100.0 * off, 100.0 * full);
+        CHECK(full > off + 0.15, "Series draws the notes onto the fundamental's harmonics");
+        FixedScale et; makeBuiltinScale(0, et);
+        BrainParams p;
+        p.density = 5; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 28; p.high = 70;
+        p.consonance = 0.2f; p.lowSpacing = 1.0f;
+        std::vector<std::vector<int>> chords; std::vector<int> roots, arrived;
+        runBrain(p, et, true, 60.0, 0x99ull, chords, roots, nullptr, &arrived);
+        int low = 0, pairs = 0;
+        for (size_t k = 0; k < chords.size(); ++k) {
+            const auto& c = chords[k];
+            // Only where the arriving note made the pair of the two lowest: a pair left behind by a
+            // voice that went is not a choice the conductor made.
+            if (c.size() < 2 || c[1] >= 48 || (arrived[k] != c[0] && arrived[k] != c[1])) continue;
+            ++pairs;
+            const double d = scaleFrequency(et, c[1], 60, 440.0, true) - scaleFrequency(et, c[0], 60, 440.0, true);
+            if (d < 25.0) ++low;
+        }
+        std::printf("  [probe] difference tone of the two lowest voices under MIDI 48: %d of %d under 25 Hz\n", low, pairs);
+        CHECK(pairs > 0 && low == 0, "the two lowest voices never make a difference tone under 25 Hz");
+    }
+}
+
+/**
+ * @brief The production guide's second round (25.09.2026): four-times oversampling, seven bands of
+ *        ducking on the far hall and the room, serial rooms, the far return's mid high-pass, the
+ *        Foundation's ceiling and the correlation meter.
+ *
+ * What it proves, one block each: the oversampler passes a 1 kHz and an 18 kHz sine at unity and
+ * exactly 29.5 samples late, and takes the aliases of a clipped 9 kHz sine at least 25 dB further
+ * down than the same curve at the base rate; the filter's drive, now oversampled, leaves its aliases
+ * more than 40 dB under the fundamental; Unmask's seven bands add back to the input exactly when
+ * nothing ducks, and a foreground tone at 2 kHz ducks the background around 2 kHz by more than it
+ * ducks it at 200 Hz; To Far carries the room into the far hall (the far stem grows) and does nothing
+ * while the room is silent; Mid Low Cut takes the far return's middle down below 300 Hz and leaves
+ * its sides; the Foundation's ceiling holds a beating sub under -6 dBFS at the output where without
+ * it the sub goes over; the correlation meter reads +1, -1 and nought for the same, the inverted and
+ * two unrelated signals; and the defaults are the guide's.
+ */
+void testGuideRound2()
+{
+    const int sr = 48000;
+    {   // The oversampler on its own.
+        Oversampler4 os;
+        double err = 0.0;
+        for (int i = 0; i < sr / 4; ++i) {
+            const float x = 0.5f * std::sin(6.2831853f * 1000.0f * static_cast<float>(i) / static_cast<float>(sr));
+            const float y = os.process(x, [](float v) { return v; });
+            if (i > 2000) err = std::max(err, std::fabs(static_cast<double>(y) - 0.5 * std::sin(6.283185307179586 * 1000.0 * (i - 29.5) / sr)));
+        }
+        CHECK(err < 1.0e-4, "the oversampler passes 1 kHz at unity, exactly 29.5 samples late");
+        Oversampler4 hi;
+        std::vector<float> y18(static_cast<size_t>(sr));
+        for (int i = 0; i < sr; ++i) y18[static_cast<size_t>(i)] = hi.process(0.5f * std::sin(6.2831853f * 18000.0f * static_cast<float>(i) / static_cast<float>(sr)), [](float v) { return v; });
+        double sq = 0.0; for (int i = sr / 4; i < sr; ++i) sq += static_cast<double>(y18[static_cast<size_t>(i)]) * y18[static_cast<size_t>(i)];
+        const double rms18 = std::sqrt(sq / (sr - sr / 4));
+        CHECK(std::fabs(20.0 * std::log10(rms18 / (0.5 / std::sqrt(2.0)))) < 0.1, "and 18 kHz within a tenth of a decibel");
+        auto clip = [](float v) { return v > 0.3f ? 0.3f : (v < -0.3f ? -0.3f : v); };
+        Oversampler4 oc;
+        std::vector<float> plain(static_cast<size_t>(sr)), over(static_cast<size_t>(sr));
+        for (int i = 0; i < sr; ++i) {
+            const float x = 0.9f * std::sin(6.2831853f * 9000.0f * static_cast<float>(i) / static_cast<float>(sr));
+            plain[static_cast<size_t>(i)] = clip(x);
+            over[static_cast<size_t>(i)] = oc.process(x, clip);
+        }
+        const double aPlain = goertzel(plain.data() + sr / 4, sr / 2, 3000.0, sr), aOver = goertzel(over.data() + sr / 4, sr / 2, 3000.0, sr);
+        std::printf("  [probe] oversampling: the 5th harmonic of a clipped 9 kHz sine folds to 3 kHz %.1f dB lower at four times the rate\n",
+                    10.0 * std::log10(aOver / aPlain));
+        CHECK(10.0 * std::log10(aOver / aPlain) < -25.0, "a clipped 9 kHz sine aliases at least 25 dB less at four times the rate");
+    }
+    {   // The filter's drive, oversampled.
+        VoiceFilter f;
+        f.prepare(sr);
+        f.set(FilterModel::Lp12, 20000.0f, 0.0f, 1.0f);
+        std::vector<float> L(static_cast<size_t>(sr));
+        for (int i = 0; i < sr; ++i) {
+            float oL, oR;
+            const float x = 0.5f * std::sin(6.2831853f * 9000.0f * static_cast<float>(i) / static_cast<float>(sr));
+            f.tick(x, x, oL, oR);
+            L[static_cast<size_t>(i)] = oL;
+        }
+        const double fund = goertzel(L.data() + sr / 4, sr / 2, 9000.0, sr), alias = goertzel(L.data() + sr / 4, sr / 2, 3000.0, sr);
+        std::printf("  [probe] filter drive: the fold-back at 3 kHz stands %.1f dB under a driven 9 kHz tone\n", 10.0 * std::log10(alias / fund));
+        CHECK(10.0 * std::log10(alias / fund) < -40.0, "the driven filter's aliases stand more than 40 dB under the fundamental");
+    }
+    {   // Unmask: seven bands that add back exactly, and a duck where the foreground is.
+        Unmask u;
+        u.prepare(sr);
+        u.set(0.3f, 0.0f, 0.5f);
+        const int n = sr;
+        std::vector<float> nearL(static_cast<size_t>(n), 0.0f), nearR(static_cast<size_t>(n), 0.0f), bgL(static_cast<size_t>(n)), bgR(static_cast<size_t>(n));
+        Rng rng; rng.seed(11);
+        for (int i = 0; i < n; ++i) { bgL[static_cast<size_t>(i)] = 0.1f * rng.bipolar(); bgR[static_cast<size_t>(i)] = 0.1f * rng.bipolar(); }
+        std::vector<float> keepL = bgL;
+        u.process(nearL.data(), nearR.data(), bgL.data(), bgR.data(), n);
+        double diff = 0.0; for (int i = 0; i < n; ++i) diff = std::max(diff, std::fabs(static_cast<double>(bgL[static_cast<size_t>(i)] - keepL[static_cast<size_t>(i)])));
+        CHECK(diff < 1.0e-5, "with a silent foreground the seven bands add back to the background exactly");
+        // A foreground tone at 2 kHz, about -20 dBFS: the background's 2 kHz goes down, its 200 Hz hardly.
+        Unmask v;
+        v.prepare(sr);
+        v.set(0.3f, 0.0f, 0.5f);
+        for (int i = 0; i < n; ++i) {
+            const float t = 0.14f * std::sin(6.2831853f * 2000.0f * static_cast<float>(i) / static_cast<float>(sr));
+            nearL[static_cast<size_t>(i)] = t; nearR[static_cast<size_t>(i)] = t;
+            const float b = 0.05f * (std::sin(6.2831853f * 200.0f * static_cast<float>(i) / static_cast<float>(sr))
+                                     + std::sin(6.2831853f * 2100.0f * static_cast<float>(i) / static_cast<float>(sr)));
+            bgL[static_cast<size_t>(i)] = b; bgR[static_cast<size_t>(i)] = b;
+        }
+        std::vector<float> dry = bgL;
+        v.process(nearL.data(), nearR.data(), bgL.data(), bgR.data(), n);
+        const double d2k = 10.0 * std::log10(goertzel(bgL.data() + n / 2, n / 2, 2100.0, sr) / goertzel(dry.data() + n / 2, n / 2, 2100.0, sr));
+        const double d200 = 10.0 * std::log10(goertzel(bgL.data() + n / 2, n / 2, 200.0, sr) / goertzel(dry.data() + n / 2, n / 2, 200.0, sr));
+        std::printf("  [probe] unmask: a 2 kHz foreground at -20 dBFS ducks the background %.1f dB at 2.1 kHz and %.1f dB at 200 Hz (Unmask 0.3)\n", d2k, d200);
+        CHECK(d2k < -2.0, "the background gives way where the foreground is");
+        CHECK(d2k < d200 - 2.0, "and less where it is not: the duck follows the foreground's band");
+    }
+    auto farStemRms = [&](float roomLevel, float toFar, float midCut, float sendCut, double& lowMid, double& lowSide) {
+        Engine e;
+        e.applyPreset(0);
+        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamId::RoomLevel, roomLevel); e.setParam(ParamId::RoomToFar, toFar);
+        e.setParam(ParamId::FarMidLowcut, midCut); e.setParam(ParamId::SendLowcut, sendCut);
+        e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::KeysDepth, 0.8f);
+        e.prepare(sr, 256);
+        std::vector<float> st(static_cast<size_t>(Engine::kNumStems) * 2 * 256, 0.0f);
+        float* ptr[Engine::kNumStems * 2];
+        for (int c = 0; c < Engine::kNumStems * 2; ++c) ptr[c] = st.data() + static_cast<size_t>(c) * 256;
+        e.setStemBuffers(ptr);
+        e.noteOn(45, 0.8f); e.noteOn(52, 0.8f);
+        std::vector<float> L(256), R(256), mid, side;
+        double sq = 0.0; long cnt = 0;
+        for (int b = 0; b < 4 * sr / 256; ++b) {
+            e.process(L.data(), R.data(), 256);
+            if (b < 2 * sr / 256) continue;
+            for (int i = 0; i < 256; ++i) {
+                const float l = ptr[2][i], r = ptr[3][i];
+                sq += static_cast<double>(l) * l + static_cast<double>(r) * r; ++cnt;
+                mid.push_back(0.5f * (l + r)); side.push_back(0.5f * (l - r));
+            }
+        }
+        e.setStemBuffers(nullptr);
+        const int m = static_cast<int>(mid.size());
+        lowMid = goertzel(mid.data(), m, 110.0, sr);
+        lowSide = goertzel(side.data(), m, 110.0, sr);
+        return std::sqrt(sq / std::max(cnt, 1L));
+    };
+    {   // Serial rooms: To Far carries the room into the far hall, and only when there is a room.
+        double a, b;
+        const double withRoom = farStemRms(0.6f, 0.3f, 300.0f, 150.0f, a, b), noSend = farStemRms(0.6f, 0.0f, 300.0f, 150.0f, a, b);
+        const double silentRoom = farStemRms(0.0f, 0.3f, 300.0f, 150.0f, a, b), silentNoSend = farStemRms(0.0f, 0.0f, 300.0f, 150.0f, a, b);
+        std::printf("  [probe] serial rooms: the far stem is %.2f dB louder with To Far 0.3 than without\n", 20.0 * std::log10(withRoom / noSend));
+        // A tenth of a decibel and more: ten to twenty per cent of the room's return under a far
+        // hall that already carries the whole plane is meant to be a continuation, not a second hall.
+        CHECK(withRoom > noSend * 1.01, "To Far: the room's return reaches the far hall");
+        CHECK(std::fabs(silentRoom - silentNoSend) < 1.0e-6 * std::max(silentNoSend, 1e-9), "and a silent room sends nothing");
+    }
+    {   // Mid Low Cut: the far return's middle loses its low end, its sides do not.
+        double midOff, sideOff, midOn, sideOn;
+        farStemRms(0.0f, 0.0f, 20.0f, 20.0f, midOff, sideOff);
+        farStemRms(0.0f, 0.0f, 300.0f, 20.0f, midOn, sideOn);
+        const double dMid = 10.0 * std::log10(midOn / midOff), dSide = 10.0 * std::log10(sideOn / std::max(sideOff, 1e-30));
+        std::printf("  [probe] far mid low cut: the far return's mid at 110 Hz %.1f dB, its side %.1f dB with the cut at 300 Hz\n", dMid, dSide);
+        CHECK(dMid < -12.0, "Mid Low Cut 300: the far return's middle loses its low end");
+        CHECK(std::fabs(dSide) < 1.0, "and its sides keep theirs");
+    }
+    {   // The Foundation's ceiling.
+        auto subPeak = [&](float ceiling) {
+            Engine e;
+            e.setParam(ParamId::BrainOn, 0.0f);
+            e.setParam(ParamId::SubLevel, 1.0f); e.setParam(ParamId::SubBinaural, 0.0f); e.setParam(ParamId::SubBeat, 0.5f);
+            e.setParam(ParamId::SubCeiling, ceiling); e.setParam(ParamId::MasterGain, 6.0f);
+            e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
+            e.prepare(sr, 256);
+            std::vector<float> cap;
+            render(e, 12.0, &cap);
+            double peak = 0.0;
+            for (size_t i = cap.size() / 2; i < cap.size(); ++i) peak = std::max(peak, std::fabs(static_cast<double>(cap[i])));
+            return 20.0 * std::log10(std::max(peak, 1e-9));
+        };
+        const double limited = subPeak(-6.0f), open = subPeak(0.0f);
+        std::printf("  [probe] foundation ceiling: a beating sub peaks at %.1f dBFS under a -6 dBFS ceiling, %.1f dBFS under 0\n", limited, open);
+        CHECK(limited < -5.5, "Ceiling -6: the sub stays under -6 dBFS at the output");
+        CHECK(open > limited + 2.0, "and a higher ceiling lets it higher");
+    }
+    {   // The correlation meter.
+        auto corr = [&](int kind) {
+            LoudnessMeter m;
+            m.prepare(sr);
+            Rng rng; rng.seed(5);
+            std::vector<float> L(4800), R(4800);
+            for (int b = 0; b < 40; ++b) {
+                for (int i = 0; i < 4800; ++i) {
+                    const float x = 0.2f * rng.bipolar();
+                    L[static_cast<size_t>(i)] = x;
+                    R[static_cast<size_t>(i)] = kind == 0 ? x : (kind == 1 ? -x : 0.2f * rng.bipolar());
+                }
+                m.process(L.data(), R.data(), 4800);
+            }
+            return m.read();
+        };
+        const LoudnessReading same = corr(0), inverted = corr(1), unrelated = corr(2);
+        CHECK(same.correlation > 0.999f && same.correlationMean > 0.999f, "the correlation meter reads +1 for the same signal in both channels");
+        CHECK(inverted.correlation < -0.999f, "-1 for one channel the other upside down");
+        CHECK(std::fabs(unrelated.correlation) < 0.05f && std::fabs(unrelated.correlationMean) < 0.05f, "and nought for two unrelated signals");
+    }
+    {   // The defaults are the guide's.
+        CHECK(std::fabs(paramDesc(ParamId::RoomToFar).def - 0.15f) < 1e-6f && std::string(paramDesc(ParamId::RoomToFar).section) == "Room", "To Far: 0.15, in the room's section");
+        CHECK(paramDesc(ParamId::FarMidLowcut).def == 300.0f && std::string(paramDesc(ParamId::FarMidLowcut).section) == "Far Reverb", "Mid Low Cut: 300 Hz, beside the far reverb");
+        CHECK(paramDesc(ParamId::SubCeiling).def == -6.0f && std::string(paramDesc(ParamId::SubCeiling).section) == "Foundation", "Ceiling: -6 dBFS, with the Foundation");
+        CHECK(std::fabs(paramDesc(ParamId::FarUnmaskReturn).def - 0.5f) < 1e-6f, "Unmask Return: the guide's half second");
+    }
+}
+
+/**
  * @brief Runs every test function in turn and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -9076,6 +9466,8 @@ int main()
     testBeatSource();
     testDelayDuck();
     testGuideRound();
+    testGuideRound2();
+    testReviewRound();
     testZModal();
     testZPlaneBank();
     testFilterModels();

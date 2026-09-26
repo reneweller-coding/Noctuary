@@ -164,6 +164,13 @@ void Engine::prepare(double sampleRate, int maxBlockSize)
     smBlur_.setTime(0.02f, sr_);
     smBody_.setTime(0.02f, sr_);
     unmask_.prepare(sr_);
+    roomUnmask_.prepare(sr_);
+    smRoomToFar_.setTime(0.02f, sr_);
+    smRoomToFar_.snap(getParam(ParamId::RoomToFar));
+    farMidHp_.reset();
+    subPeak_ = 0.0f; subLimGain_ = 1.0f;
+    airOsL_.reset(); airOsR_.reset(); fbOsL_.reset(); fbOsR_.reset();
+    airOsOn_ = fbOsOn_ = false;
     haas_.prepare(sr_);
     early_.prepare(sr_);
     diffuser_.prepare(sr_);

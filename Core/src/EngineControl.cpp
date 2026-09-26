@@ -963,6 +963,11 @@ void Engine::readParams()
     bp_.homeTime   = g(ParamId::BrainHomeTime);        bp2_.homeTime   = bp_.homeTime;
     bp_.memory     = g(ParamId::BrainMemory);          bp2_.memory     = bp_.memory;
     bp_.degreeSwap = g(ParamId::BrainDegreeSwap);      bp2_.degreeSwap = bp_.degreeSwap;
+    // The review against ambient harmony (25.09.2026): the root's targets, the undertone sets and
+    // the Harmonic Cloud. The facts about the tuning the review's fixes read are set with the tuning below.
+    bp_.rootTargets = clampv(static_cast<int>(std::lround(g(ParamId::BrainRootTargets))), 0, 3);   bp2_.rootTargets = bp_.rootTargets;
+    bp_.utonal     = g(ParamId::BrainUtonal);          bp2_.utonal     = bp_.utonal;
+    bp_.series     = g(ParamId::BrainSeries);          bp2_.series     = bp_.series;
     bp_.loop = static_cast<int>(std::lround(g(ParamId::BrainLoop)));
     bp2_.loop = bp_.loop;
     bp_.spread = g(ParamId::BrainSpread);
@@ -1107,6 +1112,14 @@ void Engine::readParams()
     nearReverb_.setSpace(0.3f, 20000.0f, g(ParamId::NearLowcut));
     nearReverb_.set(0.6f, g(ParamId::NearDecay), g(ParamId::NearDamp), 5.0f, false, g(ParamId::NearMix));
     unmask_.set(g(ParamId::FarUnmask), g(ParamId::FarUnmaskSpread), g(ParamId::FarUnmaskReturn));
+    // The guide's second round (25.09.2026): the main room ducks under the near bus on the same
+    // knob as the far hall, feeds the far hall (To Far), the far return loses the low middle of its
+    // centre (Mid Low Cut), and the Foundation has a ceiling of its own.
+    roomUnmask_.set(g(ParamId::FarUnmask), g(ParamId::FarUnmaskSpread), g(ParamId::FarUnmaskReturn));
+    roomToFar_ = g(ParamId::RoomToFar);
+    farMidLowcut_ = g(ParamId::FarMidLowcut);
+    if (farMidLowcut_ > 21.0f) farMidHp_.setQ(clampv(farMidLowcut_, 20.0f, 1000.0f), 0.7071f, static_cast<float>(sr_));
+    subCeiling_ = g(ParamId::SubCeiling);
     bodyLevel_ = g(ParamId::BodyLevel);
     bodyPitch_ = g(ParamId::BodyPitch);
     body_.set(static_cast<BodyMaterial>(clampv(static_cast<int>(std::lround(g(ParamId::BodyMaterial))), 0, kNumBodyMaterials - 1)),
@@ -1216,6 +1229,18 @@ void Engine::readParams()
                 if (b > 0.0) { const double a2 = frequencyOf(v.note()); if (a2 > 0.0) v.setRootComp(v.rootComp() * static_cast<float>(b / a2)); }
             }
         } else rootNote_ = newRoot;
+    }
+    {   // What the conductors need to know about the tuning (the review's F1 and F6): the scale, for
+        // a key profile of its own and for placing a difference tone; whether it repeats at the
+        // octave; and whether a MIDI step is a semitone at all.
+        const bool octave = std::fabs(scale_->period - 2.0) < 1.0e-9;
+        const double firstHz = scaleFrequency(*scale_, rootNote_, rootNote_, refPitch_, snapKeys_);
+        for (BrainParams* b : { &bp_, &bp2_ }) {
+            b->scale = scale_;
+            b->octavePeriodic = octave;
+            b->consecutive = !snapKeys_ || !octave;   // a non-octave scale is walked degree by degree whatever Key Map says
+            b->scaleRootHz = firstHz;
+        }
     }
     {
         const float purity = g(ParamId::TunePurity), drift = g(ParamId::TuneDrift);

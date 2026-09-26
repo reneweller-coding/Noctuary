@@ -8,7 +8,7 @@ endif()
 # Tied to MSVC, the option quietly went missing under any other Windows compiler -- Intel's, for
 # one -- and the binary died on startup with nothing but an exit code.
 if(WIN32)
-    target_link_options(ambient_render PRIVATE "LINKER:/STACK:16777216")
+    target_link_options(ambient_render PRIVATE "LINKER:/STACK:67108864")
 endif()
 
 # The conductor's hour, measured without audio: the rule book's section 11 as a tool.
@@ -18,5 +18,5 @@ if(MSVC)
     target_compile_options(ambient_brain_audit PRIVATE /W4 /permissive- /utf-8)
 endif()
 if(WIN32)
-    target_link_options(ambient_brain_audit PRIVATE "LINKER:/STACK:16777216")
+    target_link_options(ambient_brain_audit PRIVATE "LINKER:/STACK:67108864")
 endif()

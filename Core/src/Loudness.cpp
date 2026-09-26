@@ -292,6 +292,9 @@ void LoudnessMeter::reset()
     std::fill(sumR_.begin(), sumR_.end(), 0.0);
     ringPos_ = 0; ringFilled_ = 0; hopPos_ = 0;
     hopL_ = hopR_ = 0.0; hopSamples_ = 0;
+    hopLR_ = hopLL_ = hopRR_ = 0.0;
+    corrLR_.fill(0.0); corrLL_.fill(0.0); corrRR_.fill(0.0);
+    totLR_ = totLL_ = totRR_ = 0.0;
     blocks_.clear(); shortBlocks_.clear();
     truePeak_ = 0.0; seconds_ = 0.0; lastShort_ = -120.0f;
     for (int i = 0; i < 4; ++i) { tpHistL_[i] = 0.0f; tpHistR_[i] = 0.0f; }
@@ -340,9 +343,14 @@ void LoudnessMeter::pushBlock()
     // One hop finished: it joins the ring, and the last four hops make a 400 ms block.
     sumL_[static_cast<size_t>(ringPos_)] = hopSamples_ > 0 ? hopL_ / static_cast<double>(hopSamples_) : 0.0;
     sumR_[static_cast<size_t>(ringPos_)] = hopSamples_ > 0 ? hopR_ / static_cast<double>(hopSamples_) : 0.0;
+    corrLR_[static_cast<size_t>(ringPos_)] = hopLR_;
+    corrLL_[static_cast<size_t>(ringPos_)] = hopLL_;
+    corrRR_[static_cast<size_t>(ringPos_)] = hopRR_;
+    totLR_ += hopLR_; totLL_ += hopLL_; totRR_ += hopRR_;
     ringPos_ = (ringPos_ + 1) % kHopsPerShort;
     if (ringFilled_ < kHopsPerShort) ++ringFilled_;
     hopL_ = hopR_ = 0.0; hopSamples_ = 0;
+    hopLR_ = hopLL_ = hopRR_ = 0.0;
 
     auto meanOver = [this](int hops, double& l, double& r) {
         const int n = std::min(hops, ringFilled_);
@@ -378,6 +386,10 @@ void LoudnessMeter::process(const float* L, const float* R, int n)
         const float kl = kL_.process(l), kr = kR_.process(r);
         hopL_ += static_cast<double>(kl) * kl;
         hopR_ += static_cast<double>(kr) * kr;
+        // The correlation of the two channels, unweighted: a correlation meter shows the whole band.
+        hopLR_ += static_cast<double>(l) * r;
+        hopLL_ += static_cast<double>(l) * l;
+        hopRR_ += static_cast<double>(r) * r;
         ++hopSamples_;
         if (++hopPos_ >= hopLen_) { hopPos_ = 0; pushBlock(); }
     }
@@ -393,6 +405,19 @@ LoudnessReading LoudnessMeter::read() const
     out.sonesMax = zwicker_.sonesMax();
     out.sonesN5 = zwicker_.sonesN5();
 
+    {   // The correlation of the two channels, over the short-term window and since the reset: +1 is
+        // mono, 0 two unrelated signals, -1 one channel the other upside down. The production guide
+        // wants the mean between 0.3 and 0.7 on the master (25.09.2026).
+        double lr = 0.0, ll = 0.0, rr = 0.0;
+        for (int k = 1; k <= ringFilled_; ++k) {
+            const int idx = (ringPos_ - k + kHopsPerShort) % kHopsPerShort;
+            lr += corrLR_[static_cast<size_t>(idx)];
+            ll += corrLL_[static_cast<size_t>(idx)];
+            rr += corrRR_[static_cast<size_t>(idx)];
+        }
+        if (ll * rr > 1.0e-24) out.correlation = static_cast<float>(lr / std::sqrt(ll * rr));
+        if (totLL_ * totRR_ > 1.0e-24) out.correlationMean = static_cast<float>(totLR_ / std::sqrt(totLL_ * totRR_));
+    }
     {   // Momentary: the last four hops, which is the last 400 ms.
         double l = 0.0, r = 0.0;
         const int n = std::min(kHopsPerBlock, ringFilled_);

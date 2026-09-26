@@ -3595,7 +3595,152 @@ or wider -- the guide wants the far layer widest, and with Near Width the near p
 the far one by default whatever Far Width says. The micro-motion amounts (5 cents of drift, 0.7 octaves of filter drift) are larger
 than the guide's, deliberately: they are what the R-rounds measured as alive. Oversampling of the
 nonlinear stages, a correlation meter in the panel, a mid high-pass on the returns and the spectral
-ducking in six to eight bands are noted as open.
+ducking in six to eight bands are noted as open -- and were built the next night, below.
+
+## The guide's second round, and the conductor against ambient harmony (25./26.09.2026)
+
+Two documents of the same day: the production guide, whose first round is above, and a review of
+the Cluster Brain against the harmony of the genre ("Review: Cluster Brain vs.
+Ambient-Harmonielehre"). The first round had left four of the guide's points open and found two
+more; the review found eight places where a model of tonal music psychology -- major and minor,
+twelve equal steps, the octave, interval classes -- was set on modal, just, register-bound drone
+music. Both rounds are in the engine, and the library was measured once for all of it.
+
+**The rooms, serial** (`room_to_far`, Room, default 0.15). The guide's main room feeds its far room
+at ten to twenty per cent, so the horizon sounds like the same place going on rather than a second,
+foreign one -- the trick behind Lustmord's "endless" rooms. The convolution room is now processed
+ahead of the far hall (its input was taken there already, so what it hears is unchanged) and its
+return, before it is ducked, goes into the hall's input. Subtle by design: at 0.3 the far stem of
+the default patch with the room at 0.6 is 0.19 dB louder, a continuation and not a second hall.
+
+**The far return in mid and side** (`far_mid_lowcut`, Far Reverb, default 300 Hz). The guide lets
+the far room's sides be as wide as they like and high-passes its middle from 300 Hz, so the centre
+below that belongs to the near plane and the sub. A second-order high-pass on the mid of the far
+bus after the hall; measured, the far return's mid at 110 Hz 17.4 dB down and its side untouched.
+
+**Ducking in seven bands, on both rooms.** Unmask had three bands on one-pole crossovers; the guide
+asks for six to eight. Now seven, an octave apart from 150 Hz to 4.8 kHz, on second-order
+crossovers whose bands are differences of neighbouring low-passes -- so they still add back to the
+input exactly -- a 20 ms attack and the guide's half second of return (the Return default, 1.2 s
+before). The one-poles were too gentle for seven bands: a 2 kHz foreground ducked the background
+2.4 dB at 2.1 kHz and 1.0 dB at 200 Hz; on the steeper crossovers it is 5.8 and 0.6 (Unmask 0.3,
+foreground at -20 dBFS). The engine runs a second Unmask on the convolution room's return, on the
+same knob -- the guide's "the near bus ducks the main room". The guide's depth is two to four
+decibels, a tenth to a fifth of the knob; the library's 0.2 .. 0.44 was mapped onto 0.1 .. 0.2 with
+its ordering kept (guide.py).
+
+**The Foundation's ceiling** (`sub_ceiling`, Foundation, default -6 dBFS). A beating sub swings its
+peaks by up to six decibels, and summed straight into the master it drove the soft clipper, which
+pumped everything else with it. The sub now has its own limiter before the sum, its ceiling in
+dBFS at the output (the master gain taken out of it), instant to hold a peak, 5 ms to act, half a
+second to let go. Measured with Beat 0.5 Hz and the master at +6 dB: the sub peaks at -6.0 dBFS
+under the default ceiling and at -2.8 with the ceiling at 0.
+
+**Four times the rate on everything nonlinear.** Oversample.h: two linear-phase half-band stages
+(51 and 19 taps, 80 dB, flat to 18 kHz, 29.5 samples of latency). On the filter's drive, the
+wavefolder, the Patina's tape, the air ahead of the far hall and the feedback loop's saturation.
+A clipped 9 kHz sine aliases 31.7 dB less; the driven filter's fold-back stands 55.5 dB under its
+fundamental. Three are left at the base rate, each for a reason: the master's soft clip (its third
+harmonic stands 40 dB under a peak at the library's levels, and 0.6 ms on every output would move
+the output off its stems), the ladder's saturation (it is inside the filter's own feedback loop,
+which would have to run at four times the rate as a whole), and the near radio (its input is
+band-limited to 3 kHz before the cubic, which then makes nothing above 9 kHz). Where Filter
+Parallel mixes the dry sum with the driven filter, the dry sum is delayed by the same 29.5 samples.
+The Memory's loop and the Cloud already had antiderivative antialiasing.
+
+**A correlation meter.** The loudness meter measures left against right over three seconds and
+since its reset; the panel shows it beside the true peak and the crest and turns amber under
+nought, and the renderer's loudness line carries the mean (`corr=`). The guide wants the master
+between 0.3 and 0.7.
+
+**The harmony review, in the engine.**
+
+- F5 -- the consonance is continuous. intervalConsonance() was the Tenney height of the simplest
+  ratio within ten cents, a step function: a tempered major third, fourteen cents from 5/4, fell
+  from 0.19 to 0.11 and was judged as rough as a semitone. It is harmonic entropy now (Erlich; a
+  17-cent Gaussian over the ratios with n x d <= 10000, weighted 1/sqrt(n d)), a table of one value
+  per cent written by Tools/make_harmonic_entropy.py, mapped onto the old scale: the fifth 0.30,
+  the fourth 0.21, 5/4 0.17, 9/8 0.13, 16/15 0.11 -- and the tempered third 0.15.
+- F1 -- the key is the scale's own. The Krumhansl-Kessler profiles measure major and minor cadences
+  and put the third above the fourth and the second; on a just scale the profile is now made of the
+  scale -- each degree's consonance with the tonic, spread to the listeners' range (the fifth 0.8,
+  the fourth 0.64, a third about 0.55, a bin the scale does not reach 0.35) -- and Thirds and
+  Seconds tilt it. On Harmonic 8-16 the key is the overtone series (7/4 at 0.52, the minor third
+  the scale lacks at 0.35); 12-TET keeps Krumhansl-Kessler. With Key up on the default JI 7-limit
+  the key's confidence rises from 0.62 to 0.85 (a first mapping, 1 + 0.2 ln c, left the profile
+  without shape: 0.68 against 0.66).
+- F2a -- the prime limit. Harmonicity weights a harmonic holding the prime five by 1 + 0.8 Thirds
+  under nought (a fifth at Thirds -1) and one holding seven by 1 + 0.5 Seventh: under Thirds -1 the
+  just major triad keeps no more than its open fifth's share.
+- F2b -- Utonal (`brain_utonal`): the mirror measure, every tone an undertone of a common top; with
+  Utonal up Harmonic takes the larger of the two. A minor triad is 0.391 utonal, 0.377 harmonic.
+- F3 -- adaptive intonation (`purity_adapt` 0.4 .. 0.8) wherever the root moves: a range, below.
+- F4 -- distances, not interval classes. The tritone veto is for the close tritone (and the one an
+  octave up in the bass); a second's colour fades by half with every octave between its notes, and
+  sought it counts an octave apart in any register -- dissonance by separating registers; the
+  ceiling of two notes an octave is a window of twelve semitones. An hour under Low Spacing 1:
+  no close tritone below MIDI 55, 336 spread over an octave and more.
+- F6 -- other tunings. On a scale that does not repeat at the octave, Key, Even and the
+  constellation memory are off and no key is shown; on a keyboard that walks the scale degree by
+  degree every rule reads its distances from the frequencies. Half an hour of Bohlen-Pierce: 341
+  onsets, nothing closer than a minor third below MIDI 60.
+- F7 -- the deep family's background register from MIDI 20 (26 Hz): a range, below.
+- F8 -- Root Targets (`brain_root_targets`): Classic, the six intervals alike; Modal (the default:
+  the fifth 40 %, the fourth 30 %, the whole tone up or down 25 %); Mediant; Phrygian (the falling
+  semitone a fifth of the time). Four two-hour runs: whole-tone root steps 0 of 112 under Classic,
+  25 of 112 under Modal.
+- Section 4: Series (`brain_series`), the Harmonic Cloud -- candidates drawn to the harmonics of the
+  root's fundamental under 40 Hz, 1/sqrt(h) above the eighth, the prime limit of Thirds and
+  Seventh; on JI 7-limit 46 % of the notes land on harmonics 1..16 without it, 87 % with it. The
+  difference tone: under Low Spacing the two lowest voices under MIDI 48 must make one of 25 Hz or
+  more that stands on the scale (an hour: 0 of 92 pairs under 25 Hz). The tension arc: Arc Harmony
+  by family, a range.
+
+**The ranges** (Tools/library/review.py, applied to every preset the generator writes and by
+retrofit_review.py to the 14591 that exist, each by its family): purity_adapt 0.4 .. 0.8 where the
+root moves; the deep family's Brain 2 register 20 .. 24 to 36 .. 40 MIDI; Root Targets Modal, but
+Mediant for luminous and Phrygian for ritual; Utonal 0.6 .. 0.9 deep, 0.4 .. 0.7 ritual, 0.3 .. 0.6
+cold, a little elsewhere; Series 0.2 .. 0.5 for sleep and space; Arc Harmony 0.1 .. 0.5 by family.
+Fuzzy: a value is drawn inside its window from a hash of the preset's name, and a value already
+inside stays. conductor_ranges.md and .json carry the same rows.
+
+**The library, measured once.** The loudness window is the guide's for dark ambient now, -20 ..
+-16 LUFS (it was -24 .. -18 in the first round), a lift never goes past -1 dBTP, and two of the
+guide's targets that are no parameter are pulled towards from the measurement (guide_fit.py): the
+sub three to six decibels over 250 and 500 Hz, by Sub Level, and the correlation between 0.3 and
+0.7, by the master's Width inside its cap of 1.3 -- sixty per cent of the way to the nearer edge,
+jittered by the preset's name, so the library spreads through the windows instead of stacking on
+their edges. Two passes, so every preset gets its gain once: measured without gain, fitted, and
+the fitted ones measured again with the gain for all. The built-ins go through the same mill as a
+pack (builtin_pack.py writes Presets.cpp's rows out and the measured gain, Sub Level and Width back
+in -- NOT rebuild_all's step 5, whose staging packs of 13.09 would have undone the first round).
+
+How it went, for the record. The first fit moved sixty per cent of the way to the nearer edge and
+was undone before it was measured: it would have left the median correlation at 0.24 and the sub at
++0.6 dB, still outside. Moved into the windows instead, the second pass showed the fit's blind spot
+-- it had lifted subs and widths at once, and a sub is mono, so 3162 presets it had brought into
+the correlation's window came out over 0.7 -- and a second fit, from that measurement and with the
+sub's share in the arithmetic, moved 5603 presets once more (a third pass, its gain corrected for
+exactly those, so nothing was lifted twice). The lift the loudness window may make went from six
+decibels to twelve: at the old gains the new engine plays the packs at a median of -28.1 LUFS,
+about eight under where they were, and at six most of the library would have stayed out of reach.
+
+```
+                                   packs (14336)              built-ins (255)
+                                   before       after         before      after
+loudness -20 .. -16 LUFS           (-28.1 med)  12215         --          232
+true peak <= -1 dBTP               14329        14335         255         255
+correlation 0.3 .. 0.7             4817         12487         82          234
+mono loss <= 3 dB                  11534        14334         190         255
+crest >= 12 dB                     9494         10520         138         156
+sub 3 .. 6 dB over 250-500 Hz      741 of 9043  5792 of 9043  5 of 137    85 of 137   (presets with a sub)
+```
+
+Under the window stay the 2118 quietest packs, which needed more than twelve decibels (the ones the
+cap is there for); 1072 subs that stand under their window already play at Sub Level 1. The crest
+moved least, as expected: it is a property of the material -- a bed without transients -- and no
+knob of this round was aimed at it. The loudness range is under 8 LU for nearly every preset, which
+over one measured minute of a drone says nothing: the guide's 8 to 20 LU are for a whole piece.
 
 ## Roadmap
 

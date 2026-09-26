@@ -38,6 +38,13 @@ What the guide asks for and what each window does -- the values are the guide's 
     lfoN_sync        no two LFOs on bar divisions (2:1 period ratios): the first synced LFO keeps
                      its division, the others go free on their own rate.
     far_predelay     3 ms: the gap belongs to the source (Depth Gap) and the horizon has none.
+    far_unmask       (second round) the background's duck under the foreground, 2 to 4 dB: 0.1 .. 0.2,
+                     the library's 0.2 .. 0.5 mapped onto it with the ordering kept.
+    far_unmask_return  (second round) the duck's return, 0.3 .. 0.8 s.
+
+The measured targets -- the sub three to six decibels over 250 to 500 Hz, the correlation between
+0.3 and 0.7 -- are no parameter windows; guide_fit.py moves the presets towards them from a
+measurement, after measure_packs.py.
 """
 import re
 
@@ -132,6 +139,20 @@ def apply(p):
             cap(f"src{i}_spread", 0.05)
     if _num(p, "cloud_send", 0.0) > 0.0:
         floor("cloud_size", 80.0, default=250.0)
+    # the second round (25.09.2026): the duck the guide asks of the background under the
+    # foreground, two to four decibels -- a tenth to a fifth of Unmask for a foreground at
+    # -20 dBFS in its band, measured -- where the library drew 0.2 to 0.44 (up to eight decibels).
+    # Mapped onto 0.1 .. 0.2 with the ordering kept; a preset without it gets the middle. And the
+    # return inside the guide's 0.3 to 0.8 seconds.
+    ua = _num(p, "far_unmask", 0.0)
+    if ua <= 0.0:
+        set_num("far_unmask", 0.15)
+    elif ua > 0.2:
+        set_num("far_unmask", 0.1 + 0.1 * min(1.0, (ua - 0.2) / 0.3))
+    elif ua < 0.1:
+        set_num("far_unmask", 0.1)
+    if "far_unmask_return" in p:
+        clamp("far_unmask_return", 0.3, 0.8)
     # motion: at most one LFO on a bar division
     synced = 0
     for i in range(1, 9):

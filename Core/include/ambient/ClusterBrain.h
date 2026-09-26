@@ -275,12 +275,21 @@ inline double spectralConsonance(double f1, double f2, const BrainSpectrum& sp)
  * Read by both draws of the conductor when Harmonic is up, once per candidate note with the
  * chord it would make, so it is written to be cheap: sixteen roots by n tones, no allocation.
  *
+ * The prime limit (25.09.2026, the review against ambient harmony, finding F2a). Weighted by
+ * harmonic number alone, the measure pulls every dark family towards the major triad: 4:5:6 is
+ * the most harmonic set there is, and the dark families were being asked to find it while their
+ * Thirds knob told them to avoid it. So a harmonic whose number holds the prime five (5, 10, 15,
+ * 20, 25, 30) counts w5 times as much, and one holding seven (7, 14, 21, 28) w7 times; the
+ * conductor sets w5 from Thirds and w7 from Seventh, both one at their defaults.
+ *
  * @param freqs  the tones of the chord, Hz, in any order
  * @param n      how many; fewer than two have no root and score 0
+ * @param w5     the weight of a harmonic whose number holds the prime five; 1 leaves it as it was
+ * @param w7     the weight of one holding the prime seven
  * @return       0 .. 1, the best root's mean fit per tone (about 1 for a low, clean harmonic
  *               segment, near 0 for a set no series can hold); 0 for a non-positive frequency
  */
-inline double chordHarmonicity(const double* freqs, int n)
+inline double chordHarmonicity(const double* freqs, int n, double w5 = 1.0, double w7 = 1.0)
 {
     if (n < 2) return 0.0;
     constexpr double kCents = 25.0;      // how far off a harmonic a tone may sit and still support the root
@@ -304,7 +313,64 @@ inline double chordHarmonicity(const double* freqs, int n)
             if (fit < 0.05) continue;
             used |= bit;
             ++landed;
-            s += fit / std::log2(1.0 + h);
+            double w = fit / std::log2(1.0 + h);
+            if (h % 5 == 0) w *= w5;
+            if (h % 7 == 0) w *= w7;
+            s += w;
+        }
+        if (landed < 2) continue;
+        s /= n;
+        if (s > best) best = s;
+    }
+    return best;
+}
+
+/**
+ * @brief How strongly a set of tones implies one common top: utonality, the mirror of chordHarmonicity().
+ *
+ * The review against ambient harmony (25.09.2026, finding F2b). Harmonicity finds the virtual
+ * root under which every tone is an overtone; that measures major and the harmonic series, and a
+ * utonal set -- the minor triad as 10:12:15, the subharmonic series 16..8 -- scores low by
+ * construction, although it is the sound of the dark families (Lustmord, Inade, Raison d'Etre).
+ * This is the same measure turned upside down: every tone an UNDERTONE of a common top f x k,
+ * each assigned to its nearest subharmonic number, the same fit, the same weights, the same two
+ * rules against the trivial answers. The conductor takes the larger of the two, scaled by Utonal,
+ * so a dark family can listen hard for rootedness without being pulled into major.
+ *
+ * @param freqs  the tones of the chord, Hz, in any order
+ * @param n      how many; fewer than two score 0
+ * @param w5     the weight of a subharmonic whose number holds the prime five
+ * @param w7     the weight of one holding the prime seven
+ * @return       0 .. 1, the best top's mean fit per tone; 0 for a non-positive frequency
+ */
+inline double chordUtonality(const double* freqs, int n, double w5 = 1.0, double w7 = 1.0)
+{
+    if (n < 2) return 0.0;
+    constexpr double kCents = 25.0;
+    constexpr int kMaxSub = 32, kMaxTop = 16;
+    double fmax = freqs[0];
+    for (int i = 1; i < n; ++i) if (freqs[i] > fmax) fmax = freqs[i];
+    for (int i = 0; i < n; ++i) if (!(freqs[i] > 0.0)) return 0.0;
+    double best = 0.0;
+    for (int k = 1; k <= kMaxTop; ++k) {
+        const double top = fmax * k;
+        double s = 0.0;
+        int landed = 0;
+        unsigned int used = 0;
+        for (int i = 0; i < n; ++i) {
+            const int u = static_cast<int>(std::lround(top / freqs[i]));
+            if (u < 1 || u > kMaxSub) continue;
+            const unsigned int bit = 1u << (u - 1);
+            if (used & bit) continue;
+            const double cents = std::fabs(1200.0 * std::log2(freqs[i] / (top / u)));
+            const double fit = std::exp(-(cents / kCents) * (cents / kCents));
+            if (fit < 0.05) continue;
+            used |= bit;
+            ++landed;
+            double w = fit / std::log2(1.0 + u);
+            if (u % 5 == 0) w *= w5;
+            if (u % 7 == 0) w *= w7;
+            s += w;
         }
         if (landed < 2) continue;
         s /= n;
@@ -346,6 +412,80 @@ inline const float* keyProfileMinor()
     return p;
 }
 /** @} */
+
+/**
+ * @brief A tonal hierarchy made from the scale in force rather than from Krumhansl and Kessler.
+ *
+ * The review against ambient harmony (25.09.2026, finding F1). The Krumhansl-Kessler profiles
+ * were measured on major and minor cadences: they put the third third in rank, above the fourth
+ * and the second, and they file 11/8, 13/8 and 7/4 as "outside the key". Set on a drone in just
+ * intonation that is the wrong context -- the probe-tone studies in drone music (Castellano,
+ * Bharucha and Krumhansl 1984; Krumhansl et al. 2000) find the stability following the drone and
+ * the scale, not major and minor -- and it pulled the ritual, luminous and space families towards
+ * the thirds their own Thirds knob pushed away, and away from the overtone series their scale is.
+ *
+ * So the profile is made of the scale: each of the twelve semitone bins above the tonic holds the
+ * degree of the scale that falls into it, and its stability is that degree's consonance with the
+ * tonic (intervalConsonance), mapped so that its spread is the Krumhansl-Kessler one -- the tonic
+ * one, the fifth 0.8, the fourth about two thirds, a third about a half, a bin the scale does not
+ * reach 0.35. Thirds and Seconds tilt their bins by up to fifteen per cent, so a family that
+ * avoids thirds no longer has a key that asks for them. On Harmonic 8-16 the key IS the overtone
+ * series; on 12-TET, where major and minor are the right context, the conductor keeps the
+ * Krumhansl-Kessler pair.
+ */
+struct KeyProfile {
+    float p[12] = { 1.0f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f, 0.35f };   ///< stability per semitone above the tonic, the tonic 1
+};
+
+/**
+ * @brief Whether a scale is twelve-tone equal temperament, where the major and minor profiles are the right context.
+ * @param s  the scale
+ * @return   true for twelve degrees per octave, each within a cent of 2^(i/12)
+ */
+inline bool isTwelveTet(const FixedScale& s)
+{
+    if (s.count != 12 || std::fabs(s.period - 2.0) > 1.0e-9) return false;
+    for (int i = 0; i < 12; ++i)
+        if (std::fabs(1200.0 * std::log2(s.ratios[i]) - 100.0 * i) > 1.0) return false;
+    return true;
+}
+
+/**
+ * @brief Builds the scale's own tonal hierarchy (see KeyProfile).
+ * @param s        the scale in force; its period should be the octave (the conductor does not ask for a key otherwise)
+ * @param thirds   the Thirds knob, -1 .. 1: tilts the bins of the thirds and sixths
+ * @param seconds  the Seconds knob, -1 .. 1: tilts the bins of the seconds and sevenths
+ * @param out      receives the profile
+ */
+inline void scaleKeyProfile(const FixedScale& s, float thirds, float seconds, KeyProfile& out)
+{
+    double best[12];
+    for (double& b : best) b = -1.0;
+    const int n = s.count > 0 ? (s.count < FixedScale::kMax ? s.count : FixedScale::kMax) : 0;
+    for (int d = 0; d < n; ++d) {
+        const double r = s.ratios[d];
+        if (!(r > 0.0)) continue;
+        const double cents = 1200.0 * std::log2(r);
+        const int bin = ((static_cast<int>(std::lround(cents / 100.0)) % 12) + 12) % 12;
+        const double c = d == 0 ? 1.0 : intervalConsonance(r);
+        if (c > best[bin]) best[bin] = c;
+    }
+    for (int b = 0; b < 12; ++b) {
+        // The consonance, spread to the Krumhansl-Kessler profile's range: the fifth (0.30) at 0.8,
+        // as the listeners put it, and the least consonant degree a scale has (a seventh, 0.12) at
+        // 0.45, a power of the consonance in between -- the fourth 0.64, 5/3 0.60, 5/4 0.55, 7/4
+        // 0.52, 9/8 0.47 -- and a bin the scale does not reach at 0.35. A first version took
+        // 1 + 0.2 ln(c), which left every degree of an eleven-degree scale but the fifth between
+        // 0.58 and 0.69: a key with no shape, which Key could not pull towards (measured on
+        // JI 7-limit: the key's confidence 0.68 without Key and 0.66 with it).
+        float v = best[b] > 0.0 ? static_cast<float>(0.8 * std::pow(best[b] / 0.302, 0.645)) : 0.35f;
+        v = clampv(v, 0.35f, 0.95f);
+        if (b == 3 || b == 4 || b == 8 || b == 9) v *= 1.0f + 0.15f * thirds;
+        if (b == 1 || b == 2 || b == 10 || b == 11) v *= 1.0f + 0.15f * seconds;
+        out.p[b] = v;
+    }
+    out.p[0] = 1.0f;
+}
 
 /**
  * @brief The pitch class of a frequency, in twelve bins of a hundred cents from an arbitrary anchor.
@@ -417,8 +557,9 @@ inline double chordEvenness(const double* freqs, int n)
  * with no key in it reports as much and pulls at nothing (ClusterBrain::keyWeightOf).
  */
 struct KeyEstimate {
-    int   key = -1;            ///< 0..11 major, 12..23 minor, -1 for nothing heard yet
+    int   key = -1;            ///< 0..11 major, 12..23 minor, -1 for nothing heard yet; with modal, 0..11 the tonic
     float confidence = 0.0f;   ///< the correlation, -1..1
+    bool  modal = false;       ///< found against the scale's own profile (KeyProfile) rather than major and minor
     /**
      * @brief Whether the key found is a minor one.
      * @return true for keys 12 .. 23; false for a major key and for none at all
@@ -438,12 +579,16 @@ struct KeyEstimate {
  * correlation itself is the confidence, and it is worth having: an honest "this is barely a key
  * at all" is exactly what a cluster should report.
  *
+ * With a scale's own profile (25.09.2026, see KeyProfile) there are twelve candidates instead of
+ * twenty-four: the scale says what the mode is, and only the tonic is looked for.
+ *
  * @param weights  twelve weights, one per pitch class in pitchClassOf()'s bins -- the conductor's
  *                 faded histogram of how long each class has been sounding
- * @return         the best of the twenty-four keys with its correlation; key -1 and confidence 0
- *                 for silence, or for twelve classes in perfect balance
+ * @param modal    the scale's profile, or nullptr for the Krumhansl-Kessler major and minor pair
+ * @return         the best of the keys with its correlation; key -1 and confidence 0 for silence,
+ *                 or for twelve classes in perfect balance
  */
-inline KeyEstimate findKey(const float* weights)
+inline KeyEstimate findKey(const float* weights, const KeyProfile* modal = nullptr)
 {
     double mean = 0.0;
     for (int i = 0; i < 12; ++i) mean += weights[i];
@@ -453,8 +598,9 @@ inline KeyEstimate findKey(const float* weights)
     KeyEstimate out;
     if (var < 1.0e-9) return out;                 // silence, or twelve notes in perfect balance
     const double sd = std::sqrt(var);
-    for (int k = 0; k < 24; ++k) {
-        const float* prof = k < 12 ? keyProfileMajor() : keyProfileMinor();
+    out.modal = modal != nullptr;
+    for (int k = 0; k < (modal != nullptr ? 12 : 24); ++k) {
+        const float* prof = modal != nullptr ? modal->p : (k < 12 ? keyProfileMajor() : keyProfileMinor());
         const int rot = k % 12;
         double pm = 0.0;
         for (int i = 0; i < 12; ++i) pm += prof[i];
@@ -706,6 +852,32 @@ struct BrainParams {
     float memory = 0.0f;        ///< minutes in which a chord already heard may not return
     float degreeSwap = 0.0f;    ///< chance a root change also exchanges one degree of the supply
     /** @} */
+    // ---- the review against ambient harmony (25.09.2026)
+    /**
+     * @name What the review against ambient harmony added
+     *
+     * The conductor was built from tonal music psychology -- major and minor, twelve equal steps,
+     * the octave, interval classes -- and set on modal, just, register-bound drone music. The
+     * review of 25.09.2026 found where the two part company; these are the knobs and the facts
+     * about the tuning its fixes need.
+     * @{ */
+    /**
+     * @brief Root Targets: which intervals the root's next step is drawn from, and how often.
+     *
+     * 0 Classic: the six the conductor always drew from, alike -- fifth, fourth, the two thirds,
+     * the two sixths; median steps, which are film music and Neo-Romanticism more than drone.
+     * 1 Modal: the fifth 40 %, the fourth 30 %, the whole tone up and down 25 % (Roach's Dorian
+     * pendulum, I-bVII, the Berlin School), the rest 5 %. 2 Mediant: the luminous family's, the
+     * thirds and sixths 30 %. 3 Phrygian: the falling semitone (bII-I) a fifth of the time.
+     */
+    int   rootTargets = 1;
+    float utonal = 0.0f;        ///< Utonal: Harmonic also hears undertone sets (chordUtonality), 0 overtone only .. 1 the larger of the two
+    float series = 0.0f;        ///< Series: the Harmonic Cloud -- candidates pulled to the harmonics of the root's fundamental, 1/h, the prime limit of Thirds and Seventh
+    const FixedScale* scale = nullptr;   ///< the scale in force (the key profile, the difference tone); null: the Krumhansl-Kessler pair, no check
+    double scaleRootHz = 0.0;   ///< the frequency of the scale's first degree, for placing a difference tone in the scale
+    bool  octavePeriodic = true;   ///< the scale repeats at the octave; key, even and the memory mean nothing otherwise (F6)
+    bool  consecutive = false;     ///< the keyboard walks the scale degree by degree, so a MIDI step is not a semitone and the rules read cents (F6)
+    /** @} */
     const BrainSpectrum* spectrum = nullptr;   ///< the voice's partial template for Timbre, owned by the engine (brainSpec_); null or empty means the ratio score alone
     /**
      * @brief The equivalent rectangular bandwidth of the auditory filter at f, in hertz
@@ -904,7 +1076,7 @@ public:
      *
      * @return findKey() over pitchClassWeights(); key -1 while nothing has sounded yet
      */
-    KeyEstimate estimatedKey() const { return findKey(pcWeight_); }
+    KeyEstimate estimatedKey() const { return keyless_ ? KeyEstimate{} : findKey(pcWeight_, modalProfile()); }
     /**
      * @brief The histogram estimatedKey() reads: how long each pitch class has been sounding, faded
      *        over about three minutes (pcWeight_).
@@ -1127,15 +1299,20 @@ public:
      * @tparam FreqFn  callable `double(int note)`: the frequency of a MIDI note in the engine's current scale
      * @tparam EmitFn  callable `void(const BrainEvent&)`: receives every NoteOn and NoteOff
      * @param dt          seconds since the last tick: a control block, or the wait Quantize accumulated
-     * @param p           the knobs as the engine filled them for this block
+     * @param pIn         the knobs as the engine filled them for this block (read through guard())
      * @param anchorNote  the lowest MIDI note held on the keyboard, or -1; while held it is the root
      *                    and the root does not wander
      * @param freqOf      see FreqFn
      * @param emit        see EmitFn
      */
     template <class FreqFn, class EmitFn>
-    void update(double dt, const BrainParams& p, int anchorNote, FreqFn&& freqOf, EmitFn&& emit)
+    void update(double dt, const BrainParams& pIn, int anchorNote, FreqFn&& freqOf, EmitFn&& emit)
     {
+        // What the tuning allows the knobs to mean (25.09.2026, the review's finding F6), and the
+        // key profile of the scale in force (F1). Everything below reads p.
+        BrainParams guarded;
+        const BrainParams& p = guard(pIn, guarded);
+        refreshProfile(p);
         if (!p.on) {
             if (wasOn_) {
                 for (auto& s : slots_) if (s.note >= 0) { emit(BrainEvent{ BrainEvent::Type::NoteOff, s.note, 0.0f }); s.note = -1; }
@@ -1198,7 +1375,7 @@ public:
                     for (int i = 0; i < span; ++i) {
                         const int c = lo + ((from - lo + i) % span);
                         if (c < 0 || c > 127 || sounding(c)) continue;
-                        const int a = ((c - pivotOld_) % 12 + 12) % 12, b = ((c - pivotTo_) % 12 + 12) % 12;
+                        const int a = icOf(c, pivotOld_, p, freqOf), b = icOf(c, pivotTo_, p, freqOf);
                         const bool fits = tier == 0 ? (perfectTo(a) && perfectTo(b)) : (consonantTo(a) && consonantTo(b));
                         // Admissible like any other note -- in range, rested, not a constellation
                         // heard lately, and by the rules -- except that a pivot tone may be the
@@ -1341,7 +1518,7 @@ public:
         const int low = std::min(p.low, p.high), high = std::max(p.low, p.high);
         const int density = clampv(static_cast<int>(std::lround(densityNow_)), 1, kSlots);
         if (filling_ && activeCount() >= density) filling_ = false;
-        const KeyEstimate key = p.key > 0.0f ? findKey(pcWeight_) : KeyEstimate{};
+        const KeyEstimate key = p.key > 0.0f ? findKey(pcWeight_, modalProfile()) : KeyEstimate{};
 
         if (activeCount() >= density) {
             // One over the target already: an exchange is under way, its retiring voice sounding
@@ -1363,7 +1540,7 @@ public:
                     double rest[kSlots];
                     int m = 0;
                     for (int j = 0; j < kSlots; ++j) if (j != i && slots_[j].note >= 0 && m < kSlots) rest[m++] = freqOf(slots_[j].note);
-                    const double h = m >= 2 ? chordHarmonicity(rest, m) : 0.0;
+                    const double h = m >= 2 ? harmonicityOf(rest, m, p) : 0.0;
                     if (h > bestH) { bestH = h; best = i; }
                 }
             } else {
@@ -1449,12 +1626,12 @@ public:
             // never asked for it draws exactly what it always drew. At 0.5 a neighbour is about
             // ten times as likely as a note an octave away.
             if (p.smooth > 0.0f && lastNote_ >= 0) {
-                const double steps = std::fabs(static_cast<double>(c - lastNote_));
+                const double steps = std::fabs(posOf(c, p, freqOf) - posOf(lastNote_, p, freqOf));
                 w *= static_cast<float>(std::pow(1.0 / (1.0 + steps / 3.0), 3.0 * static_cast<double>(p.smooth)));
             }
             // The register and interval rules -- roles, spacing, the third floor, the leading note,
             // the interval colours, a swapped degree -- as one weight, shared with chooseNote().
-            w *= ruleWeight(c, low, high, rootSounding, p);
+            w *= ruleWeight(c, low, high, rootSounding, p, freqOf);
             if (w <= 0.0f) continue;   // a veto: the candidate is out, and weights[c] stays at nought
             // Free mode weighs a candidate against the ROOT alone, which is a weaker test than
             // the chord mode's: a note can sit well on the root and still pull the chord away
@@ -1466,9 +1643,10 @@ public:
                 for (const auto& s : slots_) if (s.note >= 0 && m < kSlots) set[m++] = freqOf(s.note);
                 set[m++] = fc;
                 if (m >= 2)
-                    w *= static_cast<float>(std::pow(std::max(chordHarmonicity(set, m), 1.0e-4), 5.0 * static_cast<double>(p.harmonic)));
+                    w *= static_cast<float>(std::pow(std::max(harmonicityOf(set, m, p), 1.0e-4), 5.0 * static_cast<double>(p.harmonic)));
             }
-            if (p.key > 0.0f) w *= static_cast<float>(keyWeightOf(fc, key, p.key));
+            if (p.series > 0.0f) w *= static_cast<float>(seriesWeight(fc, rootFreq, p));
+            if (p.key > 0.0f) w *= static_cast<float>(keyWeightOf(fc, key, p.key, modalProfile()));
             if (p.even > 0.0f) {
                 double set[kSlots + 1];
                 int m = 0;
@@ -1926,15 +2104,27 @@ private:
      * placed without roles, without the spacing floor, with thirds in the bass and the leading note
      * under a sounding root. All of it on MIDI numbers, which is what the rules are written in.
      *
+     * Since 25.09.2026 (the review against ambient harmony, findings F4 and F6) the rules read
+     * DISTANCES rather than interval classes where the ear does: the tritone veto is for the close
+     * tritone (and the one an octave up in the bass), not for every tritone two octaves apart; the
+     * colour of a second or a seventh fades by half with every octave between the two notes; the
+     * ceiling of two notes to an octave is a window of twelve semitones, not a MIDI octave bin, so
+     * B2 and C3 are no longer in two different octaves. And on a keyboard that walks the scale
+     * degree by degree (19-EDO, Bohlen-Pierce) a MIDI step is not a semitone: there every
+     * distance is read from the frequencies, in semitones of a hundred cents.
+     *
+     * @tparam FreqFn       callable `double(int note)`
      * @param c             the candidate MIDI note
      * @param low           bottom of the register, MIDI
      * @param high          top of the register, MIDI (the roles are placed between the two)
      * @param rootSounding  whether the root's pitch class is in the cluster, for the leading-note rule
      * @param p             the knobs of the register roles section
+     * @param freqOf        frequency of a MIDI note in the engine's current scale
      * @param pivotal       true for the pivot tone of a changeover, which may be the leading note
      * @return              a weight to multiply the candidate's by, 0 for a veto, 1 with every knob at its default
      */
-    float ruleWeight(int c, int low, int high, bool rootSounding, const BrainParams& p, bool pivotal = false) const
+    template <class FreqFn>
+    float ruleWeight(int c, int low, int high, bool rootSounding, const BrainParams& p, FreqFn&& freqOf, bool pivotal = false) const
     {
         float w = 1.0f;
         // Everything that sounds: the slots, and in Chords mode the voices sounding out their
@@ -1945,6 +2135,13 @@ private:
         for (const auto& s : slots_) if (s.note >= 0) heard[n++] = s.note;
         for (const auto& l : leaving_) if (l.note >= 0) heard[n++] = l.note;
         if (extraHeard_ >= 0) heard[n++] = extraHeard_;   // Chords: the voice being exchanged, out of its slot but still sounding
+        // Where each note stands, in semitones on the MIDI scale: the note itself when the keys snap
+        // to the scale, its frequency's place when they walk it degree by degree (F6).
+        const double pc = posOf(c, p, freqOf);
+        double ph[2 * kSlots + 1];
+        for (int i = 0; i < n; ++i) ph[i] = posOf(heard[i], p, freqOf);
+        auto dist = [&](int i) { return static_cast<int>(std::lround(std::fabs(pc - ph[i]))); };
+        auto lowerOf = [&](int i) { return static_cast<int>(std::lround(std::min(pc, ph[i]))); };
         // The register roles. The share each part of the register wants, and the ceiling on how
         // many notes an octave may hold -- two, and one below MIDI 36, where the critical band
         // is wider than a fifth and a second note only makes the first one rough.
@@ -1955,12 +2152,18 @@ private:
             // The foundation is the root (table 2: one voice, its octave at most): a fifth lying
             // there for twenty minutes was the one pitch class over a quarter of the hour that the
             // last check of section 11 forbids.
-            if (t < 0.15 && ((c - root_) % 12 + 12) % 12 != 0) w *= 1.0f - 0.7f * p.layers;
-            int inOctave = 0;
-            for (int i = 0; i < n; ++i) if (heard[i] / 12 == c / 12) ++inOctave;
+            if (t < 0.15 && icOf(c, root_, p, freqOf) != 0) w *= 1.0f - 0.7f * p.layers;
             // At most two to an octave and one below 36 (R2.2): a veto at 1, where it left a
-            // tenth -- which was a third note in some octave for 195 seconds of an hour.
-            if (inOctave >= (c < 36 ? 1 : 2)) w *= std::max(0.0f, 1.0f - p.layers);
+            // tenth -- which was a third note in some octave for 195 seconds of an hour. The octave
+            // is any span of twelve semitones that holds the candidate (F4): counted in MIDI bins,
+            // B2 and C3 stood in two octaves and three notes could crowd a ninth.
+            const int limit = pc < 36.0 ? 1 : 2;
+            for (int s = 0; s < 12; ++s) {
+                const double from = pc - 11.0 + s;   // the window [from, from + 11] holds the candidate
+                int inside = 0;
+                for (int i = 0; i < n; ++i) if (ph[i] > from - 0.5 && ph[i] < from + 11.5) ++inside;
+                if (inside >= limit) { w *= std::max(0.0f, 1.0f - p.layers); break; }
+            }
         }
         // The minimum interval, by register -- the register of the LOWER note of the pair, since
         // the critical band is a matter of the lower frequency; judged on the candidate alone, a
@@ -1969,8 +2172,8 @@ private:
         // a second; above that a semitone is a colour and this says nothing.
         if (p.lowSpacing > 0.0f) {
             for (int i = 0; i < n; ++i) {
-                const int d = std::abs(c - heard[i]);
-                const int lower = std::min(c, heard[i]);
+                const int d = dist(i);
+                const int lower = lowerOf(i);
                 const int least = lower < 36 ? 12 : (lower < 48 ? 7 : (lower < 60 ? 3 : (lower < 72 ? 2 : 1)));
                 // At 1 this is a veto, not a penalty: the rule says only octaves below 36 and
                 // only fifths and fourths below 48, and a five-per-cent survivor is still a
@@ -1979,7 +2182,33 @@ private:
                 // The tritone (R3.2): out below 55 and rare above it, the one interval the rule
                 // book's table weights at a hundredth. It had no rule of its own -- consonance
                 // made it rare, and Harmonic and Key let it back in: nine in an hour, all low.
-                if (d % 12 == 6) w *= lower < 55 ? std::max(0.0f, 1.0f - p.lowSpacing) : 1.0f - 0.75f * p.lowSpacing;
+                // The CLOSE tritone, since 25.09.2026 (F4), and the one an octave up in the bass:
+                // spread over two octaves it is past the critical band, rough nowhere, and it is
+                // the dark families' chief means of "dark without mud" (Lustmord, Koner, Inade).
+                if (d == 6 || (d == 18 && lower < 36))
+                    w *= lower < 55 ? std::max(0.0f, 1.0f - p.lowSpacing) : 1.0f - 0.75f * p.lowSpacing;
+            }
+            // The difference tone (the review's section 4). Two loud low voices sound their
+            // difference f2 - f1 as well: at 3/2 an octave under the lower one, which is the
+            // foundation's own; at 5/4 two octaves under the third, often under 20 Hz or off the
+            // scale. So the two lowest voices under MIDI 48 must make a difference tone of at least
+            // 25 Hz, and one that stands on a degree of the scale.
+            int below = 0;
+            for (int i = 0; i < n; ++i) if (ph[i] < pc) ++below;
+            if (pc < 48.0 && below <= 1) {
+                const double fc = freqOf(c);
+                for (int i = 0; i < n; ++i) {
+                    if (ph[i] >= 48.0) continue;
+                    // The pair of the two lowest: the candidate with the lowest voice when it is
+                    // second, with the voice it goes under when it is lowest.
+                    bool lowestPair = true;
+                    for (int j = 0; j < n; ++j) if (j != i && ph[j] < std::max(pc, ph[i]) && ph[j] != pc) lowestPair = false;
+                    if (!lowestPair) continue;
+                    const double diff = std::fabs(fc - freqOf(heard[i]));
+                    if (diff < 1.0e-6) continue;
+                    if (diff < 25.0) w *= std::max(0.0f, 1.0f - p.lowSpacing);
+                    else if (!onScale(diff, p)) w *= 1.0f - 0.5f * p.lowSpacing;
+                }
             }
         }
         // No third under the floor (R3.1), and a floor is a floor: a veto, not the two per cent
@@ -1989,19 +2218,24 @@ private:
         // a tenth is the open voicing that avoids it, and counting pitch classes forbade that too.
         if (p.thirdFloor > 0)
             for (int i = 0; i < n; ++i) {
-                const int d = std::abs(c - heard[i]);
-                if ((d == 3 || d == 4) && std::min(c, heard[i]) < p.thirdFloor) return 0.0f;
+                const int d = dist(i);
+                if ((d == 3 || d == 4) && lowerOf(i) < p.thirdFloor) return 0.0f;
             }
         // The leading note (R4.4, Anti 6): penalised while the root sounds, and at 1 excluded
         // whether it sounds or not -- a root entering over a sounding leading note is the same
         // simultaneity from the other side, and it happened twice an hour under the rules at
         // full. The pivot tone of a changeover is the one exception the rule makes.
-        if (p.leading > 0.0f && !pivotal && ((c - root_) % 12 + 12) % 12 == 11)
+        if (p.leading > 0.0f && !pivotal && icOf(c, root_, p, freqOf) == 11)
             w *= rootSounding ? 1.0f - p.leading : 1.0f - p.leading * p.leading;
         // Interval colour, against everything that sounds.
         if (p.thirds != 0.0f || p.seconds != 0.0f || p.seventh > 0.0f) {
             for (int i = 0; i < n; ++i) {
-                const int ic = std::abs(c - heard[i]) % 12;
+                const int d = dist(i);
+                const int ic = d % 12;
+                // A second or a seventh is a colour where its two notes stand close; two octaves
+                // apart it is neither rough nor coloured, and the knob fades by half with every
+                // octave between them (F4) -- a minor ninth used to be punished like a minor second.
+                const float octaveFade = std::max(0.0f, 1.0f - 0.5f * static_cast<float>(d / 12));
                 if ((ic == 3 || ic == 4) && p.thirds != 0.0f)
                     w *= p.thirds >= 0.0f ? (1.0f + 1.5f * p.thirds) : (1.0f + 0.95f * p.thirds);
                 // Seconds are a colour up top and mud down below, so seeking them only counts
@@ -2016,18 +2250,205 @@ private:
                 // put the major second under its share while it took the minor one out. A third of
                 // the amount for the major second, the whole of it for the minor and for the major
                 // seventh, which the table does not have at all.
-                if ((ic == 1 || ic == 2 || ic == 11) && p.seconds != 0.0f
-                    && (p.seconds < 0.0f || (ic != 11 && c >= std::max(p.thirdFloor, 60)))) {
-                    const float amount = p.seconds * (ic == 2 ? 0.33f : 1.0f);
-                    w *= amount >= 0.0f ? (1.0f + 1.5f * amount) : (1.0f + 0.95f * amount);
+                // Avoided, the amount fades with the octaves between the two notes (F4). Sought, it
+                // counts close only up top, where a second is a colour -- and spread over an octave
+                // or more anywhere: the minor ninth, the major seventh over two octaves, dissonance by
+                // separating registers, which is what the dark families seek (the review's section 4).
+                if ((ic == 1 || ic == 2 || ic == 11) && p.seconds != 0.0f) {
+                    float amount = p.seconds * (ic == 2 ? 0.33f : 1.0f);
+                    bool counts;
+                    if (p.seconds < 0.0f) { amount *= octaveFade; counts = amount != 0.0f; }
+                    else counts = d >= 12 || (ic != 11 && pc >= static_cast<double>(std::max(p.thirdFloor, 60)));
+                    if (counts) w *= amount >= 0.0f ? (1.0f + 1.5f * amount) : (1.0f + 0.95f * amount);
                 }
                 if (ic == 10 && p.seventh > 0.0f) w *= 1.0f + 1.5f * p.seventh;
             }
         }
         // The one degree a root change may have exchanged (Degree Swap). Nothing at all until a
         // change has actually swapped one, and then only that pair.
-        w *= degreeBias_[static_cast<size_t>(((c - root_) % 12 + 12) % 12)];
+        w *= degreeBias_[static_cast<size_t>(icOf(c, root_, p, freqOf))];
         return w;
+    }
+
+    /**
+     * @brief Where a note stands, in semitones on the MIDI scale (F6).
+     *
+     * The note number itself when the keys snap to the scale -- which is what every rule was
+     * written in -- and the place of its frequency, 69 + 12 log2(f / 440), when the keyboard walks
+     * the scale degree by degree and a MIDI step is whatever the scale's step is (19-EDO, Bohlen-Pierce).
+     *
+     * @tparam FreqFn  callable `double(int note)`
+     * @param note     the MIDI note
+     * @param p        the knobs: whether the mapping is consecutive
+     * @param freqOf   frequency of a MIDI note in the engine's current scale
+     * @return         the position in semitones
+     */
+    template <class FreqFn>
+    static double posOf(int note, const BrainParams& p, FreqFn&& freqOf)
+    {
+        if (!p.consecutive) return static_cast<double>(note);
+        const double f = freqOf(note);
+        return f > 0.0 ? 69.0 + 12.0 * std::log2(f / 440.0) : static_cast<double>(note);
+    }
+    /**
+     * @brief The interval class from one note up to another, 0 .. 11 semitones, read like posOf() reads.
+     * @tparam FreqFn  callable `double(int note)`
+     * @param a        the upper end
+     * @param b        the reference
+     * @param p        the knobs
+     * @param freqOf   frequency of a MIDI note in the engine's current scale
+     * @return         (a - b) in whole semitones, folded into one octave
+     */
+    template <class FreqFn>
+    static int icOf(int a, int b, const BrainParams& p, FreqFn&& freqOf)
+    {
+        const int d = static_cast<int>(std::lround(posOf(a, p, freqOf) - posOf(b, p, freqOf)));
+        return ((d % 12) + 12) % 12;
+    }
+    /**
+     * @brief Whether a frequency stands on a degree of the scale, in any of its periods, within 25 cents.
+     * @param f  the frequency, Hz (a difference tone)
+     * @param p  the knobs: the scale and the frequency of its first degree; without them every frequency is on it
+     * @return   true when a degree is within 25 cents
+     */
+    static bool onScale(double f, const BrainParams& p)
+    {
+        if (p.scale == nullptr || !(p.scaleRootHz > 0.0) || !(f > 0.0) || !(p.scale->period > 1.0)) return true;
+        const double per = std::log2(p.scale->period);
+        double x = std::log2(f / p.scaleRootHz) / per;   // in periods above the first degree
+        x -= std::floor(x);
+        for (int d = 0; d <= p.scale->count && d < FixedScale::kMax; ++d) {
+            const double r = d < p.scale->count ? std::log2(p.scale->ratios[d]) / per : 1.0;
+            if (std::fabs(x - r) * per * 1200.0 < 25.0) return true;
+        }
+        return false;
+    }
+    /**
+     * @brief The knobs as the tuning lets them mean something (F6), and Series' claim on Key and Even.
+     *
+     * On a scale that does not repeat at the octave -- Bohlen-Pierce, at the tritave -- Key, Even and
+     * the constellation memory all count pitch classes modulo twelve, and the numbers they come up
+     * with mean nothing: a key of a scale that has none, evenness round an octave that is not its
+     * period. They are switched off there. And the Harmonic Cloud asks for harmonics of one
+     * fundamental, which Key and Even pull away from; Series takes its share of them.
+     *
+     * @param in       the knobs as the engine filled them
+     * @param scratch  where a modified copy is made, when one is needed
+     * @return         `in` itself, or `scratch` holding the guarded copy
+     */
+    static const BrainParams& guard(const BrainParams& in, BrainParams& scratch)
+    {
+        if (in.octavePeriodic && in.series <= 0.0f) return in;
+        scratch = in;
+        if (!in.octavePeriodic) { scratch.key = 0.0f; scratch.even = 0.0f; scratch.memory = 0.0f; }
+        if (in.series > 0.0f) {
+            const float keep = 1.0f - clampv(in.series, 0.0f, 1.0f);
+            scratch.key *= keep;
+            scratch.even *= keep;
+        }
+        return scratch;
+    }
+    /**
+     * @brief Brings the scale's own key profile up to date (F1): the Krumhansl-Kessler pair on
+     *        12-TET and without a scale, the scale's own hierarchy otherwise.
+     * @param p  the knobs: the scale, Thirds and Seconds
+     */
+    void refreshProfile(const BrainParams& p)
+    {
+        keyless_ = !p.octavePeriodic;   // no key on a scale that does not repeat at the octave, not even for the panel
+        profileModal_ = p.scale != nullptr && p.octavePeriodic && !isTwelveTet(*p.scale);
+        if (profileModal_) scaleKeyProfile(*p.scale, p.thirds, p.seconds, profile_);
+    }
+    /**
+     * @brief The profile a key is found against, as refreshProfile() left it.
+     * @return the scale's own profile, or nullptr for the Krumhansl-Kessler pair
+     */
+    const KeyProfile* modalProfile() const { return profileModal_ ? &profile_ : nullptr; }
+    /**
+     * @brief Harmonic's measure of a set: its harmonicity under the prime limit Thirds and Seventh
+     *        set (F2a), and with Utonal up the larger of that and its utonality (F2b).
+     * @param set  the tones, Hz
+     * @param m    how many
+     * @param p    the knobs: Thirds (the weight of the prime five), Seventh (seven), Utonal
+     * @return     0 .. 1
+     */
+    static double harmonicityOf(const double* set, int m, const BrainParams& p)
+    {
+        const double w5 = p.thirds < 0.0f ? 1.0 + 0.8 * static_cast<double>(p.thirds) : 1.0;
+        const double w7 = 1.0 + 0.5 * static_cast<double>(p.seventh);
+        const double oto = chordHarmonicity(set, m, w5, w7);
+        if (p.utonal <= 0.0f) return oto;
+        return std::max(oto, static_cast<double>(p.utonal) * chordUtonality(set, m, w5, w7));
+    }
+    /**
+     * @brief The Harmonic Cloud's weight on a candidate (the review's section 4): how well it sits on the
+     *        harmonic series of the root's fundamental.
+     *
+     * Rich, La Monte Young, Radigue and Stearns draw chords as harmonics four to sixteen of one
+     * fundamental that does not itself sound, and the Harmonic 8-16 scale only approximates that.
+     * The fundamental is the root's pitch class under 40 Hz; a candidate is scored by how close it
+     * lies to a harmonic (25 cents), by 1 / sqrt(h) above the eighth, and by the prime limit
+     * Thirds and Seventh set -- the eleventh and thirteenth at six tenths of the seventh.
+     *
+     * @param fc        the candidate, Hz
+     * @param rootFreq  the root, Hz
+     * @param p         the knobs: Series, Thirds, Seventh
+     * @return          a weight to multiply the candidate's by; 1 at Series 0
+     */
+    static double seriesWeight(double fc, double rootFreq, const BrainParams& p)
+    {
+        if (p.series <= 0.0f || !(rootFreq > 0.0) || !(fc > 0.0)) return 1.0;
+        double f0 = rootFreq;
+        while (f0 >= 40.0) f0 *= 0.5;
+        const double h = fc / f0;
+        const long H = std::max(1L, std::lround(h));
+        const double cents = 1200.0 * std::log2(h / static_cast<double>(H));
+        const double fit = std::exp(-(cents / 25.0) * (cents / 25.0));
+        const double w5 = p.thirds < 0.0f ? 1.0 + 0.8 * static_cast<double>(p.thirds) : 1.0;
+        const double w7 = 1.0 + 0.5 * static_cast<double>(p.seventh);
+        double prime = 1.0;
+        long rest = H;
+        while (rest % 2 == 0) rest /= 2;
+        while (rest % 3 == 0) rest /= 3;
+        if (rest % 5 == 0) { prime *= w5; while (rest % 5 == 0) rest /= 5; }
+        if (rest % 7 == 0) { prime *= w7; while (rest % 7 == 0) rest /= 7; }
+        if (rest > 1) prime *= 0.6 * w7;
+        const double sw = std::max(fit * prime * std::sqrt(8.0 / std::max(static_cast<double>(H), 8.0)), 0.01);
+        return std::pow(sw, 2.0 * static_cast<double>(p.series));
+    }
+    /**
+     * @brief Draws the interval the root's next step aims at (F8), from the table Root Targets names.
+     *
+     * Classic draws from the six the conductor always had, alike and exactly as it always drew them
+     * (one rng_.below(6)). The others draw one uniform number against a weighted table. The whole
+     * tone is 9/8 up and 16/9 (a whole tone down, folded into the octave); the falling semitone is
+     * 15/8, a semitone under the root folded up -- the step size in wanderRoot() keeps it the near
+     * one rather than a seventh up.
+     *
+     * @param targets  Root Targets: 0 Classic, 1 Modal, 2 Mediant, 3 Phrygian
+     * @return         the target ratio, folded into one octave
+     */
+    double drawRootTarget(int targets)
+    {
+        if (targets <= 0) {
+            static const double kClassic[] = { 1.5, 4.0 / 3.0, 1.25, 1.2, 5.0 / 3.0, 1.6 };
+            return kClassic[rng_.below(6)];
+        }
+        struct T { double r; float w; };
+        // fifth, fourth, whole tone up, whole tone down, major third, minor third, major sixth, minor sixth, falling semitone
+        static const T kModal[]    = { { 1.5, 40.f }, { 4.0 / 3.0, 30.f }, { 9.0 / 8.0, 12.5f }, { 16.0 / 9.0, 12.5f },
+                                       { 1.25, 1.f }, { 1.2, 1.f }, { 5.0 / 3.0, 1.f }, { 1.6, 1.f }, { 15.0 / 8.0, 1.f } };
+        static const T kMediant[]  = { { 1.5, 25.f }, { 4.0 / 3.0, 20.f }, { 9.0 / 8.0, 10.f }, { 16.0 / 9.0, 10.f },
+                                       { 1.25, 7.5f }, { 1.2, 7.5f }, { 5.0 / 3.0, 7.5f }, { 1.6, 7.5f }, { 15.0 / 8.0, 5.f } };
+        static const T kPhrygian[] = { { 1.5, 30.f }, { 4.0 / 3.0, 25.f }, { 9.0 / 8.0, 5.f }, { 16.0 / 9.0, 10.f },
+                                       { 1.25, 2.5f }, { 1.2, 2.5f }, { 5.0 / 3.0, 2.5f }, { 1.6, 2.5f }, { 15.0 / 8.0, 20.f } };
+        const T* t = targets == 2 ? kMediant : (targets == 3 ? kPhrygian : kModal);
+        constexpr int kN = 9;
+        float total = 0.0f;
+        for (int i = 0; i < kN; ++i) total += t[i].w;
+        float u = rng_.uniform() * total;
+        for (int i = 0; i < kN; ++i) { u -= t[i].w; if (u <= 0.0f) return t[i].r; }
+        return t[kN - 1].r;
     }
 
     /**
@@ -2118,7 +2539,7 @@ private:
                    double* outScore = nullptr) const
     {
         const double rootFreq = freqOf(root_);
-        const KeyEstimate key = p.key > 0.0f ? findKey(pcWeight_) : KeyEstimate{};
+        const KeyEstimate key = p.key > 0.0f ? findKey(pcWeight_, modalProfile()) : KeyEstimate{};
         const float lead = std::max(p.voiceLead, 0.5f);
         const float lean = leanOf(p);
         bool rootSounding = false;
@@ -2136,7 +2557,7 @@ private:
             // rules as one weight -- a veto ends the candidate.
             if (p.retrigger > 0.0f && now_ - pitchOffAt_[static_cast<size_t>(c)] < static_cast<double>(p.retrigger)) continue;
             if (constellationHeard(c, p, freqOf)) continue;
-            const float rule = ruleWeight(c, low, high, rootSounding, p);
+            const float rule = ruleWeight(c, low, high, rootSounding, p, freqOf);
             if (rule <= 0.0f) continue;
             const double fc = freqOf(c);
             bool duplicate = false;
@@ -2151,7 +2572,8 @@ private:
             // Voice leading: the further this voice has to travel, the worse, and beyond the
             // allowance it is not considered at all.
             if (from >= 0) {
-                const double steps = std::fabs(static_cast<double>(c - from));
+                // In semitones -- which a MIDI step is only when the keys snap to the scale (F6).
+                const double steps = std::fabs(posOf(c, p, freqOf) - posOf(from, p, freqOf));
                 if (steps > lead) continue;
                 score *= 1.0 - 0.75 * (steps / lead);
             }
@@ -2164,7 +2586,7 @@ private:
                 const int age = (recentHead_ - 1 - i + 2 * kRecent) % kRecent;   // 0 = just left
                 score *= 0.12 + 0.11 * static_cast<double>(age);
             }
-            if (p.key > 0.0f) score *= keyWeightOf(fc, key, p.key);
+            if (p.key > 0.0f) score *= keyWeightOf(fc, key, p.key, modalProfile());
             if (p.even > 0.0f) {
                 double set[kSlots + 1];
                 int m = 0;
@@ -2180,9 +2602,10 @@ private:
                 int m = 0;
                 for (const auto& s : slots_) if (s.note >= 0 && m < kSlots) set[m++] = freqOf(s.note);
                 set[m++] = fc;
-                const double h = chordHarmonicity(set, m);
+                const double h = harmonicityOf(set, m, p);
                 score *= std::pow(std::max(h, 1.0e-4), 5.0 * static_cast<double>(p.harmonic));
             }
+            if (p.series > 0.0f) score *= seriesWeight(fc, rootFreq, p);
             // An octave of something already sounding is a doubling, not a new colour.
             for (const auto& s : slots_) if (s.note >= 0 && pitchClassEqual(freqOf(s.note), fc)) score *= 0.2;
             if (pitchClassEqual(fc, rootFreq)) score *= 0.5;
@@ -2207,15 +2630,21 @@ private:
      * @param f       the candidate's frequency, Hz
      * @param k       the key as findKey() found it; no key, or no confidence, answers 1
      * @param amount  the Key knob, 0 .. 1; 0 answers 1
+     * @param modal   the scale's own profile the key was found against, or nullptr for major and
+     *                minor (a modal key without its profile reads as major)
      * @return        a weight to multiply the candidate's by, the profile's stability raised by
      *                amount and confidence; 1 for the tonic whatever the amount
      */
-    static double keyWeightOf(double f, const KeyEstimate& k, float amount)
+    static double keyWeightOf(double f, const KeyEstimate& k, float amount, const KeyProfile* modal = nullptr)
     {
         if (amount <= 0.0f || k.key < 0 || k.confidence <= 0.0f) return 1.0;
-        const float* prof = k.minor() ? keyProfileMinor() : keyProfileMajor();
         const int degree = ((pitchClassOf(f) - k.tonic()) % 12 + 12) % 12;
-        const double stability = static_cast<double>(prof[degree]) / 6.35;
+        double stability;
+        if (k.modal && modal != nullptr) stability = static_cast<double>(modal->p[degree]) / static_cast<double>(modal->p[0]);
+        else {
+            const float* prof = k.minor() ? keyProfileMinor() : keyProfileMajor();
+            stability = static_cast<double>(prof[degree]) / 6.35;
+        }
         return std::pow(stability, 2.5 * static_cast<double>(amount) * static_cast<double>(k.confidence));
     }
 
@@ -2294,8 +2723,7 @@ private:
             if (rootAge_ < 240.0 && !goingHome) return;
         }
         const float keyAmount = p.key;
-        static const double kTargets[] = { 1.5, 4.0 / 3.0, 1.25, 1.2, 5.0 / 3.0, 1.6 };
-        const double target = kTargets[rng_.below(6)];
+        const double target = drawRootTarget(p.rootTargets);
         const double rootFreq = freqOf(root_);
         // The root and the key are two different things, and this is where they are told about
         // each other: a root that lands on a stable degree of the key the music is already in is
@@ -2305,7 +2733,7 @@ private:
         // against 0.91 with the root left key-blind -- and what it does buy is one more pitch
         // class in play, nine against eight. It is kept because it is right, not because the
         // number moved.
-        const KeyEstimate key = keyAmount > 0.0f ? findKey(pcWeight_) : KeyEstimate{};
+        const KeyEstimate key = keyAmount > 0.0f ? findKey(pcWeight_, modalProfile()) : KeyEstimate{};
         int best = root_; double bestScore = 1e9;
         for (int c = low; c <= high; ++c) {
             if (c == root_) continue;
@@ -2313,8 +2741,10 @@ private:
             // judge the step itself -- its size and its direction -- before anything else is
             // weighed. The ascending semitone goes out under every one of them, Any included
             // (Anti 8): it is heard as a lift, and this music has nothing to lift towards. It
-            // stood inside the gate below until 12.09.2026, so Any still allowed it.
-            const int step = c - root_, a = std::abs(step) % 12;
+            // stood inside the gate below until 12.09.2026, so Any still allowed it. In semitones,
+            // which a MIDI step is only when the keys snap to the scale (F6).
+            const int step = static_cast<int>(std::lround(posOf(c, p, freqOf) - posOf(root_, p, freqOf)));
+            const int a = std::abs(step) % 12;
             if (step > 0 && a == 1) continue;
             if (p.rootSteps != 0) {
                 if (p.rootSteps == 1 && a != 0 && a != 5 && a != 7) continue;                      // fifths and fourths
@@ -2330,9 +2760,9 @@ private:
             // music came within a step of home and stayed there, six hours in eight.
             const double homing = p.home > 0.0f
                 ? static_cast<double>(p.home) * clampv(age_ / std::max(60.0, static_cast<double>(p.homeTime) * 60.0), 0.0, 1.0) : 0.0;
-            double score = std::fabs(std::log2(r / target)) * 12.0 * (1.0 - homing) + std::fabs(c - root_) / 12.0;
+            double score = std::fabs(std::log2(r / target)) * 12.0 * (1.0 - homing) + std::fabs(static_cast<double>(step)) / 12.0;
             // A penalty, not a veto: the wander is what keeps the harmony moving at all.
-            if (keyAmount > 0.0f) score += 2.0 * static_cast<double>(keyAmount) * (1.0 - keyWeightOf(freqOf(c), key, 1.0f));
+            if (keyAmount > 0.0f) score += 2.0 * static_cast<double>(keyAmount) * (1.0 - keyWeightOf(freqOf(c), key, 1.0f, modalProfile()));
             // A fifth down and a fifth up are one interval to the scoring above, and they are not
             // one move: downwards the music settles, upwards it climbs.
             if (p.rootDown != 0.0f) score += (step > 0 ? 1.5 : -1.5) * static_cast<double>(p.rootDown);
@@ -2342,7 +2772,7 @@ private:
             // or three such simultaneities an hour, all of them just after a root change.
             if (p.leading > 0.0f)
                 for (const auto& s : slots_)
-                    if (s.note >= 0 && ((s.note - c) % 12 + 12) % 12 == 11) { score += 2.0 * static_cast<double>(p.leading); break; }
+                    if (s.note >= 0 && icOf(s.note, c, p, freqOf) == 11) { score += 2.0 * static_cast<double>(p.leading); break; }
             // The way home (R6.4). It grows with the hours since the night began and with how far
             // the root has travelled, so a piece left running returns to where it started without
             // ever being told to -- and a piece switched off after ten minutes never notices.
@@ -2650,7 +3080,7 @@ private:
         if (constellationHeard(c, p, freqOf)) return false;
         bool rootSounding = false;
         for (const auto& s : slots_) if (s.note >= 0 && ((s.note - root_) % 12 + 12) % 12 == 0) rootSounding = true;
-        return ruleWeight(c, std::min(low, high), std::max(low, high), rootSounding, p, pivotal) > 0.0f;
+        return ruleWeight(c, std::min(low, high), std::max(low, high), rootSounding, p, freqOf, pivotal) > 0.0f;
     }
 
     /**
@@ -2776,6 +3206,9 @@ private:
     bool   stepRequested_ = false;   ///< requestStep() has asked for an exchange that has not happened yet
     static constexpr int kRecent = 8;   ///< Chords: the notes that left, most recent first-ish
     float  pcWeight_[12] = {};    ///< how long each pitch class has been sounding, faded
+    KeyProfile profile_;          ///< the scale's own key profile, as refreshProfile() last made it (F1)
+    bool   profileModal_ = false; ///< the key is found against profile_ rather than major and minor
+    bool   keyless_ = false;      ///< the scale does not repeat at the octave: no key at all (F6)
     int    recent_[kRecent] = { -1, -1, -1, -1, -1, -1, -1, -1 };   ///< Chords: the notes that left recently, a ring of kRecent, -1 for empty
     int    recentHead_ = 0;       ///< the next place of that ring
 };

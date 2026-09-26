@@ -361,19 +361,25 @@ void Diffuser::process(float* L, float* R, int n)
 void Unmask::prepare(double sampleRate)
 {
     sr_ = sampleRate;
-    // Crossovers at 300 Hz and 2.5 kHz, one-pole: gentle slopes are what this wants, since the
-    // bands are only used to steer a gain, never listened to on their own.
-    c1_ = 1.0f - std::exp(-kTwoPi * 300.0f / static_cast<float>(sr_));
-    c2_ = 1.0f - std::exp(-kTwoPi * 2500.0f / static_cast<float>(sr_));
-    aCoef_ = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(sr_)));    // duck in 50 ms
-    rCoef_ = 1.0f - std::exp(-1.0f / (1.20f * static_cast<float>(sr_)));    // come back over 1.2 s
+    // Crossovers an octave apart from 150 Hz to 4.8 kHz, second-order Butterworth low-passes. The
+    // one-poles the three-band version had were too gentle for seven: a 2 kHz foreground leaked
+    // into every band down to 150 Hz and took the background's bass with it (measured: -1.0 dB at
+    // 200 Hz for -2.4 dB at 2.1 kHz). The bands are still differences of neighbouring low-passes,
+    // so whatever their slopes they add back to the input exactly.
+    for (int k = 0; k < kBands - 1; ++k) {
+        xNear_[k].setQ(150.0f * static_cast<float>(1 << k), 0.7071f, static_cast<float>(sr_));
+        xBg_[0][k].copyCoefficients(xNear_[k]);
+        xBg_[1][k].copyCoefficients(xNear_[k]);
+    }
+    aCoef_ = 1.0f - std::exp(-1.0f / (0.02f * static_cast<float>(sr_)));    // duck in 20 ms (the guide's attack)
+    rCoef_ = 1.0f - std::exp(-1.0f / (returnSec_ * static_cast<float>(sr_)));
     reset();
 }
 
 void Unmask::reset()
 {
-    for (auto& s : sNear_) s = Split{};
-    for (auto& s : sFar_) s = Split{};
+    for (Svf& s : xNear_) s.reset();
+    for (auto& ch : xBg_) for (Svf& s : ch) s.reset();
     for (float& e : env_) e = 0.0f;
     for (float& g : gain_) g = 1.0f;
 }
@@ -385,21 +391,35 @@ void Unmask::set(float amount, float spread, float returnSeconds)
     if (r != returnSec_) { returnSec_ = r; rCoef_ = 1.0f - std::exp(-1.0f / (r * static_cast<float>(sr_))); }
 }
 
+void Unmask::split(Svf* lp, float x, float* band)
+{
+    // Each crossover low-passes the input at its corner; a band is the difference of two
+    // neighbours, so the bands telescope back to the input exactly.
+    float below = 0.0f;
+    for (int k = 0; k < kBands - 1; ++k) {
+        float l, b, h;
+        lp[k].tick(x, l, b, h);
+        band[k] = l - below;
+        below = l;
+    }
+    band[kBands - 1] = x - below;
+}
+
 void Unmask::process(const float* nearL, const float* nearR, float* farL, float* farR, int n)
 {
     if (amount_ <= 0.0f) return;
     const float depth = 0.85f * amount_;   // at most about 16 dB of duck
+    // The band envelopes of a broadband foreground are smaller in seven bands than they were in
+    // three; the scale keeps the duck of such a foreground where it was (sqrt(7 / 3)).
+    const float k = 24.0f * 1.5275f;
     for (int i = 0; i < n; ++i) {
-        // Near bus, mono, into three bands.
-        const float x = 0.5f * (nearL[i] + nearR[i]);
-        sNear_[0].lo += c1_ * (x - sNear_[0].lo);
-        sNear_[0].mid += c2_ * (x - sNear_[0].mid);
-        const float nb[3] = { sNear_[0].lo, sNear_[0].mid - sNear_[0].lo, x - sNear_[0].mid };
-        for (int b = 0; b < 3; ++b) {
+        float nb[kBands];
+        split(xNear_, 0.5f * (nearL[i] + nearR[i]), nb);
+        for (int b = 0; b < kBands; ++b) {
             const float mag = std::fabs(nb[b]);
             env_[b] += (mag > env_[b] ? aCoef_ : rCoef_) * (mag - env_[b]);
         }
-        for (int b = 0; b < 3; ++b) {
+        for (int b = 0; b < kBands; ++b) {
             // The upward spread of masking: a band is also masked by the bands below it, at
             // half strength one band down and a quarter two down, and only a little by the
             // band above. At spread 0 each band hears itself alone.
@@ -407,21 +427,20 @@ void Unmask::process(const float* nearL, const float* nearR, float* farL, float*
             if (spread_ > 0.0f) {
                 if (b >= 1) e += spread_ * 0.5f * env_[b - 1];
                 if (b >= 2) e += spread_ * 0.25f * env_[b - 2];
-                if (b <= 1) e += spread_ * 0.1f * env_[b + 1];
+                if (b + 1 < kBands) e += spread_ * 0.1f * env_[b + 1];
             }
             // A gain that falls smoothly with the foreground's level and returns on its own.
-            const float target = 1.0f / (1.0f + depth * e * 24.0f);
+            const float target = 1.0f / (1.0f + depth * e * k);
             gain_[b] += (target < gain_[b] ? aCoef_ : rCoef_) * (target - gain_[b]);
         }
-        // Far bus, the same split, each band scaled, then put back together.
+        // The background, the same split, each band scaled, then put back together.
         for (int ch = 0; ch < 2; ++ch) {
             float* f = ch == 0 ? farL : farR;
-            Split& sp = sFar_[ch];
-            const float y = f[i];
-            sp.lo += c1_ * (y - sp.lo);
-            sp.mid += c2_ * (y - sp.mid);
-            const float lo = sp.lo, mid = sp.mid - sp.lo, hi = y - sp.mid;
-            f[i] = lo * gain_[0] + mid * gain_[1] + hi * gain_[2];
+            float bb[kBands];
+            split(xBg_[ch], f[i], bb);
+            float y = 0.0f;
+            for (int b = 0; b < kBands; ++b) y += bb[b] * gain_[b];
+            f[i] = y;
         }
     }
 }
@@ -448,6 +467,7 @@ void Patina::reset()
     lpL_ = lpR_ = 0.0f;
     env_ = 0.0f;
     w_ = 0;
+    osL_.reset(); osR_.reset();
 }
 
 void Patina::set(float amount, float wow, float hiss, float age)
@@ -499,10 +519,12 @@ void Patina::process(float* L, float* R, int n)
             l += floorLevel * rng_.bipolar();
             r += floorLevel * rng_.bipolar();
         }
-        // Gentle asymmetric saturation: the third harmonic a tape adds before it ever clips.
+        // Gentle asymmetric saturation: the third harmonic a tape adds before it ever clips. At four
+        // times the rate (25.09.2026), so the harmonic of a bright top end does not fold back.
         const float drive = 1.0f + 1.5f * amount_;
-        l = softClip(l * drive) / drive;
-        r = softClip(r * drive) / drive;
+        auto tape = [drive](float v) { return softClip(v * drive) / drive; };
+        l = osL_.process(l, tape);
+        r = osR_.process(r, tape);
         L[i] = l;
         R[i] = r;
     }

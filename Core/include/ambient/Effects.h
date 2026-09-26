@@ -24,6 +24,7 @@
  */
 #pragma once
 #include "Dsp.h"
+#include "Oversample.h"
 #include <vector>
 
 namespace ambient {
@@ -357,18 +358,25 @@ private:
 };
 
 /**
- * @brief The far bus ducked under the near bus, band by band.
+ * @brief The background ducked under the near bus, band by band.
  *
  * The background steps aside for the foreground, band by band. A mixing engineer rides the
  * reverb return down while a line is sounding and lets it back up in the gaps; done per band it
- * is what keeps a dense pad from swallowing its own notes. Three bands (below 300 Hz, 300 Hz to
- * 2.5 kHz, above), the near bus as the side chain, fast to duck and slow to return -- the return
- * is the part the ear hears as the room breathing back in.
+ * is what keeps a dense pad from swallowing its own notes. The near bus is the side chain, fast
+ * to duck and slow to return -- the return is the part the ear hears as the room breathing back in.
+ *
+ * Seven bands since 25.09.2026, an octave apart from 150 Hz to 4.8 kHz: the production guide's
+ * spectral ducking wants six to eight, so that the background gives way only where the
+ * foreground actually is (three bands let a flute at 2 kHz take out everything from 300 Hz up).
+ * The split is a cascade of one-poles whose bands sum back to the input exactly, so at no duck
+ * the signal is untouched. The engine runs two: one on the far hall, one on the convolution room
+ * (the guide's "near ducks the main room"), both on the Unmask knob.
  */
 class Unmask {
 public:
+    static constexpr int kBands = 7;   ///< bands of the split: under 150 Hz, five octaves to 4.8 kHz, above
     /**
-     * @brief Sets the crossovers (300 Hz, 2.5 kHz), the duck (50 ms) and return (1.2 s) times for the rate, and resets.
+     * @brief Sets the crossovers, the duck (20 ms) and return times for the rate, and resets.
      * @param sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
@@ -377,42 +385,45 @@ public:
      *
      * spread: how far a loud low band also ducks the bands above it. Masking in the ear is
      * asymmetric -- a low tone masks the frequencies above it far more than those below
-     * (Zwicker and Fastl 1999, the upward spread of masking) -- and at 0 the three bands
-     * are independent, as they always were.
-     * returnSeconds: how long the far bus takes to come back after a duck (the duck itself is
-     * 50 ms). 1.2 s is what it always was; longer, and the horizon's return is a gesture.
+     * (Zwicker and Fastl 1999, the upward spread of masking) -- and at 0 the bands are
+     * independent.
+     * returnSeconds: how long the background takes to come back after a duck (the duck itself is
+     * 20 ms, the guide's attack). The guide's release is half a second, which is the parameter's
+     * default since 25.09.2026; longer, and the horizon's return is a gesture.
      * @param amount         0 = off (and then not computed at all); 1 ducks by up to about 16 dB
      * @param spread         0 .. 1, see above
      * @param returnSeconds  0.05 .. 30 s; the release coefficient is recomputed only when it changes
      */
-    void set(float amount, float spread = 0.0f, float returnSeconds = 1.2f);
+    void set(float amount, float spread = 0.0f, float returnSeconds = 0.5f);
     /**
-     * @brief Ducks far[] where near[] has energy, in place.
+     * @brief Ducks the background where the near bus has energy, in place.
      * @param nearL  the near bus, left, n samples (read only)
      * @param nearR  the near bus, right
-     * @param farL   the far bus, left, ducked in place
-     * @param farR   the far bus, right
+     * @param farL   the background (the far hall, or the room's return), left, ducked in place
+     * @param farR   the background, right
      * @param n      samples in the block
      */
     void process(const float* nearL, const float* nearR, float* farL, float* farR, int n);
     /** @brief Clears the crossover states, the envelopes and the gains (back to 1). */
     void reset();
 private:
-    struct Split {
-        float lo = 0.0f,   ///< the one-pole below 300 Hz
-        mid = 0.0f;        ///< the one-pole below 2.5 kHz
-    };   ///< one-pole state per crossover per channel
-    Split  sNear_[2],   ///< the near bus's crossovers (only [0] is used: the near bus is summed to mono)
-           sFar_[2];    ///< the far bus's crossovers per channel
-    float  env_[3] = {};                              ///< the near bus's band envelopes
-    float  gain_[3] = { 1.0f, 1.0f, 1.0f };           ///< what the far bus is multiplied by, smoothed
-    float  aCoef_ = 0.01f,     ///< the attack coefficient of the envelopes and gains: the duck, 50 ms
+    /**
+     * @brief Splits one sample into the kBands bands: a second-order low-pass at every crossover,
+     *        each band the difference of two neighbours, so the bands add back to the input exactly.
+     * @param lp    the crossovers' filters, kBands - 1 of them, advanced here
+     * @param x     the input sample
+     * @param band  receives the bands, lowest first; they sum to x
+     */
+    static void split(Svf* lp, float x, float* band);
+    Svf    xNear_[kBands - 1];      ///< the near bus's crossovers (the near bus is summed to mono)
+    Svf    xBg_[2][kBands - 1];     ///< the background's crossovers, per channel
+    float  env_[kBands] = {};          ///< the near bus's band envelopes
+    float  gain_[kBands] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };   ///< what the background is multiplied by, smoothed
+    float  aCoef_ = 0.01f,     ///< the attack coefficient of the envelopes and gains: the duck, 20 ms
            rCoef_ = 0.0005f;   ///< the release coefficient: the return, returnSec_
-    float  c1_ = 0.02f,   ///< the 300 Hz one-pole coefficient
-           c2_ = 0.2f;    ///< crossover coefficients (300 Hz, 2.5 kHz)
     float  amount_ = 0.0f,      ///< the Unmask knob, 0 .. 1
            spread_ = 0.0f,      ///< the Spread knob, 0 .. 1
-           returnSec_ = 1.2f;   ///< the return time in seconds
+           returnSec_ = 0.5f;   ///< the return time in seconds
     double sr_ = 48000.0;   ///< sample rate in Hz
 };
 
@@ -470,6 +481,8 @@ private:
     Drifter wowDrift_;   ///< the slow, irregular wow
     double  flutterPh_ = 0.0;   ///< the phase of the steady 6 Hz flutter, in cycles
     Rng     rng_;   ///< the patina's own generator: the hiss and the wow's knots
+    Oversampler4 osL_,   ///< @brief the saturation at four times the rate, left
+                 osR_;   ///< and right
 };
 
 /**
