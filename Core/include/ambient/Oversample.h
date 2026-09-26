@@ -51,6 +51,15 @@ namespace halfband {
 
 constexpr int kPad = 8;   ///< the vector width the taps and the sums are padded to
 
+/// The path dot() was compiled with, for Tests/filtertest.cpp.
+#if AMBIENT_HAS_AVX
+constexpr const char* kDotPath = "avx2";
+#elif AMBIENT_HAS_NEON
+constexpr const char* kDotPath = "neon";
+#else
+constexpr const char* kDotPath = "scalar";
+#endif
+
 /**
  * @brief A length rounded up to whole vectors.
  * @param n  the length

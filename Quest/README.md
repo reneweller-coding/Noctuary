@@ -98,9 +98,26 @@ adb shell /data/local/tmp/ambient_convbench 256 20 60
 (`cmake -S . -B build-android` again after test targets were added, or the build stops
 at the first one it does not know.)
 
+The circuit filters (Moog, SEM, Prophet, Juno, Diode; `Core/include/ambient/CircuitFilter.h`,
+26.09.2026) run both channels in one NEON register, and the oversamplers' sums are NEON
+as well. On x86 both are tested through the shim (`ambient_filtertest_neon`); on the
+headset:
+
+```
+cmake --build build-android --target ambient_filtertest -- -j6
+adb push build-android\Tests\ambient_filtertest /data/local/tmp/
+adb shell chmod +x /data/local/tmp/ambient_filtertest
+adb shell /data/local/tmp/ambient_filtertest
+```
+
+It must print `circuit lanes / oversampler sums: neon/neon` and `filtertest: all checks passed`.
+The circuit models are the dearest filters in the instrument (on the desktop 470 to 730 cycles a
+stereo sample against 32 for LP 12); what they cost on the XR2 is worth a look with the
+Profiler before a preset with sixteen voices on the Diode is played there.
+
 ## Status
 
-Compiles and packages; not yet run on a device (no headset attached to the
-build machine). First on-device checks: session state flow, swapchain format,
-hand-tracking permission prompt, Oboe stream start, pinch calibration, and the
-two convolver runs above.
+Compiles and packages (last built 26.09.2026, with the circuit filters); not yet run on a
+device (no headset attached to the build machine). First on-device checks: session state
+flow, swapchain format, hand-tracking permission prompt, Oboe stream start, pinch
+calibration, the two convolver runs and the filter test above.

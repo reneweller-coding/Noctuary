@@ -265,8 +265,9 @@ but LP 12 to the SEM was rendered on both filters instead, 30 seconds at the old
 (`circuit_measured.json`, 1832 presets), and corrected by what it measured -- the old ladder
 oscillated at Nyquist once its corner was pushed to the top, and the measurement had turned fifteen
 presets down for a tone nobody hears; LP 12 to the SEM kept the reckoning (the same two poles, within
-1.2 dB on a sample). Against the library's measurement the moved presets came out at a median of
--0.1 dB. The map and the CLAP embeddings are still the last measurement's.
+1.2 dB on a sample). Against the library's measurement, rendered as it is made (warm-up, 60 s), a
+sample of 96 moved presets came out at a median of 0.0 dB, all within 2 dB. The map and the CLAP
+embeddings are still the last measurement's.
 The guide's two targets that are no parameter, the sub balance and the correlation, are pulled
 towards from a measurement by `guide_fit.py` (Sub Level, the master's Width; sixty per cent of the
 way, jittered by the name). A round is measured in two passes so that every preset gets its gain

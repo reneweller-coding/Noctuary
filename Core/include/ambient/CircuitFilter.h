@@ -44,8 +44,8 @@
 #include "Simd.h"
 #include <algorithm>
 #include <cmath>
-#if !AMBIENT_HAS_AVX && !AMBIENT_HAS_NEON && (defined(_M_X64) || defined(__SSE2__))
-  #include <emmintrin.h>
+#if !AMBIENT_HAS_NEON && !defined(AMBIENT_SCALAR_LANES) && (defined(_M_X64) || defined(__SSE2__))
+  #include <immintrin.h>
 #endif
 
 namespace ambient {
@@ -59,11 +59,28 @@ constexpr int kNewton = AMBIENT_CIRCUIT_NEWTON;   ///< Newton steps per sample: 
 /**
  * @brief Four lanes of floats for the circuits: the left channel in lane 0, the right in lane 1.
  *
- * SSE on x86-64 (AVX2 builds use its FMA), NEON on arm64, four floats anywhere else. Only what the
- * circuits need: the four operations, min, max, a fused multiply-add, and moving two samples in
- * and out.
+ * NEON on arm64 (and on x86 through Tests/neonshim, which is how the Quest's path is tested here),
+ * SSE on x86-64 (AVX2 builds use its FMA), four floats anywhere else. Only what the circuits need:
+ * the four operations, min, max, a multiply-add, and moving two samples in and out. kLanePath
+ * names the one that was compiled, for Tests/filtertest.cpp, whose scalar variant defines
+ * AMBIENT_SCALAR_LANES to reach the last one on an x86 machine.
  */
-#if AMBIENT_HAS_AVX || defined(_M_X64) || defined(__SSE2__)
+#if AMBIENT_HAS_NEON
+constexpr const char* kLanePath = "neon";   ///< the path F4 was compiled with
+struct F4 { float32x4_t v; };
+inline F4 operator+(F4 a, F4 b) { return { vaddq_f32(a.v, b.v) }; }
+inline F4 operator-(F4 a, F4 b) { return { vsubq_f32(a.v, b.v) }; }
+inline F4 operator*(F4 a, F4 b) { return { vmulq_f32(a.v, b.v) }; }
+inline F4 operator/(F4 a, F4 b) { return { vdivq_f32(a.v, b.v) }; }
+inline F4 operator-(F4 a) { return { vnegq_f32(a.v) }; }
+inline F4 vmin(F4 a, F4 b) { return { vminq_f32(a.v, b.v) }; }
+inline F4 vmax(F4 a, F4 b) { return { vmaxq_f32(a.v, b.v) }; }
+inline F4 mad(F4 a, F4 b, F4 c) { return { vmlaq_f32(c.v, a.v, b.v) }; }
+inline F4 splat(F4*, float x) { return { vdupq_n_f32(x) }; }
+inline F4 pack(float l, float r) { const float t[4] = { l, r, 0.0f, 0.0f }; return { vld1q_f32(t) }; }
+inline void unpack(F4 x, float& l, float& r) { float t[4]; vst1q_f32(t, x.v); l = t[0]; r = t[1]; }
+#elif (defined(_M_X64) || defined(__SSE2__)) && !defined(AMBIENT_SCALAR_LANES)
+constexpr const char* kLanePath = "sse";    ///< the path F4 was compiled with
 struct F4 { __m128 v; };
 inline F4 operator+(F4 a, F4 b) { return { _mm_add_ps(a.v, b.v) }; }   ///< lane by lane
 inline F4 operator-(F4 a, F4 b) { return { _mm_sub_ps(a.v, b.v) }; }   ///< lane by lane
@@ -81,20 +98,8 @@ inline F4 splat(F4*, float x) { return { _mm_set1_ps(x) }; }   ///< one value in
 inline F4 pack(float l, float r) { return { _mm_setr_ps(l, r, 0.0f, 0.0f) }; }   ///< two samples into lanes 0 and 1
 /** @brief Lanes 0 and 1 out again. @param x the lanes @param l receives lane 0 @param r receives lane 1 */
 inline void unpack(F4 x, float& l, float& r) { l = _mm_cvtss_f32(x.v); r = _mm_cvtss_f32(_mm_shuffle_ps(x.v, x.v, 1)); }
-#elif AMBIENT_HAS_NEON
-struct F4 { float32x4_t v; };
-inline F4 operator+(F4 a, F4 b) { return { vaddq_f32(a.v, b.v) }; }
-inline F4 operator-(F4 a, F4 b) { return { vsubq_f32(a.v, b.v) }; }
-inline F4 operator*(F4 a, F4 b) { return { vmulq_f32(a.v, b.v) }; }
-inline F4 operator/(F4 a, F4 b) { return { vdivq_f32(a.v, b.v) }; }
-inline F4 operator-(F4 a) { return { vnegq_f32(a.v) }; }
-inline F4 vmin(F4 a, F4 b) { return { vminq_f32(a.v, b.v) }; }
-inline F4 vmax(F4 a, F4 b) { return { vmaxq_f32(a.v, b.v) }; }
-inline F4 mad(F4 a, F4 b, F4 c) { return { vmlaq_f32(c.v, a.v, b.v) }; }
-inline F4 splat(F4*, float x) { return { vdupq_n_f32(x) }; }
-inline F4 pack(float l, float r) { const float t[4] = { l, r, 0.0f, 0.0f }; return { vld1q_f32(t) }; }
-inline void unpack(F4 x, float& l, float& r) { float t[4]; vst1q_f32(t, x.v); l = t[0]; r = t[1]; }
 #else
+constexpr const char* kLanePath = "scalar"; ///< the path F4 was compiled with
 struct F4 { float v[4]; };
 inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] + b.v[i]; return o; }
 inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] - b.v[i]; return o; }

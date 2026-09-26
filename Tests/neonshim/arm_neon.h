@@ -142,3 +142,21 @@ inline float32x4_t vminq_f32(float32x4_t a, float32x4_t b)
  */
 inline float32x4_t vmaxq_f32(float32x4_t a, float32x4_t b)
 { for (int i = 0; i < 4; ++i) a.lane[i] = a.lane[i] > b.lane[i] ? a.lane[i] : b.lane[i]; return a; }
+
+/**
+ * @brief Lane-wise a / b, one IEEE division per lane: the circuit filters' Newton steps
+ *        (CircuitFilter.h, 26.09.2026) divide by their Jacobians' diagonal.
+ * @param a  the dividend
+ * @param b  the divisor
+ * @return   a / b per lane
+ */
+inline float32x4_t vdivq_f32(float32x4_t a, float32x4_t b)
+{ for (int i = 0; i < 4; ++i) a.lane[i] /= b.lane[i]; return a; }
+
+/**
+ * @brief Lane-wise negation, for the circuit filters' residuals.
+ * @param a  the operand
+ * @return   -a per lane
+ */
+inline float32x4_t vnegq_f32(float32x4_t a)
+{ for (int i = 0; i < 4; ++i) a.lane[i] = -a.lane[i]; return a; }

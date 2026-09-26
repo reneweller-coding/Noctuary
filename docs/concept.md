@@ -3823,13 +3823,22 @@ filters, 30 seconds at the preset's old level (1832 presets, `Tools/library/circ
 and each preset's master_gain corrected by what it measured, as far as its true peak allowed:
 Ladder to Moog median +0.7 dB (-19.4 .. +8.9), LP 24 to the circuits -0.7 (-7.3 .. 0), HP 12 and
 Notch to the SEM 0.0 (-0.4 .. +1.3). Against the library's own measurement, 96 moved presets
-rendered as it was made (60 s) came out at a median of -0.1 dB, 94 of them within 2 dB. The old
+rendered exactly as it was made (the warm-up by the attack, then 60 s) came out at a median of
+0.0 dB, every one within 2 dB (the farthest +1.6). A first check without the warm-up had put
+"Silo Chamber" 5.6 dB under its measurement; measured as the library is measured it is at -20.05
+LUFS, where the measurement has it -- a preset with a long attack is quieter while it arrives. The old
 Ladder's loop is held under a gain of 0.8 at Nyquist now (its corner stops near 9 kHz on the knob
 at the top of Resonance), and `testCircuitFilters` holds it there.
 
 What the move leaves stale: the map, the groups and the CLAP embeddings are the last measurement's,
 and for the fifteen Ladder presets that were a 24 kHz tone to it, their place on the map is that
 tone's. The next measurement of the library puts them right.
+
+The Quest gets the same code: F4 is NEON on arm64, and `ambient_filtertest` (Tests/, 26.09.2026)
+holds every vector path to the plain float one -- built as the core is here (SSE lanes, AVX2 sums),
+through the NEON shim on x86, scalar, and for arm64 in build-android, where it compiles with the
+APK. The lanes differ from one float by 1e-6 of the peak with the desktop's FMA and not at all
+through the shim; the Prophet sings at 432 Hz and the SEM's notch is -61 dB on every path.
 
 The parallel filter route (`z_route`) delays its dry branch by the filter's latency, which the filter
 now reports as a number (`VoiceFilter::latency()`: 29.5 samples with Drive, 25 for a circuit model,
