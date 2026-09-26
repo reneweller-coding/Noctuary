@@ -2,7 +2,7 @@
 #     doxygen docs/Doxyfile
 # and open build/doxygen/html/index.html. Same layout as Phosphene's docs/Doxyfile.
 PROJECT_NAME           = Noctuary
-PROJECT_NUMBER         = 2.0.3
+PROJECT_NUMBER         = 2.1.0
 PROJECT_BRIEF          = "Generative ambient instrument"
 OUTPUT_DIRECTORY       = build/doxygen
 INPUT                  = Core/include Core/src Plugin Quest/src Tools/render Tests README.md
