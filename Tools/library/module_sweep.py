@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 MEASURE = re.compile(r"^measure: (.*)$", re.M)
 
 SECONDS = {"Cluster Brain": 40.0, "Brain 2": 40.0, "Autoplay": 40.0, "Memory": 20.0}

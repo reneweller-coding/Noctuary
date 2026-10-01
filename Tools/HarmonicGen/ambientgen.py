@@ -66,7 +66,7 @@ PREFIX = "ambient"
 STEP_MAX = hg.STEP_MAX
 OVERSAMPLE = 3
 TEXTURES = os.path.join(ROOT, "Library", "Textures")
-LEDGER = os.path.normpath(os.path.join(ROOT, "..", "StableAudio3", "build", "ledger.jsonl"))
+LEDGER = os.path.normpath(os.path.join(ROOT, "..", "_Sources", "StableAudio3", "build", "ledger.jsonl"))
 
 
 # ---------------------------------------------------------------------------- Bausteine (Frames x 128)

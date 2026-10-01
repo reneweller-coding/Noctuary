@@ -30,9 +30,9 @@ by the bass, a drone is mostly bass and a singing bowl has almost none, so a bow
 came out "10 dB under". The median over the backgrounds is the preset's ratio; the trim that brings it
 to the target is target - ratio. Written as JSON for Tools/make_layer_presets.py.
 
-    python Tools/library/near_loudness.py [--jobs 6] [--target 0] [--out build/library-work/near_loudness.json]
+    python Tools/library/near_loudness.py [--jobs 6] [--target 0] [--out work/library/near_loudness.json]
         [--only "Bunker Tube,Whistler"] [--backgrounds "A,B,C"] [--write-gains]
-    python Tools/library/near_loudness.py --from-json build/library-work/near_loudness.json   # gains only
+    python Tools/library/near_loudness.py --from-json work/library/near_loudness.json   # gains only
 
 Then python Tools/make_layer_presets.py folds Tools/library/near_gain.json into Core/src/NearPresets.inc.
 The measurement hears the bank as it is built, gains included, so a new trim is added to the gain the
@@ -67,8 +67,8 @@ def lufs(power_sum):
     return -0.691 + 10.0 * np.log10(power_sum + 1e-24)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
-WORK = os.path.join(ROOT, "build", "library-work", "near-loudness")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
+WORK = os.path.join(ROOT, "work", "library", "near-loudness")
 # Candidates, in order: dense, dark, bright, then sparse ones. The first four that fall silent when their
 # own sources are switched off are used. Warp Vigil did not -- something in it went on sounding at -24 LU
 # of its own level with every source off, and every quiet event measured over it read as that floor.
@@ -181,7 +181,7 @@ def main():
     ap.add_argument("--jobs", type=int, default=6)
     ap.add_argument("--target", type=float, default=0.0,
                     help="LU of the event's loudest moment against the background's loudness")
-    ap.add_argument("--out", default=os.path.join(ROOT, "build", "library-work", "near_loudness.json"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "work", "library", "near_loudness.json"))
     ap.add_argument("--only", default="")
     ap.add_argument("--backgrounds", default=",".join(BACKGROUNDS))
     ap.add_argument("--write-gains", action="store_true",

@@ -46,7 +46,7 @@ from scipy.signal import resample_poly
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 LIBRARY = os.path.join(ROOT, "Library", "Impulses")
-DEFAULT_SOURCES = os.path.normpath(os.path.join(ROOT, "..", "IRSources"))
+DEFAULT_SOURCES = os.path.normpath(os.path.join(ROOT, "..", "_Sources", "IRSources"))
 
 sys.path.insert(0, HERE)
 import ir_metrics  # noqa: E402

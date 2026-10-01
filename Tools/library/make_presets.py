@@ -48,7 +48,7 @@ import conductor  # noqa: E402  -- which family a style belongs to
 from styles import STYLES  # noqa: E402
 from wavetable_folders import tables as shelf_tables  # noqa: E402
 
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 
 # Choice names, exactly as Core/src/Params.cpp, Sources.cpp and ZPlane.cpp spell them.
 STACKS = ["Octaves", "Fifths", "Major", "Minor", "Seventh", "Harmonics", "Subharmonics"]

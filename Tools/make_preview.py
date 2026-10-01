@@ -9,7 +9,7 @@ Settings, General, Social preview.
 docs/screenshot.png is the standalone's window, muted, a chord sounding, photographed large so that
 it stays sharp when it is made small here:
 
-    set AMBIENT_SHOT=build\\shot-ignore.png      (plays the chord at start, quits after ten seconds)
+    set AMBIENT_SHOT=work\\shot-ignore.png      (plays the chord at start, quits after ten seconds)
     set AMBIENT_MUTE=1
     set AMBIENT_PRESET=Tidal Expanse
     powershell -File Tools\\shoot_gui.ps1 -Out docs\\screenshot.png -Width 1700 -Height 1240 -Wait 8

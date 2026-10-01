@@ -18,7 +18,7 @@ Quest/
 ```
 powershell -File Quest\fetch_thirdparty.ps1
 powershell -File Quest\build_apk.ps1
-adb install -r build-quest\NoctuaryQuest.apk
+adb install -r bin\quest\NoctuaryQuest.apk
 ```
 
 Needs: NDK r27 (`C:\Android-Buildtools\sdk\ndk\27.2.12479018`), build-tools 34,

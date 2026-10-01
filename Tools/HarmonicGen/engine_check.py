@@ -29,7 +29,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 import harmonicgen as hg  # noqa: E402
 
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 
 # Jeder Name hier steht in `ambient_render --list`; ein unbekannter bricht den Render mit Fehler ab.
 NEUTRAL = {

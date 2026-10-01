@@ -37,7 +37,7 @@ ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 from make_presets import TAGS, layout, rank  # noqa: E402
 
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 
 # The window every preset is brought into. Drones live around -20..-28 dBFS; preset_check.py
 # fails above -12, so the ceiling keeps a margin for a busier chord than the test's three notes.

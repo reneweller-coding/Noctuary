@@ -34,7 +34,7 @@ Library/
                            the library -- offset, hole, seam.
 ```
 
-The clips were generated in `G:/Tools/VRAudio/StableAudio3` (`build/`, `build_fr/`, the prompt lists
+The clips were generated in `G:/Tools/VRAudio/_Sources/StableAudio3` (`build/`, `build_fr/`, the prompt lists
 in `prompts/`); the category `tape-loop` was renamed `tapeloop` on the way in, because a `-loop` in a
 name makes the engine treat a clip as a seamless loop (`build/library_renames.json`). The previous
 library is backed up on `M:/Samples/Noctuary-Backup/2026-09-10` and `2026-09-11`.
@@ -75,7 +75,7 @@ folder because everything that measures a preset measures packs, and compiled in
 The whole chain, in order, is `Tools/library/rebuild_all.py`:
 
 ```
-python Tools/library/rebuild_all.py --work build/library-work --jobs 12
+python Tools/library/rebuild_all.py --work work/library --jobs 12
 ```
 
 ```

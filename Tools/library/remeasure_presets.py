@@ -1,9 +1,9 @@
 """Measure a handful of presets again -- after an engine fix, after a hand edit -- and leave the
 rest of the library exactly as it was measured.
 
-    python Tools/library/remeasure_presets.py --work build/library-work --names "Horn Movement,Somnolent Swell"
-    python Tools/library/remeasure_presets.py --work build/library-work --file names.txt
-    python Tools/library/remeasure_presets.py --work build/library-work --below-db -45 --evo-above 20
+    python Tools/library/remeasure_presets.py --work work/library --names "Horn Movement,Somnolent Swell"
+    python Tools/library/remeasure_presets.py --work work/library --file names.txt
+    python Tools/library/remeasure_presets.py --work work/library --below-db -45 --evo-above 20
 
 measure_packs.py can render a subset too (--resume renders what the cache lacks), but it then
 applies the loudness window to EVERY preset again, and a preset that was already lifted the six

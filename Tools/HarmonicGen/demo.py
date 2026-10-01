@@ -51,7 +51,7 @@ def render_one(table, score, out, notes, kind="Harmonic"):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tables", default=os.path.join(ROOT, "Library", "Wavetables"))
-    ap.add_argument("--out", default=os.path.normpath(os.path.join(ROOT, "..", "WavetableSources", "demo-renders")))
+    ap.add_argument("--out", default=os.path.normpath(os.path.join(ROOT, "..", "_Sources", "WavetableSources", "demo-renders")))
     ap.add_argument("--name", default="harmonic_demo", help="Dateiname ohne Endung fuer .flac, .mp3 und .txt")
     ap.add_argument("--families", default=",".join(hg.FAMILIES))
     ap.add_argument("--per-family", type=int, default=2)

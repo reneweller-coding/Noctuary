@@ -60,13 +60,13 @@ import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
-SOURCES = "G:/Tools/VRAudio/WavetableSources"
+SOURCES = "G:/Tools/VRAudio/_Sources/WavetableSources"
 AKWF_REPO = SOURCES + "/AKWF-FREE"
 WAVEDIT_REPO = SOURCES + "/wavedit-online"
 AKWF_URL = "https://github.com/KristofferKarlAxelEkstrand/AKWF-FREE"
 WAVEDIT_URL = "https://github.com/smpldsnds/wavedit-online"
 DEFAULT_OUT = os.path.join(ROOT, "Library", "WavetablesNew", "classic")
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 LICENSE = "CC0 1.0 Universal"
 
 L = 2048                  # samples per frame in the written tables

@@ -15,7 +15,7 @@ $quest = Join-Path $root "Quest"
 $ndk = Join-Path $Sdk "ndk\$NdkVersion"
 $bt = Join-Path $Sdk "build-tools\$BuildTools"
 $androidJar = Join-Path $Sdk "platforms\$Platform\android.jar"
-$build = Join-Path $root "build-quest"
+$build = Join-Path $root "build\quest"
 $out = Join-Path $build "apk"
 
 if (-not (Test-Path (Join-Path $root "ThirdParty\openxr-loader\prefab"))) { throw "ThirdParty missing: run Quest\fetch_thirdparty.ps1 first" }
@@ -66,6 +66,11 @@ if (-not (Test-Path $keystore)) {
 $final = Join-Path $build "NoctuaryQuest.apk"
 & (Join-Path $bt "apksigner.bat") sign --ks $keystore --ks-pass pass:android --key-pass pass:android --out $final $aligned
 if ($LASTEXITCODE -ne 0) { throw "apksigner failed" }
+# Beside the other programs (cmake/Family.cmake's bin/<preset>, 01.10.2026).
+$binQuest = Join-Path $root "bin\quest"
+New-Item -ItemType Directory -Force $binQuest | Out-Null
+Copy-Item $final $binQuest -Force
+$final = Join-Path $binQuest (Split-Path -Leaf $final)
 Write-Host "APK: $final"
 Write-Host "install:  adb install -r `"$final`""
 Write-Host "config:   adb push ambient.cfg /sdcard/Android/data/com.reneweller.noctuary.quest/files/ambient.cfg"

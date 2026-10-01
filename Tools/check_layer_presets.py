@@ -31,7 +31,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 CARRIER = "Consonant Expanse"   # the 2.0 built-in after the night of 13.09.; "Consonant Field" went with the ones before, "Consonant Hollow" with the old
 SECONDS = 20
 

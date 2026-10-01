@@ -29,7 +29,7 @@ What is new against make_presets:
     Tools/library/write_builtins.py turns into Core/src/Presets.cpp once they are balanced and measured.
 
     python Tools/library/make_library.py                    the 56 packs into Library/Packs
-    python Tools/library/make_library.py --builtins         and the built-ins into build/builtin_packs
+    python Tools/library/make_library.py --builtins         and the built-ins into work/builtin_packs
     python Tools/library/make_library.py --styles "Sleep Concert,Deep Earth" --per-style 24 --out-dir DIR
 
 Deterministic: the same seed gives the same library.
@@ -832,7 +832,7 @@ def main():
     ap.add_argument("--out-dir", default=os.path.join(ROOT, "Library", "Packs"))
     ap.add_argument("--builtins", action="store_true", help="also the built-ins, into --builtins-out")
     ap.add_argument("--builtins-only", action="store_true")
-    ap.add_argument("--builtins-out", default=os.path.join(ROOT, "build", "builtin_packs"))
+    ap.add_argument("--builtins-out", default=os.path.join(ROOT, "work", "builtin_packs"))
     ap.add_argument("--builtin-count", type=int, default=16, help="presets per built-in family (the first has one less: Init)")
     a = ap.parse_args()
     mp.PARAMS = mp.param_table()

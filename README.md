@@ -151,15 +151,29 @@ sonifications from NASA, 724 cylinder and early-radio transfers from the Library
 
 ## Build
 
-```bash
-cmake -S . -B build -G "Visual Studio 18 2026" -A x64
-cmake --build build --config Release
+The same in every instrument of the family (`build.ps1`, `CMakePresets.json`, `cmake/Family.cmake`):
+
+```powershell
+.\build.ps1               # Visual Studio's compiler, Release: build\msvc (the solution), the programs in bin\msvc
+.\build.ps1 icx           # Intel's oneAPI compiler: build\icx, the programs in bin\icx
+.\build.ps1 msvc -Test    # and the tests (ctest)
+.\build.ps1 icx -Run      # and start the standalone
+.\build.ps1 quest         # the Meta Quest app: bin\quest\NoctuaryQuest.apk
 ```
 
-Outputs: the VST3 under `build/Plugin/Noctuary_artefacts/Release/VST3/` (copy the folder to
-`C:\Program Files\Common Files\VST3`), the standalone beside it, `ambient_render` under
-`build/Tools/render/Release/`, and the tests under `build/Tests/Release/`. The first configure
-downloads JUCE. `-DAMBIENT_BUILD_PLUGIN=OFF` builds only the core and the tools, which needs no
+| Folder | What is in it |
+|---|---|
+| `bin\msvc`, `bin\icx` | what can be started: the standalone, the VST3, the renderer (and the files they read) |
+| `build\<preset>` | the build trees -- `build\msvc\Noctuary.slnx` for Visual Studio |
+| `dist\` | the release: setup, portable zip, checksums (`Deploy\build_release.ps1`, from `build\release`) |
+| `work\` | local data, renders and logs, never in git |
+
+Without the script: `cmake --preset msvc`, `cmake --build --preset msvc`, `ctest --preset msvc`; the icx presets need
+Visual Studio's and oneAPI's environment, which `build.ps1` sets up.
+
+`bin\msvc` then holds the standalone, the VST3 (copy the folder to `C:\Program Files\Common Files\VST3`),
+`ambient_render` and `ambient_brain_audit`; the tests stay in `build\msvc\Tests\Release`. JUCE comes from
+`ThirdParty/JUCE`, the sibling Phosphene's checkout, or is fetched on the first configure. `-DAMBIENT_BUILD_PLUGIN=OFF` builds only the core and the tools, which needs no
 JUCE and also builds on Linux.
 
 ### Reference documentation
@@ -220,7 +234,7 @@ powershell -File Deploy\build_release.ps1
 
 Builds in its own tree with the runtime linked in and AVX2 on, runs the tests in that exact
 configuration, refuses to package a binary that still asks for any redistributable — Microsoft's or
-Intel's — and leaves a setup and a portable zip in `Deploy\out` with their SHA-256 sums.
+Intel's — and leaves a setup and a portable zip in `dist\` with their SHA-256 sums.
 
 Releases are built with Intel's oneAPI compiler, which is about a fifth faster through the plugin
 under load than MSVC. It puts a generative instrument on a different floating-point trajectory, so

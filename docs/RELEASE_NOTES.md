@@ -1,7 +1,21 @@
+# Noctuary release notes
+
+## Next: the family's panel and layout (01.10.2026, not yet released)
+
+**The family's panel.** Undo, Redo, Help and the settings at the right of the header, as every instrument of the family
+has them; the layout, the session recall and About in the settings; the VR controls only while a headset sends.
+
+**One layout for the repositories.** Every instrument of the family builds the same way now: `build.ps1` (msvc, icx,
+release, quest) on the presets of `CMakePresets.json`, the build trees under `build\<preset>`, everything that can be
+started -- the standalone, the VST3, the renderer -- flat in `bin\msvc` and `bin\icx` (and the Quest APK in
+`bin\quest`), the release in `dist\`, local data, renders and logs in `work\` (`cmake/Family.cmake`).
+
+## 2.1.0
+
 **Five analogue filters modelled on their circuits, a production guide built into the engine, and a
 conductor held to the harmony of the genre -- and every preset measured again for it.**
 
-## Five circuit filters
+### Five circuit filters
 
 The voice filter has five new models behind the same knobs: **Moog** (the transistor ladder),
 **SEM** (Oberheim's state-variable filter), **Prophet** and **Juno** (the OTA cascades of the
@@ -25,7 +39,7 @@ and four times measured no better. They are still the dearest filters in the ins
 **Faster everywhere else.** The oversampler's sums are vector sums now: the four-times round trip
 that every Drive, wavefolder, Patina, air and feedback stage uses went from 197 to 96 cycles.
 
-## The library moved to them
+### The library moved to them
 
 3583 presets play a circuit filter now: every one that used the Ladder (to the Moog, its corner and
 its feedback where the old ladder had them), seven in ten LP 24 (to a four-pole circuit by the
@@ -49,7 +63,7 @@ full scale. Nobody hears that; the library's measurement did, and fifteen preset
 down for it, "Envelope Hollow" by sixteen decibels. They play at their real loudness now, and the
 Ladder, which stays in the menu, can no longer do it.
 
-## The production guide, built in
+### The production guide, built in
 
 The guide for dark ambient and drone production is in the engine now, with its numbers as the
 defaults, so every preset plays by it without being touched:
@@ -69,7 +83,7 @@ defaults, so every preset plays by it without being touched:
   ahead of the far hall and the feedback loop.
 * A **correlation meter** in the loudness panel (amber under 0).
 
-## The conductor and the harmony of the genre
+### The conductor and the harmony of the genre
 
 A review of the Cluster Brain against modal, just, register-bound drone music found eight places
 where a model of major-minor tonality was doing the listening. All of them are changed:
@@ -80,7 +94,7 @@ default, with the whole tone the genre moves by; Mediant; Phrygian; Classic); **
 chords from the harmonics of one unsounded fundamental (the Harmonic Cloud); scales without an
 octave get rules in cents. The packs got these ranges family by family.
 
-## Measured again
+### Measured again
 
 Every preset of the library was measured again for the guide and the review: loudness in the
 guide's window of -20 to -16 LUFS for 12215 of the pack presets, the correlation between 0.3 and
@@ -89,10 +103,78 @@ decibels over the low mids for 5792 of the 9043 presets that have one (741). The
 the sound search were made again from
 that measurement (the filter round above came after it and was not measured into the map).
 
-## Checked
+### Checked
 
 The self test, the host test and the race test in the release configuration (Intel oneAPI);
 pluginval at strictness 10 (with fifteen minutes a test: its parameter thread-safety test outlasts
 the default thirty seconds on an instrument this size);
 the new filter test on every vector path -- as the desktop is built, through the NEON path on the
 x86 shim, and scalar -- and compiled for the Quest's arm64. The sample library is that of 2.0.0.
+
+## 2.0.0
+
+The foreground, and a library made anew.
+
+**A near layer.** Everything the instrument had was a plane — a bank, a table, a recording, a
+string, all made to be sustained and sent into the far reverb. 2.0 gives it a foreground: a fifth
+source of its own, played by a second, small conductor that waits, chooses a degree consonant with
+what sounds (a fifth over the highest voice, never inside a critical band of it), plays one thing
+close to the ear, and waits again. Its own preset bank (108 presets in twelve families) sits beside
+the sound presets and stays while they change under it. The sources were made for it: a blown
+flute (a jet-drive waveguide that overblows to its octave when the embouchure shortens the jet), a
+singing bowl and creaking ice (friction on modes that come in doublets, so they beat as real bronze
+does), water drops (a bubble whose pitch rises as it decays, into a vessel), a murmuring voice on a
+radio with its squelch and its Quindar tones, and the signals — a VLF whistler falling through the
+magnetosphere, a seed pod, struck bronze, a Geiger tube, a fluorescent tube, the Krell's circuits,
+a beacon's data packet, a number station's Morse, a shortwave dial. A Berlin-school sequence kind
+with a shift register that mutates, a breathing tempo and a filter that blooms over the run. Events
+can arrive out of the horizon or leave into it (Distance and Approach), the near field lifts 120 to
+300 Hz as a thing comes close, Dry lets a click past every reverb, and two sends of its own throw a
+share of every event into the second delay or into the Cosmos while the bed is left where it is --
+a beacon that answers itself across a minute, circuits shifted and smeared into deep space.
+
+**Recordings, played straight.** A Clip source type plays a recording once, unbroken, because a
+sentence in grains is not a sentence. The library's archive holds NASA's mission loops and
+sonifications, twelve episodes of *Quiet, Please* cut into phrases at their pauses, and seven
+hundred spoken clips from the Library of Congress's Citizen DJ packs — every file's source and its
+rights statement in `Archive/SOURCES.md`. A preset may name a folder: every event then plays
+another phrase, never the same twice running.
+
+**Auto and journeys.** A sound preset from a pack brings its own foreground: a table per artist
+says which near presets belong to that music and how often, and the preset's name decides, the
+same way every time. Journeys are presets in a row, each held for a while drawn from a range and
+crossfaded into the next over a drawn fade, cyclic for an evening that plays itself; 119 come with
+the instrument (two per pack, and a crossing per family of artists), and your own are a text file.
+
+**The library, made anew.** 56 artist packs of 256 presets and 256 built-ins, generated from the
+material rather than by hand: textures regenerated, a thousand generated rooms, a thousand
+wavetables on three shelves, the rule-book conductor with thirty new parameters (register, interval
+colour, breathing rate, silence, root steps, home) measured against Rene's rule book by an audit
+that reads an hour of the conductor's notes. Every preset balanced, measured over a minute, mapped
+and rated.
+
+**Under it:** the room convolver in three partition sizes with the work spread over the block
+(sixty seconds of hall for 1.4 % of a core), the cloud and memory expansions, a spectral shifter,
+a stereo effect chain where the hall and the early room hear a stereo input, source envelopes of
+their own, slot roles (a slot that plays only the lowest, the inner or the highest note), and the
+far reverb's return after the foreground has ducked it as a parameter.
+
+**Favourites** are kept by name in `Documents\Noctuary\favourites.txt` -- the same stars in
+the standalone and in every DAW, and they survive a library made anew -- and *favourites first*
+puts them at the top of the browser's list whatever the sort; the map rings them in gold. The
+table pictures (Harmonic, Wavetable) light the cycle between two frames where the sound is,
+blended as the engine blends it, and say so as a number.
+
+**Found by the release build's own tests, fixed before it shipped:** a preset change within a
+third of a second of the one before it could arrive without its samples; *Freeze* held back
+every delayed source, so a preset frozen from its first note with nothing but delayed sources was
+silent; and a recording with a small offset, integrated by a forty-second hall, could drive the
+Patina's clipper onto its rail and the instrument into silence. The hall now blocks direct
+current at its input, a loaded recording loses its offset, and the Patina's clipper has a blocker
+ahead of it.
+
+Checked: self test, host test, race test in the release configuration; the near bank measured
+preset by preset; the rule-book audit; the full library rated.
+
+**The sample library** — 57 archives, 100 GB: the samples, wavetables, impulse responses and the
+archive the presets name — is the release `library-v5`. The installer offers to download it.

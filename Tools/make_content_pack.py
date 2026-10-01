@@ -4,7 +4,7 @@ The 56 packs in Library/Packs reference samples, wavetables and impulse response
 path. They are far too big for git and are not in it; this makes the archives that the installer
 downloads instead, and the manifest the installer needs to verify them.
 
-    python Tools/make_content_pack.py                  # build everything into Deploy/content
+    python Tools/make_content_pack.py                  # build everything into dist/content
     python Tools/make_content_pack.py --check-only     # just say what would go in and how big
 
 Two things happen on the way in.
@@ -37,7 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 LIBRARY = os.path.join(ROOT, "Library")
 PACKS = os.path.join(ROOT, "Library", "Packs")
-OUT = os.path.join(ROOT, "Deploy", "content")
+OUT = os.path.join(ROOT, "dist", "content")
 # Five now: the field recordings sit apart from the tonal material, because a swamp and a
 # bowed cymbal are not the same kind of clip and only one of them may be transposed; and the
 # archive holds the recordings the near layer plays straight (NASA's loops and sonifications,

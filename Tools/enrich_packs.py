@@ -41,7 +41,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 PACKS = os.path.join(ROOT, "Library", "Packs")
 # A sibling of Library/Packs, not a temp folder: every pack names its samples relatively, as
 # ../Textures/x.wav, and a copy anywhere else is a pack whose media has vanished.

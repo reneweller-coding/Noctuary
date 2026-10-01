@@ -49,7 +49,7 @@ import retrofit_review    # noqa: E402  (a pack's family)
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 PACKS = os.path.join(ROOT, "Library", "Packs")
 BUILTINS = os.path.join(ROOT, "Core", "src", "Presets.cpp")
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 SECTION = retrofit_review.SECTION
 MOVED_KEYS = ("filter_model", "cutoff", "resonance", "filter_morph", "master_gain")
 MEASURED_JSON = os.path.join(HERE, "circuit_measured.json")

@@ -22,7 +22,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(HERE, "legacy_impulses.json")
 SOURCES = (os.path.join(ROOT, "Library", "Impulses"),
-           os.path.normpath(os.path.join(ROOT, "..", "IRSources", "rejected-generated")),
+           os.path.normpath(os.path.join(ROOT, "..", "_Sources", "IRSources", "rejected-generated")),
            os.path.join(ROOT, "Deploy", "content", "Impulses"))
 
 

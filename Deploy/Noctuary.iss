@@ -1,6 +1,6 @@
 ; Noctuary -- the Windows installer.
 ;
-; Built by Deploy/build_release.ps1, which stages everything under Deploy/stage first. Nothing in
+; Built by Deploy/build_release.ps1, which stages everything under dist/stage first. Nothing in
 ; here reaches into the build tree: what is in the staging folder is exactly what gets installed,
 ; so the setup can be looked at before it is run.
 ;
@@ -15,7 +15,7 @@
 #define AppName "Noctuary"
 #define Publisher "Rene Weller"
 #define AppURL "https://github.com/reneweller-coding/Noctuary"
-#define Stage "stage"
+#define Stage "..\dist\stage"
 ; Where the sample library is downloaded from. The archives are release assets; the lines that
 ; name them, with their sizes and hashes, are generated into content-files.iss by
 ; Tools/make_content_pack.py, because both change with every rebuild of the package.
@@ -42,7 +42,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 LicenseFile={#Stage}\LICENSE.txt
-OutputDir=out
+OutputDir=..\dist
 OutputBaseFilename={#AppName}-{#Version}-Setup
 SetupIconFile={#Stage}\logo.ico
 UninstallDisplayIcon={app}\Noctuary.exe

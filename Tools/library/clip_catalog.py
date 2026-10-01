@@ -25,7 +25,7 @@ import unicodedata
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 LIBRARY = os.path.join(ROOT, "Library")
-PROMPTS = os.environ.get("AMBIENT_PROMPTS", os.path.normpath(os.path.join(ROOT, "..", "StableAudio3", "prompts")))
+PROMPTS = os.environ.get("AMBIENT_PROMPTS", os.path.normpath(os.path.join(ROOT, "..", "_Sources", "StableAudio3", "prompts")))
 TEX_PROMPTS = "stable_audio3_granular_prompts.jsonl"
 FR_PROMPTS = "stable_audio3_fieldrecording_prompts.jsonl"
 NOTE_RE = re.compile(r"_([A-G][#b]?-?\d+)\.(?:flac|wav)$")

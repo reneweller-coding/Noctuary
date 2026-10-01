@@ -9,8 +9,8 @@ under names of their own ("BI " and the name, so a render asks for the copy and 
 compiled-in original), and after the measurement writes back exactly the settings the measurement
 moved -- the master gain, Sub Level, Width -- and nothing else.
 
-    python Tools/library/builtin_pack.py export --out build/library-work/builtin_guide
-    python Tools/library/builtin_pack.py import --pack build/library-work/builtin_guide/Builtins.ambientpack
+    python Tools/library/builtin_pack.py export --out work/library/builtin_guide
+    python Tools/library/builtin_pack.py import --pack work/library/builtin_guide/Builtins.ambientpack
 """
 import argparse
 import os

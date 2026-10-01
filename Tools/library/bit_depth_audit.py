@@ -124,7 +124,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--jobs", type=int, default=8)
     ap.add_argument("--margin", type=float, default=12.0, help="dB of band margin below which a file keeps 24 bits")
-    ap.add_argument("--out", default=os.path.join(ROOT, "build", "library-work", "bit-depth.json"))
+    ap.add_argument("--out", default=os.path.join(ROOT, "work", "library", "bit-depth.json"))
     ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
 

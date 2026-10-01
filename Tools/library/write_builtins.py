@@ -9,8 +9,8 @@ Everything that measures a preset measures packs: the voice against its own bed
 families are generated as ordinary packs into a staging folder, measured there like any other pack,
 and only then compiled in by this tool.
 
-    python Tools/library/write_builtins.py --packs build/builtin_packs
-    python Tools/library/write_builtins.py --packs build/builtin_packs --check    report, write nothing
+    python Tools/library/write_builtins.py --packs work/builtin_packs
+    python Tools/library/write_builtins.py --packs work/builtin_packs --check    report, write nothing
 
 Everything outside `const Preset kPresets[] = { ... };` stays exactly as it is: the file's head, the
 section banks it includes and the functions under it. The family comments that Tools/preset_map.py
@@ -92,7 +92,7 @@ def entry(row):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--packs", default=os.path.join(ROOT, "build", "builtin_packs"))
+    ap.add_argument("--packs", default=os.path.join(ROOT, "work", "builtin_packs"))
     ap.add_argument("--out", default=PRESETS_CPP)
     ap.add_argument("--check", action="store_true", help="report what would be written, write nothing")
     a = ap.parse_args()

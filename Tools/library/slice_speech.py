@@ -46,7 +46,7 @@ from scipy.signal import butter, sosfilt
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 ARCHIVE = os.path.join(ROOT, "Library", "Archive")
-WORK = os.path.join(ROOT, "build", "speech-work")
+WORK = os.path.join(ROOT, "work", "speech")
 FFMPEG = os.environ.get("AMBIENT_FFMPEG") or "ffmpeg"
 for cand in (r"C:\Anw\Tools\ffmpeg\bin\ffmpeg.exe",):
     if FFMPEG == "ffmpeg" and os.path.exists(cand):

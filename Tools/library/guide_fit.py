@@ -33,8 +33,8 @@ measure_packs.py --resume): the next pass renders exactly the presets this moved
 preset's gain into the loudness window once. A second fit is followed by
 measure_packs.py --resume --gain-only-rendered, so that nothing is lifted twice.
 
-    python Tools/library/guide_fit.py --cache build/library-work/packs.json            # report
-    python Tools/library/guide_fit.py --cache build/library-work/packs.json --write    # do it
+    python Tools/library/guide_fit.py --cache work/library/packs.json            # report
+    python Tools/library/guide_fit.py --cache work/library/packs.json --write    # do it
 """
 import argparse
 import hashlib

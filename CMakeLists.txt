@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 project(Noctuary VERSION 2.1.0 LANGUAGES C CXX)
 
+# The family's layout (01.10.2026): build/<preset>, bin/<preset>, dist/, work/ -- cmake/Family.cmake,
+# CMakePresets.json and build.ps1, the same in every repository of the family.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Family.cmake)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -53,15 +57,7 @@ if(AMBIENT_BUILD_TOOLS)
 endif()
 
 if(AMBIENT_BUILD_PLUGIN)
-    include(FetchContent)
-    set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
-    set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    FetchContent_Declare(JUCE
-        GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-        GIT_TAG        ${AMBIENT_JUCE_TAG}
-        GIT_SHALLOW    TRUE
-        GIT_PROGRESS   TRUE)
-    FetchContent_MakeAvailable(JUCE)
+    family_juce(${AMBIENT_JUCE_TAG})   # ThirdParty/JUCE, the sibling Phosphene's, or fetched (cmake/Family.cmake)
     add_subdirectory(Plugin)
 endif()
 

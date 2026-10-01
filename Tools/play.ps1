@@ -17,8 +17,8 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$tree = if ($Dev) { "build" } else { "build-release-intel" }
-$exe = Join-Path $root "$tree\Plugin\Noctuary_artefacts\Release\Standalone\Noctuary.exe"
+$tree = if ($Dev) { "bin\msvc" } else { "bin\icx" }   # cmake/Family.cmake: build.ps1 msvc / build.ps1 icx
+$exe = Join-Path $root "$tree\Noctuary.exe"
 if (-not (Test-Path $exe)) { throw "not built: $exe" }
 
 Remove-Item env:AMBIENT_MUTE -ErrorAction SilentlyContinue

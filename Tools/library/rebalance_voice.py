@@ -162,7 +162,7 @@ def probe(job):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--packs", default="Library/Packs")
-    ap.add_argument("--render", default="build/Tools/render/Release/ambient_render.exe")
+    ap.add_argument("--render", default="bin/msvc/ambient_render.exe")
     ap.add_argument("--target-db", type=float, default=0.0,
                     help="how far the voice stands above the bed. Not a taste: the additive presets, the ones "
                          "that already sound played, measure at a median of -0.1 dB over a sample of 90.")

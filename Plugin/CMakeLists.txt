@@ -43,3 +43,7 @@ target_link_libraries(Noctuary
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
+
+# Into bin/<preset> after every build (cmake/Family.cmake, 01.10.2026): the standalone and the VST3 bundle.
+family_bin(Noctuary_Standalone)
+family_bin(Noctuary_VST3 VST3)

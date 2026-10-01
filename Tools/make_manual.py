@@ -8,7 +8,7 @@ step job:
 
     set AMBIENT_PRESET=Tidal Expanse
     set AMBIENT_MANUAL=docs\\manual
-    build\\...\\Noctuary.exe            waits five seconds, writes the folder, quits
+    bin\\msvc\\Noctuary.exe         waits five seconds, writes the folder, quits
     python Tools/make_manual.py           folder -> Noctuary-Manual.html -> .pdf
 
 AMBIENT_PRESET matters as much as the rest. The pictures are of the panel as it stands, so a

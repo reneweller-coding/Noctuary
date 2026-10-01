@@ -38,7 +38,7 @@ import mapembed                                        # noqa: E402
 from measure_packs import read_pack, write_pack, LOW_PRIORITY, MEASURE   # noqa: E402
 import preset_map as PM                                # noqa: E402
 
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 PACKS = os.path.join(ROOT, "Library", "Packs")
 OUT_INC = os.path.join(ROOT, "Core", "src", "PresetClusters.inc")
 OUT_PHRASES = os.path.join(ROOT, "Core", "src", "PresetPhrases.inc")

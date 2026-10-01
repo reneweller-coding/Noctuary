@@ -3,11 +3,11 @@
 A journey (Core/include/ambient/Journey.h) is a plain text file of presets, each held for a
 while drawn from a range and crossfaded into the next; cyclic, so an evening plays itself. This
 writes the templates the instrument ships in Library/Journeys, from the library's own
-measurement (build/library-work/packs.json: the descriptors of every preset, fresh from the
+measurement (work/library/packs.json: the descriptors of every preset, fresh from the
 rebuild) and the packs:
 
     python Tools/make_journeys.py                                   # every template
-    python Tools/make_journeys.py --cache G:/.../library-work/packs.json
+    python Tools/make_journeys.py --cache G:/.../work/library/packs.json
 
 For every pack, two journeys of twelve:
 
@@ -163,7 +163,7 @@ def safe(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cache", default=os.path.join(ROOT, "build", "library-work", "packs.json"))
+    ap.add_argument("--cache", default=os.path.join(ROOT, "work", "library", "packs.json"))
     ap.add_argument("--per-journey", type=int, default=12)
     a = ap.parse_args()
     with open(a.cache, encoding="utf-8") as f:

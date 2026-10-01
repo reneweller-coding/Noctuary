@@ -29,7 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 IMPULSES = os.path.join(ROOT, "Library", "Impulses")
 PACKS = os.path.join(ROOT, "Library", "Packs")
-DEFAULT_OUT = os.path.normpath(os.path.join(ROOT, "..", "IRSources", "rejected-generated"))
+DEFAULT_OUT = os.path.normpath(os.path.join(ROOT, "..", "_Sources", "IRSources", "rejected-generated"))
 
 sys.path.insert(0, HERE)
 import ir_metrics  # noqa: E402

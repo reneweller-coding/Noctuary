@@ -12,7 +12,7 @@
 #     before installing rather than letting an old one fail with an illegal instruction;
 #   * it builds in its own folder, so the everyday build tree is left alone.
 #
-# The result is Deploy\out\Noctuary-<version>-Setup.exe plus Deploy\out\Noctuary-<version>-portable.zip
+# The result is dist\Noctuary-<version>-Setup.exe plus dist\Noctuary-<version>-portable.zip
 # for people who would rather not run an installer at all.
 param(
     [string]$Version = "",
@@ -32,7 +32,7 @@ param(
     [string]$SignWith = "",
     [string]$SignPassword = "",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
-    [switch]$SkipBuild,       # reuse whatever is in build-release already
+    [switch]$SkipBuild,       # reuse whatever is in build\release already
     [switch]$NoSetup,         # stage and zip, but do not call the Inno compiler
     [switch]$SkipManual,      # reuse the manual already in docs/manual
     # Which compiler builds the thing people get. "msvc" is the one every release so far was made
@@ -46,7 +46,7 @@ param(
     # "IntelLLVM" rather than MSVC, so anything tied to if(MSVC) quietly does not apply; JUCE asks
     # for link-time optimisation, which makes icx emit LLVM bitcode that link.exe cannot read, so
     # the build needs lld; and there is no Visual Studio generator for it without the IDE
-    # integration, so it builds with NMake and therefore without parallelism.
+    # integration, so it builds with Ninja (Visual Studio's; until 01.10.2026 with NMake, one file at a time).
     #
     # What it does NOT change: the instrument is generative, so different floating-point code
     # generation puts it on a different trajectory -- every render differs from the MSVC one. That
@@ -75,12 +75,12 @@ Write-Host "Noctuary $Version" -ForegroundColor Cyan
 $intel = $Toolchain -eq "intel"
 # A tree of its own per compiler: the two produce different objects from the same sources, and
 # sharing a build directory between them means a rebuild that looks incremental and is not.
-$buildDir = Join-Path $root ($(if ($intel) { "build-release-intel" } else { "build-release" }))
-$stage = Join-Path $root "Deploy\stage"
-$out = Join-Path $root "Deploy\out"
+$buildDir = Join-Path $root ($(if ($intel) { "build\release" } else { "build\release-msvc" }))
+$stage = Join-Path $root "dist\stage"
+$out = Join-Path $root "dist"
 
 # Where the test binaries land. The Visual Studio generator is multi-configuration and puts them
-# under the configuration's name; NMake, which is what the Intel build has to use, does not.
+# under the configuration's name; Ninja, which is what the Intel build uses, does not.
 $testDir = Join-Path $buildDir ($(if ($intel) { "Tests" } else { "Tests\Release" }))
 
 # Runs a batch file for its environment and keeps what it set. Visual Studio and oneAPI both ship
@@ -126,23 +126,25 @@ if (-not $SkipBuild) {
     if (Test-Path $rc) { Remove-Item $rc -Force }
 
     $common = @(
-        "-DAMBIENT_STATIC_RUNTIME=ON", "-DAMBIENT_AVX2=ON", "-DAMBIENT_BUILD_TOOLS=ON",
-        "-DFETCHCONTENT_SOURCE_DIR_JUCE=$root/build/_deps/juce-src"   # the JUCE already fetched
+        "-DAMBIENT_STATIC_RUNTIME=ON", "-DAMBIENT_AVX2=ON", "-DAMBIENT_BUILD_TOOLS=ON"
+        # JUCE: ThirdParty/JUCE, the sibling Phosphene's or fetched (cmake/Family.cmake, family_juce)
     )
     if ($intel) {
         $icx = Enable-IntelToolchain
-        # NMake because there is no Visual Studio toolset for icx without the IDE integration, and
-        # lld because JUCE turns on link-time optimisation, which makes icx write LLVM bitcode
+        # Ninja (Visual Studio's) because there is no Visual Studio toolset for icx without the IDE integration,
+        # and lld because JUCE turns on link-time optimisation, which makes icx write LLVM bitcode
         # where the Microsoft linker expects objects -- it stops with LNK1107 on the first one.
+        $ninja = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\*\*\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" -ErrorAction SilentlyContinue |
+                 Select-Object -First 1 -ExpandProperty FullName
+        if (-not $ninja) { throw "ninja.exe not found (it ships with Visual Studio's CMake component)" }
         $lld = "-fuse-ld=lld"
-        cmake -S . -B $buildDir -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release `
+        cmake -S . -B $buildDir -G Ninja "-DCMAKE_MAKE_PROGRAM=$ninja" -DCMAKE_BUILD_TYPE=Release `
             "-DCMAKE_C_COMPILER=$icx" "-DCMAKE_CXX_COMPILER=$icx" `
             "-DCMAKE_EXE_LINKER_FLAGS=$lld" "-DCMAKE_SHARED_LINKER_FLAGS=$lld" "-DCMAKE_MODULE_LINKER_FLAGS=$lld" `
             @common
         if ($LASTEXITCODE -ne 0) { throw "configure failed" }
-        # NMake builds one file at a time, so this is slow and, unlike the -j 2 below, already
-        # leaves the machine usable.
-        cmake --build $buildDir
+        # Four jobs: the machine usually has other work on it.
+        cmake --build $buildDir -- -j 4
         if ($LASTEXITCODE -ne 0) { throw "build failed" }
     } else {
         # A build for other people is not worth having in a hurry: -j 2 leaves the machine usable.
@@ -206,7 +208,7 @@ $manualDir = Join-Path $root "docs\manual"
 # overwritten -- which twice cost a whole release build. The work folder is nobody's reading
 # copy, so it can always be cleared; the copy into docs\manual is best effort, and the
 # installer stages the PDF from the work folder either way.
-$manualWork = Join-Path $root "Deploy\manual-work"
+$manualWork = Join-Path $root "work\manual"
 if (-not $SkipManual) {
     if (Test-Path $manualWork) { Remove-Item $manualWork -Recurse -Force }
     New-Item -ItemType Directory -Force $manualWork | Out-Null

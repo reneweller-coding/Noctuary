@@ -16,12 +16,12 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $root
 $python = "Tools\TextureGen\.venv\Scripts\python.exe"
-$buildDir = Join-Path $root ($(if ($Toolchain -eq "intel") { "build-release-intel" } else { "build-release" }))
+$buildDir = Join-Path $root ($(if ($Toolchain -eq "intel") { "build\release" } else { "build\release-msvc" }))
 $exe = Join-Path $buildDir "Plugin\Noctuary_artefacts\Release\Standalone\Noctuary.exe"
 if (-not (Test-Path $exe)) { throw "no release standalone at $exe -- run build_release.ps1 -SkipManual -NoSetup first" }
 
 $manualDir = Join-Path $root "docs\manual"
-$manualWork = Join-Path $root "Deploy\manual-work"
+$manualWork = Join-Path $root "work\manual"
 if (Test-Path $manualWork) { Remove-Item $manualWork -Recurse -Force }
 New-Item -ItemType Directory -Force $manualWork | Out-Null
 $env:AMBIENT_MUTE = "1"                    # the pictures are the same; the sound is not wanted

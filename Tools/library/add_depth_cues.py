@@ -5,7 +5,7 @@ from the same name-seeded stream, so a regeneration would produce these packs to
 Unlike the release gap, this CHANGES THE SOUND -- the far reverb ducks under the voice -- so the
 balance caches are removed and the whole library is balanced and measured again.
 
-  add_depth_cues.py [--work build/library-work] [--dry-run]
+  add_depth_cues.py [--work work/library] [--dry-run]
 """
 import argparse
 import glob
@@ -34,7 +34,7 @@ def artist_of(header_lines):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--work", default=os.path.join(ROOT, "build", "library-work"))
+    ap.add_argument("--work", default=os.path.join(ROOT, "work", "library"))
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     folders = [os.path.join(ROOT, "Library", "Packs"), os.path.join(a.work, "builtin_packs")]

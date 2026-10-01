@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-TOOL = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_brain_audit.exe")
+TOOL = os.path.join(ROOT, "bin", "msvc", "ambient_brain_audit.exe")
 PACKS = os.path.join(ROOT, "Library", "Packs")
 
 # Section 14 at the values the rule book itself names, on top of the defaults.

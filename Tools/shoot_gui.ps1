@@ -15,7 +15,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$exe = Join-Path $root "build\Plugin\Noctuary_artefacts\Release\Standalone\Noctuary.exe"
+$exe = Join-Path $root "bin\msvc\Noctuary.exe"
 if (-not (Test-Path $exe)) { throw "standalone not built: $exe" }
 
 # The editor reads these on start (see PluginEditor.cpp).

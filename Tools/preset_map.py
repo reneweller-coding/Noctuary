@@ -1,7 +1,7 @@
 """Measure every built-in preset and generate Core/src/PresetMeta.cpp: a 2-D map position,
 perceptual descriptors (brightness, motion, width, noisiness, bass, density) and tags.
 
-    python Tools/preset_map.py            renders all presets (needs build/.../ambient_render)
+    python Tools/preset_map.py            renders all presets (needs bin/msvc/ambient_render)
     python Tools/preset_map.py --stub     writes an all-zero table so the core compiles before
                                           the first measurement
 
@@ -22,7 +22,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 OUT_CPP = os.path.join(ROOT, "Core", "src", "PresetMeta.cpp")
 PRESETS_CPP = os.path.join(ROOT, "Core", "src", "Presets.cpp")
 

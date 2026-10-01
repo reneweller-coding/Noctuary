@@ -20,3 +20,7 @@ endif()
 if(WIN32)
     target_link_options(ambient_brain_audit PRIVATE "LINKER:/STACK:67108864")
 endif()
+
+# Into bin/<preset> after every build (cmake/Family.cmake, 01.10.2026).
+family_bin(ambient_render)
+family_bin(ambient_brain_audit)

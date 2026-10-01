@@ -6,7 +6,7 @@ choice of material from the library. The packs are written in the spirit of thes
 sampled from or affiliated with them.
 
 The sample library was generated from prompt lists whose every clip names up to four `style_targets`
-(`G:/Tools/VRAudio/StableAudio3/prompts/*.jsonl`); 40 of the 56 artists appear there. The material
+(`G:/Tools/VRAudio/_Sources/StableAudio3/prompts/*.jsonl`); 40 of the 56 artists appear there. The material
 profile quoted per artist (categories, worlds, gestures) is counted from those lists.
 
 ## Part 1

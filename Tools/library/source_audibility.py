@@ -31,12 +31,12 @@ heard, one that shares every band with louder parts is not. plan_fix says how on
     python Tools/library/source_audibility.py verify [--limit 60]
     python Tools/library/source_audibility.py carry      then measure, fix and verify once more
 
-measure appends every render to build/library-work/source_audibility.parts.jsonl as it finishes, and
+measure appends every render to work/library/source_audibility.parts.jsonl as it finishes, and
 started again renders only what is missing. A part belongs to the preset line it was rendered from: a
 preset whose line has changed since -- fix changes lines -- counts as unmeasured, so report and fix only
 ever see presets as they are now, and a second fix cannot move a preset twice. fix rewrites the source
 levels of the presets that need it, and their master gain so the loudness stays, in
-Library/Packs/*.ambientpack and logs every change to build/library-work/source_audibility_fix.json;
+Library/Packs/*.ambientpack and logs every change to work/library/source_audibility_fix.json;
 verify renders a sample of the changed presets again and compares what they measure with what the fix
 expected. On 14.09.2026 the first fix brought 108 of 120 sampled presets over the bar, the rest fell up to
 6 dB short of the plan (noise, late entrances, sources at full level under the Vector); so a second pass:
@@ -61,9 +61,9 @@ import time
 import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RENDER = os.environ.get("AMBIENT_RENDER") or os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.environ.get("AMBIENT_RENDER") or os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 PACKS = os.path.join(ROOT, "Library", "Packs")
-WORK = os.path.join(ROOT, "build", "library-work")
+WORK = os.path.join(ROOT, "work", "library")
 PARTS = os.path.join(WORK, "source_audibility.parts.jsonl")
 OUT = os.path.join(WORK, "source_audibility.json")
 FIXLOG = os.path.join(WORK, "source_audibility_fix.json")

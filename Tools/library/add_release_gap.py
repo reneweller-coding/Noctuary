@@ -8,7 +8,7 @@ the same value into the packs that already exist -- the value a regeneration wou
 re-stamps the balance cache for the lines it changed, since the balance measures levels and a
 gap between note-offs moves none.
 
-  add_release_gap.py [--work build/library-work] [--dry-run]
+  add_release_gap.py [--work work/library] [--dry-run]
 """
 import argparse
 import glob
@@ -35,7 +35,7 @@ def gap_for(name):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--work", default=os.path.join(ROOT, "build", "library-work"))
+    ap.add_argument("--work", default=os.path.join(ROOT, "work", "library"))
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     folders = [(os.path.join(ROOT, "Library", "Packs"), os.path.join(a.work, "balance-Packs.json")),

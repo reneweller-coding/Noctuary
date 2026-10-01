@@ -203,7 +203,7 @@ def main():
         # (it did, 13.09.2026: forty-four failures, all "route preset parses").
         if run([py, os.path.join(HERE, "make_routes.py")], a.dry_run):
             return 1
-        if run(["cmake", "--build", "build", "--config", "Release"], a.dry_run):
+        if run(["cmake", "--build", "--preset", "msvc"], a.dry_run):
             return 1
         # The layout is thrown away here; what is kept is the built-ins' measurements and their
         # excerpts, which have to exist before CLAP listens or they would have no line.
@@ -238,12 +238,12 @@ def main():
         if run([py, os.path.join(HERE, "verify_packs.py"), "--packs", PACKS], a.dry_run):
             return 1
     if want("build"):
-        if run(["cmake", "--build", "build", "--config", "Release"], a.dry_run):
+        if run(["cmake", "--build", "--preset", "msvc"], a.dry_run):
             return 1
         env = dict(os.environ, AMBIENT_MUTE="1", AMBIENT_PACKS=PACKS)
         print("\n$ ambient_selftest", flush=True)
         if not a.dry_run:
-            r = subprocess.run([os.path.join(ROOT, "build", "Tests", "Release", "ambient_selftest.exe")],
+            r = subprocess.run([os.path.join(ROOT, "build", "msvc", "Tests", "Release", "ambient_selftest.exe")],
                                cwd=ROOT, env=env)
             if r.returncode:
                 print("selftest failed")

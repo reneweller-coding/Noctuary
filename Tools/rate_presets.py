@@ -34,7 +34,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 
 FIELDS = ("rms", "centroid", "flatness", "flux", "bass", "width")
 
@@ -147,7 +147,7 @@ def main():
     # man das dann nicht gleich mit der Vermessung?"). Now it reads the caches and renders only
     # what they do not have.
     ap.add_argument("--cache", action="append", default=None,
-                    help="measurement caches to read (default: build/library-work/packs.json and builtins.json); --no-cache to render everything")
+                    help="measurement caches to read (default: work/library/packs.json and builtins.json); --no-cache to render everything")
     ap.add_argument("--no-cache", action="store_true")
     a = ap.parse_args()
     if not os.path.isfile(RENDER):
@@ -155,8 +155,8 @@ def main():
 
     cache = {}
     if not a.no_cache:
-        paths = a.cache or [os.path.join(ROOT, "build", "library-work", "packs.json"),
-                            os.path.join(ROOT, "build", "library-work", "builtins.json")]
+        paths = a.cache or [os.path.join(ROOT, "work", "library", "packs.json"),
+                            os.path.join(ROOT, "work", "library", "builtins.json")]
         for p in paths:
             if os.path.isfile(p):
                 with open(p, encoding="utf-8") as f:

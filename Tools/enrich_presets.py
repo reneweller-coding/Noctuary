@@ -43,7 +43,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
-RENDER = os.path.join(ROOT, "build", "Tools", "render", "Release", "ambient_render.exe")
+RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
 PRESETS = os.path.join(ROOT, "Core", "src", "Presets.cpp")
 
 # The golden ladder. Rates that share no simple ratio never come back into step, so four of them
