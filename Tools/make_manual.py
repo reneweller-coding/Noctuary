@@ -165,6 +165,7 @@ def main():
     ap.add_argument("--dir", default=DIR, help="the folder AMBIENT_MANUAL wrote")
     ap.add_argument("--no-pdf", action="store_true")
     a = ap.parse_args()
+    a.dir = os.path.abspath(a.dir)   # the PDF's file:/// URL needs the whole path (a relative --dir printed nothing)
 
     src = os.path.join(a.dir, "manual.json")
     if not os.path.isfile(src):
