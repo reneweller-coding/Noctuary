@@ -1,6 +1,6 @@
 # Noctuary release notes
 
-## Next: the family's panel and layout (01.10.2026, not yet released)
+## 2.2.0 (01.10.2026): the family's panel and layout
 
 **The family's panel.** Undo, Redo, Help and the settings at the right of the header, as every instrument of the family
 has them; the layout, the session recall and About in the settings; the VR controls only while a headset sends.
