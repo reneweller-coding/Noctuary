@@ -256,6 +256,10 @@ thirty-two bands and one partial per band, so a dense chord in one band comes ba
 member plus noise. The manual's last chapter lists the rest of the caveats in full, because the
 instrument's manual is also its record.
 
+## The family
+
+Noctuary is one of five instruments that share their build, their panel (or part of it) and the hands of a Meta Quest: [Noctuary](https://github.com/reneweller-coding/Noctuary) (ambient), [Phosphene](https://github.com/reneweller-coding/Phosphene) (psytrance), [Ephemeris](https://github.com/reneweller-coding/Ephemeris) (Berlin School), [Totality](https://github.com/reneweller-coding/Totality) (techno) and [Parhelion](https://github.com/reneweller-coding/Parhelion) (trance).
+
 ## Licence
 
 AGPL-3.0. The generated samples, wavetables and impulse responses are the author's own and ship
