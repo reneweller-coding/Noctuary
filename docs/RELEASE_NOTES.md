@@ -10,6 +10,10 @@ release, quest) on the presets of `CMakePresets.json`, the build trees under `bu
 started -- the standalone, the VST3, the renderer -- flat in `bin\msvc` and `bin\icx` (and the Quest APK in
 `bin\quest`), the release in `dist\`, local data, renders and logs in `work\` (`cmake/Family.cmake`).
 
+**Every line explained.** Every class, function, variable, macro and table of the sources -- the core, the plugin,
+the Quest app, the tools and the tests -- has its Doxygen comment now, and the test `doccheck` (`cmake/Family.cmake`)
+fails as soon as one is missing. The scripts that generate tables write the comments into what they generate.
+
 ## 2.1.0
 
 **Five analogue filters modelled on their circuits, a production guide built into the engine, and a

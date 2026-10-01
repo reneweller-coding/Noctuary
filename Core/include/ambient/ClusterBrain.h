@@ -1778,15 +1778,16 @@ private:
      *
      * startIn > 0: chosen, not yet sounding
      */
-    struct Slot { int note = -1; double remaining = 0.0; double startIn = 0.0; float vel = 0.7f; };
-    /** @var int ClusterBrain::Slot::note
-     *  @brief MIDI note held, or -1 for an empty slot */
-    /** @var double ClusterBrain::Slot::remaining
-     *  @brief Free mode: seconds of hold left, negative once due and "on its way out"; Chords mode: seconds the voice has been sounding (its age) */
-    /** @var double ClusterBrain::Slot::startIn
-     *  @brief seconds until the NoteOn is emitted, for a Blend note held back so the chord arrives together; 0 once it sounds */
-    /** @var float ClusterBrain::Slot::vel
-     *  @brief the velocity it was, or will be, started with */
+    struct Slot {
+        int note = -1;             ///< MIDI note held, or -1 for an empty slot
+        /** @brief Free mode: seconds of hold left, negative once due and "on its way out"; Chords mode: seconds the
+         *         voice has been sounding (its age). */
+        double remaining = 0.0;
+        /** @brief Seconds until the NoteOn is emitted, for a Blend note held back so the chord arrives together; 0
+         *         once it sounds. */
+        double startIn = 0.0;
+        float vel = 0.7f;          ///< the velocity it was, or will be, started with
+    };
 
     // ---------------------------------------------------------------- chords
     /**
@@ -3174,19 +3175,17 @@ private:
      * Its slot has gone to the
      * arriving note, so it waits here -- and while it waits it still counts as sounding.
      */
-    struct Leaving { int note = -1; double in = 0.0; };
-    /** @var int ClusterBrain::Leaving::note
-     *  @brief the MIDI note sounding out its overlap, -1 for an empty place */
-    /** @var double ClusterBrain::Leaving::in
-     *  @brief seconds until it may be let go */
+    struct Leaving {
+        int note = -1;      ///< the MIDI note sounding out its overlap, -1 for an empty place
+        double in = 0.0;    ///< seconds until it may be let go
+    };
     Leaving leaving_[kSlots];     ///< the voices on their way out, one place per slot at most
     float  degreeBias_[12] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };   ///< Degree Swap: a weight per interval class over the root, 1 until a root change swaps a third or a sixth (0.25 against 1.6)
     /** @brief One entry of the constellation memory. */
-    struct Memo { uint32_t key; double at; };
-    /** @var uint32_t ClusterBrain::Memo::key
-     *  @brief the chordKey() of the constellation */
-    /** @var double ClusterBrain::Memo::at
-     *  @brief now_ when it last sounded */
+    struct Memo {
+        uint32_t key;   ///< the chordKey() of the constellation
+        double at;      ///< now_ when it last sounded
+    };
     /**
      * @brief One entry per constellation, kept from the last moment it sounded.
      *

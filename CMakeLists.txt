@@ -53,6 +53,7 @@ add_subdirectory(Core)
 
 if(AMBIENT_BUILD_TOOLS)
     enable_testing()
+    family_doccheck()   # every entity documented (cmake/Family.cmake, 01.10.2026)
     add_subdirectory(Tools/render)
 endif()
 

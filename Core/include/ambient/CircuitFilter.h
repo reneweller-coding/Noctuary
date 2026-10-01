@@ -52,6 +52,7 @@ namespace ambient {
 namespace circuit {
 
 #ifndef AMBIENT_CIRCUIT_NEWTON
+/** @brief Newton steps per sample, unless the build sets another number (see kNewton). */
 #define AMBIENT_CIRCUIT_NEWTON 3
 #endif
 constexpr int kNewton = AMBIENT_CIRCUIT_NEWTON;   ///< Newton steps per sample: fixed, so the sound does not depend on convergence tests
@@ -100,17 +101,21 @@ inline F4 pack(float l, float r) { return { _mm_setr_ps(l, r, 0.0f, 0.0f) }; }  
 inline void unpack(F4 x, float& l, float& r) { l = _mm_cvtss_f32(x.v); r = _mm_cvtss_f32(_mm_shuffle_ps(x.v, x.v, 1)); }
 #else
 constexpr const char* kLanePath = "scalar"; ///< the path F4 was compiled with
-struct F4 { float v[4]; };
-inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] + b.v[i]; return o; }
-inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] - b.v[i]; return o; }
-inline F4 operator*(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] * b.v[i]; return o; }
-inline F4 operator/(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] / b.v[i]; return o; }
-inline F4 operator-(F4 a) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = -a.v[i]; return o; }
-inline F4 vmin(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = std::min(a.v[i], b.v[i]); return o; }
-inline F4 vmax(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = std::max(a.v[i], b.v[i]); return o; }
-inline F4 mad(F4 a, F4 b, F4 c) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] * b.v[i] + c.v[i]; return o; }
-inline F4 splat(F4*, float x) { return { { x, x, x, x } }; }
-inline F4 pack(float l, float r) { return { { l, r, 0.0f, 0.0f } }; }
+/** @brief Four lanes as four plain floats (no vector unit, or AMBIENT_SCALAR_LANES). */
+struct F4 {
+    float v[4];   ///< the lanes: left, right, two unused
+};
+inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] + b.v[i]; return o; }   ///< lane by lane
+inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] - b.v[i]; return o; }   ///< lane by lane
+inline F4 operator*(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] * b.v[i]; return o; }   ///< lane by lane
+inline F4 operator/(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] / b.v[i]; return o; }   ///< lane by lane
+inline F4 operator-(F4 a) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = -a.v[i]; return o; }   ///< negation
+inline F4 vmin(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = std::min(a.v[i], b.v[i]); return o; }   ///< lane by lane
+inline F4 vmax(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = std::max(a.v[i], b.v[i]); return o; }   ///< lane by lane
+inline F4 mad(F4 a, F4 b, F4 c) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] * b.v[i] + c.v[i]; return o; }   ///< a b + c
+inline F4 splat(F4*, float x) { return { { x, x, x, x } }; }   ///< one value in every lane (tagged by the pointer's type)
+inline F4 pack(float l, float r) { return { { l, r, 0.0f, 0.0f } }; }   ///< two samples into lanes 0 and 1
+/** @brief Lanes 0 and 1 out again. @param x the lanes @param l receives lane 0 @param r receives lane 1 */
 inline void unpack(F4 x, float& l, float& r) { l = x.v[0]; r = x.v[1]; }
 #endif
 

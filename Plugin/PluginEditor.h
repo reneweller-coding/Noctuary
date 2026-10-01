@@ -908,7 +908,10 @@ private:
      * @brief The right of the header as every instrument of the family has it (Frame.h, 01.10.2026): undo, redo, help
      *        and the settings -- the window's layout, the session recall, the headset, the keys, About.
      */
-    std::unique_ptr<frame::IconButton> undoIcon_, redoIcon_, helpIcon_, settingsIcon_;
+    std::unique_ptr<frame::IconButton> undoIcon_;
+    std::unique_ptr<frame::IconButton> redoIcon_;       ///< redo (Ctrl+Y)
+    std::unique_ptr<frame::IconButton> helpIcon_;       ///< the help (F1)
+    std::unique_ptr<frame::IconButton> settingsIcon_;   ///< the settings menu
     void showSettings();          ///< the frame's settings menu
     /** @brief The headset's controls are shown: one sends its hands (Auto), or the settings say always (On). */
     bool headsetShown() const;
