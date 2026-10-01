@@ -39,6 +39,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "Frame.h"
 #include "PluginProcessor.h"
 #include "NoctuaryLookAndFeel.h"
 #include "ambient/Modulation.h"
@@ -903,6 +904,14 @@ private:
      * the gesture table) under one button instead of two on the toolbar.
      */
     std::unique_ptr<juce::TextButton> mainButton_, vrButton_;   ///< the VR menu: calibrate, gestures
+    /**
+     * @brief The right of the header as every instrument of the family has it (Frame.h, 01.10.2026): undo, redo, help
+     *        and the settings -- the window's layout, the session recall, the headset, the keys, About.
+     */
+    std::unique_ptr<frame::IconButton> undoIcon_, redoIcon_, helpIcon_, settingsIcon_;
+    void showSettings();          ///< the frame's settings menu
+    /** @brief The headset's controls are shown: one sends its hands (Auto), or the settings say always (On). */
+    bool headsetShown() const;
     /** @brief Perform page: the eight macros as large knobs plus the morph, instead of the editor. */
     struct PerformView : juce::Component {
         /**

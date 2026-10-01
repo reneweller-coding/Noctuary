@@ -11,6 +11,7 @@
  * mapping table publishes its count last, so the audio thread never acts on a half-written entry.
  */
 #include "ambient/Gesture.h"
+#include <chrono>
 #include <cmath>
 #include "ambient/Dsp.h"
 #include <cstring>
@@ -115,6 +116,8 @@ void GestureLayer::setHand(int hand, float x, float y, float z, float pinch, flo
     const int h = hand & 1;
     handX_[h] = x; handY_[h] = y; handZ_[h] = z;
     handsSeen_ = true;
+    handStampMs_.store(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(),
+                       std::memory_order_relaxed);
     if (calibRemaining_ > 0.0f) {
         calMinY_ = std::min(calMinY_, y); calMaxY_ = std::max(calMaxY_, y);
         calMinR_ = std::min(calMinR_, -z); calMaxR_ = std::max(calMaxR_, -z);
@@ -128,6 +131,14 @@ void GestureLayer::setHand(int hand, float x, float y, float z, float pinch, flo
     setInput(h == 0 ? GestureInput::LeftTilt : GestureInput::RightTilt, 0.5f + 0.5f * clampv(tilt, -1.0f, 1.0f));
     const float dx = handX_[0] - handX_[1], dy = handY_[0] - handY_[1], dz = handZ_[0] - handZ_[1];
     setInput(GestureInput::HandDistance, norm01(std::sqrt(dx * dx + dy * dy + dz * dz), dNear_, dFar_));
+}
+
+bool GestureLayer::handsRecently(double seconds) const
+{
+    const int64_t stamp = handStampMs_.load(std::memory_order_relaxed);
+    if (stamp == 0) return false;
+    const int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    return static_cast<double>(now - stamp) < seconds * 1000.0;
 }
 
 void GestureLayer::setHead(float yawDeg, float pitchDeg, float rollDeg)

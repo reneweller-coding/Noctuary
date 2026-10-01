@@ -176,7 +176,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
             else if (r == 2) showMappingEditor();
         });
     };
-    addAndMakeVisible(*vrButton_);
+    addChildComponent(*vrButton_);   // shown while a headset sends, or when the settings say always (01.10.2026)
     performButton_ = std::make_unique<juce::TextButton>("Perform");
     performButton_->setTooltip("Only the eight macros and the morph, large: for playing a set");
     performButton_->setClickingTogglesState(true);
@@ -198,7 +198,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
     helpButton_->setClickingTogglesState(true);
     helpButton_->setColour(juce::TextButton::buttonOnColourId, kAccent.withAlpha(0.5f));
     helpButton_->onClick = [this] { setPage(helpButton_->getToggleState() ? 3 : 0); };
-    addAndMakeVisible(*helpButton_);
+    addChildComponent(*helpButton_);   // the frame's icons stand in for these three (01.10.2026)
     help_ = std::make_unique<HelpView>(proc_, *this);
     addChildComponent(*help_);
     // Which build this is. Asked for after a release where the answer mattered: two installers
@@ -221,15 +221,15 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
              << "\n" << JucePlugin_Manufacturer << "   " << "github.com/reneweller-coding/Noctuary";
         juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::NoIcon, "About Noctuary", text, "Close", this);
     };
-    addAndMakeVisible(*aboutButton_);
+    addChildComponent(*aboutButton_);   // About is in the settings menu (01.10.2026)
     undoButton_ = std::make_unique<juce::TextButton>("Undo");
     undoButton_->setTooltip("Undo the last preset, die roll or A/B swap (Ctrl+Z)");
     undoButton_->onClick = [this] { doUndo(); };
-    addAndMakeVisible(*undoButton_);
+    addChildComponent(*undoButton_);
     redoButton_ = std::make_unique<juce::TextButton>("Redo");
     redoButton_->setTooltip("Redo (Ctrl+Y)");
     redoButton_->onClick = [this] { doRedo(); };
-    addAndMakeVisible(*redoButton_);
+    addChildComponent(*redoButton_);
     abButton_ = std::make_unique<juce::TextButton>("A | B");
     abButton_->setTooltip("Two whole snapshots to compare: the first click parks what you have in A and hands you B, every click after swaps");
     abButton_->onClick = [this] { swapAB(); };
@@ -242,7 +242,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
     compactButton_->setClickingTogglesState(false);
     compactButton_->setColour(juce::TextButton::buttonOnColourId, kAccent.withAlpha(0.5f));
     compactButton_->onClick = [this] { applyLayoutMode((proc_.layoutMode() + 1) % 3); };
-    addAndMakeVisible(*compactButton_);
+    addChildComponent(*compactButton_);   // the layout is in the settings menu (01.10.2026)
     // Session recall, and the switch for it. Only in the standalone: in a plugin the host saves
     // the state with the project, which is what a plugin is supposed to do.
     if (NoctuaryProcessor::sessionRecallAvailable()) {
@@ -252,8 +252,19 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
         recallButton_->setToggleState(proc_.sessionRecall(), juce::dontSendNotification);
         recallButton_->setColour(juce::TextButton::buttonOnColourId, kAccent.withAlpha(0.5f));
         recallButton_->onClick = [this] { proc_.setSessionRecall(recallButton_->getToggleState()); };
-        addAndMakeVisible(*recallButton_);
+        addChildComponent(*recallButton_);   // in the settings menu (01.10.2026)
     }
+    // The right of the header, as every instrument of the family has it (Frame.h, 01.10.2026).
+    undoIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Undo, "Undo the last preset, die roll or A/B swap (Ctrl+Z)");
+    redoIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Redo, "Redo (Ctrl+Y)");
+    helpIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Help, "The manual, by topic (F1)");
+    settingsIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Settings, "Settings: the layout, the session recall, the headset, the keys, About");
+    undoIcon_->onClick = [this] { doUndo(); };
+    redoIcon_->onClick = [this] { doRedo(); };
+    helpIcon_->setColour(juce::TextButton::buttonOnColourId, kAccent.withAlpha(0.5f));
+    helpIcon_->onClick = [this] { setPage(help_ && help_->isVisible() ? 0 : 3); };
+    settingsIcon_->onClick = [this] { showSettings(); };
+    for (auto* b : { undoIcon_.get(), redoIcon_.get(), helpIcon_.get(), settingsIcon_.get() }) addAndMakeVisible(*b);
     outputView_ = std::make_unique<LoudnessView>(proc_);
     addAndMakeVisible(*outputView_);
     tooltips_ = std::make_unique<juce::TooltipWindow>(nullptr, 600);
@@ -1032,19 +1043,20 @@ void NoctuaryEditor::resized()
     if (saveButton_) saveButton_->setBounds(474, 8, 64, 24);
     if (loadButton_) loadButton_->setBounds(544, 8, 64, 24);
     if (recButton_) recButton_->setBounds(614, 8, 56, 24);
-    // The pages first (Main, Perform, Browse), then what acts on the state, Help last where a
-    // manual belongs. Calibrate and Gestures live in the VR menu and take no room here.
+    // The pages first (Main, Perform, Browse), then A | B, then the frame's tools as every instrument of the family has
+    // them (01.10.2026): undo and redo, help and the settings; VR after them, while a headset sends (or when asked).
     if (mainButton_) mainButton_->setBounds(880, 8, 56, 24);
     if (performButton_) performButton_->setBounds(942, 8, 70, 24);
     if (browseButton_) browseButton_->setBounds(1018, 8, 66, 24);
-    if (vrButton_) vrButton_->setBounds(1090, 8, 44, 24);
-    if (undoButton_) undoButton_->setBounds(1140, 8, 50, 24);
-    if (redoButton_) redoButton_->setBounds(1194, 8, 50, 24);
-    if (abButton_) abButton_->setBounds(1248, 8, 52, 24);
-    if (compactButton_) compactButton_->setBounds(1304, 8, 70, 24);
-    if (recallButton_) recallButton_->setBounds(1378, 8, 62, 24);
-    if (helpButton_) helpButton_->setBounds(1446, 8, 56, 24);
-    if (aboutButton_) aboutButton_->setBounds(1506, 8, 24, 24);
+    if (abButton_) abButton_->setBounds(1090, 8, 52, 24);
+    if (undoIcon_) undoIcon_->setBounds(1156, 8, 28, 24);
+    if (redoIcon_) redoIcon_->setBounds(1186, 8, 28, 24);
+    if (helpIcon_) helpIcon_->setBounds(1224, 8, 28, 24);
+    if (settingsIcon_) settingsIcon_->setBounds(1254, 8, 28, 24);
+    if (vrButton_) vrButton_->setBounds(1292, 8, 44, 24);
+    if (undoButton_) undoButton_->setBounds(1156, 8, 28, 24);
+    if (redoButton_) redoButton_->setBounds(1186, 8, 28, 24);
+    if (helpButton_) helpButton_->setBounds(1224, 8, 28, 24);
 
     const int W = designW_, H = designH_;
     if (perform_) perform_->setBounds(0, kHeaderH, W, H - kHeaderH);
@@ -2459,9 +2471,53 @@ void NoctuaryEditor::HelpView::FlowDiagram::paint(juce::Graphics& g)
     juce::ignoreUnused(ens, d1, d2, nr, cos, cloud, fr, rm, sh, out1, out2, env, filt, zp, s4, vec, air, blur, ne, ns, nty, nrt);
 }
 
+bool NoctuaryEditor::headsetShown() const
+{
+    const auto mode = frame::Settings::of("Noctuary").headset();
+    return mode == frame::Settings::HeadsetMode::On
+        || (mode == frame::Settings::HeadsetMode::Auto && const_cast<NoctuaryProcessor&>(proc_).gestures().handsRecently(3.0));
+}
+
+void NoctuaryEditor::showSettings()
+{
+    frame::SettingsMenu m;
+    m.app = "Noctuary";
+    m.version = JucePlugin_VersionString;
+    m.headsetOffText = "Off: hide its controls (OSC stays on for other controllers)";
+    m.headsetStatus = [this] {
+        if (!proc_.oscRunning()) return juce::String("OSC off: ") + proc_.oscError();
+        return juce::String(proc_.gestures().handsRecently(3.0) ? "a headset sends its hands" : "no headset sends")
+             + " (OSC :" + juce::String(proc_.oscPort()) + ")";
+    };
+    m.headsetItems = [this](juce::PopupMenu& h) {
+        h.addItem("Calibrate hands (6 s: together and apart, low and high, near and far)", [this] { proc_.gestures().startCalibration(6.0f); });
+        h.addItem("Gestures ... (the gesture / macro mapping table)", [this] { showMappingEditor(); });
+    };
+    m.moreItems = [this](juce::PopupMenu& menu) {
+        juce::PopupMenu layout;
+        const int mode = proc_.layoutMode();
+        static const char* const kModes[3] = { "Normal: one page with tabs", "Compact: narrower columns, taller sections",
+                                               "Expanded: every page laid out under one another" };
+        for (int i = 0; i < 3; ++i) layout.addItem(kModes[i], true, mode == i, [this, i] { applyLayoutMode(i); });
+        menu.addSubMenu("Layout", layout);
+        if (NoctuaryProcessor::sessionRecallAvailable())
+            menu.addItem("Start where you left off (session recall)", true, proc_.sessionRecall(), [this] {
+                proc_.setSessionRecall(!proc_.sessionRecall());
+                if (recallButton_) recallButton_->setToggleState(proc_.sessionRecall(), juce::dontSendNotification);
+            });
+    };
+    m.showAbout = [this] { if (aboutButton_ && aboutButton_->onClick) aboutButton_->onClick(); };
+    m.show(*settingsIcon_);
+}
+
 void NoctuaryEditor::timerCallback()
 {
     proc_.engine().soundingNotes(sounding_);
+    {   // The frame's tools (01.10.2026): help lit while its page is up; VR while a headset sends (or when asked).
+        if (helpIcon_) helpIcon_->setToggleState(help_ && help_->isVisible(), juce::dontSendNotification);
+        const bool hs = headsetShown();
+        if (vrButton_ && vrButton_->isVisible() != hs) vrButton_->setVisible(hs);
+    }
     {   // Auto switched on (the toggle, or the host): the preset that is playing brings its foreground now.
         const bool autoOn = proc_.engine().getParam(ParamId::ForeAuto) >= 0.5f;
         if (autoOn && !autoSeen_) proc_.nearAutoNow();
@@ -2975,11 +3031,14 @@ void NoctuaryEditor::paint(juce::Graphics& g)
     info += proc_.oscRunning() ? "   OSC :" + juce::String(proc_.oscPort()) + " (" + juce::String(static_cast<juce::int64>(proc_.oscMessages())) + " msg)"
                                : "   OSC off: " + proc_.oscError();
     const auto& gl = proc_.gestures();
-    const float clutch = gl.input(GestureInput::RightPinch);
-    if (gl.calibrating()) info += "   CALIBRATING " + juce::String(static_cast<int>(gl.calibrationProgress() * 100.0f)) + " %";
-    else info += clutch > 0.5f ? "   hands: engaged" : "   hands: free";
-    info += "   L " + juce::String(gl.input(GestureInput::LeftHeight), 2) + "  R " + juce::String(gl.input(GestureInput::RightHeight), 2)
-          + "  dist " + juce::String(gl.input(GestureInput::HandDistance), 2) + "  pinch " + juce::String(clutch, 2);
+    if (gl.calibrating()) {
+        info += "   CALIBRATING " + juce::String(static_cast<int>(gl.calibrationProgress() * 100.0f)) + " %";
+    } else if (headsetShown()) {   // the hands only while a headset sends, or when the settings say always (01.10.2026)
+        const float clutch = gl.input(GestureInput::RightPinch);
+        info += clutch > 0.5f ? "   hands: engaged" : "   hands: free";
+        info += "   L " + juce::String(gl.input(GestureInput::LeftHeight), 2) + "  R " + juce::String(gl.input(GestureInput::RightHeight), 2)
+              + "  dist " + juce::String(gl.input(GestureInput::HandDistance), 2) + "  pinch " + juce::String(clutch, 2);
+    }
     g.setColour(kDim);
     g.setFont(juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 11.0f, juce::Font::plain)));   // figures that do not jump
     g.drawText(info, 14, header_.getBottom() - 16, designW_ - 420, 14, juce::Justification::centredLeft);

@@ -155,6 +155,11 @@ public:
     void  startCalibration(float seconds);
     /** @brief Whether a calibration is running. @return true until its time is up */
     bool  calibrating() const { return calibRemaining_ > 0.0f; }
+    /**
+     * @brief Whether real hand data (setHand: the Quest app, or its bridge over OSC) arrived in the last @p seconds
+     *        (01.10.2026: the panel shows the headset's controls only while a headset sends, or when asked to). Any thread.
+     */
+    bool handsRecently(double seconds) const;
     /** @brief How far the running calibration has come. @return 0..1; 1 when none is running */
     float calibrationProgress() const { return calibTotal_ > 0.0f ? 1.0f - calibRemaining_ / calibTotal_ : 1.0f; }
     /**
@@ -380,6 +385,7 @@ private:
     float restZone_ = 0.08f;                 ///< share of the height range under which both hands count as resting; 0 = off
     bool  resting_ = false;                  ///< both hands were in the rest zone at the last update()
     bool  handsSeen_ = false;   ///< set once real hand data arrived (setHand); knobs and OSC gestures alone never "rest"
+    std::atomic<int64_t> handStampMs_{ 0 };   ///< when setHand was last called (steady clock, ms; 0 never)
     /** @var float calibRemaining_
      *  @brief seconds of the running calibration left; 0 when none runs */
     float calibRemaining_ = 0.0f, calibTotal_ = 0.0f;   ///< calibTotal_: its full length, for the progress

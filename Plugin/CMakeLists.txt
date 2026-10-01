@@ -25,7 +25,7 @@ target_sources(Noctuary PRIVATE
     EditorModStrip.cpp
     EditorBrowse.cpp
     EditorDrag.cpp
-    NoctuaryLookAndFeel.cpp)
+    NoctuaryLookAndFeel.cpp Frame.cpp)
 
 target_compile_definitions(Noctuary PUBLIC
     JUCE_WEB_BROWSER=0
@@ -38,6 +38,7 @@ target_link_libraries(Noctuary
     PRIVATE
         NoctuaryCore
         juce::juce_audio_utils
+        juce::juce_osc
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
