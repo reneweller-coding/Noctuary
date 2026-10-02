@@ -9,7 +9,8 @@ juce_add_plugin(Noctuary
     COPY_PLUGIN_AFTER_BUILD     FALSE
     PLUGIN_MANUFACTURER_CODE    Rnwl
     PLUGIN_CODE                 Noct
-    FORMATS                     VST3 Standalone
+    FORMATS                     ${FAMILY_PLUGIN_FORMATS}   # VST3, Standalone; AU on macOS, LV2 on Linux (Family.cmake)
+    LV2URI                      "https://github.com/reneweller-coding/Noctuary"
     VST3_CATEGORIES             Instrument Synth
     ICON_BIG                    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/logo-256.png"
     ICON_SMALL                  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/logo-64.png"
