@@ -9542,15 +9542,6 @@ void testGuideRound2()
 }
 
 /**
- * @brief Runs every test function in turn and reports.
- *
- * The order is deliberate only in that the near layer goes first (it switches stdout to
- * unbuffered); every test is independent and none reads another's state. Prints
- * `selftest: all checks passed` or the number of failures.
- *
- * @return 0 when every check passed, 1 otherwise
- */
-/**
  * @brief MIDI out (02.10.2026, NoteTap.h): the conductor's notes are tapped on channel 1, inside their block, every off
  *        after its on; a key played on the keyboard is not tapped; allNotesOff gives every held note its off.
  */
@@ -9596,6 +9587,15 @@ void testNoteTap()
     CHECK(stillHeld == 0, "MIDI out: allNotesOff gives every held note its off");
 }
 
+/**
+ * @brief Runs every test function in turn and reports.
+ *
+ * The order is deliberate only in that the near layer goes first (it switches stdout to
+ * unbuffered); every test is independent and none reads another's state. Prints
+ * `selftest: all checks passed` or the number of failures.
+ *
+ * @return 0 when every check passed, 1 otherwise
+ */
 int main()
 {
     testNearLayer();
