@@ -107,7 +107,7 @@ public:
     /** @return true: notes, expression, MPE, MIDI clock and learned controllers all arrive as MIDI (processBlock) */
     bool acceptsMidi() const override { return true; }
     /** @return false: nothing is sent back to the host; the set timeline replays its notes into the engine itself */
-    bool producesMidi() const override { return false; }
+    bool producesMidi() const override { return true; }   ///< MIDI out: the conductors' notes as they play (02.10.2026)
     /** @return false: a synth with an audio output, not a MIDI processor */
     bool isMidiEffect() const override { return false; }
     /**
@@ -684,6 +684,7 @@ private:
     std::unique_ptr<ambient::Engine> engines_[2];
     double lastSampleRate_ = 48000.0;   ///< what prepareToPlay last saw; an engine built later is prepared at this rate
     int    lastBlockSize_ = 512;        ///< and this block size
+    ambient::NoteTap noteTap_;          ///< MIDI out (02.10.2026): what both engines' conductors played in this block
     /**
      * @param i  0 or 1
      * @return the engine at that index, which must exist

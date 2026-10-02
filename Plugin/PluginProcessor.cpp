@@ -132,6 +132,7 @@ NoctuaryProcessor::NoctuaryProcessor()
 {
     installCrashLog();
     engines_[0] = std::make_unique<ambient::Engine>();   // the instrument; the second is built on demand
+    engines_[0]->setNoteTap(&noteTap_);   // MIDI out (02.10.2026)
     for (int i = 0; i < kNumParams; ++i)
         raw_[static_cast<size_t>(i)] = apvts.getRawParameterValue(paramTable()[static_cast<size_t>(i)].key);
     for (auto* p : getParameters()) p->addListener(&paramWatch_);
@@ -317,6 +318,7 @@ bool NoctuaryProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
+    noteTap_.clear();   // MIDI out (02.10.2026): what the conductors play in this block, written out at its end
 
     // Which engine is the instrument is decided here and nowhere else, at a block boundary, so
     // that the message thread can build the next preset on the other one without ever writing to
@@ -557,6 +559,13 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
             engines_[fading_]->reset();
             fading_ = -1;
         }
+    }
+    // MIDI out (02.10.2026): the conductors' notes of this block -- channel 1 the first, 2 the second, 3 the near events.
+    for (int i = 0; i < noteTap_.count; ++i) {
+        const ambient::NoteTap::Note& nt = noteTap_.notes[i];
+        const int at = juce::jlimit(0, juce::jmax(0, n - 1), nt.offset);
+        if (nt.velocity == 0) midi.addEvent(juce::MidiMessage::noteOff(nt.channel, nt.pitch), at);
+        else midi.addEvent(juce::MidiMessage::noteOn(nt.channel, nt.pitch, static_cast<juce::uint8>(nt.velocity)), at);
     }
     if (buffer.getNumChannels() >= 2) {
         buffer.copyFrom(0, 0, scratch_, 0, 0, n);
@@ -1279,6 +1288,7 @@ ambient::Engine& NoctuaryProcessor::ensureEngine(int i)
         for (int k = 0; k < kNumParams; ++k)
             e->setParam(static_cast<ParamId>(k), raw_[static_cast<size_t>(k)]->load());
         e->prepare(lastSampleRate_, lastBlockSize_);
+        e->setNoteTap(&noteTap_);   // MIDI out (02.10.2026)
         engines_[i] = std::move(e);
         carryUserData(*engines_[i]);
     }

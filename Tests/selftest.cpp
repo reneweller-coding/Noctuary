@@ -27,6 +27,7 @@
  * switches stdout to unbuffered first so that a crash leaves its probes behind.
  */
 #include "ambient/Engine.h"
+#include "ambient/NoteTap.h"
 #include "ambient/Params.h"
 #include "ambient/Tuning.h"
 #include "ambient/Dsp.h"
@@ -9549,6 +9550,52 @@ void testGuideRound2()
  *
  * @return 0 when every check passed, 1 otherwise
  */
+/**
+ * @brief MIDI out (02.10.2026, NoteTap.h): the conductor's notes are tapped on channel 1, inside their block, every off
+ *        after its on; a key played on the keyboard is not tapped; allNotesOff gives every held note its off.
+ */
+void testNoteTap()
+{
+    Engine e;
+    e.setParam(ParamId::BrainOn, 1.0f);
+    e.setParam(ParamId::BrainRate, 3.0f);
+    e.setParam(ParamId::BrainHoldMin, 2.0f);
+    e.setParam(ParamId::BrainHoldMax, 4.0f);
+    e.setParam(ParamId::BrainDensity, 4.0f);
+    e.prepare(48000.0, 256);
+    NoteTap tap;
+    e.setNoteTap(&tap);
+    std::vector<float> L(256), R(256);
+    int ons = 0, offs = 0, unpaired = 0, outside = 0, otherChannel = 0;
+    int held[17][128] = {};
+    auto take = [&]() {
+        for (int i = 0; i < tap.count; ++i) {
+            const NoteTap::Note& nt = tap.notes[i];
+            if (nt.offset < 0 || nt.offset >= 256) ++outside;
+            if (nt.channel != 1) ++otherChannel;
+            if (nt.velocity > 0) { ++ons; ++held[nt.channel][nt.pitch]; }
+            else { ++offs; if (held[nt.channel][nt.pitch] > 0) --held[nt.channel][nt.pitch]; else ++unpaired; }
+        }
+        tap.clear();
+    };
+    for (int b = 0; b < 48000 * 30 / 256; ++b) {
+        if (b == 1000) e.noteOn(61, 0.8f);   // a key: sounds, but is not tapped
+        if (b == 2000) e.noteOff(61);
+        e.process(L.data(), R.data(), 256);
+        take();
+    }
+    const int onsBefore = ons;
+    e.allNotesOff();
+    take();
+    int stillHeld = 0;
+    for (int c = 0; c <= 16; ++c) for (int p = 0; p < 128; ++p) stillHeld += held[c][p];
+    CHECK(onsBefore > 4, "MIDI out: the conductor's notes are tapped");
+    CHECK(outside == 0, "MIDI out: every tapped note lies inside its block");
+    CHECK(otherChannel == 0, "MIDI out: the first conductor on channel 1, the key not at all");
+    CHECK(unpaired == 0 && offs > 0, "MIDI out: every off follows its on");
+    CHECK(stillHeld == 0, "MIDI out: allNotesOff gives every held note its off");
+}
+
 int main()
 {
     testNearLayer();
@@ -9565,6 +9612,7 @@ int main()
     testTuning();
     testEnvelope();
     testEngineMidi();
+    testNoteTap();
     testBrain();
     testDeterminism();
     testUserScale();

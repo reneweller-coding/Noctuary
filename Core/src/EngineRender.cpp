@@ -232,9 +232,11 @@ void Engine::process(float* L, float* R, int n)
     while (pos < n) {
         const int chunk = std::min(n - pos, maxBlock_);
         stemPos_ = pos;
+        tapPos_ = pos;
         renderChunk(L + pos, R + pos, chunk);
         pos += chunk;
     }
+    tapPos_ = 0;
     // Sleep: nothing sounding and the tails gone for two seconds -> the next blocks skip the
     // effect chain (zeros out) until a voice starts. The brain keeps running inside renderChunk,
     // so a generative patch wakes itself; MIDI and OSC notes wake it through the voices.

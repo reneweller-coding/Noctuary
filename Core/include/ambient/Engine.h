@@ -27,6 +27,7 @@
  * counter, a double buffer or the modulation lock, as each section says.
  */
 #pragma once
+#include "NoteTap.h"
 #include "Params.h"
 #include "Tuning.h"
 #include "Voice.h"
@@ -229,6 +230,8 @@ public:
     void noteOff(int note);
     /** @brief Releases every voice of every owner and forgets the held keys. */
     void allNotesOff();
+    /** @brief From now on every conductor note it plays is also written to @p tap (null: stops; NoteTap.h, MIDI out). */
+    void setNoteTap(NoteTap* tap) { noteTap_ = tap; }
     /** @} */
     /** @brief Autoplay: exchange a voice of the cluster now, whatever its timer says. Any thread. */
     void autoplayStep() { autoStepAsked_.store(true, std::memory_order_relaxed); }
@@ -2123,6 +2126,10 @@ private:
     std::vector<float> foreD2L_, foreD2R_, foreCoL_, foreCoR_;   ///< foreCoR_: the send into the Cosmos, right
     float* const* stems_ = nullptr;   ///< eight pointers or null; valid for one process() call
     int    stemPos_ = 0;              ///< where in them this chunk starts
+    NoteTap* noteTap_ = nullptr;      ///< where the conductors' notes go for MIDI out (setNoteTap), or null
+    int    tapPos_ = 0;               ///< where in the block the chunk being rendered starts (0 outside process())
+    /** @brief The MIDI channel of an owner's notes for MIDI out: 1 the first conductor, 2 the second, 3 near; 0 a key. */
+    static int tapChannel(int owner) { return owner == 1 ? 1 : owner == 2 ? 2 : owner == 3 ? 3 : 0; }
     double   sr_ = 48000.0;   ///< the sample rate
     int      maxBlock_ = 512; ///< the chunk size renderChunk() is given at most; the buffers' length
     uint64_t order_ = 0;      ///< a running count of note starts, so allocate() can find the oldest voice

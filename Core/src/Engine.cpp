@@ -822,6 +822,7 @@ Voice* Engine::allocate(int note, int owner)
 void Engine::startNote(int note, float velocity, int owner, float distance, float ageSeconds)
 {
     if (note < 0 || note > 127) return;
+    if (noteTap_ != nullptr && tapChannel(owner) > 0) noteTap_->add(tapPos_, tapChannel(owner), note, velocity, true);   // MIDI out
     // The modulation envelopes run on a phrase clock: it restarts when a note arrives into
     // silence, not on every note of a cluster, or a slow shape would never get anywhere.
     bool anySounding = false;
@@ -878,6 +879,12 @@ void Engine::startNote(int note, float velocity, int owner, float distance, floa
 
 void Engine::stopNote(int note, int owner)
 {
+    if (noteTap_ != nullptr && tapChannel(owner) > 0)   // MIDI out: the off of a note this conductor holds
+        for (const auto& v : voices_)
+            if (v.isActive() && !v.isReleasing() && v.note() == note && v.owner() == owner) {
+                noteTap_->add(tapPos_, tapChannel(owner), note, 0.0f, false);
+                break;
+            }
     for (auto& v : voices_) if (v.isActive() && v.note() == note && v.owner() == owner) v.noteOff();
     if (rolesUsed_) updatePlaces();   // a note letting go hands its place on
 }
@@ -999,6 +1006,9 @@ void Engine::setBend(int note, float normalised)
 
 void Engine::allNotesOff()
 {
+    if (noteTap_ != nullptr)   // MIDI out: every note a conductor holds gets its off
+        for (const auto& v : voices_)
+            if (v.isActive() && !v.isReleasing() && tapChannel(v.owner()) > 0) noteTap_->add(tapPos_, tapChannel(v.owner()), v.note(), 0.0f, false);
     for (auto& h : midiHeld_) h = false;
     for (auto& v : voices_) v.noteOff();
 }
