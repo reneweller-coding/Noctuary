@@ -165,4 +165,6 @@ if(TARGET Noctuary)
         target_link_options(ambient_hosttest PRIVATE "LINKER:-stack_size,0x3F00000")
     endif()
     add_test(NAME hosttest COMMAND ambient_hosttest)
+    # It listens to the plugin, so AMBIENT_MUTE (which silences its output) must not reach it (02.10.2026).
+    set_tests_properties(hosttest PROPERTIES ENVIRONMENT_MODIFICATION "AMBIENT_MUTE=unset:")
 endif()
