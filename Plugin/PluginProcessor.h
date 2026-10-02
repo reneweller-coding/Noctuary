@@ -40,6 +40,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <juce_osc/juce_osc.h>
 #include "ambient/Engine.h"
 #include "ambient/Presets.h"
 #include "ambient/Gesture.h"
@@ -352,6 +353,17 @@ public:
     juce::String linkStatus() const;
     /** @brief Message thread, 30 times a second: joins or leaves the Link session as the settings say (the standalone). */
     void linkTick();
+    /** @brief The score cues, as the settings menu says it: off, or where they go and how many have gone. */
+    juce::String cueStatus() const;
+    /**
+     * @brief Message thread, 30 times a second: the score cues for a visualiser (02.10.2026; Settings > Score cues).
+     *
+     * An ambient piece has no blocks and no drops, so Noctuary says what it has: its clock's bar line while the clock
+     * runs (`/noct/bar i`), the key its conductor plays in (`/noct/key s`, "A JI Minor": the root and the tuning), and a
+     * new scene when a preset or a journey's step arrives (`/noct/scene s f`: its name and an energy). KaleidoscopeEnhanced
+     * reads them (its CueReceiver.h); thirty times a second is precise enough for music that changes in minutes.
+     */
+    void cueTick();
     /** @brief Writes the state into the standalone's settings file if it has changed since the last write. */
     void saveSession();
     /** @} */
@@ -784,11 +796,17 @@ private:
          */
         explicit PresetPump(NoctuaryProcessor& p) : proc(p) {}
         /** @brief 30 times a second: the OSC preset requests, a pending transition, the journey's step. */
-        void timerCallback() override { proc.servePresetRequests(); proc.servePendingPreset(); proc.journeyTick(); proc.linkTick(); }
+        void timerCallback() override { proc.servePresetRequests(); proc.servePendingPreset(); proc.journeyTick(); proc.linkTick(); proc.cueTick(); }
         NoctuaryProcessor& proc;   ///< the processor
     };
     PresetPump presetPump_ { *this };   ///< runs for the life of the instrument
     frame::LinkClock link_;             ///< Ableton Link in the standalone (02.10.2026; Settings > Ableton Link)
+    juce::OSCSender cueOut_;            ///< the score cues' socket (cueTick)
+    int cuePortOpen_ = 0;               ///< the port cueOut_ is connected to; 0: none
+    int cueBar_ = -1;                   ///< the last bar line sent
+    int cueRoot_ = -1;                  ///< the last key sent (root pitch class * 16 + tuning)
+    int cueScene_ = -1;                 ///< the preset of the last scene sent
+    int cuesSent_ = 0;                  ///< messages sent since the cues were switched on
     ambient::Journey       journey_;         ///< the journey being edited or played
     ambient::JourneyPlayer journeyPlayer_;   ///< its clock and step counter
     double                 journeyLastTick_ = 0.0;   ///< seconds (the hi-res counter) at the last tick

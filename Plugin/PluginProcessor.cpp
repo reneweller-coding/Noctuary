@@ -191,6 +191,42 @@ void NoctuaryProcessor::linkTick()
     link_.tick();
 }
 
+juce::String NoctuaryProcessor::cueStatus() const
+{
+    if (cuePortOpen_ == 0) return frame::Settings::of("Noctuary").cues() ? "no socket" : "off";
+    return juce::String(cuesSent_) + " sent";
+}
+
+void NoctuaryProcessor::cueTick()
+{
+    const frame::Settings& s = frame::Settings::of("Noctuary");
+    const int want = s.cues() ? s.cuePort() : 0;
+    if (want != cuePortOpen_) {
+        cueOut_.disconnect();
+        cuePortOpen_ = (want > 0 && cueOut_.connect("127.0.0.1", want)) ? want : 0;
+        cueBar_ = cueRoot_ = cueScene_ = -1;
+        cuesSent_ = 0;
+    }
+    if (cuePortOpen_ == 0) return;
+    ambient::Engine& e = live();
+    if (e.clockRunning()) {
+        const int bar = static_cast<int>(std::floor(e.beatPosition() / 4.0));
+        if (bar != cueBar_ && cueOut_.send("/noct/bar", static_cast<juce::int32>(bar))) { cueBar_ = bar; ++cuesSent_; }
+    }
+    const int pc = ((e.brainRoot() % 12) + 12) % 12;
+    const int tuning = juce::jlimit(0, ambient::kNumScaleChoices - 1, static_cast<int>(e.getParam(ParamId::Scale)));
+    if (pc * 16 + tuning != cueRoot_
+        && cueOut_.send("/noct/key", juce::String(ambient::kRootNames[pc]) + " " + ambient::kScaleNames[tuning])) {
+        cueRoot_ = pc * 16 + tuning;
+        ++cuesSent_;
+    }
+    if (currentProgram_ != cueScene_ && currentProgram_ >= 0 && currentProgram_ < ambient::numPresets()
+        && cueOut_.send("/noct/scene", juce::String(ambient::preset(currentProgram_).name), 0.35f)) {
+        cueScene_ = currentProgram_;
+        ++cuesSent_;
+    }
+}
+
 juce::String NoctuaryProcessor::linkStatus() const
 {
     if (!link_.enabled()) return "off";

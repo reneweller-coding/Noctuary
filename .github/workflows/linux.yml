@@ -63,7 +63,9 @@ jobs:
           mkdir -p "$out"
           cp "$app" "$cli" "$out/"
           cp -R "$vst" "$lv2" "$out/"
-          strip "$out/Noctuary" "$out/ambient_render" "$out/Noctuary.vst3/Contents/x86_64-linux/Noctuary.so" "$out/Noctuary.lv2/Noctuary.so"
+          strip "$out/Noctuary" "$out/ambient_render" "$out/Noctuary.vst3/Contents/x86_64-linux/Noctuary.so"
+          find "$out/Noctuary.lv2" -name "*.so" -exec strip {} +
+          ls "$out/Noctuary.lv2"
           mkdir -p "$out/Packs" "$out/Journeys"
           cp Library/Packs/*.ambientpack "$out/Packs/"
           cp Library/Journeys/*.journey "$out/Journeys/"
