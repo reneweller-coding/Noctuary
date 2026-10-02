@@ -55,6 +55,7 @@ if(AMBIENT_BUILD_TOOLS)
     enable_testing()
     family_doccheck()   # every entity documented (cmake/Family.cmake, 01.10.2026)
     add_subdirectory(Tools/render)
+    family_soundcheck(ambient_render)   # the sound regression check (Tools/soundcheck.py, 02.10.2026)
 endif()
 
 if(AMBIENT_BUILD_PLUGIN)

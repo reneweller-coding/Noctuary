@@ -1,0 +1,35 @@
+{
+ "render": "ambient_render",
+ "mix_tol": 1.0,
+ "stem_tol": 3.0,
+ "quiet": -40.0,
+ "cases": {
+  "consonant_expanse": {
+   "mix": -21.41,
+   "stems": {
+    "cosmos": null,
+    "far": -16.4,
+    "near": -12.14,
+    "room": null
+   }
+  },
+  "harmonic_hours": {
+   "mix": -22.6,
+   "stems": {
+    "cosmos": -7.88,
+    "far": -13.94,
+    "near": -1.47,
+    "room": null
+   }
+  },
+  "somnus_field": {
+   "mix": -27.92,
+   "stems": {
+    "cosmos": -22.77,
+    "far": 0.3,
+    "near": 3.6,
+    "room": null
+   }
+  }
+ }
+}
