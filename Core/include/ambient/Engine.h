@@ -232,6 +232,13 @@ public:
     void allNotesOff();
     /** @brief From now on every conductor note it plays is also written to @p tap (null: stops; NoteTap.h, MIDI out). */
     void setNoteTap(NoteTap* tap) { noteTap_ = tap; }
+    /**
+     * @brief The family jam (02.10.2026, the plugin's Jam.h), audio thread: the first conductor's root held on the
+     *        leader's pitch class @p rootPc (-1: its own; the nearest such note to where it stands, the second
+     *        conductor a fixed interval from it as ever), and the leader's @p energy (0..1; negative: none) brightening
+     *        or darkening the voices' filters.
+     */
+    void setJam(int rootPc, float energy) { jamRoot_ = rootPc; jamEnergy_ = energy; }
     /** @} */
     /** @brief Autoplay: exchange a voice of the cluster now, whatever its timer says. Any thread. */
     void autoplayStep() { autoStepAsked_.store(true, std::memory_order_relaxed); }
@@ -2182,6 +2189,9 @@ private:
     const Voice* loudestVoice() const;
     std::atomic<int> activeVoices_{ 0 };   ///< voices active at the end of the last block
     std::atomic<int> brainRoot_{ 50 };     ///< the first conductor's root at the end of the last block
+    int jamRoot_ = -1;                     ///< the family jam's root (setJam), a pitch class; -1: none
+    float jamEnergy_ = -1.0f;              ///< the family jam's energy (setJam); negative: none
+    float jamCutoff_ = 1.0f;               ///< the factor on the voices' cutoff the jam's energy asks for, glided (readParams)
     std::atomic<float> arcValue_{ 0.0f };  ///< the arc times its Amount, for arcValue()
     std::atomic<float> noteDistance_[128]; ///< per note, the distance of the voice sounding it, -1 for none
     std::atomic<float> noteLevel_[128];    ///< per note, the loudest sounding voice's envelope level, 0 for none

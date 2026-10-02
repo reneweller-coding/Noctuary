@@ -48,6 +48,7 @@
 #include "ambient/Timeline.h"
 #include "ambient/Journey.h"
 #include "LinkClock.h"
+#include "Jam.h"
 #include <array>
 #include <atomic>
 
@@ -355,6 +356,8 @@ public:
     void linkTick();
     /** @brief The score cues, as the settings menu says it: off, or where they go and how many have gone. */
     juce::String cueStatus() const;
+    /** @brief The family jam, as the settings menu says it (Jam.h): off, leading, or whom it follows. */
+    juce::String jamStatus() const { return jam_.status(); }
     /**
      * @brief Message thread, 30 times a second: the score cues for a visualiser (02.10.2026; Settings > Score cues).
      *
@@ -802,6 +805,9 @@ private:
     PresetPump presetPump_ { *this };   ///< runs for the life of the instrument
     frame::LinkClock link_;             ///< Ableton Link in the standalone (02.10.2026; Settings > Ableton Link)
     juce::OSCSender cueOut_;            ///< the score cues' socket (cueTick)
+    frame::JamBus jam_ { "Noctuary" };  ///< the family jam's bus (Settings > Family jam; Jam.h)
+    int jamLeadKey_ = -1;               ///< audio thread: the key the leader sent last (root * 16 + tuning)
+    juce::String jamLogged_;            ///< the last line written to FAMILY_JAM_LOG
     int cuePortOpen_ = 0;               ///< the port cueOut_ is connected to; 0: none
     int cueBar_ = -1;                   ///< the last bar line sent
     int cueRoot_ = -1;                  ///< the last key sent (root pitch class * 16 + tuning)

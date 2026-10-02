@@ -189,6 +189,15 @@ void NoctuaryProcessor::linkTick()
 {
     link_.setEnabled(wrapperType == wrapperType_Standalone && (frame::Settings::of("Noctuary").link() || frame::LinkClock::forcedOn()));
     link_.tick();
+    // The family jam (02.10.2026, Jam.h): the role from the settings.
+    jam_.setRole(frame::Settings::of("Noctuary").jamRole());
+    if (const char* logFile = std::getenv("FAMILY_JAM_LOG")) {   // a test aid: what the jam does, whenever it changes
+        const juce::String line = jam_.status() + "; root " + juce::String(live().brainRoot() % 12);
+        if (line != jamLogged_) {
+            jamLogged_ = line;
+            juce::File(logFile).appendText(juce::Time::getCurrentTime().toString(false, true, true, true) + "  " + line + "\n");
+        }
+    }
 }
 
 juce::String NoctuaryProcessor::cueStatus() const
@@ -595,6 +604,27 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         planesOn_ = want;
     }
     // Always into scratch_, so the two-engine mix and the mono fold-down read the same place.
+    // The family jam (02.10.2026, Jam.h): a follower's conductor holds the leader's root and its filters take the
+    // leader's energy; a leader says its root and its tuning when they change (its sections are scenes, not breaks).
+    {
+        ambient::Engine& e = live();
+        if (jam_.role() == frame::Settings::JamRole::Follow) {
+            const frame::JamState js = jam_.stateAt(-1.0);
+            e.setJam(js.root, js.root >= 0 ? js.energy : -1.0f);
+        } else {
+            e.setJam(-1, -1.0f);
+            if (jam_.role() == frame::Settings::JamRole::Lead) {
+                const int pc = ((e.brainRoot() % 12) + 12) % 12;
+                const int tuning = juce::jlimit(0, ambient::kNumScaleChoices - 1, static_cast<int>(e.getParam(ParamId::Scale)));
+                if (pc * 16 + tuning != jamLeadKey_) {
+                    jamLeadKey_ = pc * 16 + tuning;
+                    jam_.postKey(pc, ambient::kScaleNames[tuning]);
+                }
+            } else {
+                jamLeadKey_ = -1;
+            }
+        }
+    }
     live().process(scratch_.getWritePointer(0), scratch_.getWritePointer(1), n);
     if (fading_ >= 0) {
         // A preset transition: the preset that is leaving is still playing, on its own engine,

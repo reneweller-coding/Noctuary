@@ -816,7 +816,13 @@ void Engine::readParams()
     vp_.fold = g(ParamId::FilterFold);
     vp_.binaural = std::lround(getParam(ParamId::Binaural)) == 1;
     vp_.headYawDeg = headYawDeg_.load(std::memory_order_relaxed);
-    vp_.cutoff      = g(ParamId::Cutoff);
+    // The family jam (02.10.2026): the leader's energy on the voices' filters -- half the cutoff at an energy of 0.3, as
+    // written at full energy --, gliding block by block.
+    {
+        const float target = jamEnergy_ >= 0.0f ? std::exp2((std::clamp(jamEnergy_, 0.0f, 1.0f) - 1.0f) * 1.5f) : 1.0f;
+        jamCutoff_ += (target - jamCutoff_) * 0.05f;
+    }
+    vp_.cutoff      = g(ParamId::Cutoff) * jamCutoff_;
     vp_.resonance   = g(ParamId::Resonance);
     vp_.filterEnv   = g(ParamId::FilterEnv);
     vp_.filterDrift = g(ParamId::FilterDrift);

@@ -97,6 +97,13 @@ void Engine::adoptCluster(const int* notes, const float* vels, int count, bool s
 void Engine::process(float* L, float* R, int n)
 {
     blocksBegun_.fetch_add(1, std::memory_order_acq_rel);
+    // The family jam (02.10.2026): the conductor's root on the leader's pitch class, the nearest such note to its own.
+    if (jamRoot_ >= 0 && ((brain_.root() % 12) + 12) % 12 != jamRoot_) {
+        const int r = brain_.root();
+        int d = ((jamRoot_ - r % 12) % 12 + 12) % 12;
+        if (d > 6) d -= 12;
+        brain_.setRoot(r + d);
+    }
 #if AMBIENT_HAS_MXCSR
     const unsigned int savedCsr = _mm_getcsr();
     _mm_setcsr(savedCsr | 0x8040);   // flush-to-zero + denormals-are-zero

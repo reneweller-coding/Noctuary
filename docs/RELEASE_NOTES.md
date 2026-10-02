@@ -1,5 +1,24 @@
 # Noctuary release notes
 
+## 2.4.0 (03.10.2026): the family plays together
+
+**The family jam** (Settings > Family jam: Off, Lead or Follow; in the plugin and in the standalone). The five
+instruments -- Totality, Parhelion, Ephemeris, Phosphene and Noctuary -- play as one band on the local network.
+Following, Noctuary's Cluster Brain holds the leader's root (the nearest such note to where it stands) and the voices'
+filters close with a quiet section of the leader's and open with a loud one; it keeps its own tuning. Leading, it
+gives the others its root and its tuning, and they move to them -- the root at their next bar line, the mode with
+their next track. A leader that falls silent for four seconds leaves its followers to themselves.
+
+**Score cues for a visualiser** (Settings > Score cues for a visualiser, off to begin with): the clock's bar line
+(/noct/bar), the key the conductor plays in (/noct/key) and a new scene when a preset or a journey's step arrives
+(/noct/scene), over OSC to 127.0.0.1:9000. KaleidoscopeEnhanced understands the score cues of all five instruments as
+they come (since 02.10.2026) -- Totality's blocks and keys, Parhelion's sections, Ephemeris' phases, Phosphene's
+sections and drops, Noctuary's bars, keys and scenes -- and cuts its pictures to them, on a drop at once.
+
+**An Audio Unit on the Mac, an LV2 on Linux.** The macOS zip has the Audio Unit beside the standalone and the VST3
+(Logic, GarageBand, MainStage), passed by Apple's `auval -strict` on GitHub's runners; the Linux archive has the LV2
+(Ardour, Carla, Reaper, Qtractor), read by lilv there.
+
 ## 2.3.0 (02.10.2026): with a DAW, on a Mac, and heard
 
 **MIDI out.** In a DAW the plugin sends what the conductors play, the moment it sounds: channel 1 the Cluster

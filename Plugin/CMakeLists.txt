@@ -26,7 +26,7 @@ target_sources(Noctuary PRIVATE
     EditorModStrip.cpp
     EditorBrowse.cpp
     EditorDrag.cpp
-    NoctuaryLookAndFeel.cpp Frame.cpp LinkClock.cpp)
+    NoctuaryLookAndFeel.cpp Frame.cpp LinkClock.cpp Jam.cpp)
 
 target_compile_definitions(Noctuary PUBLIC
     JUCE_WEB_BROWSER=0

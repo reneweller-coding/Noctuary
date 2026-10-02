@@ -2487,6 +2487,7 @@ void NoctuaryEditor::showSettings()
     if (proc_.wrapperType == juce::AudioProcessor::wrapperType_Standalone)   // Ableton Link, the standalone only (02.10.2026)
         m.linkStatus = [this] { return proc_.linkStatus(); };
     m.cueStatus = [this] { return proc_.cueStatus(); };   // score cues for a visualiser, plugin and standalone (02.10.2026)
+    m.jamStatus = [this] { return proc_.jamStatus(); };   // the family jam (02.10.2026)
     m.headsetStatus = [this] {
         if (!proc_.oscRunning()) return juce::String("OSC off: ") + proc_.oscError();
         return juce::String(proc_.gestures().handsRecently(3.0) ? "a headset sends its hands" : "no headset sends")

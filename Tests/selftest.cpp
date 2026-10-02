@@ -9543,6 +9543,36 @@ void testGuideRound2()
 }
 
 /**
+ * @brief The family jam (02.10.2026, the plugin's Jam.h): a follower's first conductor holds the leader's root -- the
+ *        nearest note of that pitch class to where it stands --, and lets go of it when the jam does.
+ */
+void testJam()
+{
+    Engine e;
+    e.setParam(ParamId::BrainOn, 1.0f);
+    e.setParam(ParamId::BrainRate, 3.0f);
+    e.prepare(48000.0, 256);
+    std::vector<float> L(256), R(256);
+    auto play = [&](double seconds) { for (int b = 0; b < static_cast<int>(48000.0 * seconds / 256.0); ++b) e.process(L.data(), R.data(), 256); };
+    play(2.0);
+    const int own = e.brainRoot();
+    const int target = (((own % 12) + 12) % 12 + 5) % 12;
+    e.setJam(target, 0.5f);
+    bool held = true;
+    int drift = 0;
+    for (int s = 0; s < 20; ++s) {
+        play(1.0);
+        held = held && ((e.brainRoot() % 12) + 12) % 12 == target;
+        drift = std::max(drift, std::abs(e.brainRoot() - own));
+    }
+    CHECK(held, "family jam: the conductor holds the leader's root");
+    CHECK(drift <= 24, "family jam: on the nearest such note, not octaves away");
+    e.setJam(-1, -1.0f);
+    play(1.0);
+    CHECK(e.brainRoot() >= 0 && e.brainRoot() < 128, "family jam: without a leader the conductor goes its own way");
+}
+
+/**
  * @brief MIDI out (02.10.2026, NoteTap.h): the conductor's notes are tapped on channel 1, inside their block, every off
  *        after its on; a key played on the keyboard is not tapped; allNotesOff gives every held note its off.
  */
@@ -9615,6 +9645,7 @@ int main()
     testEnvelope();
     testEngineMidi();
     testNoteTap();
+    testJam();
     testBrain();
     testDeterminism();
     testUserScale();
