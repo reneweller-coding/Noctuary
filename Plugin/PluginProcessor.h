@@ -690,6 +690,14 @@ private:
     double lastSampleRate_ = 48000.0;   ///< what prepareToPlay last saw; an engine built later is prepared at this rate
     int    lastBlockSize_ = 512;        ///< and this block size
     ambient::NoteTap noteTap_;          ///< MIDI out (02.10.2026): what both engines' conductors played in this block
+    // The planes as outputs of their own (02.10.2026): a stereo bus each for near, far, cosmos and room besides the main
+    // output, off until the host switches one on; then the instrument's engine writes them (Engine::setStemBuffers).
+    // The planes of the preset that plays: during a preset's crossfade the one leaving is in the main output only.
+    juce::AudioBuffer<float> planeBuf_;                       ///< 2 x kNumStems channels, a block long (prepareToPlay)
+    std::array<float*, 2 * ambient::Engine::kNumStems> planePtr_{};   ///< near L/R, far L/R, cosmos L/R, room L/R
+    bool planesOn_ = false;                                   ///< audio thread: the engine writes the planes now
+    /** @brief The buses: the main output, then one stereo output per plane, those off by default. */
+    static BusesProperties busLayout();
     /**
      * @param i  0 or 1
      * @return the engine at that index, which must exist

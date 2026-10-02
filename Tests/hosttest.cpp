@@ -856,6 +856,43 @@ int main()
         p->releaseResources();
     }
 
+    // ---------------------------------------------------------------- the planes' outputs (02.10.2026)
+    {
+        // A stereo output per plane (near, far, cosmos, room) besides the main one, off by default; switched on,
+        // each carries its plane while the main output plays on.
+        auto p = std::make_unique<NoctuaryProcessor>();
+        juce::AudioProcessor::BusesLayout layout = p->getBusesLayout();
+        check(layout.outputBuses.size() == 1 + ambient::Engine::kNumStems, "the four planes have outputs of their own");
+        for (int b = 1; b < layout.outputBuses.size(); ++b) layout.outputBuses.getReference(b) = juce::AudioChannelSet::stereo();
+        check(p->setBusesLayout(layout), "the host can switch every plane's output on");
+        p->prepareToPlay(48000.0, 512);
+        juce::AudioBuffer<float> buf(p->getTotalNumOutputChannels(), 512);
+        juce::MidiBuffer midi;
+        double peak[1 + ambient::Engine::kNumStems] = {};
+        bool ok = true;
+        for (int b = 0; b < 48000 * 6 / 512; ++b) {
+            midi.clear();
+            if (b == 0)
+                for (int note : { 48, 55, 60, 67 }) midi.addEvent(juce::MidiMessage::noteOn(1, note, 0.8f), 0);
+            buf.clear();
+            p->processBlock(buf, midi);
+            for (int k = 0; k <= ambient::Engine::kNumStems; ++k) {
+                auto bus = p->getBusBuffer(buf, false, k);
+                for (int c = 0; c < bus.getNumChannels(); ++c)
+                    for (int s = 0; s < bus.getNumSamples(); ++s) {
+                        const float v = bus.getReadPointer(c)[s];
+                        if (!std::isfinite(v)) ok = false;
+                        peak[k] = std::max(peak[k], static_cast<double>(std::fabs(v)));
+                    }
+            }
+        }
+        int planes = 0;
+        for (int k = 1; k <= ambient::Engine::kNumStems; ++k) if (peak[k] > 1.0e-4) ++planes;
+        check(ok && peak[0] > 0.01, "with every plane's output on, the main output plays on");
+        check(planes >= 2, "and the planes' outputs carry their planes");
+        p->releaseResources();
+    }
+
     if (failures == 0) std::printf("hosttest: all checks passed\n");
     else std::printf("hosttest: %d failure(s)\n", failures);
     return failures == 0 ? 0 : 1;

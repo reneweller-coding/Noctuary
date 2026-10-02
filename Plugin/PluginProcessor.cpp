@@ -128,7 +128,7 @@ static void installCrashLog()
 }
 
 NoctuaryProcessor::NoctuaryProcessor()
-    : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+    : AudioProcessor(busLayout()),
       apvts(*this, nullptr, "Noctuary", createLayout())
 {
     installCrashLog();
@@ -314,6 +314,10 @@ void NoctuaryProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     }
     scratch_.setSize(2, samplesPerBlock);
     fadeBuf_.setSize(2, samplesPerBlock);
+    planeBuf_.setSize(2 * ambient::Engine::kNumStems, juce::jmax(1, samplesPerBlock));   // the planes' outputs (02.10.2026)
+    for (int c = 0; c < 2 * ambient::Engine::kNumStems; ++c) planePtr_[static_cast<size_t>(c)] = planeBuf_.getWritePointer(c);
+    for (auto& e : engines_) if (e != nullptr) e->setStemBuffers(nullptr);
+    planesOn_ = false;
     sampleRate_ = sampleRate > 0.0 ? sampleRate : 48000.0;
     // Both engines have just had their buffers cleared, so a transition that was in flight has
     // nothing left to fade out of: it ends here rather than crossfading from silence.
@@ -324,10 +328,25 @@ void NoctuaryProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     fadeHead_ = 0.0f;
 }
 
+juce::AudioProcessor::BusesProperties NoctuaryProcessor::busLayout()
+{
+    BusesProperties b = BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true);
+    for (int s = 0; s < ambient::Engine::kNumStems; ++s) {
+        const juce::String name(ambient::Engine::stemName(s));
+        b = b.withOutput(name.substring(0, 1).toUpperCase() + name.substring(1), juce::AudioChannelSet::stereo(), false);
+    }
+    return b;
+}
+
 bool NoctuaryProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
     const auto& out = layouts.getMainOutputChannelSet();
-    return out == juce::AudioChannelSet::stereo() || out == juce::AudioChannelSet::mono();
+    if (out != juce::AudioChannelSet::stereo() && out != juce::AudioChannelSet::mono()) return false;
+    for (int b = 1; b < layouts.outputBuses.size(); ++b) {   // a plane's bus (02.10.2026): stereo, or off
+        const juce::AudioChannelSet& set = layouts.outputBuses.getReference(b);
+        if (!set.isDisabled() && set != juce::AudioChannelSet::stereo()) return false;
+    }
+    return true;
 }
 
 void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
@@ -530,6 +549,15 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     const int n = buffer.getNumSamples();
     if (scratch_.getNumSamples() < n) scratch_.setSize(2, n, false, false, true);
     if (fadeBuf_.getNumSamples() < n) fadeBuf_.setSize(2, n, false, false, true);
+    {   // The planes' outputs (02.10.2026): the instrument's engine writes them while the host has one of their buses on.
+        bool want = false;
+        for (int b = 1; b < getBusCount(false) && !want; ++b)
+            if (const auto* bus = getBus(false, b)) want = bus->isEnabled();
+        want = want && n <= planeBuf_.getNumSamples();
+        for (auto& e : engines_) if (e != nullptr) e->setStemBuffers(nullptr);
+        if (want) live().setStemBuffers(planePtr_.data());
+        planesOn_ = want;
+    }
     // Always into scratch_, so the two-engine mix and the mono fold-down read the same place.
     live().process(scratch_.getWritePointer(0), scratch_.getWritePointer(1), n);
     if (fading_ >= 0) {
@@ -588,15 +616,27 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         if (nt.velocity == 0) midi.addEvent(juce::MidiMessage::noteOff(nt.channel, nt.pitch), at);
         else midi.addEvent(juce::MidiMessage::noteOn(nt.channel, nt.pitch, static_cast<juce::uint8>(nt.velocity)), at);
     }
-    if (buffer.getNumChannels() >= 2) {
+    // The main bus only: with the planes' outputs on, the channels after it are theirs (02.10.2026).
+    const auto* mainBus = getBus(false, 0);
+    const int mainChannels = mainBus != nullptr ? mainBus->getNumberOfChannels() : buffer.getNumChannels();
+    if (mainChannels >= 2) {
         buffer.copyFrom(0, 0, scratch_, 0, 0, n);
         buffer.copyFrom(1, 0, scratch_, 1, 0, n);
-    } else if (buffer.getNumChannels() == 1) {
+    } else if (mainChannels == 1) {
         buffer.copyFrom(0, 0, scratch_, 0, 0, n);
         buffer.addFrom(0, 0, scratch_, 1, 0, n);
-        buffer.applyGain(0.5f);
+        buffer.applyGain(0, 0, n, 0.5f);
     }
-    for (int ch = 2; ch < buffer.getNumChannels(); ++ch) buffer.clear(ch, 0, n);
+    for (int ch = mainChannels; ch < buffer.getNumChannels(); ++ch) buffer.clear(ch, 0, n);
+    if (planesOn_)
+        for (int b = 1; b < getBusCount(false) && b - 1 < ambient::Engine::kNumStems; ++b) {
+            const auto* bus = getBus(false, b);
+            if (bus == nullptr || !bus->isEnabled()) continue;
+            auto out = getBusBuffer(buffer, false, b);
+            if (out.getNumChannels() < 2) continue;
+            out.copyFrom(0, 0, planeBuf_, 2 * (b - 1), 0, n);
+            out.copyFrom(1, 0, planeBuf_, 2 * (b - 1) + 1, 0, n);
+        }
 
     if (recording_.load(std::memory_order_relaxed)) {
         const juce::ScopedTryLock sl(recordLock_);
