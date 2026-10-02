@@ -8,7 +8,7 @@ minutes, a piece that can run all night without repeating and without anyone tou
 every decision in the instrument follows from taking that brief literally, including the ones that
 cost it features other synthesizers have.
 
-**VST3 plugin and standalone application** for Windows (x64). Licence: AGPL-3.0.
+**VST3 plugin and standalone application** for Windows (x64) and macOS (Apple Silicon). Licence: AGPL-3.0.
 
 <br clear="left" />
 
@@ -16,19 +16,32 @@ cost it features other synthesizers have.
 
 ## Download
 
-**[Noctuary-2.2.0-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.2.0/Noctuary-2.2.0-Setup.exe)**
+**[Noctuary-2.3.0-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-Setup.exe)**
 installs the standalone, the VST3 and the preset library, and offers to fetch the sample library as
 well. Nothing else has to be installed: the runtime is linked in. There is a
-**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.2.0/Noctuary-2.2.0-portable.zip)**
+**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-portable.zip)**
 for anyone who would rather not run an installer, and a
-**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.2.0/Noctuary-Manual.pdf)**
+**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-Manual.pdf)**
 — every tab of the panel as a picture, what each knob does, and seven chapters on why the
 instrument is built the way it is, with the mathematics and the references.
+
+**[macOS zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-macOS.zip)** for Apple Silicon (macOS 12 or newer): the standalone and
+the VST3, the packs and the journeys, built on GitHub's runners and attached to the release within the hour after it; signed ad hoc,
+not notarized (README-macOS.txt inside says how to open it), and not yet tried on a real Mac.
 
 Requirements: Windows 10 or 11, a 64-bit processor with AVX2 (every x86-64 since 2013), and a VST3
 host if you want the plugin. The synthesizer and its 14592 presets take under 100 MB on disk; the
 sample library is 100 GB and entirely optional — without it the 256 built-in presets and everything
 that does not name a recording still play.
+
+## Demos
+
+[![Noctuary, the Consonant Expanse demo, with pictures by KaleidoscopeEnhanced (click for the video)](docs/demo.jpg)](https://github.com/reneweller-coding/Noctuary/releases/download/demos/consonant_expanse.mp4)
+
+A few minutes per preset, rendered by `ambient_render` and nothing else: [Consonant Expanse](https://github.com/reneweller-coding/Noctuary/releases/download/demos/consonant_expanse.mp3), [Somnus Field](https://github.com/reneweller-coding/Noctuary/releases/download/demos/somnus_field.mp3), [Harmonic Hours](https://github.com/reneweller-coding/Noctuary/releases/download/demos/harmonic_hours.mp3) (MP3). The video is the Consonant Expanse demo with pictures by
+[KaleidoscopeEnhanced](https://github.com/reneweller-coding/KaleidoscopeEnhanced), following the music
+alone (an ambient piece has no bars to cut on). `Tools/demo/make_demos.py` renders them all again; they live on the release
+[demos](https://github.com/reneweller-coding/Noctuary/releases/tag/demos).
 
 ## How it is put together
 
@@ -149,6 +162,13 @@ sonifications from NASA, 724 cylinder and early-radio transfers from the Library
 | `docs/concept.md` | Sound-design and architecture notes. | |
 | `docs/Doxyfile` | Doxygen configuration for the C++ sources (below). | Doxygen |
 
+## With a DAW and other apps
+
+In a DAW Noctuary sends what its conductors play as MIDI (channel 1 the Cluster Brain, 2 the second brain, 3 the
+near events) and has a stereo output for each plane — Near, Far, Cosmos, Room — besides the main one, off until
+the host switches them on. The standalone joins an **Ableton Link** session (Settings > Ableton Link; Clock >
+Source on Host follows it). The manual's chapters Clock and sync and MIDI, OSC, files have the details.
+
 ## Build
 
 The same in every instrument of the family (`build.ps1`, `CMakePresets.json`, `cmake/Family.cmake`):
@@ -259,6 +279,8 @@ instrument's manual is also its record.
 ## The family
 
 Noctuary is one of five instruments that share their build, their panel (or part of it) and the hands of a Meta Quest: [Noctuary](https://github.com/reneweller-coding/Noctuary) (ambient), [Phosphene](https://github.com/reneweller-coding/Phosphene) (psytrance), [Ephemeris](https://github.com/reneweller-coding/Ephemeris) (Berlin School), [Totality](https://github.com/reneweller-coding/Totality) (techno) and [Parhelion](https://github.com/reneweller-coding/Parhelion) (trance).
+
+All five, with their demos, on one page: **[reneweller-coding.github.io/VRAudio](https://reneweller-coding.github.io/VRAudio/)**.
 
 ## Licence
 

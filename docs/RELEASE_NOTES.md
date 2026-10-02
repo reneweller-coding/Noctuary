@@ -1,5 +1,32 @@
 # Noctuary release notes
 
+## 2.3.0 (02.10.2026): with a DAW, on a Mac, and heard
+
+**MIDI out.** In a DAW the plugin sends what the conductors play, the moment it sounds: channel 1 the Cluster
+Brain, 2 the second brain, 3 the near events. A MIDI track can keep a night's chords, or hand them to another
+instrument. The keys you play are not echoed.
+
+**The planes as outputs of their own.** Besides the main output a stereo output each for Near, Far, Cosmos and Room,
+off until the DAW switches them on; each carries its plane while the main output plays on.
+
+**Ableton Link** in the standalone (Settings > Ableton Link, off to begin with): with Clock > Source on Host, the
+session's tempo, bars and start and stop drive the clock; alone in the session Noctuary offers its own tempo.
+
+**On a Mac.** Every release gets a build for Apple Silicon (macOS 12 or newer) -- the standalone and the VST3 --,
+built and tested on GitHub's runners by the workflow `macos` and attached to the release as `Noctuary-<version>-macOS.zip`.
+It is signed ad hoc, not notarized (that takes a paid Apple account; README-macOS.txt in the zip says how to open it),
+and it has not yet been played on a real Mac.
+
+**Demos.** The release "demos" holds a track per style as an MP3 and one of them as a video with pictures by
+[KaleidoscopeEnhanced](https://github.com/reneweller-coding/KaleidoscopeEnhanced), its cuts placed by the track's own
+score cues; `Tools/demo/make_demos.py` renders them all again.
+
+**Behind the panel.** A sound check (`Tools/soundcheck.py`, `ctest -L sound`): three presets, a minute each, and their four planes, measured by loudness
+(BS.1770) against `Tests/golden/soundcheck.json`, so a change that makes a style louder, quieter or emptier shows up
+before anybody listens. A CI run on every push (GitHub Actions: the build and the tests on Windows, the documentation
+check on Linux) that nobody waits for. One release script for the family (`Deploy/publish_release.ps1`: the notes from
+this file, the checksums, the tag, the release).
+
 ## 2.2.0 (01.10.2026): the family's panel and layout
 
 **The family's panel.** Undo, Redo, Help and the settings at the right of the header, as every instrument of the family

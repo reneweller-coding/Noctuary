@@ -989,18 +989,26 @@ R"(Nothing in this instrument needs a clock to make sound, but the moment it pla
 
 WHERE THE TEMPO COMES FROM (Conductor > CLOCK > Source):
   Internal  The Tempo knob, counting beats while Run is on. This is the standalone's own clock.
-  Host      The DAW's play head: its tempo, position and transport. In the standalone there is none, and the engine falls back to Internal.
+  Host      The DAW's play head: its tempo, position and transport. In the standalone: Ableton Link, when it is on (Settings > Ableton Link) and another Link app -- Live, Bitwig, a phone app, a generator of the family -- is in the session; its tempo, its bars and its start and stop. With no Link peer there is none, and the engine falls back to Internal (and offers its tempo to whoever joins).
   MIDI      MIDI clock at the MIDI input (24 ticks a quarter, Start / Continue / Stop). The tempo settles over one beat's worth of ticks; two seconds without a tick and the engine falls back.
 The header shows the tempo and the bar the engine is following. The clock's settings are performance state like the morph: no preset changes your tempo.)" },
 
     { "MIDI, OSC, files",
-R"(MIDI: notes play voices on the Keys Depth plane; the lowest held key becomes the brain's root. Right-click any control for MIDI Learn, then move a controller; right-click again to clear. The mapping is saved with the state. MIDI clock and Start/Stop/Continue drive the clock when its Source is MIDI. In the standalone, pick the MIDI input in Options > Audio/MIDI settings.
+R"(MIDI: notes play voices on the Keys Depth plane; the lowest held key becomes the brain's root.
+
+MIDI OUT (the plugin in a DAW): what the conductors play goes out as notes the moment it sounds -- channel 1 the Cluster Brain, 2 the second brain, 3 the near events -- so a MIDI track can record a night's chords or send them on to another instrument. Your own keys are not echoed.
+
+OUTPUTS: besides the main output the plugin has a stereo output per plane -- Near, Far, Cosmos and Room --, off until the DAW switches them on (in most hosts: the plugin's output configuration, or its multi-output version). Each carries its plane while the main output plays on as before; during a preset's crossfade the planes are the arriving preset's. Right-click any control for MIDI Learn, then move a controller; right-click again to clear. The mapping is saved with the state. MIDI clock and Start/Stop/Continue drive the clock when its Source is MIDI. In the standalone, pick the MIDI input in Options > Audio/MIDI settings.
 
 OSC on UDP port 9000: /ambient/param/<key> <value>, /ambient/paramn/<key> <0..1>, /ambient/note <n> <vel>, /ambient/preset <index>, /ambient/sound and /ambient/cosmos <index>, /ambient/morph <0..1>, /ambient/hand/L and /R <x y z pinch>, /ambient/head, /ambient/gesture, /ambient/calibrate. A second instance simply reports the port as taken.
 
 FILES: .noctuary (whole state), .ambientpack (preset packs), .ambientset (recorded sets), Scala .scl (Tuning > Load Scala...), wavetables (WAV from Serum, Vital or Hive -- the frame length is read from the file, 2048 samples otherwise -- Surge .wt, or a single cycle), WAV textures (a trailing note name such as "_A3" gives the clip's pitch), WAV impulse responses (mono or stereo, up to a minute). Rec in the header records the output to a 32-bit WAV.
 
-MEASURING: ambient_render renders any preset offline, deterministically, and prints level, spectral centroid, flatness, width, clicks; Tools/preset_check.py runs the sound test over a library. The same descriptors place the presets on the map.)" },
+MEASURING: ambient_render renders any preset offline, deterministically, and prints level, spectral centroid, flatness, width, clicks; Tools/preset_check.py runs the sound test over a library. The same descriptors place the presets on the map.
+
+DEMOS: the release "demos" holds three presets as MP3s and one of them as a video with pictures by KaleidoscopeEnhanced; Tools/demo/make_demos.py renders them all again.
+
+ON A MAC: every release has a build for Apple Silicon (macOS 12 or newer), the standalone and the VST3, built and tested on GitHub's machines, signed ad hoc but not notarized (README-macOS.txt in the zip says how to open it). The packs and journeys go to ~/Documents/Noctuary; it has not yet been played on a real Mac -- reports are welcome.)" },
 
     { "Shortcuts and tips",
 R"(F1 or Help          this manual; Escape closes it

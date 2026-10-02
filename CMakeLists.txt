@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Noctuary VERSION 2.2.0 LANGUAGES C CXX)
+project(Noctuary VERSION 2.3.0 LANGUAGES C CXX)
 
 # The family's layout (01.10.2026): build/<preset>, bin/<preset>, dist/, work/ -- cmake/Family.cmake,
 # CMakePresets.json and build.ps1, the same in every repository of the family.
