@@ -108,12 +108,15 @@ class Cues:
     """The cue lines of one track, collected in any order and written sorted."""
 
     def __init__(self):
+        """No cues yet."""
         self.lines = []
 
     def add(self, seconds, address, *args):
+        """One message at a second of the track."""
         self.lines.append((round(seconds, 3), ORDER[address], address, [str(a) for a in args]))
 
     def section(self, seconds, kind, energy, drop=False):
+        """A section with its energy, and a drop on the same instant if it lands as one."""
         self.add(seconds, '/phos/section', kind, '%.2f' % energy)
         if drop:
             self.add(seconds, '/phos/drop')
@@ -136,6 +139,7 @@ class Cues:
                 k += 1
 
     def write(self, path, title):
+        """The file, sorted by time and then by kind; returns the number of lines."""
         with open(path, 'w', encoding='utf-8', newline='\n') as f:
             f.write('# %s: score cues for KaleidoscopeEnhanced -k (seconds, address, arguments)\n' % title)
             for t, _, address, args in sorted(self.lines, key=lambda x: (x[0], x[1])):
