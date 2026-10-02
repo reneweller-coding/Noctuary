@@ -135,7 +135,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
     if (Section* ms = findSection("Master"))
         for (int ci : ms->cells) { addAndMakeVisible(*cells_[static_cast<size_t>(ci)].comp); addAndMakeVisible(*cells_[static_cast<size_t>(ci)].label); }
 
-    recButton_ = std::make_unique<juce::TextButton>("Rec");
+    recButton_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Record, "Record the output to a WAV file; press again to stop");
     recButton_->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffb03030));
     recButton_->setClickingTogglesState(false);
     recButton_->onClick = [this] {
@@ -281,7 +281,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
     };
     addAndMakeVisible(*soundBox_);
 
-    saveButton_ = std::make_unique<juce::TextButton>("Save...");
+    saveButton_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Save, "Save the sound as a preset file (.noctuary)");
     saveButton_->onClick = [this] {
         chooser_ = std::make_unique<juce::FileChooser>("Save preset", juce::File(), "*.noctuary");
         chooser_->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting,
@@ -294,7 +294,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
             });
     };
     addAndMakeVisible(*saveButton_);
-    loadButton_ = std::make_unique<juce::TextButton>("Load...");
+    loadButton_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Open, "Load a preset file (.noctuary)");
     loadButton_->onClick = [this] {
         chooser_ = std::make_unique<juce::FileChooser>("Load preset", juce::File(), "*.noctuary");
         chooser_->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
@@ -789,16 +789,14 @@ void NoctuaryEditor::buildCells()
                 juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon, "Journey", "This journey could not be read (a malformed line, or no steps).");
         };
         addExtraCell("Morph", std::move(jb), "Journey", 3);
-        auto stop = std::make_unique<juce::TextButton>("Stop");
-        stop->setTooltip("Stops the journey; the preset playing stays.");
+        auto stop = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Stop, "Stops the journey; the preset playing stays.");
         stop->onClick = [this] { proc_.stopJourney(); journeyBox_->setSelectedId(0, juce::dontSendNotification); };
         addExtraCell("Morph", std::move(stop), "journey", 1);
         auto add = std::make_unique<juce::TextButton>("+ now");
-        add->setTooltip("Appends the sound preset that is playing to the journey being written (5-10 minutes, a fade of 30-90 seconds; edit the file for other ranges). Save... writes it.");
+        add->setTooltip("Appends the sound preset that is playing to the journey being written (5-10 minutes, a fade of 30-90 seconds; edit the file for other ranges). The disk beside it writes it.");
         add->onClick = [this] { proc_.journeyAddCurrent(300.0, 600.0, 30.0, 90.0); };
         addExtraCell("Morph", std::move(add), "write", 1);
-        auto save = std::make_unique<juce::TextButton>("Save...");
-        save->setTooltip("Writes the journey being written (the presets added with + now) into Documents/Noctuary/Journeys under a name, and offers it in the box.");
+        auto save = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Save, "Writes the journey being written (the presets added with + now) into Documents/Noctuary/Journeys under a name, and offers it in the box.");
         save->onClick = [this] { saveJourneyAs(); };
         addExtraCell("Morph", std::move(save), "write", 1);
         auto status = std::make_unique<juce::Label>();
@@ -1040,9 +1038,9 @@ void NoctuaryEditor::resized()
     // The Sound box gets the room the Cosmos box used to take: it holds the longest names, and
     // with the packs loaded it holds five thousand of them.
     if (soundBox_) soundBox_->setBounds(200, 8, 260, 24);
-    if (saveButton_) saveButton_->setBounds(474, 8, 64, 24);
-    if (loadButton_) loadButton_->setBounds(544, 8, 64, 24);
-    if (recButton_) recButton_->setBounds(614, 8, 56, 24);
+    if (saveButton_) saveButton_->setBounds(474, 8, 28, 24);   // icons since 03.10.2026
+    if (loadButton_) loadButton_->setBounds(504, 8, 28, 24);
+    if (recButton_) recButton_->setBounds(540, 8, 28, 24);
     // The pages first (Main, Perform, Browse), then A | B, then the frame's tools as every instrument of the family has
     // them (01.10.2026): undo and redo, help and the settings; VR after them, while a headset sends (or when asked).
     if (mainButton_) mainButton_->setBounds(880, 8, 56, 24);

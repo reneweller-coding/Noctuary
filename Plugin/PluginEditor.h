@@ -893,10 +893,10 @@ private:
      * @param g  the content's graphics
      */
     void paintContent(juce::Graphics&);
-    std::unique_ptr<juce::TextButton> saveButton_,      ///< Save...: a preset file
-                                      loadButton_,      ///< Load...: a preset file
-                                      recButton_,       ///< Rec: record the output to WAV
-                                      calibButton_,     ///< Calibrate the hands (made, but the VR menu holds it)
+    std::unique_ptr<frame::IconButton> saveButton_,     ///< a disk: save a preset file
+                                       loadButton_,     ///< a folder: load a preset file
+                                       recButton_;      ///< a red disc: record the output to WAV (lit while it records)
+    std::unique_ptr<juce::TextButton> calibButton_,     ///< Calibrate the hands (made, but the VR menu holds it)
                                       mapButton_,       ///< Gestures... (made, but the VR menu holds it)
                                       performButton_;   ///< the Perform page
     /**

@@ -19,6 +19,10 @@ sections and drops, Noctuary's bars, keys and scenes -- and cuts its pictures to
 (Logic, GarageBand, MainStage), passed by Apple's `auval -strict` on GitHub's runners; the Linux archive has the LV2
 (Ardour, Carla, Reaper, Qtractor), read by lilv there.
 
+**Icons where the action is unambiguous.** The disk and the folder (a preset saved and loaded), the red disc (record),
+and the journey's square (stop) and disk (save) are vector glyphs now, sharp at every window size, their words in the
+tooltips; everything else keeps its name.
+
 ## 2.3.0 (02.10.2026): with a DAW, on a Mac, and heard
 
 **MIDI out.** In a DAW the plugin sends what the conductors play, the moment it sounds: channel 1 the Cluster
