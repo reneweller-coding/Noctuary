@@ -1008,7 +1008,9 @@ MEASURING: ambient_render renders any preset offline, deterministically, and pri
 
 DEMOS: the release "demos" holds three presets as MP3s and one of them as a video with pictures by KaleidoscopeEnhanced; Tools/demo/make_demos.py renders them all again.
 
-ON A MAC: every release has a build for Apple Silicon (macOS 12 or newer), the standalone and the VST3, built and tested on GitHub's machines, signed ad hoc but not notarized (README-macOS.txt in the zip says how to open it). The packs and journeys go to ~/Documents/Noctuary; it has not yet been played on a real Mac -- reports are welcome.)" },
+ON A MAC: every release has a build for Apple Silicon (macOS 12 or newer), the standalone and the VST3, built and tested on GitHub's machines, signed ad hoc but not notarized (README-macOS.txt in the zip says how to open it). The packs and journeys go to ~/Documents/Noctuary; it has not yet been played on a real Mac -- reports are welcome.
+
+ON LINUX: every release has an archive for x86-64 (glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and later) with the standalone, the VST3, the renderer, the packs and the journeys, built and tested on GitHub's Ubuntu machines and tried under WSL. README-Linux.txt in it says where everything goes: the VST3 into ~/.vst3, the packs and journeys into ~/Documents/Noctuary, sound through ALSA or JACK (PipeWire serves both).)" },
 
     { "Shortcuts and tips",
 R"(F1 or Help          this manual; Escape closes it

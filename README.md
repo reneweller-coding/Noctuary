@@ -8,7 +8,7 @@ minutes, a piece that can run all night without repeating and without anyone tou
 every decision in the instrument follows from taking that brief literally, including the ones that
 cost it features other synthesizers have.
 
-**VST3 plugin and standalone application** for Windows (x64) and macOS (Apple Silicon). Licence: AGPL-3.0.
+**VST3 plugin and standalone application** for Windows (x64), macOS (Apple Silicon) and Linux (x86-64). Licence: AGPL-3.0.
 
 <br clear="left" />
 
@@ -28,6 +28,10 @@ instrument is built the way it is, with the mathematics and the references.
 **[macOS zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-macOS.zip)** for Apple Silicon (macOS 12 or newer): the standalone and
 the VST3, the packs and the journeys, built on GitHub's runners and attached to the release within the hour after it; signed ad hoc,
 not notarized (README-macOS.txt inside says how to open it), and not yet tried on a real Mac.
+
+**[Linux archive](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-linux-x86_64.tar.gz)** for x86-64 (glibc 2.35 or newer: Ubuntu 22.04, Debian 12,
+Fedora 36 and later): the standalone, the VST3 and the renderer, the packs and the journeys, built and tested on GitHub's Ubuntu runners
+and tried under WSL; README-Linux.txt inside says where everything goes.
 
 Requirements: Windows 10 or 11, a 64-bit processor with AVX2 (every x86-64 since 2013), and a VST3
 host if you want the plugin. The synthesizer and its 14592 presets take under 100 MB on disk; the
