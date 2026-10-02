@@ -177,6 +177,22 @@ $exe = Join-Path $art "Standalone\Noctuary.exe"
 $vst = Join-Path $art "VST3\Noctuary.vst3"
 foreach ($p in @($exe, $vst)) { if (-not (Test-Path $p)) { throw "missing build output: $p" } }
 
+# ---------------------------------------------------------------- pluginval
+# Tracktion's pluginval at strictness 10 on the VST3 that ships, as the siblings' release scripts run it (02.10.2026;
+# until then it was run by hand). Fifteen minutes a test: the parameter thread-safety test outlasts the default thirty
+# seconds on an instrument this size. Where it is unpacked -- this repository's ThirdParty\pluginval or Ephemeris'.
+$pluginval = Join-Path $root "ThirdParty\pluginval\pluginval.exe"
+if (-not (Test-Path $pluginval)) { $pluginval = Join-Path $root "..\BerlinSchoolGenerator\ThirdParty\pluginval\pluginval.exe" }
+if (Test-Path $pluginval) {
+    $env:AMBIENT_MUTE = "1"
+    $pv = Start-Process -FilePath $pluginval -ArgumentList @("--strictness-level", "10", "--timeout-ms", "900000", "--validate", "`"$vst`"") -Wait -PassThru -NoNewWindow
+    Remove-Item env:AMBIENT_MUTE -ErrorAction SilentlyContinue
+    if ($pv.ExitCode -ne 0) { throw "pluginval failed ($($pv.ExitCode))" }
+    Write-Host "pluginval: strictness 10 passed"
+} else {
+    Write-Warning "pluginval not unpacked (ThirdParty\pluginval): skipped"
+}
+
 # ---------------------------------------------------------------- what must not be there
 # A binary that still wants the Visual C++ runtime would fail on a machine without it, and the
 # failure looks like "the app just does not start". Checked here rather than discovered later.
@@ -245,6 +261,9 @@ Copy-Item $exe $stage
 Copy-Item $vst (Join-Path $stage "Noctuary.vst3") -Recurse
 Copy-Item (Join-Path $root "docs\logo.ico") $stage
 if (Test-Path $manualPdf) { Copy-Item $manualPdf $stage } else { Write-Warning "no manual PDF to ship" }
+# And beside the setup, where Deploy\publish_release.ps1 takes it from (02.10.2026: dist held the 2.1.0 manual until a
+# copy by hand).
+if (Test-Path $manualPdf) { Copy-Item $manualPdf $out -Force }
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt")
 New-Item -ItemType Directory -Force -Path (Join-Path $stage "Packs") | Out-Null
 Copy-Item (Join-Path $root "Library\Packs\*.ambientpack") (Join-Path $stage "Packs")
