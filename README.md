@@ -16,20 +16,20 @@ cost it features other synthesizers have.
 
 ## Download
 
-**[Noctuary-2.3.0-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-Setup.exe)**
+**[Noctuary-2.4.0-Setup.exe](https://github.com/reneweller-coding/Noctuary/releases/download/v2.4.0/Noctuary-2.4.0-Setup.exe)**
 installs the standalone, the VST3 and the preset library, and offers to fetch the sample library as
 well. Nothing else has to be installed: the runtime is linked in. There is a
-**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-portable.zip)**
+**[portable zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.4.0/Noctuary-2.4.0-portable.zip)**
 for anyone who would rather not run an installer, and a
-**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-Manual.pdf)**
+**[manual](https://github.com/reneweller-coding/Noctuary/releases/download/v2.4.0/Noctuary-Manual.pdf)**
 — every tab of the panel as a picture, what each knob does, and seven chapters on why the
 instrument is built the way it is, with the mathematics and the references.
 
-**[macOS zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-macOS.zip)** for Apple Silicon (macOS 12 or newer): the standalone,
+**[macOS zip](https://github.com/reneweller-coding/Noctuary/releases/download/v2.4.0/Noctuary-2.4.0-macOS.zip)** for Apple Silicon (macOS 12 or newer): the standalone,
 the VST3 and the Audio Unit, the packs and the journeys, built on GitHub's runners and attached to the release within the hour after it; signed ad hoc,
 not notarized (README-macOS.txt inside says how to open it), and not yet tried on a real Mac.
 
-**[Linux archive](https://github.com/reneweller-coding/Noctuary/releases/download/v2.3.0/Noctuary-2.3.0-linux-x86_64.tar.gz)** for x86-64 (glibc 2.35 or newer: Ubuntu 22.04, Debian 12,
+**[Linux archive](https://github.com/reneweller-coding/Noctuary/releases/download/v2.4.0/Noctuary-2.4.0-linux-x86_64.tar.gz)** for x86-64 (glibc 2.35 or newer: Ubuntu 22.04, Debian 12,
 Fedora 36 and later): the standalone, the VST3, the LV2 and the renderer, the packs and the journeys, built and tested on GitHub's Ubuntu runners
 and tried under WSL; README-Linux.txt inside says where everything goes.
 
