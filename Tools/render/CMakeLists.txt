@@ -9,6 +9,8 @@ endif()
 # one -- and the binary died on startup with nothing but an exit code.
 if(WIN32)
     target_link_options(ambient_render PRIVATE "LINKER:/STACK:67108864")
+elseif(APPLE)
+    target_link_options(ambient_render PRIVATE "LINKER:-stack_size,0x3F00000")
 endif()
 
 # The conductor's hour, measured without audio: the rule book's section 11 as a tool.
@@ -19,6 +21,8 @@ if(MSVC)
 endif()
 if(WIN32)
     target_link_options(ambient_brain_audit PRIVATE "LINKER:/STACK:67108864")
+elseif(APPLE)
+    target_link_options(ambient_brain_audit PRIVATE "LINKER:-stack_size,0x3F00000")
 endif()
 
 # Into bin/<preset> after every build (cmake/Family.cmake, 01.10.2026).
