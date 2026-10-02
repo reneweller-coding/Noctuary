@@ -13,6 +13,7 @@
  * would read them, which is why this is an engine method and not a copy of its wiring.
  */
 #include "ambient/Engine.h"
+#include "ambient/MainStack.h"
 #include "ambient/Params.h"
 #include "ambient/Presets.h"
 #include "ambient/ClusterBrain.h"
@@ -35,6 +36,7 @@ using namespace ambient;
  */
 int main(int argc, char** argv)
 {
+    ambient::ensureMainStack(argv, 64ull << 20);   // Linux: the stack Windows and macOS link in (MainStack.h)
     double hours = 1.0, dt = 0.005;
     long long seed = -1;
     std::string presetName;

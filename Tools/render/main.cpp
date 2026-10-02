@@ -24,6 +24,7 @@
  * adds --batch. Each option is described where it is parsed.
  */
 #include "ambient/Engine.h"
+#include "ambient/MainStack.h"
 #include "ambient/Params.h"
 #include "ambient/Presets.h"
 #include "ambient/WavFile.h"
@@ -1311,6 +1312,7 @@ static int runOnce(int argc, char** argv)
  */
 int main(int argc, char** argv)
 {
+    ambient::ensureMainStack(argv, 64ull << 20);   // Linux: the stack Windows and macOS link in (MainStack.h)
     std::string batchFile;
     std::vector<std::string> args;
     for (int i = 0; i < argc; ++i) {

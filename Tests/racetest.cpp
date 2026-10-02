@@ -28,6 +28,7 @@
  * having everything changed under it and whether the audio thread keeps up while that happens.
  */
 #include "ambient/Engine.h"
+#include "ambient/MainStack.h"
 #include "ambient/Params.h"
 #include "ambient/Tuning.h"
 #include <atomic>
@@ -86,6 +87,7 @@ std::vector<float> clip(int n, float hz)
  */
 int main(int argc, char** argv)
 {
+    ambient::ensureMainStack(argv, 64ull << 20);   // Linux: the stack Windows and macOS link in (MainStack.h)
     const double seconds = argc > 1 ? std::atof(argv[1]) : 6.0;
     const int block = 128;
 

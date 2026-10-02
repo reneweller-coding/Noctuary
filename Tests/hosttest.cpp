@@ -18,6 +18,7 @@
  * down by section). The exit code is the number of failed checks, clamped to one.
  */
 #include "PluginProcessor.h"
+#include "ambient/MainStack.h"
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -98,6 +99,7 @@ void feed(NoctuaryProcessor& p, juce::AudioBuffer<float>& buf, int blocks, bool 
  */
 int main()
 {
+    ambient::ensureMainStack(nullptr, 64ull << 20);   // Linux: the stack Windows and macOS link in (MainStack.h)
     juce::ScopedJuceInitialiser_GUI juceInit;
 
     // ---------------------------------------------------------------- rates and block sizes

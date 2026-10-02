@@ -27,6 +27,7 @@
  * switches stdout to unbuffered first so that a crash leaves its probes behind.
  */
 #include "ambient/Engine.h"
+#include "ambient/MainStack.h"
 #include "ambient/NoteTap.h"
 #include "ambient/Params.h"
 #include "ambient/Tuning.h"
@@ -9598,6 +9599,7 @@ void testNoteTap()
  */
 int main()
 {
+    ambient::ensureMainStack(nullptr, 64ull << 20);   // Linux: the stack Windows and macOS link in (MainStack.h)
     testNearLayer();
     testCalibrationMenuRecorder();
     testFeaturesRound7();
