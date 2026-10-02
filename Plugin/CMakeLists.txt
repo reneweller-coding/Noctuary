@@ -25,7 +25,7 @@ target_sources(Noctuary PRIVATE
     EditorModStrip.cpp
     EditorBrowse.cpp
     EditorDrag.cpp
-    NoctuaryLookAndFeel.cpp Frame.cpp)
+    NoctuaryLookAndFeel.cpp Frame.cpp LinkClock.cpp)
 
 target_compile_definitions(Noctuary PUBLIC
     JUCE_WEB_BROWSER=0
@@ -47,3 +47,5 @@ target_link_libraries(Noctuary
 # Into bin/<preset> after every build (cmake/Family.cmake, 01.10.2026): the standalone and the VST3 bundle.
 family_bin(Noctuary_Standalone)
 family_bin(Noctuary_VST3 VST3)
+
+family_link(Noctuary)   # Ableton Link in the standalone (cmake/Family.cmake, 02.10.2026)

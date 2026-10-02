@@ -16,6 +16,7 @@
  */
 #include "PluginProcessor.h"
 #include "ambient/WavFile.h"
+#include "Frame.h"
 #if JucePlugin_Build_Standalone
  #include <juce_audio_utils/juce_audio_utils.h>
  #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
@@ -182,6 +183,20 @@ juce::PropertySet* NoctuaryProcessor::standaloneSettings()
     if (auto* holder = juce::StandalonePluginHolder::getInstance()) return holder->settings.get();
    #endif
     return nullptr;
+}
+
+void NoctuaryProcessor::linkTick()
+{
+    link_.setEnabled(wrapperType == wrapperType_Standalone && (frame::Settings::of("Noctuary").link() || frame::LinkClock::forcedOn()));
+    link_.tick();
+}
+
+juce::String NoctuaryProcessor::linkStatus() const
+{
+    if (!link_.enabled()) return "off";
+    const int n = link_.peers();
+    return n == 0 ? "alone in the session" : juce::String(n) + (n == 1 ? " other app; Clock > Source: Host follows it"
+                                                                       : " other apps; Clock > Source: Host follows them");
 }
 
 bool NoctuaryProcessor::sessionRecallAvailable() { return standaloneSettings() != nullptr; }
@@ -399,6 +414,12 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
             const double ppq = pos->getPpqPosition().hasValue() ? *pos->getPpqPosition() : 0.0;
             live().setHostClock(bpm, ppq, pos->getIsPlaying());
         }
+    }
+    // Ableton Link (02.10.2026, LinkClock.h), the standalone only: with other apps in the session its tempo, beat and
+    // start/stop reach the engine as a host's clock does -- Clock > Source: Host follows it. Alone in it, nothing changes.
+    if (wrapperType == wrapperType_Standalone && link_.enabled() && link_.peers() > 0) {
+        const frame::LinkClock::Now ln = link_.capture(static_cast<double>(buffer.getNumSamples()) / getSampleRate(), 4.0);
+        live().setHostClock(ln.bpm, ln.beat, ln.playing);
     }
 
     // Route: the engine walks it and moves the cursor; mirror the cursor (and the switches the

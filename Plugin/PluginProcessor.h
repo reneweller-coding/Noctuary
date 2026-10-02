@@ -46,6 +46,7 @@
 #include "ambient/Osc.h"
 #include "ambient/Timeline.h"
 #include "ambient/Journey.h"
+#include "LinkClock.h"
 #include <array>
 #include <atomic>
 
@@ -347,6 +348,10 @@ public:
      * @return false in a plugin: there the host owns the state
      */
     static bool sessionRecallAvailable();
+    /** @brief The standalone's Ableton Link, as the settings menu says it: off, alone, or how many apps are with it. */
+    juce::String linkStatus() const;
+    /** @brief Message thread, 30 times a second: joins or leaves the Link session as the settings say (the standalone). */
+    void linkTick();
     /** @brief Writes the state into the standalone's settings file if it has changed since the last write. */
     void saveSession();
     /** @} */
@@ -771,10 +776,11 @@ private:
          */
         explicit PresetPump(NoctuaryProcessor& p) : proc(p) {}
         /** @brief 30 times a second: the OSC preset requests, a pending transition, the journey's step. */
-        void timerCallback() override { proc.servePresetRequests(); proc.servePendingPreset(); proc.journeyTick(); }
+        void timerCallback() override { proc.servePresetRequests(); proc.servePendingPreset(); proc.journeyTick(); proc.linkTick(); }
         NoctuaryProcessor& proc;   ///< the processor
     };
     PresetPump presetPump_ { *this };   ///< runs for the life of the instrument
+    frame::LinkClock link_;             ///< Ableton Link in the standalone (02.10.2026; Settings > Ableton Link)
     ambient::Journey       journey_;         ///< the journey being edited or played
     ambient::JourneyPlayer journeyPlayer_;   ///< its clock and step counter
     double                 journeyLastTick_ = 0.0;   ///< seconds (the hi-res counter) at the last tick
