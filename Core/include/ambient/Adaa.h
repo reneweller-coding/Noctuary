@@ -43,8 +43,8 @@ inline double logCosh(double x)
  * divides two nearly equal numbers by a small step, and float would lose the result in the noise.
  */
 struct TanhAdaa {
-    float  x1 = 0.0f;   ///< the previous input sample
-    double f1 = 0.0;    ///< logCosh(x1), the antiderivative at the previous input
+    float  m_x1 = 0.0f;   ///< the previous input sample
+    double m_f1 = 0.0;    ///< logCosh(x1), the antiderivative at the previous input
 
     /**
      * @brief Saturates one sample.
@@ -54,16 +54,16 @@ struct TanhAdaa {
     float operator()(float x)
     {
         const double fx = logCosh(static_cast<double>(x));
-        const double dx = static_cast<double>(x) - static_cast<double>(x1);
-        const float y = std::fabs(dx) > 1.0e-5 ? static_cast<float>((fx - f1) / dx)
-                                               : std::tanh(0.5f * (x + x1));
-        x1 = x;
-        f1 = fx;
+        const double dx = static_cast<double>(x) - static_cast<double>(m_x1);
+        const float y = std::fabs(dx) > 1.0e-5 ? static_cast<float>((fx - m_f1) / dx)
+                                               : std::tanh(0.5f * (x + m_x1));
+        m_x1 = x;
+        m_f1 = fx;
         return y;
     }
 
     /** @brief Clears the one sample of history, as at a voice start or a sample-rate change. */
-    void reset() { x1 = 0.0f; f1 = 0.0; }
+    void reset() { m_x1 = 0.0f; m_f1 = 0.0; }
 };
 
 } // namespace ambient

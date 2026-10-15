@@ -63,8 +63,8 @@ namespace edt { class RouteTable; }   ///< EditorCommon.h / EditorMatrix.cpp
  *   (Cloud, Far Reverb) -> out ; CONDUCTOR (Cluster Brain, Tuning) drives the voices;
  *   MORPH blends two full presets. A routing map in the header draws exactly this.
  *
- * The one component the host opens. It owns the processor's view of every parameter (cells_),
- * the layout that arranges them (sections_, groups_, tabRows_, expandedGroups_), the displays in
+ * The one component the host opens. It owns the processor's view of every parameter (m_cells),
+ * the layout that arranges them (m_sections, m_groups, m_tabRows, m_expandedGroups), the displays in
  * the grid, the four pages, the modulation strip and the header with the master section, the
  * help line, the keyboard strip and the loudness meter. A juce::Timer at 12 Hz keeps the panel
  * in step with the processor: the section boxes, the labels' MIDI markings, the cells a slot's
@@ -147,27 +147,27 @@ private:
      */
     bool updateNearCells();
     /**
-     * @brief The index into cells_ of the cell that holds a parameter.
+     * @brief The index into m_cells of the cell that holds a parameter.
      * @param id  the parameter
      * @return the cell index, or -1 if the parameter has no cell (the master gain, in the header)
      */
-    int  cellForParam(ambient::ParamId id) const;
-    int  tableCell_ = -1,      ///< the Wavetable... button's cell (Source 2); -1 while not built
-         impulseCell_ = -1,    ///< the Impulse A... button's cell
-         impulseBCell_ = -1,   ///< the Impulse B... button's cell
-         nearClipCell_ = -1;   ///< the near source's Clip... button's cell; the labels of all four name the loaded file
-    bool autoSeen_ = true;   ///< the near layer's Auto as the timer last saw it (a rising edge draws anew)
+    int  cellForParam(ambient::ParamIdE id) const;
+    int  m_tableCell = -1,      ///< the Wavetable... button's cell (Source 2); -1 while not built
+         m_impulseCell = -1,    ///< the Impulse A... button's cell
+         m_impulseBCell = -1,   ///< the Impulse B... button's cell
+         m_nearClipCell = -1;   ///< the near source's Clip... button's cell; the labels of all four name the loaded file
+    bool m_autoSeen = true;   ///< the near layer's Auto as the timer last saw it (a rising edge draws anew)
     /** @name Journeys: the box of files, the status label, and the files behind the box's ids.
      *  @{ */
-    juce::ComboBox* journeyBox_ = nullptr;   ///< the chooser in the Morph section (owned by its cell); item id = index into journeyFiles_ + 1
-    juce::Label*    journeyStatus_ = nullptr;   ///< the step that is playing, or how many steps have been written
-    juce::Array<juce::File> journeyFiles_;   ///< the .journey files the box offers, in item order
+    juce::ComboBox* m_journeyBox = nullptr;   ///< the chooser in the Morph section (owned by its cell); item id = index into m_journeyFiles + 1
+    juce::Label*    m_journeyStatus = nullptr;   ///< the step that is playing, or how many steps have been written
+    juce::Array<juce::File> m_journeyFiles;   ///< the .journey files the box offers, in item order
     /** @brief Rescans the journey folders and refills the box. */
     void fillJourneyBox();
     /** @brief Asks for a name and writes the journey being written into Documents/Noctuary/Journeys. */
     void saveJourneyAs();
     /** @} */
-    int  textureCell_[ambient::kSlots] = { -1, -1, -1, -1 };   ///< a Texture... button in every source section
+    int  m_textureCell[ambient::Slots] = { -1, -1, -1, -1 };   ///< a Texture... button in every source section
     /**
      * @brief Builds a cell for every parameter, its section on first sight, and the extra cells
      *        (file loaders, section preset banks, morph slots, the journey row).
@@ -181,19 +181,19 @@ private:
      * @param comp     the component, taken over by the cell
      * @param label    the caption under it
      * @param units    its width in cells
-     * @return the new cell's index into cells_, or -1 if there is no such section
+     * @return the new cell's index into m_cells, or -1 if there is no such section
      */
     int  addExtraCell(const juce::String& section, std::unique_ptr<juce::Component> comp, const juce::String& label, int units);
     /** @name Help: the line in the header follows the mouse; the page is the manual by topic.
      *  @{ */
     /**
      * @brief A registered control under the mouse: its parameter goes into the help line.
-     * @param e  the event; its component is looked up in helpParamOf_
+     * @param e  the event; its component is looked up in m_helpParamOf
      */
     void mouseEnter(const juce::MouseEvent&) override;
     /**
      * @brief The mouse left the control the help line was showing: back to the general hint.
-     * @param e  the event; its component is looked up in helpParamOf_
+     * @param e  the event; its component is looked up in m_helpParamOf
      */
     void mouseExit(const juce::MouseEvent&) override;
     /**
@@ -202,15 +202,15 @@ private:
      * @return true if the key was one of these
      */
     bool keyPressed(const juce::KeyPress&) override;
-    int  hoveredParam_ = -1;                              ///< what the mouse is over, for the help line
-    std::map<juce::Component*, int> helpParamOf_;         ///< every control that has a parameter behind it
+    int  m_hoveredParam = -1;                              ///< what the mouse is over, for the help line
+    std::map<juce::Component*, int> m_helpParamOf;         ///< every control that has a parameter behind it
 public:
     /**
      * @brief the modulation strip registers its own
      * @param c   the control; it also gets this editor as a mouse listener
      * @param id  the parameter behind it
      */
-    void registerHelp(juce::Component*, ambient::ParamId);
+    void registerHelp(juce::Component*, ambient::ParamIdE);
     /** @} */
 private:
     /**
@@ -218,14 +218,14 @@ private:
      * has no other state that a knob can destroy, and a snapshot is 320 floats.
      */
     struct Snapshot {
-        std::vector<float> v;   ///< every parameter's value, in paramTable() order
-        juce::String what;      ///< what was about to change when it was taken (the undo button's tooltip)
+        std::vector<float> m_v;   ///< every parameter's value, in paramTable() order
+        juce::String m_what;      ///< what was about to change when it was taken (the undo button's tooltip)
     };
-    std::vector<Snapshot> undo_,   ///< the undo stack, at most 32 deep
-                          redo_;   ///< what undo took back, cleared by the next change
-    Snapshot slotA_,   ///< state A of the A/B compare; empty until the first swap
-             slotB_;   ///< state B
-    bool     showingB_ = false;   ///< which of the two the panel shows
+    std::vector<Snapshot> m_undo,   ///< the undo stack, at most 32 deep
+                          m_redo;   ///< what undo took back, cleared by the next change
+    Snapshot m_slotA,   ///< state A of the A/B compare; empty until the first swap
+             m_slotB;   ///< state B
+    bool     m_showingB = false;   ///< which of the two the panel shows
     /**
      * @brief The parameters as they stand now.
      * @param what  the name the snapshot carries
@@ -234,7 +234,7 @@ private:
     Snapshot takeSnapshot(const juce::String& what) const;
     /**
      * @brief Writes a snapshot back through the host, parameter by parameter.
-     * @param s  the snapshot; ignored if it is not kNumParams long
+     * @param s  the snapshot; ignored if it is not NumParams long
      */
     void     restore(const Snapshot&);
     /**
@@ -248,11 +248,11 @@ private:
     void     doRedo();
     /** @brief The A/B button: parks the state, then swaps the two. */
     void     swapAB();
-    std::unique_ptr<juce::TextButton> undoButton_,      ///< Undo, in the header
-                                      redoButton_,      ///< Redo
-                                      abButton_,        ///< A | B: its text says which is showing
-                                      compactButton_,   ///< cycles the layout: Normal, Compact, Expanded
-                                      recallButton_;    ///< session recall on or off (standalone only; null in a host)
+    std::unique_ptr<juce::TextButton> m_undoButton,      ///< Undo, in the header
+                                      m_redoButton,      ///< Redo
+                                      m_abButton,        ///< A | B: its text says which is showing
+                                      m_compactButton,   ///< cycles the layout: Normal, Compact, Expanded
+                                      m_recallButton;    ///< session recall on or off (standalone only; null in a host)
     /**
      * @brief Undo covered presets, dice and envelopes but not the thing done most: a knob turned.
      *
@@ -262,17 +262,17 @@ private:
      * forty.
      */
     struct UndoHook : juce::MouseListener {
-        NoctuaryEditor* editor = nullptr;   ///< where the snapshots go
-        std::map<juce::Component*, juce::String> names;   ///< the name a control's snapshot carries
-        std::map<juce::Component*, double> lastWheel;   ///< when each control was last wheeled, ms
+        NoctuaryEditor* m_editor = nullptr;   ///< where the snapshots go
+        std::map<juce::Component*, juce::String> m_names;   ///< the name a control's snapshot carries
+        std::map<juce::Component*, double> m_lastWheel;   ///< when each control was last wheeled, ms
         /**
          * @brief A press on a registered control takes a snapshot before the value moves.
          * @param e  the press; its component is looked up in names
          */
         void mouseDown(const juce::MouseEvent& e) override
         {
-            auto it = names.find(e.eventComponent);
-            if (it != names.end() && editor != nullptr) editor->pushUndo(it->second);
+            auto it = m_names.find(e.eventComponent);
+            if (it != m_names.end() && m_editor != nullptr) m_editor->pushUndo(it->second);
         }
         /**
          * @brief A wheel step takes a snapshot only if the last one on this control is a second old.
@@ -280,15 +280,15 @@ private:
          */
         void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails&) override
         {
-            auto it = names.find(e.eventComponent);
-            if (it == names.end() || editor == nullptr) return;
+            auto it = m_names.find(e.eventComponent);
+            if (it == m_names.end() || m_editor == nullptr) return;
             const double now = juce::Time::getMillisecondCounterHiRes();
-            double& last = lastWheel[e.eventComponent];
-            if (now - last > 1000.0) editor->pushUndo(it->second);
+            double& last = m_lastWheel[e.eventComponent];
+            if (now - last > 1000.0) m_editor->pushUndo(it->second);
             last = now;
         }
     };
-    UndoHook undoHook_;   ///< the one listener, added to every parameter control
+    UndoHook m_undoHook;   ///< the one listener, added to every parameter control
     /**
      * @brief Dragging a modulation card onto a knob.
      *
@@ -306,15 +306,15 @@ private:
          * @param g  the graphics
          */
         void paint(juce::Graphics&) override;
-        bool active = false;   ///< a drag is in flight; nothing is drawn otherwise
-        juce::Point<float> from,   ///< where the card came from, in the overlay's coordinates
-                           to;     ///< where the cursor is
-        juce::String name,         ///< the modulator's label
-                     targetName;   ///< the parameter under the cursor (empty over nothing)
-        juce::Colour colour { 0xffffffff };   ///< the modulator's colour
-        juce::Rectangle<float> target;   ///< the knob it would land on; empty over nothing
+        bool m_active = false;   ///< a drag is in flight; nothing is drawn otherwise
+        juce::Point<float> m_from,   ///< where the card came from, in the overlay's coordinates
+                           m_to;     ///< where the cursor is
+        juce::String m_name,         ///< the modulator's label
+                     m_targetName;   ///< the parameter under the cursor (empty over nothing)
+        juce::Colour m_colour { 0xffffffff };   ///< the modulator's colour
+        juce::Rectangle<float> m_target;   ///< the knob it would land on; empty over nothing
     };
-    DragOverlay dragOverlay_;   ///< covers the whole editor, above everything
+    DragOverlay m_dragOverlay;   ///< covers the whole editor, above everything
     /**
      * @brief Pigments' little knob: after the drop, the depth of the route that was just made, in the
      * modulator's own colour and named after both ends of it.
@@ -331,7 +331,7 @@ private:
          * @param t  the route's target
          * @param c  the source's colour
          */
-        DepthPopup(NoctuaryEditor& o, ambient::ModSource s, ambient::ParamId t, juce::Colour c);
+        DepthPopup(NoctuaryEditor& o, ambient::ModSourceE s, ambient::ParamIdE t, juce::Colour c);
         /** @brief Removes the global mouse listener again. */
         ~DepthPopup() override;
         /**
@@ -354,17 +354,17 @@ private:
         {
             if (e.eventComponent == this || isParentOf(e.eventComponent)) return;
             juce::MessageManager::callAsync([w = juce::Component::SafePointer<DepthPopup>(this)] {
-                if (w != nullptr) w->owner.hideDepthPopup();
+                if (w != nullptr) w->m_owner.hideDepthPopup();
             });
         }
-        NoctuaryEditor& owner;   ///< the editor that made it
-        ambient::ModSource source;   ///< the route's source
-        ambient::ParamId target;   ///< the route's target
-        juce::Colour colour;   ///< the source's colour
-        juce::Slider depth;   ///< -1 .. 1, written straight into the route on every change
-        juce::TextButton remove{ "x" };   ///< takes the route away and closes the popup
+        NoctuaryEditor& m_owner;   ///< the editor that made it
+        ambient::ModSourceE m_source;   ///< the route's source
+        ambient::ParamIdE m_target;   ///< the route's target
+        juce::Colour m_colour;   ///< the source's colour
+        juce::Slider m_depth;   ///< -1 .. 1, written straight into the route on every change
+        juce::TextButton m_remove{ "x" };   ///< takes the route away and closes the popup
     };
-    std::unique_ptr<DepthPopup> depthPopup_;   ///< the one popup, or none
+    std::unique_ptr<DepthPopup> m_depthPopup;   ///< the one popup, or none
 public:
     /**
      * @brief Draws (or moves) the drag in flight: the lead from the card to the cursor, and the
@@ -384,7 +384,7 @@ public:
      * @param c         the source's colour
      * @param screenAt  where the drop happened, in screen coordinates
      */
-    void showDepthPopup(ambient::ModSource, ambient::ParamId, juce::Colour, juce::Point<int> screenAt);
+    void showDepthPopup(ambient::ModSourceE, ambient::ParamIdE, juce::Colour, juce::Point<int> screenAt);
     /** @brief Deletes the depth popup, if one is up. */
     void hideDepthPopup();
     /**
@@ -394,37 +394,37 @@ public:
      * @param depth   the new depth, -1 .. 1
      * @return true if the engine accepted the rewritten matrix
      */
-    bool setRouteDepth(ambient::ModSource, ambient::ParamId, float depth);
+    bool setRouteDepth(ambient::ModSourceE, ambient::ParamIdE, float depth);
     /**
      * @brief Drops one route from the matrix, the rest written back as they stand.
      * @param src     the route's source
      * @param target  the route's target
      * @return true if the engine accepted the rewritten matrix
      */
-    bool removeRoute(ambient::ModSource, ambient::ParamId);
+    bool removeRoute(ambient::ModSourceE, ambient::ParamIdE);
     /**
      * @brief The depth of a route as the matrix has it.
      * @param src     the route's source
      * @param target  the route's target
      * @return the depth, or 0 if there is no such route
      */
-    float routeDepth(ambient::ModSource, ambient::ParamId) const;
+    float routeDepth(ambient::ModSourceE, ambient::ParamIdE) const;
 private:
     /**
      * @name The two section layers that live inside their own sections rather than in the header:
      * 156 filters and 41 plucks are lists you go looking for, not things you keep on the toolbar.
      * Not owned: the cell owns the component, the editor only needs to read the selection back.
      * @{ */
-    juce::ComboBox* zPresetBox_ = nullptr;   ///< the Z-Plane section's filter presets, by family
-    juce::ComboBox* strikePresetBox_ = nullptr;   ///< the Strike section's pluck presets, by family
-    juce::ComboBox* nearPresetBox_ = nullptr;   ///< the Near Events section's foreground presets, by family
+    juce::ComboBox* m_zPresetBox = nullptr;   ///< the Z-Plane section's filter presets, by family
+    juce::ComboBox* m_strikePresetBox = nullptr;   ///< the Strike section's pluck presets, by family
+    juce::ComboBox* m_nearPresetBox = nullptr;   ///< the Near Events section's foreground presets, by family
     /** @} */
     /**
-     * @brief Compact: the same page in columns kCompactFactor as wide, every page refitted into them --
+     * @brief Compact: the same page in columns CompactFactor as wide, every page refitted into them --
      * narrower and taller, nothing left out. Kept in the plugin state.
      */
-    bool compact_ = false;
-    static constexpr float kCompactFactor = 0.88f;   ///< the column width of Compact, as a fraction of Normal's
+    bool m_compact = false;
+    static constexpr float CompactFactor = 0.88f;   ///< the column width of Compact, as a fraction of Normal's
     /**
      * @brief Expanded: every page of every tab row placed under one another.
      *
@@ -432,16 +432,16 @@ private:
      * tall page, and the four sources, the two filters and the conductor's six tables all in
      * sight at once -- for a tall screen, or for reading a preset through.
      */
-    bool expanded_ = false;
+    bool m_expanded = false;
     /** @brief The manual's pictures: every section open whatever its switch says, and the tabs. */
-    bool openAll_ = false;
+    bool m_openAll = false;
     /**
      * @brief updates unused/collapsed from the parameters; true if anything changed
      * @return true if a section's collapsed state changed, so the page has to be laid out again
      */
     bool refreshLayoutState();
     /** @brief The die in a section's title: one click randomises that section, shift-click nudges it. */
-    std::map<juce::String, juce::Rectangle<int>> diceOf_;
+    std::map<juce::String, juce::Rectangle<int>> m_diceOf;
     /**
      * @brief Draws every parameter of a section again (the die), after a snapshot for undo.
      * @param name    the section
@@ -499,16 +499,16 @@ private:
          * @param row  the topic
          */
         void showTopic(int row);
-        NoctuaryProcessor& proc;   ///< the processor the help reads
-        NoctuaryEditor& owner;   ///< the editor whose panel it photographs
-        juce::ListBox topics;   ///< the topic list
-        juce::TextEditor text;   ///< the chosen topic's text, read-only
-        juce::String parameters;   ///< the generated last topic: every parameter with its help
+        NoctuaryProcessor& m_proc;   ///< the processor the help reads
+        NoctuaryEditor& m_owner;   ///< the editor whose panel it photographs
+        juce::ListBox m_topics;   ///< the topic list
+        juce::TextEditor m_text;   ///< the chosen topic's text, read-only
+        juce::String m_parameters;   ///< the generated last topic: every parameter with its help
         /**
          * @brief The pictures: snapshots of the topic's sections, fresh from the panel with its current
          * values, and a live display of the unit -- the same component the page uses, a second copy.
          */
-        std::vector<juce::Image> pics;
+        std::vector<juce::Image> m_pics;
         /**
          * @brief Pictures of whole tabs.
          *
@@ -516,21 +516,21 @@ private:
          * holds two or three -- but the manual prints every one of them, with its tab's
          * own name as the caption.
          */
-        std::vector<juce::Image> tabPics;
-        juce::StringArray        tabNames,      ///< per tab picture: the tab's own name
-                                 tabCaptions,   ///< per tab picture: its caption
-                                 picCaptions;   ///< per section picture: its caption
-        juce::String             liveCaption;   ///< the caption of the live display
-        std::vector<juce::StringArray> tabSections;   ///< per tab picture: the sections under it
-        std::vector<juce::Rectangle<int>> picRects;   ///< where each of pics is drawn (empty when it does not fit)
-        std::unique_ptr<juce::Component> live;   ///< the topic's live display, or none
+        std::vector<juce::Image> m_tabPics;
+        juce::StringArray        m_tabNames,      ///< per tab picture: the tab's own name
+                                 m_tabCaptions,   ///< per tab picture: its caption
+                                 m_picCaptions;   ///< per section picture: its caption
+        juce::String             m_liveCaption;   ///< the caption of the live display
+        std::vector<juce::StringArray> m_tabSections;   ///< per tab picture: the sections under it
+        std::vector<juce::Rectangle<int>> m_picRects;   ///< where each of pics is drawn (empty when it does not fit)
+        std::unique_ptr<juce::Component> m_live;   ///< the topic's live display, or none
         /** @brief The signal flow, drawn large enough to read: what the routing map in the header was for. */
         struct FlowDiagram : juce::Component {
             /**
              * @brief Catches no clicks; the diagram reads the processor for nothing but its existence.
              * @param p  the processor
              */
-            explicit FlowDiagram(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); }
+            explicit FlowDiagram(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); }
             /**
              * @brief The units as boxes in their group colours, the buses as arrows, on a fixed canvas scaled to fit.
              * @param g  the graphics
@@ -545,12 +545,12 @@ private:
              * @return the covered rectangle, from the top left
              */
             juce::Rectangle<int> drawn() const;
-            static constexpr float kCanvasW = 1000.0f,   ///< the width of the canvas the diagram is drawn on
-                                   kCanvasH = 545.0f;    ///< its height
-            NoctuaryProcessor& proc;   ///< the processor
+            static constexpr float CanvasW = 1000.0f,   ///< the width of the canvas the diagram is drawn on
+                                   CanvasH = 545.0f;    ///< its height
+            NoctuaryProcessor& m_proc;   ///< the processor
         };
-        FlowDiagram flow;   ///< shown on the overview topic only
-        int topic = 0;   ///< the topic on screen
+        FlowDiagram m_flow;   ///< shown on the overview topic only
+        int m_topic = 0;   ///< the topic on screen
     };
     /**
      * @name Snapshots for the manual: a section as it stands on the panel (its tab is switched in for
@@ -642,42 +642,42 @@ private:
      */
     void exportManual(const juce::File& dir, std::function<void()> onDone);
     struct ManualJob;
-    std::unique_ptr<ManualJob> manual_;   ///< the export in progress, or none
+    std::unique_ptr<ManualJob> m_manual;   ///< the export in progress, or none
     /** @brief Runs the next step of the manual export and schedules the one after it. */
     void runManualStep();
-    std::unique_ptr<HelpView> help_;   ///< the help page
-    std::unique_ptr<juce::TextButton> helpButton_;   ///< Help, in the header
-    std::unique_ptr<juce::TextButton> aboutButton_;   ///< "?": version, build time, what is loaded
-    std::unique_ptr<juce::TooltipWindow> tooltips_;   ///< tooltips after 600 ms
+    std::unique_ptr<HelpView> m_help;   ///< the help page
+    std::unique_ptr<juce::TextButton> m_helpButton;   ///< Help, in the header
+    std::unique_ptr<juce::TextButton> m_aboutButton;   ///< "?": version, build time, what is loaded
+    std::unique_ptr<juce::TooltipWindow> m_tooltips;   ///< tooltips after 600 ms
 
     /** @brief One control on the panel: the component, its label, its host attachment and its width. */
     struct Cell {
-        std::unique_ptr<juce::Component> comp;   ///< the knob, switch, chooser, button or label
-        std::unique_ptr<juce::Label> label;   ///< the caption under it (renamed by the timer: CC, learn, file name)
-        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> slider;   ///< the host link of a knob
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> button;   ///< the host link of a switch
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> combo;   ///< the host link of a chooser
-        juce::String baseLabel;   ///< the caption before any marking is appended
-        int units = 1;   ///< width in cells (a chooser is two, a bank three)
-        int param = -1;    ///< ParamId or -1 for extra cells
+        std::unique_ptr<juce::Component> m_comp;   ///< the knob, switch, chooser, button or label
+        std::unique_ptr<juce::Label> m_label;   ///< the caption under it (renamed by the timer: CC, learn, file name)
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_slider;   ///< the host link of a knob
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_button;   ///< the host link of a switch
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_combo;   ///< the host link of a chooser
+        juce::String m_baseLabel;   ///< the caption before any marking is appended
+        int m_units = 1;   ///< width in cells (a chooser is two, a bank three)
+        int m_param = -1;    ///< ParamId or -1 for extra cells
         /**
          * @brief The slot's type does not use it: not drawn and not laid out, rather than greyed.
          *
          * A
          * strip is as tall as the type it is set to, not as the union of every type.
          */
-        bool unused = false;
+        bool m_unused = false;
     };
     /** @brief A titled box of cells: one parameter section, laid out in rows of at most maxUnits. */
     struct Section {
-        juce::String name;   ///< the section's name, as the parameter table has it
-        std::vector<int> cells;   ///< indices into cells_, in the order they are laid out
-        juce::Rectangle<int> bounds;   ///< where it was last placed, in content coordinates
-        int maxUnits = 7;   ///< the width in cells a row may reach before it wraps (set by the fit)
-        int wideUnits = 0;          ///< the natural width on the tabbed page (decides the columns; the fit may change it)
-        int flowUnits = 0;          ///< the width in Expanded's flows, where a section's shape is its own
-        int group = -1;   ///< index into groups_, or -1 (the Master section, in the header)
-        bool visible = true;   ///< false while its tab is not the open one
+        juce::String m_name;   ///< the section's name, as the parameter table has it
+        std::vector<int> m_cells;   ///< indices into m_cells, in the order they are laid out
+        juce::Rectangle<int> m_bounds;   ///< where it was last placed, in content coordinates
+        int m_maxUnits = 7;   ///< the width in cells a row may reach before it wraps (set by the fit)
+        int m_wideUnits = 0;          ///< the natural width on the tabbed page (decides the columns; the fit may change it)
+        int m_flowUnits = 0;          ///< the width in Expanded's flows, where a section's shape is its own
+        int m_group = -1;   ///< index into m_groups, or -1 (the Master section, in the header)
+        bool m_visible = true;   ///< false while its tab is not the open one
         /**
          * @brief Its switch is off (a type of Off, a level at zero, an Active that is not): only the
          * title and the switch's own cells are shown.
@@ -685,7 +685,7 @@ private:
          * Off means closed. Opening it is the
          * player's own action on the switch, so the page never rearranges itself.
          */
-        bool collapsed = false;
+        bool m_collapsed = false;
         /**
          * @brief ... unless closing it buys nothing.
          *
@@ -695,28 +695,28 @@ private:
          * the start of every pass -- `collapsed` stays what the parameters say, so the timer that
          * watches for a switch being thrown cannot see this and rebuild for ever.
          */
-        bool opened = false;
+        bool m_opened = false;
         /**
          * @brief Whether the section shows only its title and switch as it stands.
          * @return collapsed by its switch and not opened by the layout
          */
-        bool closedNow() const { return collapsed && !opened; }
+        bool closedNow() const { return m_collapsed && !m_opened; }
     };
     /** @brief A column's box of rows: a name, a colour, the sections of each row and the display beside them. */
     struct Group {
-        juce::String name;   ///< the title over the box
-        juce::Colour colour;   ///< the group's colour: its bar, its knobs, its tabs
-        std::vector<std::vector<juce::String>> rows;   ///< section names per row
-        juce::Rectangle<int> bounds;   ///< where it was last placed, in content coordinates
-        int column = 0;   ///< which column it stands in
-        std::vector<juce::Component*> displays;        ///< per row: a display that fills the leftover width, or null
+        juce::String m_name;   ///< the title over the box
+        juce::Colour m_colour;   ///< the group's colour: its bar, its knobs, its tabs
+        std::vector<std::vector<juce::String>> m_rows;   ///< section names per row
+        juce::Rectangle<int> m_bounds;   ///< where it was last placed, in content coordinates
+        int m_column = 0;   ///< which column it stands in
+        std::vector<juce::Component*> m_displays;        ///< per row: a display that fills the leftover width, or null
         /**
          * @brief A row with no sections in it gets its height from here instead of from them; and if the
          * group is marked stretchy, that row also takes whatever height the taller column has
          * left over, so the two columns end level and the page has no hole in it at any size.
          */
-        int  minRowH = 0;
-        bool stretch = false;   ///< the last group of a column: its last row grows to the body's height
+        int  m_minRowH = 0;
+        bool m_stretch = false;   ///< the last group of a column: its last row grows to the body's height
     };
 
     /**
@@ -727,19 +727,19 @@ private:
      * pairs and the conductor's tables are alike enough that seeing one at a time is no loss.
      */
     struct TabRow {
-        int group = 0,   ///< index into groups_
-            row = 0;     ///< the row of that group which pages
-        std::vector<juce::String> names;                       ///< one label per page
-        std::vector<std::vector<juce::String>> pages;          ///< section names per page
-        std::vector<juce::Component*> displays;                ///< per page: display for the leftover width, or null; two pages may share one
-        int active = 0;   ///< the page that is open
-        juce::Rectangle<int> bar;   ///< the tab bar, in content coordinates
-        std::vector<juce::Rectangle<int>> tabs;   ///< one rectangle per tab, for painting and for the click
+        int m_group = 0,   ///< index into m_groups
+            m_row = 0;     ///< the row of that group which pages
+        std::vector<juce::String> m_names;                       ///< one label per page
+        std::vector<std::vector<juce::String>> m_pages;          ///< section names per page
+        std::vector<juce::Component*> m_displays;                ///< per page: display for the leftover width, or null; two pages may share one
+        int m_active = 0;   ///< the page that is open
+        juce::Rectangle<int> m_bar;   ///< the tab bar, in content coordinates
+        std::vector<juce::Rectangle<int>> m_tabs;   ///< one rectangle per tab, for painting and for the click
     };
-    std::vector<TabRow> tabRows_;   ///< the rows that page, filled in the constructor
+    std::vector<TabRow> m_tabRows;   ///< the rows that page, filled in the constructor
     /**
      * @brief The tab row of a group's row, if it has one.
-     * @param group  index into groups_
+     * @param group  index into m_groups
      * @param row    the row in it
      * @return the tab row, or null if that row does not page
      */
@@ -780,7 +780,7 @@ private:
      */
     int  shownCells(const Section&) const;
     /**
-     * @brief Whether the section's switch says closed (never while openAll_ is set).
+     * @brief Whether the section's switch says closed (never while m_openAll is set).
      * @param s  the section
      * @return true if the section has a closer and its switch is off
      */
@@ -806,15 +806,15 @@ private:
      */
     void     layoutSection(Section&, int x, int y);
 
-    NoctuaryProcessor& proc_;   ///< the processor this editor shows
-    NoctuaryLookAndFeel laf_;   ///< the editor's look
-    float scale_ = 1.0f;   ///< window size / design size
-    int   designW_ = 1400,   ///< the design width the body is laid out at
-          designH_ = 820;    ///< measured from the layout, not guessed
-    int   bodyW_ = 0,   ///< what the body needs across, from the last layoutBody
-          bodyH_ = 0;   ///< what it needs down
+    NoctuaryProcessor& m_proc;   ///< the processor this editor shows
+    NoctuaryLookAndFeel m_laf;   ///< the editor's look
+    float m_scale = 1.0f;   ///< window size / design size
+    int   m_designW = 1400,   ///< the design width the body is laid out at
+          m_designH = 820;    ///< measured from the layout, not guessed
+    int   m_bodyW = 0,   ///< what the body needs across, from the last layoutBody
+          m_bodyH = 0;   ///< what it needs down
     /**
-     * @brief Places every group and section and records what the body needs (bodyW_, bodyH_):
+     * @brief Places every group and section and records what the body needs (m_bodyW, m_bodyH):
      *        the tabbed page, or the Expanded page with its wrapping rows and three columns.
      */
     void  layoutBody();
@@ -830,20 +830,20 @@ private:
      * click, and the last group of each column grows into the difference.
      */
     void  layoutTabbed();
-    std::vector<Cell> cells_;   ///< every control on the panel, indexed by the sections
-    std::vector<Section> sections_;   ///< one per parameter section, in order of first appearance
-    std::vector<Group> groups_;   ///< the tabbed page's groups, two columns
+    std::vector<Cell> m_cells;   ///< every control on the panel, indexed by the sections
+    std::vector<Section> m_sections;   ///< one per parameter section, in order of first appearance
+    std::vector<Group> m_groups;   ///< the tabbed page's groups, two columns
     /**
      * @brief The Expanded page: its own table of groups and rows, three columns, no tabs.
      *
      * Rows without
-     * a display wrap when their sections, open, would run past kWrapW, so a row of closed
+     * a display wrap when their sections, open, would run past WrapW, so a row of closed
      * sections is one line and a row of open ones is two or three, never a column a screen wide.
      */
-    std::vector<Group> expandedGroups_;
-    static constexpr int kWrapW = 1400;   ///< the width at which an Expanded row without a display wraps, in pixels
-    std::map<juce::Component*, int> cellOf_;   ///< a parameter control's cell index, for the right-click menu
-    std::unique_ptr<juce::Slider> master_;   ///< the master gain knob in the header
+    std::vector<Group> m_expandedGroups;
+    static constexpr int WrapW = 1400;   ///< the width at which an Expanded row without a display wraps, in pixels
+    std::map<juce::Component*, int> m_cellOf;   ///< a parameter control's cell index, for the right-click menu
+    std::unique_ptr<juce::Slider> m_master;   ///< the master gain knob in the header
 
     /**
      * @brief Live picture of the oscillator: one cycle built from the partial amplitudes the loudest
@@ -857,7 +857,7 @@ private:
          * @brief Catches no clicks and repaints at 20 Hz.
          * @param p  the processor whose engine it reads
          */
-        explicit ScopeView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(20); }
+        explicit ScopeView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(20); }
         /**
          * @brief The spectrum as thin bars behind one cycle of the wave the partials make, and the frequency.
          * @param g  the graphics
@@ -865,54 +865,54 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen; the smoothing happens in paint. */
         void timerCallback() override { if (isShowing()) repaint(); }
-        NoctuaryProcessor& proc;   ///< the processor
-        float amp[ambient::kMaxPartials] = {};   ///< smoothed towards the engine's values
-        int   count = 0;   ///< how many partials have been seen, the most so far
-        bool  mode = false;                      ///< false = waveform, true = spectrum
+        NoctuaryProcessor& m_proc;   ///< the processor
+        float m_amp[ambient::MaxPartials] = {};   ///< smoothed towards the engine's values
+        int   m_count = 0;   ///< how many partials have been seen, the most so far
+        bool  m_mode = false;                      ///< false = waveform, true = spectrum
     };
-    std::unique_ptr<ScopeView> scope_;   ///< the strand bank's display on the Expanded page (hidden on the tabbed one)
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> masterAttach_;   ///< the master knob's host link
+    std::unique_ptr<ScopeView> m_scope;   ///< the strand bank's display on the Expanded page (hidden on the tabbed one)
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_masterAttach;   ///< the master knob's host link
     /** @brief Everything below the header lives in a scrollable content component. */
     struct Content : juce::Component {
-        std::function<void(juce::Graphics&)> onPaint;   ///< the editor paints the groups, tabs and sections
-        std::function<void(const juce::MouseEvent&)> onMouse;   ///< the editor takes the click: dice and tabs
+        std::function<void(juce::Graphics&)> m_onPaint;   ///< the editor paints the groups, tabs and sections
+        std::function<void(const juce::MouseEvent&)> m_onMouse;   ///< the editor takes the click: dice and tabs
         /**
          * @brief Hands the painting to the editor.
          * @param g  the graphics
          */
-        void paint(juce::Graphics& g) override { if (onPaint) onPaint(g); }
+        void paint(juce::Graphics& g) override { if (m_onPaint) m_onPaint(g); }
         /**
          * @brief Hands a press to the editor.
          * @param e  the press
          */
-        void mouseDown(const juce::MouseEvent& e) override { if (onMouse) onMouse(e); }
+        void mouseDown(const juce::MouseEvent& e) override { if (m_onMouse) m_onMouse(e); }
     };
-    Content content_;   ///< the panel below the header, inside viewport_
-    juce::Viewport viewport_;   ///< holds content_; scroll bars hidden, the layout never needs them
+    Content m_content;   ///< the panel below the header, inside m_viewport
+    juce::Viewport m_viewport;   ///< holds m_content; scroll bars hidden, the layout never needs them
     /**
      * @brief Paints the content: the group boxes, the tab bars, every visible section's frame, title, die and notes.
      * @param g  the content's graphics
      */
     void paintContent(juce::Graphics&);
-    std::unique_ptr<frame::IconButton> saveButton_,     ///< a disk: save a preset file
-                                       loadButton_,     ///< a folder: load a preset file
-                                       recButton_;      ///< a red disc: record the output to WAV (lit while it records)
-    std::unique_ptr<juce::TextButton> calibButton_,     ///< Calibrate the hands (made, but the VR menu holds it)
-                                      mapButton_,       ///< Gestures... (made, but the VR menu holds it)
-                                      performButton_;   ///< the Perform page
+    std::unique_ptr<frame::IconButton> m_saveButton,     ///< a disk: save a preset file
+                                       m_loadButton,     ///< a folder: load a preset file
+                                       m_recButton;      ///< a red disc: record the output to WAV (lit while it records)
+    std::unique_ptr<juce::TextButton> m_calibButton,     ///< Calibrate the hands (made, but the VR menu holds it)
+                                      m_mapButton,       ///< Gestures... (made, but the VR menu holds it)
+                                      m_performButton;   ///< the Perform page
     /**
      * @brief Main brings the panel back from any page; VR holds what only a headset needs (calibration,
      * the gesture table) under one button instead of two on the toolbar.
      */
-    std::unique_ptr<juce::TextButton> mainButton_, vrButton_;   ///< the VR menu: calibrate, gestures
+    std::unique_ptr<juce::TextButton> m_mainButton, m_vrButton;   ///< the VR menu: calibrate, gestures
     /**
      * @brief The right of the header as every instrument of the family has it (Frame.h, 01.10.2026): undo, redo, help
      *        and the settings -- the window's layout, the session recall, the headset, the keys, About.
      */
-    std::unique_ptr<frame::IconButton> undoIcon_;
-    std::unique_ptr<frame::IconButton> redoIcon_;       ///< redo (Ctrl+Y)
-    std::unique_ptr<frame::IconButton> helpIcon_;       ///< the help (F1)
-    std::unique_ptr<frame::IconButton> settingsIcon_;   ///< the settings menu
+    std::unique_ptr<frame::IconButton> m_undoIcon;
+    std::unique_ptr<frame::IconButton> m_redoIcon;       ///< redo (Ctrl+Y)
+    std::unique_ptr<frame::IconButton> m_helpIcon;       ///< the help (F1)
+    std::unique_ptr<frame::IconButton> m_settingsIcon;   ///< the settings menu
     void showSettings();          ///< the frame's settings menu
     /** @brief The headset's controls are shown: one sends its hands (Auto), or the settings say always (On). */
     bool headsetShown() const;
@@ -930,30 +930,30 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief The set controls on the title line, the knobs in a 4 x 2 grid, the morph along the bottom. */
         void resized() override;
-        NoctuaryProcessor& proc;   ///< the processor
-        std::vector<std::unique_ptr<juce::Slider>> knobs;   ///< the eight macro knobs
-        std::vector<std::unique_ptr<juce::Label>> labels;   ///< their names
-        std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> attachments;   ///< their host links
-        juce::Slider morph;   ///< the morph position
-        juce::ToggleButton morphActive;   ///< the morph on or off
-        juce::Label morphLabel,   ///< "A < position > B"
-                    aLabel,       ///< slot A's name
-                    bLabel;       ///< slot B's name
+        NoctuaryProcessor& m_proc;   ///< the processor
+        std::vector<std::unique_ptr<juce::Slider>> m_knobs;   ///< the eight macro knobs
+        std::vector<std::unique_ptr<juce::Label>> m_labels;   ///< their names
+        std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> m_attachments;   ///< their host links
+        juce::Slider m_morph;   ///< the morph position
+        juce::ToggleButton m_morphActive;   ///< the morph on or off
+        juce::Label m_morphLabel,   ///< "A < position > B"
+                    m_aLabel,       ///< slot A's name
+                    m_bLabel;       ///< slot B's name
         /** @name set timeline: record everything that moves, play a set back
          *  @{ */
-        juce::TextButton setRec{ "Record set" },     ///< starts recording; pressed again, asks where to save
-                         setPlay{ "Play set..." },   ///< opens a set file and plays it
-                         setStop{ "Stop set" };      ///< stops playing or recording
-        juce::Label setInfo;   ///< recording or playing time, or what a set is
-        std::unique_ptr<juce::FileChooser> chooser;   ///< the save / open dialog in flight
+        juce::TextButton m_setRec{ "Record set" },     ///< starts recording; pressed again, asks where to save
+                         m_setPlay{ "Play set..." },   ///< opens a set file and plays it
+                         m_setStop{ "Stop set" };      ///< stops playing or recording
+        juce::Label m_setInfo;   ///< recording or playing time, or what a set is
+        std::unique_ptr<juce::FileChooser> m_chooser;   ///< the save / open dialog in flight
         /** @brief Refreshes the Rec button's state and the info line from the processor. */
         void updateSetInfo();
         /** @} */
-        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> morphAttach;   ///< the morph slider's host link
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> morphActiveAttach;   ///< the morph switch's host link
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_morphAttach;   ///< the morph slider's host link
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_morphActiveAttach;   ///< the morph switch's host link
     };
-    std::unique_ptr<PerformView> perform_;   ///< the Perform page
-    bool performing_ = false;   ///< the Perform page is the one showing
+    std::unique_ptr<PerformView> m_perform;   ///< the Perform page
+    bool m_performing = false;   ///< the Perform page is the one showing
     /**
      * @brief Shows the Perform page, or the panel again.
      * @param on  true for the Perform page
@@ -986,7 +986,7 @@ private:
          * @brief How many presets pass the filter.
          * @return the size of filtered
          */
-        int  getNumRows() override { return static_cast<int>(filtered.size()); }
+        int  getNumRows() override { return static_cast<int>(m_filtered.size()); }
         /**
          * @brief One preset: its name in its family's colour, a star if favourite, its measurements as small bars.
          * @param row       the row of the filtered list
@@ -1016,7 +1016,7 @@ private:
              * @brief Remembers the browser it belongs to.
              * @param o  the browser
              */
-            explicit MapView(BrowseView& o) : owner(o) {}
+            explicit MapView(BrowseView& o) : m_owner(o) {}
             /**
              * @brief The cached cloud, then what moves: favourites, the route, the cursor, the crossing, the names.
              * @param g  the graphics
@@ -1080,9 +1080,9 @@ private:
              * @param z  the zoom, clamped to 1 .. 40; at 1 the centre is the plane's
              */
             void zoomTo(float x, float y, float z);
-            BrowseView& owner;   ///< the browser
-            int hover = -1;   ///< the preset under the mouse, or -1
-            bool dragging = false;   ///< a blend drag is in progress
+            BrowseView& m_owner;   ///< the browser
+            int m_hover = -1;   ///< the preset under the mouse, or -1
+            bool m_dragging = false;   ///< a blend drag is in progress
             /**
              * @brief Seven thousand dots on a few hundred pixels are heaps, not presets.
              *
@@ -1090,11 +1090,11 @@ private:
              * about the mouse and pans by dragging; the plane itself never changes, only the
              * window onto it, so a cursor position means the same thing at every zoom.
              */
-            float zoom = 1.0f;
-            juce::Point<float> centre { 0.5f, 0.5f };   ///< the plane point in the middle of the view
-            bool panning = false;   ///< a pan drag is in progress
-            juce::Point<float> panFrom,      ///< where the pan started: the mouse
-                               centreFrom;   ///< the centre when it started
+            float m_zoom = 1.0f;
+            juce::Point<float> m_centre { 0.5f, 0.5f };   ///< the plane point in the middle of the view
+            bool m_panning = false;   ///< a pan drag is in progress
+            juce::Point<float> m_panFrom,      ///< where the pan started: the mouse
+                               m_centreFrom;   ///< the centre when it started
             /**
              * @brief The cloud itself, drawn once into an image.
              *
@@ -1104,34 +1104,34 @@ private:
              * colouring changes. What moves -- the cursor, the ring, the crossing, the names --
              * is drawn live on top of it.
              */
-            juce::Image cloud;
-            float cloudZoom = -1.0f;   ///< the zoom the cloud was drawn at
-            juce::Point<float> cloudCentre { -1.0f, -1.0f };   ///< the centre the cloud was drawn at
-            int  cloudW = 0,         ///< the width the cloud was drawn at
-                 cloudH = 0,         ///< the height
-                 cloudFilter = -1,   ///< the filterGen it was drawn for
-                 cloudCount = -1;    ///< the preset count it was drawn for
-            bool cloudGroups = false;   ///< whether the cloud was coloured by group
+            juce::Image m_cloud;
+            float m_cloudZoom = -1.0f;   ///< the zoom the cloud was drawn at
+            juce::Point<float> m_cloudCentre { -1.0f, -1.0f };   ///< the centre the cloud was drawn at
+            int  m_cloudW = 0,         ///< the width the cloud was drawn at
+                 m_cloudH = 0,         ///< the height
+                 m_cloudFilter = -1,   ///< the filterGen it was drawn for
+                 m_cloudCount = -1;    ///< the preset count it was drawn for
+            bool m_cloudGroups = false;   ///< whether the cloud was coloured by group
         };
         /** @} */
         /** @brief classic column browser (Omnisphere / Absynth style): each column narrows the list */
         struct Column : juce::ListBoxModel {
-            BrowseView* owner = nullptr;   ///< the browser, told to filter again on a click
-            juce::String title;   ///< drawn over the column
-            juce::StringArray items;          ///< items[0] = "All"
-            std::vector<uint32_t> tagBits;    ///< per item: tag mask (0 for family columns / All)
-            std::vector<int> familyIdx;       ///< per item: family index or -1
-            std::set<int> chosen;             ///< chosen rows (empty = All)
-            std::vector<int> counts;          ///< presets per row, rebuilt when the list grows
-            int countsFor = -1;               ///< the numPresets() the counts were taken at
+            BrowseView* m_owner = nullptr;   ///< the browser, told to filter again on a click
+            juce::String m_title;   ///< drawn over the column
+            juce::StringArray m_items;          ///< items[0] = "All"
+            std::vector<uint32_t> m_tagBits;    ///< per item: tag mask (0 for family columns / All)
+            std::vector<int> m_familyIdx;       ///< per item: family index or -1
+            std::set<int> m_chosen;             ///< chosen rows (empty = All)
+            std::vector<int> m_counts;          ///< presets per row, rebuilt when the list grows
+            int m_countsFor = -1;               ///< the numPresets() the counts were taken at
             /** @brief Counts the presets behind every row, once per library size. */
             void updateCounts();
-            juce::ListBox box;   ///< the column's list
+            juce::ListBox m_box;   ///< the column's list
             /**
              * @brief The rows of the column.
              * @return the size of items
              */
-            int  getNumRows() override { return items.size(); }
+            int  getNumRows() override { return m_items.size(); }
             /**
              * @brief One row: its name, lit when chosen, with its preset count at the right.
              * @param row       the row
@@ -1154,29 +1154,29 @@ private:
              */
             bool passes(int preset) const;
         };
-        Column columns[4];   ///< Family, Character, Motion, Features
+        Column m_columns[4];   ///< Family, Character, Motion, Features
         /**
          * @brief Switches the view and shows the controls that belong to it.
          * @param m  0 classic columns, 1 map
          */
         void setMode(int m);
-        int mode = 0;   ///< the view that is on: 0 columns, 1 map
-        juce::TextButton modeClassic{ "Columns" },   ///< the column view
-                         modeMap{ "Map" },           ///< the map view
-                         star{ "Favourite" };        ///< stars or unstars the selected preset
-        juce::ToggleButton onlyFavourites{ "only favourites" };   ///< the list narrowed to the starred presets
-        juce::ToggleButton favouritesFirst{ "favourites first" };   ///< the starred ones at the top, whatever the sort
+        int m_mode = 0;   ///< the view that is on: 0 columns, 1 map
+        juce::TextButton m_modeClassic{ "Columns" },   ///< the column view
+                         m_modeMap{ "Map" },           ///< the map view
+                         m_star{ "Favourite" };        ///< stars or unstars the selected preset
+        juce::ToggleButton m_onlyFavourites{ "only favourites" };   ///< the list narrowed to the starred presets
+        juce::ToggleButton m_favouritesFirst{ "favourites first" };   ///< the starred ones at the top, whatever the sort
         /**
          * @brief Five thousand presets include some that barely move.
          *
          * Their measurements say so, and
          * this hides them: nothing is deleted, the list simply stops offering them.
          */
-        juce::ToggleButton hideDull{ "hide the still ones" };
+        juce::ToggleButton m_hideDull{ "hide the still ones" };
         /** @name A preset change as a journey rather than a cut, and how long it takes.
          *  @{ */
-        juce::ToggleButton morphOnSelect{ "morph into it" };   ///< choosing a preset morphs into it instead of switching
-        juce::Slider morphSeconds;   ///< how long that takes, 0.5 .. 600 s
+        juce::ToggleButton m_morphOnSelect{ "morph into it" };   ///< choosing a preset morphs into it instead of switching
+        juce::Slider m_morphSeconds;   ///< how long that takes, 0.5 .. 600 s
         /** @} */
         /**
          * @brief What u-he's browsers put beside the list: what this preset is, how it paces itself,
@@ -1191,11 +1191,11 @@ private:
              * @param g  the graphics
              */
             void paint(juce::Graphics&) override;
-            juce::String title,   ///< the preset's name
-                         body;    ///< the text under it
+            juce::String m_title,   ///< the preset's name
+                         m_body;    ///< the text under it
         };
-        InfoPanel info2;   ///< the panel beside the list
-        int infoFor = -2;              ///< which preset the panel currently describes
+        InfoPanel m_info2;   ///< the panel beside the list
+        int m_infoFor = -2;              ///< which preset the panel currently describes
         /** @brief Refreshes the info panel for the selected preset (or the current program) if it changed. */
         void updateInfo();
         /**
@@ -1205,7 +1205,7 @@ private:
          * default -- what a browser is for is finding a sound, and the pack a sound was written
          * in is a fact about its author.
          */
-        juce::ToggleButton colourByGroup{ "groups" };
+        juce::ToggleButton m_colourByGroup{ "groups" };
         /**
          * @brief The four macro sliders.
          *
@@ -1213,11 +1213,11 @@ private:
          * default; narrowing one thins the cloud to what is left, and the view closes in on it.
          */
         struct Macro {
-            juce::Slider slider;                  ///< a two-value slider, the range 0 .. 1
-            juce::Label label;                    ///< the axis's name
-            float ambient::PresetMeta::* field;   ///< the measured descriptor the range applies to
+            juce::Slider m_slider;                  ///< a two-value slider, the range 0 .. 1
+            juce::Label m_label;                    ///< the axis's name
+            float ambient::PresetMeta::* m_field;   ///< the measured descriptor the range applies to
         };
-        Macro macros[4];   ///< dark - bright, still - moving, smooth - rough, near - far
+        Macro m_macros[4];   ///< dark - bright, still - moving, smooth - rough, near - far
         /**
          * @brief Whether any macro range is narrower than the whole.
          * @return true if a slider's minimum is above 0 or its maximum below 1
@@ -1225,54 +1225,54 @@ private:
         bool  macroActive() const;
         /** @brief zoom the map onto what survived the filter */
         void  fitToFilter();
-        bool  fitPending = false;   ///< a macro moved: fit after the next applyFilter
+        bool  m_fitPending = false;   ///< a macro moved: fit after the next applyFilter
 
-        NoctuaryProcessor& proc;   ///< the processor
-        juce::TextEditor search;   ///< the name search
-        juce::ComboBox family,   ///< the family filter (map view)
-                       sort;     ///< the sort order
-        std::vector<std::unique_ptr<juce::ToggleButton>> tagButtons;   ///< one per preset tag (map view)
-        juce::ListBox list;   ///< the filtered presets
-        MapView map;   ///< the map (map view)
-        juce::ToggleButton mapActive;   ///< Map blend: dragging the cursor blends between neighbours
-        juce::Slider radius;   ///< the blend radius
-        juce::Label info;   ///< "n of m presets"
+        NoctuaryProcessor& m_proc;   ///< the processor
+        juce::TextEditor m_search;   ///< the name search
+        juce::ComboBox m_family,   ///< the family filter (map view)
+                       m_sort;     ///< the sort order
+        std::vector<std::unique_ptr<juce::ToggleButton>> m_tagButtons;   ///< one per preset tag (map view)
+        juce::ListBox m_list;   ///< the filtered presets
+        MapView m_map;   ///< the map (map view)
+        juce::ToggleButton m_mapActive;   ///< Map blend: dragging the cursor blends between neighbours
+        juce::Slider m_radius;   ///< the blend radius
+        juce::Label m_info;   ///< "n of m presets"
         /** @name route strip (map view): preset routes, play/loop/speed, add the cursor as a point, edit the text
          *  @{ */
-        juce::ComboBox routeBox;   ///< the route presets
-        juce::ToggleButton routePlay,   ///< play the route
-                           routeLoop;   ///< loop it
-        juce::Slider routeSpeed;   ///< how fast the route travels
-        juce::TextButton routeAdd{ "+ point" },     ///< append the cursor as a waypoint
-                         routeClear{ "Clear" },     ///< clear the route
-                         routeEdit{ "Route..." };   ///< open the text editor
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> routePlayAttach,   ///< the play switch's host link
-                                                                              routeLoopAttach;   ///< the loop switch's host link
-        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> routeSpeedAttach;   ///< the speed's host link
-        juce::Component::SafePointer<juce::TextEditor> routeEditor;   ///< the text editor while its dialog lives
-        juce::String routeEditText;                ///< the editor's text as the timer last saw it
-                     bool routeEditOpen = false;   ///< the dialog is up: mirror the text, apply it when it is gone
+        juce::ComboBox m_routeBox;   ///< the route presets
+        juce::ToggleButton m_routePlay,   ///< play the route
+                           m_routeLoop;   ///< loop it
+        juce::Slider m_routeSpeed;   ///< how fast the route travels
+        juce::TextButton m_routeAdd{ "+ point" },     ///< append the cursor as a waypoint
+                         m_routeClear{ "Clear" },     ///< clear the route
+                         m_routeEdit{ "Route..." };   ///< open the text editor
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_routePlayAttach,   ///< the play switch's host link
+                                                                              m_routeLoopAttach;   ///< the loop switch's host link
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_routeSpeedAttach;   ///< the speed's host link
+        juce::Component::SafePointer<juce::TextEditor> m_routeEditor;   ///< the text editor while its dialog lives
+        juce::String m_routeEditText;                ///< the editor's text as the timer last saw it
+                     bool m_routeEditOpen = false;   ///< the dialog is up: mirror the text, apply it when it is gone
         /** @brief Opens the route as text in a dialog: one point per line, applied when the dialog closes. */
         void showRouteEditor();
         /** @} */
-        juce::TextButton toA{ "-> A" },    ///< the selected preset into morph slot A
-                         toB{ "-> B" },    ///< into morph slot B
-                         load{ "Load" };   ///< loads the selected preset
-        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> mapActiveAttach;   ///< the blend switch's host link
-        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> radiusAttach;   ///< the radius's host link
-        std::vector<int> filtered;   ///< the presets that pass the filter, in sort order
-        int filterGen = 0;      ///< bumped by applyFilter, so the map knows its cached cloud is stale
-        int selected = -1;   ///< the preset chosen in the list or on the map, or -1
+        juce::TextButton m_toA{ "-> A" },    ///< the selected preset into morph slot A
+                         m_toB{ "-> B" },    ///< into morph slot B
+                         m_load{ "Load" };   ///< loads the selected preset
+        std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_mapActiveAttach;   ///< the blend switch's host link
+        std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_radiusAttach;   ///< the radius's host link
+        std::vector<int> m_filtered;   ///< the presets that pass the filter, in sort order
+        int m_filterGen = 0;      ///< bumped by applyFilter, so the map knows its cached cloud is stale
+        int m_selected = -1;   ///< the preset chosen in the list or on the map, or -1
         /**
          * @name "More like this": the list narrowed to the map's nearest neighbours of the selected
          * preset, and the map zoomed onto them. The similarity is the one the map already has.
          * @{ */
-        juce::ToggleButton similar { "similar" };   ///< the switch
-        std::vector<int> similarSet;   ///< the selected preset and its neighbours; empty when off
-        int similarOf = -1;   ///< the preset the set was taken for
+        juce::ToggleButton m_similar { "similar" };   ///< the switch
+        std::vector<int> m_similarSet;   ///< the selected preset and its neighbours; empty when off
+        int m_similarOf = -1;   ///< the preset the set was taken for
         /** @} */
     };
-    std::unique_ptr<BrowseView> browse_;   ///< the Browse page
+    std::unique_ptr<BrowseView> m_browse;   ///< the Browse page
     /**
      * @brief The modulation strip along the bottom of the main page, in the shape Pigments uses: a lane
      * of every modulator as a small card with its live curve, a row of tabs, and the full editors
@@ -1320,37 +1320,37 @@ private:
 
         /** @brief one LFO or one envelope: its curve and the controls that shape it */
         struct Row {
-            std::vector<std::unique_ptr<juce::Component>> controls;   ///< the knobs and choosers, in the order they are placed
-            std::vector<std::unique_ptr<juce::Label>> labels;   ///< their names
-            std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> sliders;   ///< the knobs' host links
-            std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>> combos;   ///< the choosers' host links
-            juce::Rectangle<int> curve;   ///< where its curve is drawn
-            juce::String title;   ///< "LFO 3", "ENV 2", "SOURCE 1"
+            std::vector<std::unique_ptr<juce::Component>> m_controls;   ///< the knobs and choosers, in the order they are placed
+            std::vector<std::unique_ptr<juce::Label>> m_labels;   ///< their names
+            std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> m_sliders;   ///< the knobs' host links
+            std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment>> m_combos;   ///< the choosers' host links
+            juce::Rectangle<int> m_curve;   ///< where its curve is drawn
+            juce::String m_title;   ///< "LFO 3", "ENV 2", "SOURCE 1"
         };
-        Row lfos[ambient::kNumLfos];   ///< the LFO tab's rows
-        static constexpr int kEnvRows = ambient::kNumModEnvs + ambient::kSlots;   ///< the six, then the four sources' own
-        Row envs[kEnvRows];   ///< the envelope tab's rows, both pages
+        Row m_lfos[ambient::NumLfos];   ///< the LFO tab's rows
+        static constexpr int EnvRows = ambient::NumModEnvs + ambient::Slots;   ///< the six, then the four sources' own
+        Row m_envs[EnvRows];   ///< the envelope tab's rows, both pages
 
         /** @brief A card in the lane: one modulation source, drawn with its own live shape. */
         struct Card {
-            ambient::ModSource source = ambient::ModSource::None;   ///< the source it stands for
-            juce::String label;   ///< "LFO 1", "MACRO A", "KURA 2", "AMP" ...
-            juce::Colour colour;   ///< the source's colour (edt::sourceColour)
-            juce::Rectangle<int> bounds;   ///< where it is in the lane
-            int tab = 0;                 ///< which tab this card belongs to
-            int index = 0;               ///< LFO or envelope number, for the curve
+            ambient::ModSourceE m_source = ambient::ModSourceE::NONE;   ///< the source it stands for
+            juce::String m_label;   ///< "LFO 1", "MACRO A", "KURA 2", "AMP" ...
+            juce::Colour m_colour;   ///< the source's colour (edt::sourceColour)
+            juce::Rectangle<int> m_bounds;   ///< where it is in the lane
+            int m_tab = 0;                 ///< which tab this card belongs to
+            int m_index = 0;               ///< LFO or envelope number, for the curve
         };
-        std::vector<Card> cards;   ///< every source that can drive something, in matrix order
-        int tab = 0;                     ///< 0 LFO, 1 envelopes, 2 matrix
-        int envPage = 0;                 ///< on the envelope tab: 0 the six, 1 the sources' own
-        int hoverCard = -1;   ///< the card under the mouse, or -1
-        int dragCard = -1;               ///< the card being dragged onto a knob
-        juce::Point<int> dragPos;   ///< where the dragged card is, in the strip's coordinates
+        std::vector<Card> m_cards;   ///< every source that can drive something, in matrix order
+        int m_tab = 0;                     ///< 0 LFO, 1 envelopes, 2 matrix
+        int m_envPage = 0;                 ///< on the envelope tab: 0 the six, 1 the sources' own
+        int m_hoverCard = -1;   ///< the card under the mouse, or -1
+        int m_dragCard = -1;               ///< the card being dragged onto a knob
+        juce::Point<int> m_dragPos;   ///< where the dragged card is, in the strip's coordinates
         /** @brief Editing an envelope's shape: which one, and which of its breakpoints is under the mouse. */
-        int dragEnv = -1,      ///< the row being edited, or -1
-            dragPoint = -1,    ///< the breakpoint being dragged, or -1
-            hoverEnv = -1,     ///< the row under the mouse, or -1
-            hoverPoint = -1;   ///< the breakpoint under the mouse, or -1
+        int m_dragEnv = -1,      ///< the row being edited, or -1
+            m_dragPoint = -1,    ///< the breakpoint being dragged, or -1
+            m_hoverEnv = -1,     ///< the row under the mouse, or -1
+            m_hoverPoint = -1;   ///< the breakpoint under the mouse, or -1
 
         /**
          * @brief Opens a tab: shows its rows and buttons, pulls the matrix for the table.
@@ -1364,19 +1364,19 @@ private:
         void setEnvPage(int page);
         /**
          * @brief on the page that is showing
-         * @param env  the row, 0 .. kEnvRows - 1
+         * @param env  the row, 0 .. EnvRows - 1
          * @return true if the row belongs to the page that is open
          */
         bool envVisible(int env) const;
         /**
          * @brief a row's shape, of the six or a source's
-         * @param env  the row, 0 .. kEnvRows - 1
+         * @param env  the row, 0 .. EnvRows - 1
          * @return the engine's envelope shape
          */
         const ambient::ModEnv& shapeOf(int env) const;
         /**
          * @brief a row's parameter: "env3_time", "src2_env_time"
-         * @param env    the row, 0 .. kEnvRows - 1
+         * @param env    the row, 0 .. EnvRows - 1
          * @param field  "mode", "time", "depth" or "sync"
          * @return the parameter key
          */
@@ -1396,13 +1396,13 @@ private:
         /**
          * @brief One LFO row's curve: the shape over a cycle, the live phase, the period.
          * @param g  the graphics
-         * @param i  the LFO, 0 .. kNumLfos - 1
+         * @param i  the LFO, 0 .. NumLfos - 1
          */
         void paintLfo(juce::Graphics&, int i);
         /**
          * @brief One envelope row's curve: the breakpoints, the sustain, the loop, the live position, the length.
          * @param g  the graphics
-         * @param i  the row, 0 .. kEnvRows - 1
+         * @param i  the row, 0 .. EnvRows - 1
          */
         void paintEnv(juce::Graphics&, int i);
         /**
@@ -1419,17 +1419,17 @@ private:
          * One row's geometry, asked for by both the drawing and the mouse so they cannot drift.
          */
         struct EnvGeom {
-            float x0 = 0,       ///< the curve's left edge
-            w = 1,              ///< its width
-            cy = 0,             ///< its centre line (the bottom for a unipolar shape)
-            h = 1,              ///< its half height (the full height for a unipolar shape)
-            len = 1,            ///< the shape's length in seconds
-            depth = 1;          ///< the Depth that scales it, floored at 0.05 so a flat line stays editable
-            bool uni = false;   ///< a source's own envelope: unipolar, drawn from the bottom
+            float m_x0 = 0,       ///< the curve's left edge
+            m_w = 1,              ///< its width
+            m_cy = 0,             ///< its centre line (the bottom for a unipolar shape)
+            m_h = 1,              ///< its half height (the full height for a unipolar shape)
+            m_len = 1,            ///< the shape's length in seconds
+            m_depth = 1;          ///< the Depth that scales it, floored at 0.05 so a flat line stays editable
+            bool m_uni = false;   ///< a source's own envelope: unipolar, drawn from the bottom
         };
         /**
          * @brief The geometry of one envelope row.
-         * @param env  the row, 0 .. kEnvRows - 1
+         * @param env  the row, 0 .. EnvRows - 1
          * @return where its curve is drawn and how it is scaled
          */
         EnvGeom envGeom(int env) const;
@@ -1477,7 +1477,7 @@ private:
         void envShapeMenu(int env, int point);
         /**
          * @brief An LFO's settings as the engine reads them, for drawing its shape.
-         * @param i  the LFO, 0 .. kNumLfos - 1
+         * @param i  the LFO, 0 .. NumLfos - 1
          * @return the spec
          */
         ambient::LfoSpec specOf(int i) const;
@@ -1488,20 +1488,20 @@ private:
          */
         int paramUnder(juce::Point<int> screenPos) const;
 
-        NoctuaryProcessor& proc;   ///< the processor
-        NoctuaryEditor& owner;   ///< the editor
-        juce::TextButton tabLfo{ "LFO" },         ///< the LFO tab
-                         tabEnv{ "ENVELOPES" },   ///< the envelope tab
-                         tabMatrix{ "MATRIX" };   ///< the matrix tab
-        juce::TextButton pageMod{ "MODULATION 1-6" },   ///< the envelope tab's first page: the six
-                         pageSrc{ "SOURCES 1-4" };      ///< its second: the sources' own
+        NoctuaryProcessor& m_proc;   ///< the processor
+        NoctuaryEditor& m_owner;   ///< the editor
+        juce::TextButton m_tabLfo{ "LFO" },         ///< the LFO tab
+                         m_tabEnv{ "ENVELOPES" },   ///< the envelope tab
+                         m_tabMatrix{ "MATRIX" };   ///< the matrix tab
+        juce::TextButton m_pageMod{ "MODULATION 1-6" },   ///< the envelope tab's first page: the six
+                         m_pageSrc{ "SOURCES 1-4" };      ///< its second: the sources' own
         /** @brief The matrix page: a table of routes (EditorMatrix.cpp), where a text box used to be. */
-        std::unique_ptr<edt::RouteTable> table;
-        juce::Label matrixInfo,   ///< "n of 32 routes"
-                    hint;         ///< what a row is, and that a card can be dragged instead
-        juce::Rectangle<int> lane,       ///< the band of cards along the top
-                             tabsArea,   ///< the tab bar
-                             content;    ///< the open tab's panel
+        std::unique_ptr<edt::RouteTable> m_table;
+        juce::Label m_matrixInfo,   ///< "n of 32 routes"
+                    m_hint;         ///< what a row is, and that a card can be dragged instead
+        juce::Rectangle<int> m_lane,       ///< the band of cards along the top
+                             m_tabsArea,   ///< the tab bar
+                             m_content;    ///< the open tab's panel
         /** @brief Defined in EditorModStrip.cpp, where RouteTable is a complete type. */
         ~ModView() override;
         /** @brief Reads the engine's matrix into the table and the count. */
@@ -1512,37 +1512,37 @@ private:
          * @param target  the parameter
          * @return true if the engine accepted the matrix (false when it is full or the text was refused)
          */
-        bool addRoute(ambient::ModSource src, ambient::ParamId target);
+        bool addRoute(ambient::ModSourceE src, ambient::ParamIdE target);
     };
-    std::unique_ptr<ModView> mod_;   ///< the strip
-    juce::Viewport modPort_;   ///< unused holder for the strip
-    std::unique_ptr<juce::TextButton> modButton_;   ///< unused: the strip is always on the main page
+    std::unique_ptr<ModView> m_mod;   ///< the strip
+    juce::Viewport m_modPort;   ///< unused holder for the strip
+    std::unique_ptr<juce::TextButton> m_modButton;   ///< unused: the strip is always on the main page
 
     /** @name The family's ways around the panel (15.10.2026, Frame.h, from Empyrean)
      *  @{ */
-    std::unique_ptr<frame::IconButton> searchIcon_;   ///< the command palette (Ctrl+K): a magnifier
-    std::unique_ptr<frame::IconButton> nightIcon_;    ///< the night mode: a crescent
-    std::unique_ptr<frame::IconButton> holdIcon_;     ///< held: the preset as it was loaded ("A|B")
-    std::unique_ptr<juce::TextButton> journeyButton_; ///< the journeys over time
-    std::unique_ptr<juce::Label> star_;               ///< "*" beside the Sound box while the knobs have moved from the preset
-    std::unique_ptr<frame::CommandPalette> palette_;  ///< over everything while open
-    std::unique_ptr<frame::Tour> tour_;               ///< the first steps
-    std::unique_ptr<JourneyPanel> journeyPanel_;      ///< the journeys over time, an overlay
-    std::unique_ptr<frame::ModulationAtKnob> modulation_;   ///< a knob's menu: its routes with their depths, "Modulate with"
-    frame::WindowKeeper window_;                      ///< the standalone's window back where it was left
+    std::unique_ptr<frame::IconButton> m_searchIcon;   ///< the command palette (Ctrl+K): a magnifier
+    std::unique_ptr<frame::IconButton> m_nightIcon;    ///< the night mode: a crescent
+    std::unique_ptr<frame::IconButton> m_holdIcon;     ///< held: the preset as it was loaded ("A|B")
+    std::unique_ptr<juce::TextButton> m_journeyButton; ///< the journeys over time
+    std::unique_ptr<juce::Label> m_star;               ///< "*" beside the Sound box while the knobs have moved from the preset
+    std::unique_ptr<frame::CommandPalette> m_palette;  ///< over everything while open
+    std::unique_ptr<frame::Tour> m_tour;               ///< the first steps
+    std::unique_ptr<JourneyPanel> m_journeyPanel;      ///< the journeys over time, an overlay
+    std::unique_ptr<frame::ModulationAtKnob> m_modulation;   ///< a knob's menu: its routes with their depths, "Modulate with"
+    frame::WindowKeeper m_window;                      ///< the standalone's window back where it was left
     /** @brief The night's veil: dark and warm over the panel, under the overlays; the mouse goes through it. */
     struct Veil : juce::Component {
-        float alpha = 0.0f;   ///< how dark
+        float m_alpha = 0.0f;   ///< how dark
         /** @brief Dark and warm: little blue for eyes used to the dark. @param g where */
-        void paint(juce::Graphics& g) override { g.fillAll(juce::Colour(0xff0c0703).withAlpha(alpha)); }
+        void paint(juce::Graphics& g) override { g.fillAll(juce::Colour(0xff0c0703).withAlpha(m_alpha)); }
     };
-    Veil veil_;                                       ///< the night's veil
-    bool night_ = false;                              ///< the night mode is on
-    Snapshot held_;                                   ///< the sound while the preset is held
-    bool holding_ = false;                            ///< the preset is held
-    Snapshot presetSnap_;                             ///< the parameters as the preset left them (the star compares)
-    int presetSeen_ = -2;                             ///< the preset presetSnap_ was taken of
-    int tourTicks_ = 0;                               ///< ticks until the first start's tour (-1: considered)
+    Veil m_veil;                                       ///< the night's veil
+    bool m_night = false;                              ///< the night mode is on
+    Snapshot m_held;                                   ///< the sound while the preset is held
+    bool m_holding = false;                            ///< the preset is held
+    Snapshot m_presetSnap;                             ///< the parameters as the preset left them (the star compares)
+    int m_presetSeen = -2;                             ///< the preset m_presetSnap was taken of
+    int m_tourTicks = 0;                               ///< ticks until the first start's tour (-1: considered)
     /** @brief Whether this is an automated run (AMBIENT_SHOT, AMBIENT_MANUAL, AMBIENT_MUTE): no tour, no window state. @return true then */
     static bool automated();
     void openPalette();                               ///< the command palette (Ctrl+K)
@@ -1574,7 +1574,7 @@ public:
     int cellParamAt(juce::Point<int> screenPos) const;
     /**
      * @brief Where a cell's control is on the screen.
-     * @param cellIndex  index into cells_
+     * @param cellIndex  index into m_cells
      * @return the bounds in screen coordinates, empty for a bad index or a cell without a component
      */
     juce::Rectangle<int> cellScreenBounds(int cellIndex) const;
@@ -1595,7 +1595,7 @@ private:
          * @brief Catches no clicks and polls the parameters at 15 Hz.
          * @param p  the processor
          */
-        explicit FilterView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
+        explicit FilterView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         /**
          * @brief The axes, the two branches and their product, and the legend (EditorViews.cpp).
          * @param g  the graphics
@@ -1603,9 +1603,9 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief Nothing but parameters is drawn here, so nothing but a parameter can change it. */
         void timerCallback() override
-        { const uint32_t g = proc.paramGeneration(); if (isShowing() && g != seen) { seen = g; repaint(); } }
-        NoctuaryProcessor& proc;   ///< the processor
-        uint32_t seen = 0xffffffffu;   ///< the parameter generation last drawn
+        { const uint32_t g = m_proc.paramGeneration(); if (isShowing() && g != m_seen) { m_seen = g; repaint(); } }
+        NoctuaryProcessor& m_proc;   ///< the processor
+        uint32_t m_seen = 0xffffffffu;   ///< the parameter generation last drawn
     };
     /**
      * @brief One source slot: the wavetable frame, the FM cycle, the clip with its grain window, or the
@@ -1621,7 +1621,7 @@ private:
          * @param p  the processor
          * @param s  the slot, 1 .. 4
          */
-        SourceView(NoctuaryProcessor& p, int s) : proc(p), slot(s) { setInterceptsMouseClicks(true, false); startTimerHz(15); }
+        SourceView(NoctuaryProcessor& p, int s) : m_proc(p), m_slot(s) { setInterceptsMouseClicks(true, false); startTimerHz(15); }
         /**
          * @brief The source's picture, then the entrance in the corner.
          * @param g  the graphics
@@ -1664,11 +1664,11 @@ private:
         void timerCallback() override
         {
             if (!isShowing()) return;
-            const int type = static_cast<int>(std::lround(proc.engine().getParam(ambient::slotParamIds(slot - 1)[0])));
+            const int type = static_cast<int>(std::lround(m_proc.engine().getParam(ambient::slotParamIds(m_slot - 1)[0])));
             const bool alive = type == 3 || type == 5 || type == 6 || type == 7 || type == 8 || type >= 10;   // ...and the near sources
-            const bool moved = (type == 1 || type == 9) && std::fabs(livePosition() - shownPos) > 0.002f;
-            const uint32_t g = proc.paramGeneration();
-            if (alive || moved || ownEntrance() || g != seen) { seen = g; repaint(); }
+            const bool moved = (type == 1 || type == 9) && std::fabs(livePosition() - m_shownPos) > 0.002f;
+            const uint32_t g = m_proc.paramGeneration();
+            if (alive || moved || ownEntrance() || g != m_seen) { m_seen = g; repaint(); }
         }
         /**
          * @brief Position as it is playing: the knob, the morph or map blend, what the matrix adds -- and
@@ -1682,10 +1682,10 @@ private:
          */
         float livePosition() const
         {
-            const float live = proc.engine().displaySlotPosition(slot - 1);
+            const float live = m_proc.engine().displaySlotPosition(m_slot - 1);
             if (live >= 0.0f) return juce::jlimit(0.0f, 1.0f, live);
-            const ambient::ParamId id = ambient::slotParamIds(slot - 1)[6];
-            return juce::jlimit(0.0f, 1.0f, proc.engine().effectiveParam(id) + proc.engine().modAmount(id));
+            const ambient::ParamIdE id = ambient::slotParamIds(m_slot - 1)[6];
+            return juce::jlimit(0.0f, 1.0f, m_proc.engine().effectiveParam(id) + m_proc.engine().modAmount(id));
         }
         /**
          * @brief The table in depth; false when there is nothing to stand in depth (no table, one frame).
@@ -1697,23 +1697,23 @@ private:
          * @return true if the table was drawn
          */
         bool paintTable3D(juce::Graphics& g, juce::Rectangle<float> plot, int type, int table, float pos);
-        NoctuaryProcessor& proc;   ///< the processor
-        uint32_t seen = 0xffffffffu;   ///< the parameter generation last drawn
-        int slot;   ///< 1 .. 4
-        float amp[ambient::kTablePartials] = {};   ///< smoothed live amplitudes for the additive picture
-        bool  flat = false;       ///< the table as one frame (after a click) rather than in depth
-        float shownPos = -1.0f;   ///< the Position last drawn
+        NoctuaryProcessor& m_proc;   ///< the processor
+        uint32_t m_seen = 0xffffffffu;   ///< the parameter generation last drawn
+        int m_slot;   ///< 1 .. 4
+        float m_amp[ambient::TablePartials] = {};   ///< smoothed live amplitudes for the additive picture
+        bool  m_flat = false;       ///< the table as one frame (after a click) rather than in depth
+        float m_shownPos = -1.0f;   ///< the Position last drawn
         /**
-         * @brief The table sampled for drawing, kTablePoints + 1 points a frame, and its lines drawn once
+         * @brief The table sampled for drawing, TablePoints + 1 points a frame, and its lines drawn once
          * into an image at the display's size: both rebuilt only when the table or the size changes.
          */
-        static constexpr int kTablePoints = 96;
-        std::vector<float> tableCycles;   ///< the sampled frames, kTablePoints + 1 floats each
-        int    tableFrames = 0;   ///< how many frames are sampled
-        double tableSig = -1.0;   ///< a signature of the table the samples came from
-        juce::Image tableMesh;   ///< the lines, drawn once
-        juce::Rectangle<int> meshBounds;   ///< the plot the mesh was drawn for
-        float  meshScale = 0.0f;   ///< the scale the mesh was drawn at
+        static constexpr int TablePoints = 96;
+        std::vector<float> m_tableCycles;   ///< the sampled frames, TablePoints + 1 floats each
+        int    m_tableFrames = 0;   ///< how many frames are sampled
+        double m_tableSig = -1.0;   ///< a signature of the table the samples came from
+        juce::Image m_tableMesh;   ///< the lines, drawn once
+        juce::Rectangle<int> m_meshBounds;   ///< the plot the mesh was drawn for
+        float  m_meshScale = 0.0f;   ///< the scale the mesh was drawn at
     };
     /**
      * @brief The conductor's notes as they happen: a piano roll scrolling left, one column per tick, so
@@ -1724,7 +1724,7 @@ private:
          * @brief Catches no clicks and ticks at 15 Hz.
          * @param p  the processor
          */
-        explicit BrainView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
+        explicit BrainView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         /**
          * @brief The roll: octave lines, a bar per held note fading with age, the range labels, the cascade's aura.
          * @param g  the graphics
@@ -1732,20 +1732,20 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief Writes the sounding notes into the newest column, widens the range, advances the head. */
         void timerCallback() override;
-        NoctuaryProcessor& proc;   ///< the processor
-        static constexpr int kCols = 240;                 ///< 16 s at 15 Hz
-        std::vector<std::array<bool, 128>> hist = std::vector<std::array<bool, 128>>(kCols);   ///< the ring of columns: which notes sounded at each tick
-        int head = 0;   ///< the column written next
-        int lo = 36,   ///< the bottom of the note range in view
-            hi = 84;   ///< the note range in view, widened as notes arrive
+        NoctuaryProcessor& m_proc;   ///< the processor
+        static constexpr int Cols = 240;                 ///< 16 s at 15 Hz
+        std::vector<std::array<bool, 128>> m_hist = std::vector<std::array<bool, 128>>(Cols);   ///< the ring of columns: which notes sounded at each tick
+        int m_head = 0;   ///< the column written next
+        int m_lo = 36,   ///< the bottom of the note range in view
+            m_hi = 84;   ///< the note range in view, widened as notes arrive
     };
     /**
      * @brief Three rolls: the conductor's, the second conductor's, and one on the Autoplay tab, where
      * watching the chord travel one voice at a time is the whole point of the mode.
      */
-    std::unique_ptr<BrainView> brainView_,    ///< the Cluster Brain tab's roll
-                               brainView2_,   ///< Brain 2's roll
-                               brainView3_;   ///< the Autoplay tab's roll
+    std::unique_ptr<BrainView> m_brainView,    ///< the Cluster Brain tab's roll
+                               m_brainView2,   ///< Brain 2's roll
+                               m_brainView3;   ///< the Autoplay tab's roll
     /**
      * @brief The stereo stage: every sounding voice as a dot, left-right by its pan, near-far by its
      * plane, size by its envelope -- the spatial model (concept.md) as a picture, moving.
@@ -1755,7 +1755,7 @@ private:
          * @brief Ticks at 15 Hz; takes the mouse for the planes.
          * @param p  the processor
          */
-        explicit StageView(NoctuaryProcessor& p) : proc(p) { startTimerHz(15); }
+        explicit StageView(NoctuaryProcessor& p) : m_proc(p) { startTimerHz(15); }
         /**
          * @brief The room, the three planes as lines, every voice as a smoothed dot, the count.
          * @param g  the graphics
@@ -1786,7 +1786,7 @@ private:
         /** @brief Ends the host's change gesture and lets the plane go. */
         void mouseUp(const juce::MouseEvent&) override;
         /** @brief No plane is hovered once the mouse has left. */
-        void mouseExit(const juce::MouseEvent&) override { hoverLine = -1; repaint(); }
+        void mouseExit(const juce::MouseEvent&) override { m_hoverLine = -1; repaint(); }
         /**
          * @brief The room the dots and planes are drawn in.
          * @return the plot rectangle inside the frame
@@ -1798,21 +1798,21 @@ private:
          * @return 0 conductor, 1 keys, 2 conductor 2, or -1 if none is within reach
          */
         int  lineAt(juce::Point<int>) const;
-        std::function<void(const juce::String&)> onUndo;   ///< called with a name before a plane is moved, for the editor's undo
-        int hoverLine = -1,   ///< the plane under the mouse, -1 for none
-            dragLine = -1;    ///< the plane being dragged, -1 for none
-        NoctuaryProcessor& proc;   ///< the processor
+        std::function<void(const juce::String&)> m_onUndo;   ///< called with a name before a plane is moved, for the editor's undo
+        int m_hoverLine = -1,   ///< the plane under the mouse, -1 for none
+            m_dragLine = -1;    ///< the plane being dragged, -1 for none
+        NoctuaryProcessor& m_proc;   ///< the processor
         /** @brief One voice's dot. */
         struct Dot {
-            float x = 0.0f,    ///< its smoothed x in the plot
-            y = 0.0f,          ///< its smoothed y
-            r = 0.0f;          ///< its smoothed radius
-            int note = -1;     ///< the note it stands for, -1 once it is gone
-            bool on = false;   ///< whether the voice sounded at the last paint
+            float m_x = 0.0f,    ///< its smoothed x in the plot
+            m_y = 0.0f,          ///< its smoothed y
+            m_r = 0.0f;          ///< its smoothed radius
+            int m_note = -1;     ///< the note it stands for, -1 once it is gone
+            bool m_on = false;   ///< whether the voice sounded at the last paint
         };
-        Dot dots[ambient::Engine::kMaxVoices];   ///< smoothed positions, one per voice slot seen
+        Dot m_dots[ambient::Engine::MaxVoices];   ///< smoothed positions, one per voice slot seen
     };
-    std::unique_ptr<StageView> stageView_;   ///< the Space / Foundation row's display
+    std::unique_ptr<StageView> m_stageView;   ///< the Space / Foundation row's display
     /**
      * @brief The Tuning page's display: the timbre's own roughness curve across the octave (Sethares),
      * the chosen scale's degrees on it, the key the conductor has found, the comma and the tide.
@@ -1824,7 +1824,7 @@ private:
          * @brief Catches no clicks and repaints at 5 Hz: the curve is slow to compute and slow to change.
          * @param p  the processor
          */
-        explicit TuningView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(5); }
+        explicit TuningView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(5); }
         /**
          * @brief The roughness curve, the scale's degrees on it, the key, the comma, the tide and the scale's name.
          * @param g  the graphics
@@ -1832,11 +1832,11 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
         void timerCallback() override { if (isShowing()) repaint(); }
-        NoctuaryProcessor& proc;   ///< the processor
-        static constexpr int kPoints = 240;   ///< five cents apart
-        float curve[kPoints] = {};   ///< the roughness across the octave, recomputed in paint
+        NoctuaryProcessor& m_proc;   ///< the processor
+        static constexpr int Points = 240;   ///< five cents apart
+        float m_curve[Points] = {};   ///< the roughness across the octave, recomputed in paint
     };
-    std::unique_ptr<TuningView> tuningView_;   ///< the Tuning tab's display
+    std::unique_ptr<TuningView> m_tuningView;   ///< the Tuning tab's display
     /**
      * @brief The Coherence page's display: the four Kuramoto phases on a ring, the Lenia field as a
      * grey grid, the six attractor readings as bars -- the living modulators, seen.
@@ -1846,7 +1846,7 @@ private:
          * @brief Catches no clicks and ticks at 10 Hz.
          * @param p  the processor
          */
-        explicit CoherenceView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(10); }
+        explicit CoherenceView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(10); }
         /**
          * @brief The ring of phases, the Lenia grid, the attractor bars and the two orbits.
          * @param g  the graphics
@@ -1854,11 +1854,11 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief Appends the attractors' current x/y to the trails (forty seconds kept) and repaints. */
         void timerCallback() override;
-        NoctuaryProcessor& proc;   ///< the processor
+        NoctuaryProcessor& m_proc;   ///< the processor
         /** @brief Where the two attractors have been: the last forty seconds of their x/y, drawn as orbits. */
-        std::vector<juce::Point<float>> lorenzTrail, rosslerTrail;   ///< the Roessler attractor's trail
+        std::vector<juce::Point<float>> m_lorenzTrail, m_rosslerTrail;   ///< the Roessler attractor's trail
     };
-    std::unique_ptr<CoherenceView> coherenceView_;   ///< the Coherence + Clock tab's display
+    std::unique_ptr<CoherenceView> m_coherenceView;   ///< the Coherence + Clock tab's display
     /**
      * @brief The Cosmos return's spectrum: what the shifter, the resonator, the vowel and the nebula are
      * handing back, on a log-frequency axis, smoothed the way a meter falls.
@@ -1874,19 +1874,19 @@ private:
          * @param g  the graphics
          */
         void paint(juce::Graphics&) override;
-        /** @brief Reads the return tap, transforms it, folds the bins into kBins log-spaced bands with a falling hold. */
+        /** @brief Reads the return tap, transforms it, folds the bins into Bins log-spaced bands with a falling hold. */
         void timerCallback() override;
-        NoctuaryProcessor& proc;   ///< the processor
-        static constexpr int kN = 2048,     ///< FFT length
-                             kBins = 160;   ///< the log-spaced bands drawn
-        std::vector<float> re,       ///< the FFT's real part
-                           im,       ///< its imaginary part
-                           window;   ///< the Hann window
-        std::unique_ptr<ambient::Fft> fft;   ///< the transform
-        float bins[kBins] = {};   ///< dB per log-spaced bin, smoothed
-        bool  silent = true;   ///< nothing came back on the last tick
+        NoctuaryProcessor& m_proc;   ///< the processor
+        static constexpr int N = 2048,     ///< FFT length
+                             Bins = 160;   ///< the log-spaced bands drawn
+        std::vector<float> m_re,       ///< the FFT's real part
+                           m_im,       ///< its imaginary part
+                           m_window;   ///< the Hann window
+        std::unique_ptr<ambient::Fft> m_fft;   ///< the transform
+        float m_bins[Bins] = {};   ///< dB per log-spaced bin, smoothed
+        bool  m_silent = true;   ///< nothing came back on the last tick
     };
-    std::unique_ptr<CosmosView> cosmosView_;   ///< the Cosmos tab's display
+    std::unique_ptr<CosmosView> m_cosmosView;   ///< the Cosmos tab's display
     /**
      * @brief What the header used to carry was a small spectrum, at 1024 points and 96 bands.
      *
@@ -1901,7 +1901,7 @@ private:
          * @brief Repaints at 10 Hz; takes the click that resets the measurement.
          * @param p  the processor
          */
-        explicit LoudnessView(NoctuaryProcessor& p) : proc(p) { startTimerHz(10); }
+        explicit LoudnessView(NoctuaryProcessor& p) : m_proc(p) { startTimerHz(10); }
         /**
          * @brief Momentary and integrated loudness, the range, the peak, as bars and figures.
          * @param g  the graphics
@@ -1911,9 +1911,9 @@ private:
         void timerCallback() override { if (isShowing()) repaint(); }
         /** @brief click to start measuring again */
         void mouseDown(const juce::MouseEvent&) override;
-        NoctuaryProcessor& proc;   ///< the processor
+        NoctuaryProcessor& m_proc;   ///< the processor
     };
-    std::unique_ptr<LoudnessView> outputView_;   ///< in the header, right half
+    std::unique_ptr<LoudnessView> m_outputView;   ///< in the header, right half
     /**
      * @brief The Vector's square, with the point in it: three corners are the source slots, the fourth
      * is all three together.
@@ -1925,7 +1925,7 @@ private:
          * @brief Ticks at 15 Hz; takes the mouse for the point.
          * @param p  the processor
          */
-        explicit VectorView(NoctuaryProcessor& p) : proc(p) { startTimerHz(15); }
+        explicit VectorView(NoctuaryProcessor& p) : m_proc(p) { startTimerHz(15); }
         /**
          * @brief The square with its corners named, the wander's trail, the point, and a hint.
          * @param g  the graphics
@@ -1953,14 +1953,14 @@ private:
          * @return the largest square that fits under the title
          */
         juce::Rectangle<float> square() const;
-        NoctuaryProcessor& proc;   ///< the processor
-        static constexpr int kTrail = 240;      ///< where the wander has been, at 20 Hz: twelve seconds
-        float tx[kTrail] = {},   ///< the trail's x positions, a ring
-              ty[kTrail] = {};   ///< the trail's y positions
-        int   head = 0,     ///< the ring's write position
-              filled = 0;   ///< how much of the ring is filled
+        NoctuaryProcessor& m_proc;   ///< the processor
+        static constexpr int Trail = 240;      ///< where the wander has been, at 20 Hz: twelve seconds
+        float m_tx[Trail] = {},   ///< the trail's x positions, a ring
+              m_ty[Trail] = {};   ///< the trail's y positions
+        int   m_head = 0,     ///< the ring's write position
+              m_filled = 0;   ///< how much of the ring is filled
     };
-    std::unique_ptr<VectorView> vectorView_;   ///< the MORPH row's display
+    std::unique_ptr<VectorView> m_vectorView;   ///< the MORPH row's display
     /**
      * @brief The wide strip along the bottom of the left column: the same signal as the header's little
      * meter, but with room to say something.
@@ -1989,34 +1989,34 @@ private:
         void mouseMove(const juce::MouseEvent&) override;
         /** @brief Forgets the pointer. */
         void mouseExit(const juce::MouseEvent&) override;
-        NoctuaryProcessor& proc;   ///< the processor
-        static constexpr int kN = ambient::kOutTapLen;   ///< FFT length: the whole tap
-        static constexpr int kBands = 480;               ///< one band per two or three pixels
-        static constexpr float kLoHz = 20.0f,      ///< the left end of the frequency axis
-                               kHiHz = 16000.0f;   ///< its right end
+        NoctuaryProcessor& m_proc;   ///< the processor
+        static constexpr int N = ambient::OutTapLen;   ///< FFT length: the whole tap
+        static constexpr int Bands = 480;               ///< one band per two or three pixels
+        static constexpr float LoHz = 20.0f,      ///< the left end of the frequency axis
+                               HiHz = 16000.0f;   ///< its right end
         /**
          * @brief The axis runs a little above zero so the filter, drawn on the same decibels, has
          * somewhere to put a resonance: a flat response is the 0 dB line, not the ceiling.
          */
-        static constexpr float kFloorDb = -84.0f, kTopDb = 6.0f;   ///< the top of the decibel axis
-        static constexpr int kLabelGutter = 26;   ///< room at the left for the decibel numbers
-        std::vector<float> re,       ///< the FFT's real part
-                           im,       ///< its imaginary part
-                           window;   ///< the Hann window
-        std::unique_ptr<ambient::Fft> fft;   ///< the transform
-        std::vector<float> band,   ///< the live bands, dB
-                           hold;   ///< live bands, and a slowly falling trace
-        float peakDb = -96.0f;   ///< the loudest band of the last tick, dB
-        int   hoverX = -1;                               ///< read the frequency under the pointer
+        static constexpr float FloorDb = -84.0f, TopDb = 6.0f;   ///< the top of the decibel axis
+        static constexpr int LabelGutter = 26;   ///< room at the left for the decibel numbers
+        std::vector<float> m_re,       ///< the FFT's real part
+                           m_im,       ///< its imaginary part
+                           m_window;   ///< the Hann window
+        std::unique_ptr<ambient::Fft> m_fft;   ///< the transform
+        std::vector<float> m_band,   ///< the live bands, dB
+                           m_hold;   ///< live bands, and a slowly falling trace
+        float m_peakDb = -96.0f;   ///< the loudest band of the last tick, dB
+        int   m_hoverX = -1;                               ///< read the frequency under the pointer
     };
-    std::unique_ptr<SpectrumView> spectrumView_;   ///< the ANALYSIS group's display
+    std::unique_ptr<SpectrumView> m_spectrumView;   ///< the ANALYSIS group's display
     /** @brief The amplitude envelope as a curve, with the loudest voice's level on it. */
     struct EnvView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and repaints at 15 Hz.
          * @param p  the processor
          */
-        explicit EnvView(NoctuaryProcessor& p) : proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
+        explicit EnvView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         /**
          * @brief The ADSR as a curve with its four times labelled, and the loudest voice's level on it.
          * @param g  the graphics
@@ -2024,16 +2024,16 @@ private:
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
         void timerCallback() override { if (isShowing()) repaint(); }
-        NoctuaryProcessor& proc;   ///< the processor
+        NoctuaryProcessor& m_proc;   ///< the processor
     };
-    std::unique_ptr<EnvView> envView_;   ///< the ENVELOPE + EXPRESSION tab's display
-    std::unique_ptr<FilterView> filterView_;   ///< the display of both filter tabs
-    std::unique_ptr<SourceView> source1View_,   ///< Source 1's display
-                                source2View_,   ///< Source 2's display
-                                source3View_,   ///< Source 3's display
-                                source4View_;   ///< Source 4's display
+    std::unique_ptr<EnvView> m_envView;   ///< the ENVELOPE + EXPRESSION tab's display
+    std::unique_ptr<FilterView> m_filterView;   ///< the display of both filter tabs
+    std::unique_ptr<SourceView> m_source1View,   ///< Source 1's display
+                                m_source2View,   ///< Source 2's display
+                                m_source3View,   ///< Source 3's display
+                                m_source4View;   ///< Source 4's display
     /** @} */
-    std::unique_ptr<juce::TextButton> browseButton_;   ///< Browse, in the header
+    std::unique_ptr<juce::TextButton> m_browseButton;   ///< Browse, in the header
     /**
      * @brief Shows one page and hides the others; the header buttons follow.
      * @param page  0 edit, 1 perform, 2 browse, 3 help
@@ -2041,18 +2041,18 @@ private:
     void setPage(int page);
     /** @brief Opens the gesture / macro mapping table as text in a dialog; the timer applies it when the dialog closes. */
     void showMappingEditor();
-    juce::Component::SafePointer<juce::TextEditor> mapEditor_;   ///< the mapping editor while its dialog lives
-    juce::String mapText_;   ///< its text as the timer last saw it
-    bool mapOpen_ = false;   ///< the dialog is up: mirror the text, apply it when it is gone
-    std::unique_ptr<juce::ComboBox> soundBox_;   ///< the sound presets, in the header, one submenu per family
-    juce::ComboBox* cosmosBox_ = nullptr;   ///< not owned: its cell in the Cosmos section owns it
-    juce::ComboBox* morphABox_ = nullptr;   ///< owned by their cells
-    juce::ComboBox* morphBBox_ = nullptr;   ///< the preset chooser of morph slot B
-    std::unique_ptr<juce::FileChooser> chooser_;   ///< the file dialog in flight (record, save, load, tables, clips, impulses, scales)
-    juce::Rectangle<int> header_,     ///< the header, in design coordinates
-                         helpLine_,   ///< the help line's card
-                         keys_;       ///< the keyboard strip
-    bool sounding_[128] = {};   ///< which notes sound, read from the engine every tick for the keyboard strip
+    juce::Component::SafePointer<juce::TextEditor> m_mapEditor;   ///< the mapping editor while its dialog lives
+    juce::String m_mapText;   ///< its text as the timer last saw it
+    bool m_mapOpen = false;   ///< the dialog is up: mirror the text, apply it when it is gone
+    std::unique_ptr<juce::ComboBox> m_soundBox;   ///< the sound presets, in the header, one submenu per family
+    juce::ComboBox* m_cosmosBox = nullptr;   ///< not owned: its cell in the Cosmos section owns it
+    juce::ComboBox* m_morphABox = nullptr;   ///< owned by their cells
+    juce::ComboBox* m_morphBBox = nullptr;   ///< the preset chooser of morph slot B
+    std::unique_ptr<juce::FileChooser> m_chooser;   ///< the file dialog in flight (record, save, load, tables, clips, impulses, scales)
+    juce::Rectangle<int> m_header,     ///< the header, in design coordinates
+                         m_helpLine,   ///< the help line's card
+                         m_keys;       ///< the keyboard strip
+    bool m_sounding[128] = {};   ///< which notes sound, read from the engine every tick for the keyboard strip
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoctuaryEditor)
 };

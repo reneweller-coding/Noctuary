@@ -68,7 +68,7 @@ void check(bool ok, const char* what)
 std::vector<float> clip(int n, float hz)
 {
     std::vector<float> v(static_cast<size_t>(n));
-    for (int i = 0; i < n; ++i) v[static_cast<size_t>(i)] = 0.3f * std::sin(kTwoPi * hz * i / 48000.0f);
+    for (int i = 0; i < n; ++i) v[static_cast<size_t>(i)] = 0.3f * std::sin(TwoPi * hz * i / 48000.0f);
     return v;
 }
 
@@ -124,7 +124,7 @@ int main(int argc, char** argv)
         const std::vector<float> a = clip(4096, 220.0f), b = clip(9973, 330.0f);   // one length is not a power of two on purpose
         std::vector<float> table(2048 * 4);
         for (size_t i = 0; i < table.size(); ++i)
-            table[i] = std::sin(kTwoPi * static_cast<float>(i) / 2048.0f) * (1.0f - static_cast<float>(i) / table.size());
+            table[i] = std::sin(TwoPi * static_cast<float>(i) / 2048.0f) * (1.0f - static_cast<float>(i) / table.size());
         FixedScale scale;
         unsigned s = 12345;
         auto rnd = [&s] { s = s * 1664525u + 1013904223u; return static_cast<float>((s >> 8) & 0xFFFF) / 65535.0f; };
@@ -133,25 +133,25 @@ int main(int argc, char** argv)
             switch (turn++ % 8) {
             case 0: {   // every knob, at a value it has never held
                 for (const ParamDesc& d : paramTable())
-                    engine.setParam(d.id, d.min + (d.max - d.min) * rnd());
+                    engine.setParam(d.m_id, d.m_min + (d.m_max - d.m_min) * rnd());
                 break;
             }
             case 1:   // a clip into a slot: the double buffer and its "in use" flag
-                engine.setTexture(turn % kSlots, a.data(), static_cast<int>(a.size()), 48000.0, 220.0, false);
+                engine.setTexture(turn % Slots, a.data(), static_cast<int>(a.size()), 48000.0, 220.0, false);
                 break;
             case 2:
-                engine.setTexture(turn % kSlots, b.data(), static_cast<int>(b.size()), 44100.0, 330.0, true);
+                engine.setTexture(turn % Slots, b.data(), static_cast<int>(b.size()), 44100.0, 330.0, true);
                 break;
             case 3:
-                engine.clearTexture(turn % kSlots);
+                engine.clearTexture(turn % Slots);
                 break;
             case 4:   // the modulation matrix: parsed here, copied there
                 engine.setModMatrixText(turn % 2 ? "lfo1>cutoff:0.5;env2>z_x:-0.3:macro_a"
                                                  : "lfo3>drift:0.2;brain>partials:0.4");
                 break;
             case 5:   // the envelope shapes, the six and the sources' own, under the same lock
-                engine.setEnvShape(turn % kNumModEnvs, turn % 2 ? "0:0/1:1/3:0.2!s1" : "0:1/2:-1/4:0");
-                engine.setSrcEnvShape(turn % kSlots, turn % 2 ? "0:0/2:1!s1" : "0:1/1:0.5/3:0");
+                engine.setEnvShape(turn % NumModEnvs, turn % 2 ? "0:0/1:1/3:0.2!s1" : "0:1/2:-1/4:0");
+                engine.setSrcEnvShape(turn % Slots, turn % 2 ? "0:0/2:1!s1" : "0:1/1:0.5/3:0");
                 break;
             case 6:   // a tuning of the player's own
                 if (parseScala("! r.scl\nRace\n 3\n 100.0\n 3/2\n 2/1\n", scale)) engine.setUserScale(scale);

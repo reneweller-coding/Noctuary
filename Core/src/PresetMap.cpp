@@ -6,7 +6,7 @@
  * The map needs every preset's full parameter vector at hand, because a cursor between presets is
  * a weighted mean of its neighbours' parameters. Those vectors are not stored anywhere: a preset is
  * a "key=value" string over the defaults, so warmup() applies every preset once (applyPreset over
- * paramTable) into one flat table of numPresets() x kNumParams floats. With a library of eight
+ * paramTable) into one flat table of numPresets() x NumParams floats. With a library of eight
  * thousand presets that is the 1.75 s that used to be paid at every prepare(), which is why it now
  * runs on a thread of its own (warmupAsync) and why the map simply does nothing until ready().
  *
@@ -42,7 +42,7 @@ namespace {
  * that is already inside blend() cannot have the ground taken from under it.
  */
 std::vector<std::unique_ptr<std::vector<float>>> g_retired;
-std::atomic<const float*> g_table { nullptr };  ///< the published table (numPresets() x kNumParams floats), nullptr until the first warmup
+std::atomic<const float*> g_table { nullptr };  ///< the published table (numPresets() x NumParams floats), nullptr until the first warmup
 std::atomic<int>          g_count { 0 };       ///< presets in the published table
 std::atomic<bool>         g_building { false };   ///< set while a warmupAsync() thread is running, so only one runs at a time
 std::thread               g_thread;             ///< the warmup thread of warmupAsync(); joined by shutdown() and before a new one starts
@@ -55,11 +55,11 @@ void PresetMap::warmup()
     std::lock_guard<std::mutex> lock(g_buildLock);
     const int n = numPresets();
     if (g_count.load(std::memory_order_acquire) == n && g_table.load(std::memory_order_acquire) != nullptr) return;
-    auto built = std::make_unique<std::vector<float>>(static_cast<size_t>(n) * kNumParams, 0.0f);
+    auto built = std::make_unique<std::vector<float>>(static_cast<size_t>(n) * NumParams, 0.0f);
     for (int p = 0; p < n; ++p) {
-        float* v = built->data() + static_cast<size_t>(p) * kNumParams;
-        for (const ParamDesc& d : paramTable()) v[static_cast<int>(d.id)] = d.def;
-        applyPreset(preset(p), [&](ParamId id, float val) { v[static_cast<int>(id)] = val; });
+        float* v = built->data() + static_cast<size_t>(p) * NumParams;
+        for (const ParamDesc& d : paramTable()) v[static_cast<int>(d.m_id)] = d.m_def;
+        applyPreset(preset(p), [&](ParamIdE id, float val) { v[static_cast<int>(id)] = val; });
     }
     const float* data = built->data();
     g_retired.push_back(std::move(built));
@@ -91,7 +91,7 @@ const float* PresetMap::presetValues(int index)
 {
     const float* t = g_table.load(std::memory_order_acquire);
     if (t == nullptr || index < 0 || index >= g_count.load(std::memory_order_acquire)) return nullptr;
-    return t + static_cast<size_t>(index) * kNumParams;
+    return t + static_cast<size_t>(index) * NumParams;
 }
 
 PresetMap::Blend PresetMap::neighbours(float x, float y, float radius)
@@ -99,19 +99,19 @@ PresetMap::Blend PresetMap::neighbours(float x, float y, float radius)
     Blend b;
     const int n = std::min(numPresetMeta(), numPresets());
     const float sigma = std::max(radius, 1e-3f);
-    // Keep the kNeighbours closest points (insertion into a small sorted list).
-    float dist[kNeighbours];
+    // Keep the Neighbours closest points (insertion into a small sorted list).
+    float dist[Neighbours];
     for (int i = 0; i < n; ++i) {
         const PresetMeta& m = presetMeta(i);
-        const float dx = m.x - x, dy = m.y - y;
+        const float dx = m.m_x - x, dy = m.m_y - y;
         const float d = dx * dx + dy * dy;
-        int pos = b.count;
+        int pos = b.m_count;
         while (pos > 0 && dist[pos - 1] > d) --pos;
-        if (pos >= kNeighbours) continue;
-        const int last = std::min(b.count, kNeighbours - 1);
-        for (int k = last; k > pos; --k) { dist[k] = dist[k - 1]; b.index[k] = b.index[k - 1]; }
-        dist[pos] = d; b.index[pos] = i;
-        if (b.count < kNeighbours) ++b.count;
+        if (pos >= Neighbours) continue;
+        const int last = std::min(b.m_count, Neighbours - 1);
+        for (int k = last; k > pos; --k) { dist[k] = dist[k - 1]; b.m_index[k] = b.m_index[k - 1]; }
+        dist[pos] = d; b.m_index[pos] = i;
+        if (b.m_count < Neighbours) ++b.m_count;
     }
     // The radius follows the local density. On a map laid out as a free cloud the presets are
     // not evenly spread any more: in a ball of forty near-identical sounds a fixed radius takes
@@ -122,15 +122,15 @@ PresetMap::Blend PresetMap::neighbours(float x, float y, float radius)
     // else, whatever the neighbours are doing. The radius grows when the nearest point is already
     // further away than the radius itself -- which is what "the cursor is in the empty space"
     // means -- and not one pixel sooner.
-    const float d0 = b.count > 0 ? std::sqrt(dist[0]) : 0.0f;
-    const float d3 = std::sqrt(dist[b.count >= 3 ? 2 : 0]);
-    const float sig = (b.count > 0 && d0 > sigma) ? std::max(sigma, 0.7f * d3) : sigma;
+    const float d0 = b.m_count > 0 ? std::sqrt(dist[0]) : 0.0f;
+    const float d3 = std::sqrt(dist[b.m_count >= 3 ? 2 : 0]);
+    const float sig = (b.m_count > 0 && d0 > sigma) ? std::max(sigma, 0.7f * d3) : sigma;
     float sum = 0.0f;
-    for (int k = 0; k < b.count; ++k) { b.weight[k] = std::exp(-dist[k] / (2.0f * sig * sig)); sum += b.weight[k]; }
+    for (int k = 0; k < b.m_count; ++k) { b.m_weight[k] = std::exp(-dist[k] / (2.0f * sig * sig)); sum += b.m_weight[k]; }
     if (sum <= 1e-12f) {   // far from everything: the nearest point alone
-        for (int k = 0; k < b.count; ++k) b.weight[k] = (k == 0) ? 1.0f : 0.0f;
+        for (int k = 0; k < b.m_count; ++k) b.m_weight[k] = (k == 0) ? 1.0f : 0.0f;
     } else {
-        for (int k = 0; k < b.count; ++k) b.weight[k] /= sum;
+        for (int k = 0; k < b.m_count; ++k) b.m_weight[k] /= sum;
     }
     return b;
 }
@@ -139,26 +139,26 @@ void PresetMap::blend(const Blend& b, float* out)
 {
     // The neighbours' vectors are looked up once, not once per parameter per neighbour: this runs
     // at control rate on the audio thread and the table is behind an atomic now.
-    const float* row[kNeighbours] = {};
-    const bool have = ready() && b.count > 0;
+    const float* row[Neighbours] = {};
+    const bool have = ready() && b.m_count > 0;
     if (have)
-        for (int k = 0; k < b.count; ++k)
-            if ((row[k] = presetValues(b.index[k])) == nullptr) return;   // a rebuild caught us: leave the sound alone
+        for (int k = 0; k < b.m_count; ++k)
+            if ((row[k] = presetValues(b.m_index[k])) == nullptr) return;   // a rebuild caught us: leave the sound alone
     for (const ParamDesc& d : paramTable()) {
-        const int i = static_cast<int>(d.id);
-        if (!have) { out[i] = d.def; continue; }
-        switch (d.kind) {
-        case ParamKind::Float: {
-            const float span = std::max(d.max - d.min, 1e-9f);
+        const int i = static_cast<int>(d.m_id);
+        if (!have) { out[i] = d.m_def; continue; }
+        switch (d.m_kind) {
+        case ParamKindE::FLOAT: {
+            const float span = std::max(d.m_max - d.m_min, 1e-9f);
             float p = 0.0f;
-            for (int k = 0; k < b.count; ++k)
-                p += b.weight[k] * std::pow(clampv((row[k][i] - d.min) / span, 0.0f, 1.0f), d.skew);
-            out[i] = d.min + span * std::pow(clampv(p, 0.0f, 1.0f), 1.0f / d.skew);
+            for (int k = 0; k < b.m_count; ++k)
+                p += b.m_weight[k] * std::pow(clampv((row[k][i] - d.m_min) / span, 0.0f, 1.0f), d.m_skew);
+            out[i] = d.m_min + span * std::pow(clampv(p, 0.0f, 1.0f), 1.0f / d.m_skew);
             break;
         }
-        case ParamKind::Int: {
+        case ParamKindE::INT: {
             float v = 0.0f;
-            for (int k = 0; k < b.count; ++k) v += b.weight[k] * row[k][i];
+            for (int k = 0; k < b.m_count; ++k) v += b.m_weight[k] * row[k][i];
             out[i] = static_cast<float>(std::lround(v));
             break;
         }

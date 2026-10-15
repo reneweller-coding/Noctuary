@@ -17,7 +17,7 @@
  * on whoever asks and works from snapshots of the two logs (LoudnessLog, Loudness.h). The Fft comes
  * from Cosmos.h, which is what its include is for.
  *
- * kPi arrives from Dsp.h by way of Cosmos.h. A second one in an anonymous namespace here is not
+ * Pi arrives from Dsp.h by way of Cosmos.h. A second one in an anonymous namespace here is not
  * private to this file, it is ambiguous with that one, and the compiler says so.
  */
 #include "ambient/Loudness.h"
@@ -37,31 +37,31 @@ void KFilter::prepare(double sr)
     // because it is the analogue prototype rather than a copy of one table.
     {
         const double f0 = 1681.974450955533, G = 3.999843853973347, Q = 0.7071752369554196;
-        const double K = std::tan(kPi * f0 / sr);
+        const double K = std::tan(Pi * f0 / sr);
         const double Vh = std::pow(10.0, G / 20.0);
         const double Vb = std::pow(Vh, 0.4996667741545416);
         const double a0 = 1.0 + K / Q + K * K;
-        shelf_.b0 = static_cast<float>((Vh + Vb * K / Q + K * K) / a0);
-        shelf_.b1 = static_cast<float>(2.0 * (K * K - Vh) / a0);
-        shelf_.b2 = static_cast<float>((Vh - Vb * K / Q + K * K) / a0);
-        shelf_.a1 = static_cast<float>(2.0 * (K * K - 1.0) / a0);
-        shelf_.a2 = static_cast<float>((1.0 - K / Q + K * K) / a0);
+        m_shelf.m_b0 = static_cast<float>((Vh + Vb * K / Q + K * K) / a0);
+        m_shelf.m_b1 = static_cast<float>(2.0 * (K * K - Vh) / a0);
+        m_shelf.m_b2 = static_cast<float>((Vh - Vb * K / Q + K * K) / a0);
+        m_shelf.m_a1 = static_cast<float>(2.0 * (K * K - 1.0) / a0);
+        m_shelf.m_a2 = static_cast<float>((1.0 - K / Q + K * K) / a0);
     }
     {   // Stage two: the RLB high-pass. Its numerator is exactly 1, -2, 1 -- the standard does not
         // normalise it the way the cookbook would, and that difference is 0.04 dB of gain.
         const double f0 = 38.13547087602444, Q = 0.5003270373238773;
-        const double K = std::tan(kPi * f0 / sr);
+        const double K = std::tan(Pi * f0 / sr);
         const double d = 1.0 + K / Q + K * K;
-        hp_.b0 = 1.0f; hp_.b1 = -2.0f; hp_.b2 = 1.0f;
-        hp_.a1 = static_cast<float>(2.0 * (K * K - 1.0) / d);
-        hp_.a2 = static_cast<float>((1.0 - K / Q + K * K) / d);
+        m_hp.m_b0 = 1.0f; m_hp.m_b1 = -2.0f; m_hp.m_b2 = 1.0f;
+        m_hp.m_a1 = static_cast<float>(2.0 * (K * K - 1.0) / d);
+        m_hp.m_a2 = static_cast<float>((1.0 - K / Q + K * K) / d);
     }
     reset();
 }
 
-void KFilter::reset() { shelf_.reset(); hp_.reset(); }
+void KFilter::reset() { m_shelf.reset(); m_hp.reset(); }
 
-float KFilter::process(float x) { return hp_.process(shelf_.process(x)); }
+float KFilter::process(float x) { return m_hp.process(m_shelf.process(x)); }
 
 // ---------------------------------------------------------------- meter
 
@@ -70,7 +70,7 @@ float KFilter::process(float x) { return hp_.process(shelf_.process(x)); }
 namespace {
 
 /** @brief The centre frequencies of the third octaves, 25 Hz to 12.5 kHz. */
-const float kThirdOctave[ZwickerLoudness::kBands] = {
+const float ThirdOctave[ZwickerLoudness::Bands] = {
     25.0f, 31.5f, 40.0f, 50.0f, 63.0f, 80.0f, 100.0f, 125.0f, 160.0f, 200.0f,
     250.0f, 315.0f, 400.0f, 500.0f, 630.0f, 800.0f, 1000.0f, 1250.0f, 1600.0f, 2000.0f,
     2500.0f, 3150.0f, 4000.0f, 5000.0f, 6300.0f, 8000.0f, 10000.0f, 12500.0f,
@@ -128,22 +128,22 @@ float ZwickerLoudness::rawLoudness(const float* levelsDb)
     // lower frequencies the slope is steep and fixed; towards higher ones it gets shallower the
     // louder the band is, which is the asymmetry of masking and the reason a loud low note covers
     // so much of what is above it.
-    double e[kSteps] = {};
-    for (int b = 0; b < kBands; ++b) {
+    double e[Steps] = {};
+    for (int b = 0; b < Bands; ++b) {
         const float lvl = levelsDb[b];
         if (lvl < -20.0f) continue;
         // The band is not a line: a third octave at a kilohertz is a third of a Bark wide, and its
         // energy sits across that width before any slope begins.
-        const float zLo = barkOf(kThirdOctave[b] * 0.8909f);
-        const float zHi = barkOf(kThirdOctave[b] * 1.1225f);
+        const float zLo = barkOf(ThirdOctave[b] * 0.8909f);
+        const float zHi = barkOf(ThirdOctave[b] * 1.1225f);
         // Terhardt's slopes. The 230 over f is in HERTZ, and putting kilohertz there instead makes
         // the upper slope 246 dB per Bark at a kilohertz -- the masking pattern then has no upper
         // side at all, and the whole scale came out four times too quiet while every ratio in it
         // stayed right. A model can be wrong by a constant and still pass every relative test.
-        const float upper = std::max(2.0f, 22.0f + std::min(10.0f, 230.0f / std::max(20.0f, kThirdOctave[b])) - 0.2f * lvl);
+        const float upper = std::max(2.0f, 22.0f + std::min(10.0f, 230.0f / std::max(20.0f, ThirdOctave[b])) - 0.2f * lvl);
         const float lower = 27.0f;
         const double intensity = std::pow(10.0, 0.1 * static_cast<double>(lvl));
-        for (int i = 0; i < kSteps; ++i) {
+        for (int i = 0; i < Steps; ++i) {
             const float z = 0.1f * static_cast<float>(i);
             const float d = (z < zLo) ? z - zLo : (z > zHi ? z - zHi : 0.0f);
             const float drop = (d < 0.0f) ? lower * (-d) : upper * d;
@@ -155,7 +155,7 @@ float ZwickerLoudness::rawLoudness(const float* levelsDb)
     // 0.08 and the 0.23 are his; what they encode is that loudness doubles for every ten decibels
     // well above threshold and falls away far faster close to it.
     double total = 0.0;
-    for (int i = 0; i < kSteps; ++i) {
+    for (int i = 0; i < Steps; ++i) {
         const float z = 0.1f * static_cast<float>(i);
         const float ltq = thresholdInQuiet(hzOfBark(z));
         const double etq = std::pow(10.0, 0.1 * static_cast<double>(ltq));
@@ -183,8 +183,8 @@ float ZwickerLoudness::rawLoudness(const float* levelsDb)
 float ZwickerLoudness::fromBandLevels(const float* levelsDb)
 {
     static const float k = [] {
-        float bands[kBands];
-        for (int b = 0; b < kBands; ++b) bands[b] = -100.0f;
+        float bands[Bands];
+        for (int b = 0; b < Bands; ++b) bands[b] = -100.0f;
         bands[16] = 40.0f;                              // the 1 kHz third octave
         const float raw = rawLoudness(bands);
         return raw > 1.0e-6f ? 1.0f / raw : 1.0f;
@@ -194,76 +194,76 @@ float ZwickerLoudness::fromBandLevels(const float* levelsDb)
 
 void ZwickerLoudness::prepare(double sampleRate)
 {
-    sr_ = sampleRate > 0.0 ? sampleRate : 48000.0;
-    ring_.assign(static_cast<size_t>(kN), 0.0f);
-    re_.assign(static_cast<size_t>(kN), 0.0f);
-    im_.assign(static_cast<size_t>(kN), 0.0f);
-    window_.assign(static_cast<size_t>(kN), 0.0f);
-    for (int i = 0; i < kN; ++i)
-        window_[static_cast<size_t>(i)] = 0.5f - 0.5f * std::cos(static_cast<float>(2.0 * kPi * i / kN));
+    m_sr = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_ring.assign(static_cast<size_t>(N), 0.0f);
+    m_re.assign(static_cast<size_t>(N), 0.0f);
+    m_im.assign(static_cast<size_t>(N), 0.0f);
+    m_window.assign(static_cast<size_t>(N), 0.0f);
+    for (int i = 0; i < N; ++i)
+        m_window[static_cast<size_t>(i)] = 0.5f - 0.5f * std::cos(static_cast<float>(2.0 * Pi * i / N));
     // Which bins belong to which third octave, once.
-    const double binHz = sr_ / kN;
-    for (int b = 0; b < kBands; ++b) {
-        const double lo = kThirdOctave[b] * 0.8909, hi = kThirdOctave[b] * 1.1225;   // 2^(-1/6), 2^(1/6)
-        binLo_[b] = std::max(1, static_cast<int>(lo / binHz + 0.5));
-        binHi_[b] = std::min(kN / 2 - 1, std::max(binLo_[b], static_cast<int>(hi / binHz + 0.5)));
+    const double binHz = m_sr / N;
+    for (int b = 0; b < Bands; ++b) {
+        const double lo = ThirdOctave[b] * 0.8909, hi = ThirdOctave[b] * 1.1225;   // 2^(-1/6), 2^(1/6)
+        m_binLo[b] = std::max(1, static_cast<int>(lo / binHz + 0.5));
+        m_binHi[b] = std::min(N / 2 - 1, std::max(m_binLo[b], static_cast<int>(hi / binHz + 0.5)));
     }
-    history_.prepare(kHistory);
+    m_history.prepare(History);
     reset();
 }
 
 void ZwickerLoudness::reset()
 {
-    std::fill(ring_.begin(), ring_.end(), 0.0f);
-    pos_ = 0; filled_ = 0;
-    now_ = 0.0f; max_ = 0.0f;
-    history_.clear();
+    std::fill(m_ring.begin(), m_ring.end(), 0.0f);
+    m_pos = 0; m_filled = 0;
+    m_now = 0.0f; m_max = 0.0f;
+    m_history.clear();
 }
 
 void ZwickerLoudness::process(const float* L, const float* R, int n)
 {
-    if (ring_.empty()) return;
+    if (m_ring.empty()) return;
     for (int i = 0; i < n; ++i) {
         // The two channels as one: loudness is what reaches the listener, and two ears hearing the
         // same bed do not hear it twice.
-        ring_[static_cast<size_t>(pos_)] = 0.5f * (L[i] + R[i]);
-        pos_ = (pos_ + 1) & (kN - 1);
-        if (++filled_ >= kHop) { filled_ = 0; frame(); }
+        m_ring[static_cast<size_t>(m_pos)] = 0.5f * (L[i] + R[i]);
+        m_pos = (m_pos + 1) & (N - 1);
+        if (++m_filled >= Hop) { m_filled = 0; frame(); }
     }
 }
 
 void ZwickerLoudness::frame()
 {
-    for (int i = 0; i < kN; ++i) {
-        re_[static_cast<size_t>(i)] = ring_[static_cast<size_t>((pos_ + i) & (kN - 1))] * window_[static_cast<size_t>(i)];
-        im_[static_cast<size_t>(i)] = 0.0f;
+    for (int i = 0; i < N; ++i) {
+        m_re[static_cast<size_t>(i)] = m_ring[static_cast<size_t>((m_pos + i) & (N - 1))] * m_window[static_cast<size_t>(i)];
+        m_im[static_cast<size_t>(i)] = 0.0f;
     }
-    static const Fft fft(kN);
-    fft.transform(re_.data(), im_.data(), false);
+    static const Fft fft(N);
+    fft.transform(m_re.data(), m_im.data(), false);
     // A Hann window of this length loses half the amplitude and spreads a sinusoid over three
     // bins; both are taken out here, so a full-scale sine reads as full scale.
-    const double norm = 2.0 / kN * 2.0;
-    float levels[kBands];
-    for (int b = 0; b < kBands; ++b) {
+    const double norm = 2.0 / N * 2.0;
+    float levels[Bands];
+    for (int b = 0; b < Bands; ++b) {
         double p = 0.0;
-        for (int k = binLo_[b]; k <= binHi_[b]; ++k) {
-            const double v = (re_[static_cast<size_t>(k)] * re_[static_cast<size_t>(k)]
-                            + im_[static_cast<size_t>(k)] * im_[static_cast<size_t>(k)]) * norm * norm;
+        for (int k = m_binLo[b]; k <= m_binHi[b]; ++k) {
+            const double v = (m_re[static_cast<size_t>(k)] * m_re[static_cast<size_t>(k)]
+                            + m_im[static_cast<size_t>(k)] * m_im[static_cast<size_t>(k)]) * norm * norm;
             p += v;
         }
         // Amplitude to a level, then to dB SPL against the stated full scale. The 0.5 is because a
         // sinusoid of amplitude one has a mean square of a half, and full scale means the sine.
-        levels[b] = 10.0f * std::log10(static_cast<float>(p * 0.5) + 1.0e-20f) + kFullScaleSpl;
+        levels[b] = 10.0f * std::log10(static_cast<float>(p * 0.5) + 1.0e-20f) + FullScaleSpl;
     }
-    now_ = fromBandLevels(levels);
-    if (now_ > max_) max_ = now_;
-    history_.push(now_);
+    m_now = fromBandLevels(levels);
+    if (m_now > m_max) m_max = m_now;
+    m_history.push(m_now);
 }
 
 float ZwickerLoudness::sonesN5() const
 {
-    if (history_.empty()) return 0.0f;
-    std::vector<float> v = history_.snapshot();
+    if (m_history.empty()) return 0.0f;
+    std::vector<float> v = m_history.snapshot();
     const size_t k = v.size() - 1 - static_cast<size_t>(0.05 * static_cast<double>(v.size() - 1));
     std::nth_element(v.begin(), v.begin() + static_cast<long>(k), v.end());
     return v[k];
@@ -271,33 +271,33 @@ float ZwickerLoudness::sonesN5() const
 
 void LoudnessMeter::prepare(double sampleRate)
 {
-    sr_ = sampleRate > 0.0 ? sampleRate : 48000.0;
-    hopLen_   = std::max(1, static_cast<int>(sr_ * 0.1));
-    blockLen_ = hopLen_ * kHopsPerBlock;
-    kL_.prepare(sr_);
-    kR_.prepare(sr_);
-    zwicker_.prepare(sr_);
-    sumL_.assign(static_cast<size_t>(kHopsPerShort), 0.0);
-    sumR_.assign(static_cast<size_t>(kHopsPerShort), 0.0);
-    blocks_.prepare(kBlockLog);
-    shortBlocks_.prepare(kBlockLog);
+    m_sr = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_hopLen   = std::max(1, static_cast<int>(m_sr * 0.1));
+    m_blockLen = m_hopLen * HopsPerBlock;
+    m_kL.prepare(m_sr);
+    m_kR.prepare(m_sr);
+    m_zwicker.prepare(m_sr);
+    m_sumL.assign(static_cast<size_t>(HopsPerShort), 0.0);
+    m_sumR.assign(static_cast<size_t>(HopsPerShort), 0.0);
+    m_blocks.prepare(BlockLog);
+    m_shortBlocks.prepare(BlockLog);
     reset();
 }
 
 void LoudnessMeter::reset()
 {
-    kL_.reset(); kR_.reset();
-    zwicker_.reset();
-    std::fill(sumL_.begin(), sumL_.end(), 0.0);
-    std::fill(sumR_.begin(), sumR_.end(), 0.0);
-    ringPos_ = 0; ringFilled_ = 0; hopPos_ = 0;
-    hopL_ = hopR_ = 0.0; hopSamples_ = 0;
-    hopLR_ = hopLL_ = hopRR_ = 0.0;
-    corrLR_.fill(0.0); corrLL_.fill(0.0); corrRR_.fill(0.0);
-    totLR_ = totLL_ = totRR_ = 0.0;
-    blocks_.clear(); shortBlocks_.clear();
-    truePeak_ = 0.0; seconds_ = 0.0; lastShort_ = -120.0f;
-    for (int i = 0; i < 4; ++i) { tpHistL_[i] = 0.0f; tpHistR_[i] = 0.0f; }
+    m_kL.reset(); m_kR.reset();
+    m_zwicker.reset();
+    std::fill(m_sumL.begin(), m_sumL.end(), 0.0);
+    std::fill(m_sumR.begin(), m_sumR.end(), 0.0);
+    m_ringPos = 0; m_ringFilled = 0; m_hopPos = 0;
+    m_hopL = m_hopR = 0.0; m_hopSamples = 0;
+    m_hopLR = m_hopLL = m_hopRR = 0.0;
+    m_corrLR.fill(0.0); m_corrLL.fill(0.0); m_corrRR.fill(0.0);
+    m_totLR = m_totLL = m_totRR = 0.0;
+    m_blocks.clear(); m_shortBlocks.clear();
+    m_truePeak = 0.0; m_seconds = 0.0; m_lastShort = -120.0f;
+    for (int i = 0; i < 4; ++i) { m_tpHistL[i] = 0.0f; m_tpHistR[i] = 0.0f; }
 }
 
 namespace {
@@ -341,99 +341,99 @@ inline double interPeak(const float* h)
 void LoudnessMeter::pushBlock()
 {
     // One hop finished: it joins the ring, and the last four hops make a 400 ms block.
-    sumL_[static_cast<size_t>(ringPos_)] = hopSamples_ > 0 ? hopL_ / static_cast<double>(hopSamples_) : 0.0;
-    sumR_[static_cast<size_t>(ringPos_)] = hopSamples_ > 0 ? hopR_ / static_cast<double>(hopSamples_) : 0.0;
-    corrLR_[static_cast<size_t>(ringPos_)] = hopLR_;
-    corrLL_[static_cast<size_t>(ringPos_)] = hopLL_;
-    corrRR_[static_cast<size_t>(ringPos_)] = hopRR_;
-    totLR_ += hopLR_; totLL_ += hopLL_; totRR_ += hopRR_;
-    ringPos_ = (ringPos_ + 1) % kHopsPerShort;
-    if (ringFilled_ < kHopsPerShort) ++ringFilled_;
-    hopL_ = hopR_ = 0.0; hopSamples_ = 0;
-    hopLR_ = hopLL_ = hopRR_ = 0.0;
+    m_sumL[static_cast<size_t>(m_ringPos)] = m_hopSamples > 0 ? m_hopL / static_cast<double>(m_hopSamples) : 0.0;
+    m_sumR[static_cast<size_t>(m_ringPos)] = m_hopSamples > 0 ? m_hopR / static_cast<double>(m_hopSamples) : 0.0;
+    m_corrLR[static_cast<size_t>(m_ringPos)] = m_hopLR;
+    m_corrLL[static_cast<size_t>(m_ringPos)] = m_hopLL;
+    m_corrRR[static_cast<size_t>(m_ringPos)] = m_hopRR;
+    m_totLR += m_hopLR; m_totLL += m_hopLL; m_totRR += m_hopRR;
+    m_ringPos = (m_ringPos + 1) % HopsPerShort;
+    if (m_ringFilled < HopsPerShort) ++m_ringFilled;
+    m_hopL = m_hopR = 0.0; m_hopSamples = 0;
+    m_hopLR = m_hopLL = m_hopRR = 0.0;
 
     auto meanOver = [this](int hops, double& l, double& r) {
-        const int n = std::min(hops, ringFilled_);
+        const int n = std::min(hops, m_ringFilled);
         l = r = 0.0;
         for (int k = 1; k <= n; ++k) {
-            const int idx = (ringPos_ - k + kHopsPerShort) % kHopsPerShort;
-            l += sumL_[static_cast<size_t>(idx)];
-            r += sumR_[static_cast<size_t>(idx)];
+            const int idx = (m_ringPos - k + HopsPerShort) % HopsPerShort;
+            l += m_sumL[static_cast<size_t>(idx)];
+            r += m_sumR[static_cast<size_t>(idx)];
         }
         if (n > 0) { l /= n; r /= n; }
         return n;
     };
 
     double bl = 0.0, br = 0.0;
-    if (meanOver(kHopsPerBlock, bl, br) == kHopsPerBlock) blocks_.push(lufs(bl, br));
+    if (meanOver(HopsPerBlock, bl, br) == HopsPerBlock) m_blocks.push(lufs(bl, br));
     double sl = 0.0, sr = 0.0;
-    if (meanOver(kHopsPerShort, sl, sr) == kHopsPerShort) {
-        lastShort_ = lufs(sl, sr);
-        shortBlocks_.push(lastShort_);
+    if (meanOver(HopsPerShort, sl, sr) == HopsPerShort) {
+        m_lastShort = lufs(sl, sr);
+        m_shortBlocks.push(m_lastShort);
     }
 }
 
 void LoudnessMeter::process(const float* L, const float* R, int n)
 {
-    zwicker_.process(L, R, n);
+    m_zwicker.process(L, R, n);
     for (int i = 0; i < n; ++i) {
         const float l = L[i], r = R[i];
         // True peak first, on the unweighted signal: it is a peak, not a loudness.
-        tpHistL_[0] = tpHistL_[1]; tpHistL_[1] = tpHistL_[2]; tpHistL_[2] = tpHistL_[3]; tpHistL_[3] = l;
-        tpHistR_[0] = tpHistR_[1]; tpHistR_[1] = tpHistR_[2]; tpHistR_[2] = tpHistR_[3]; tpHistR_[3] = r;
-        truePeak_ = std::max(truePeak_, std::max(interPeak(tpHistL_), interPeak(tpHistR_)));
+        m_tpHistL[0] = m_tpHistL[1]; m_tpHistL[1] = m_tpHistL[2]; m_tpHistL[2] = m_tpHistL[3]; m_tpHistL[3] = l;
+        m_tpHistR[0] = m_tpHistR[1]; m_tpHistR[1] = m_tpHistR[2]; m_tpHistR[2] = m_tpHistR[3]; m_tpHistR[3] = r;
+        m_truePeak = std::max(m_truePeak, std::max(interPeak(m_tpHistL), interPeak(m_tpHistR)));
 
-        const float kl = kL_.process(l), kr = kR_.process(r);
-        hopL_ += static_cast<double>(kl) * kl;
-        hopR_ += static_cast<double>(kr) * kr;
+        const float kl = m_kL.process(l), kr = m_kR.process(r);
+        m_hopL += static_cast<double>(kl) * kl;
+        m_hopR += static_cast<double>(kr) * kr;
         // The correlation of the two channels, unweighted: a correlation meter shows the whole band.
-        hopLR_ += static_cast<double>(l) * r;
-        hopLL_ += static_cast<double>(l) * l;
-        hopRR_ += static_cast<double>(r) * r;
-        ++hopSamples_;
-        if (++hopPos_ >= hopLen_) { hopPos_ = 0; pushBlock(); }
+        m_hopLR += static_cast<double>(l) * r;
+        m_hopLL += static_cast<double>(l) * l;
+        m_hopRR += static_cast<double>(r) * r;
+        ++m_hopSamples;
+        if (++m_hopPos >= m_hopLen) { m_hopPos = 0; pushBlock(); }
     }
-    seconds_ += static_cast<double>(n) / sr_;
+    m_seconds += static_cast<double>(n) / m_sr;
 }
 
 LoudnessReading LoudnessMeter::read() const
 {
     LoudnessReading out;
-    out.seconds = static_cast<float>(seconds_);
-    out.shortTerm = lastShort_;
-    out.sones = zwicker_.sones();
-    out.sonesMax = zwicker_.sonesMax();
-    out.sonesN5 = zwicker_.sonesN5();
+    out.m_seconds = static_cast<float>(m_seconds);
+    out.m_shortTerm = m_lastShort;
+    out.m_sones = m_zwicker.sones();
+    out.m_sonesMax = m_zwicker.sonesMax();
+    out.m_sonesN5 = m_zwicker.sonesN5();
 
     {   // The correlation of the two channels, over the short-term window and since the reset: +1 is
         // mono, 0 two unrelated signals, -1 one channel the other upside down. The production guide
         // wants the mean between 0.3 and 0.7 on the master (25.09.2026).
         double lr = 0.0, ll = 0.0, rr = 0.0;
-        for (int k = 1; k <= ringFilled_; ++k) {
-            const int idx = (ringPos_ - k + kHopsPerShort) % kHopsPerShort;
-            lr += corrLR_[static_cast<size_t>(idx)];
-            ll += corrLL_[static_cast<size_t>(idx)];
-            rr += corrRR_[static_cast<size_t>(idx)];
+        for (int k = 1; k <= m_ringFilled; ++k) {
+            const int idx = (m_ringPos - k + HopsPerShort) % HopsPerShort;
+            lr += m_corrLR[static_cast<size_t>(idx)];
+            ll += m_corrLL[static_cast<size_t>(idx)];
+            rr += m_corrRR[static_cast<size_t>(idx)];
         }
-        if (ll * rr > 1.0e-24) out.correlation = static_cast<float>(lr / std::sqrt(ll * rr));
-        if (totLL_ * totRR_ > 1.0e-24) out.correlationMean = static_cast<float>(totLR_ / std::sqrt(totLL_ * totRR_));
+        if (ll * rr > 1.0e-24) out.m_correlation = static_cast<float>(lr / std::sqrt(ll * rr));
+        if (m_totLL * m_totRR > 1.0e-24) out.m_correlationMean = static_cast<float>(m_totLR / std::sqrt(m_totLL * m_totRR));
     }
     {   // Momentary: the last four hops, which is the last 400 ms.
         double l = 0.0, r = 0.0;
-        const int n = std::min(kHopsPerBlock, ringFilled_);
+        const int n = std::min(HopsPerBlock, m_ringFilled);
         for (int k = 1; k <= n; ++k) {
-            const int idx = (ringPos_ - k + kHopsPerShort) % kHopsPerShort;
-            l += sumL_[static_cast<size_t>(idx)];
-            r += sumR_[static_cast<size_t>(idx)];
+            const int idx = (m_ringPos - k + HopsPerShort) % HopsPerShort;
+            l += m_sumL[static_cast<size_t>(idx)];
+            r += m_sumR[static_cast<size_t>(idx)];
         }
-        if (n > 0) out.momentary = lufs(l / n, r / n);
+        if (n > 0) out.m_momentary = lufs(l / n, r / n);
     }
 
     // Integrated, gated twice: everything below -70 LUFS is not programme at all, and then
     // everything more than 10 LU under the mean of what is left is a gap between the loud parts.
     // Without the second gate a piece that is mostly silence measures as mostly silence.
-    if (!blocks_.empty()) {
-        const std::vector<float> bl = blocks_.snapshot();
+    if (!m_blocks.empty()) {
+        const std::vector<float> bl = m_blocks.snapshot();
         double sum = 0.0; int count = 0;
         for (float b : bl) if (b > -70.0f) { sum += std::pow(10.0, (b + 0.691) / 10.0); ++count; }
         if (count > 0) {
@@ -441,15 +441,15 @@ LoudnessReading LoudnessMeter::read() const
             const float gate = absMean - 10.0f;
             double s2 = 0.0; int c2 = 0;
             for (float b : bl) if (b > -70.0f && b > gate) { s2 += std::pow(10.0, (b + 0.691) / 10.0); ++c2; }
-            if (c2 > 0) out.integrated = static_cast<float>(-0.691 + 10.0 * std::log10(s2 / c2));
+            if (c2 > 0) out.m_integrated = static_cast<float>(-0.691 + 10.0 * std::log10(s2 / c2));
         }
     }
 
     // Loudness range: the spread of the short-term values between the 10th and 95th centile, over
     // those above the usual relative gate. It is the number that says whether a piece still has
     // its dynamics -- ambient wants it wide, and a limiter is what makes it narrow.
-    if (shortBlocks_.size() >= 10) {
-        const std::vector<float> sb = shortBlocks_.snapshot();
+    if (m_shortBlocks.size() >= 10) {
+        const std::vector<float> sb = m_shortBlocks.snapshot();
         std::vector<float> v;
         v.reserve(sb.size());
         double sum = 0.0; int count = 0;
@@ -461,15 +461,15 @@ LoudnessReading LoudnessMeter::read() const
                 std::sort(v.begin(), v.end());
                 const size_t lo = static_cast<size_t>(0.10 * (v.size() - 1));
                 const size_t hi = static_cast<size_t>(0.95 * (v.size() - 1));
-                out.range = v[hi] - v[lo];
+                out.m_range = v[hi] - v[lo];
             }
         }
     }
 
-    out.truePeak = truePeak_ > 1.0e-9 ? static_cast<float>(20.0 * std::log10(truePeak_)) : -120.0f;
+    out.m_truePeak = m_truePeak > 1.0e-9 ? static_cast<float>(20.0 * std::log10(m_truePeak)) : -120.0f;
     // Crest: how far the loudest instant stands above the loudness of the last three seconds.
     // Under a limiter this collapses; it is the single number the ambient literature asks for.
-    if (out.shortTerm > -119.0f && out.truePeak > -119.0f) out.crest = out.truePeak - out.shortTerm;
+    if (out.m_shortTerm > -119.0f && out.m_truePeak > -119.0f) out.m_crest = out.m_truePeak - out.m_shortTerm;
     return out;
 }
 

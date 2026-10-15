@@ -12,7 +12,7 @@ and only then compiled in by this tool.
     python Tools/library/write_builtins.py --packs work/builtin_packs
     python Tools/library/write_builtins.py --packs work/builtin_packs --check    report, write nothing
 
-Everything outside `const Preset kPresets[] = { ... };` stays exactly as it is: the file's head, the
+Everything outside `const Preset Presets[] = { ... };` stays exactly as it is: the file's head, the
 section banks it includes and the functions under it. The family comments that Tools/preset_map.py
 reads -- "// ---- N..M name", which become the browser's families -- are written from the pack
 names, in the order artists.py lists them. "Init", the empty preset, opens the array.
@@ -28,7 +28,7 @@ sys.path.insert(0, HERE)
 from artists import BUILTINS  # noqa: E402
 
 PRESETS_CPP = os.path.join(ROOT, "Core", "src", "Presets.cpp")
-ARRAY = "const Preset kPresets[] = {"
+ARRAY = "const Preset Presets[] = {"
 FIELDS = ["name", "settings", "meta", "texture", "wavetable", "impulse", "mod", "envs", "impulse_b"]
 WIDTH = 108
 

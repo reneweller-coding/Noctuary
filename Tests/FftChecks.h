@@ -60,7 +60,7 @@ inline void fftChecks()
                 // in both directions.
                 const int bin = m / 2 + (kind - 5);                      // m/2 - 1, m/2, m/2 + 1
                 for (int i = 0; i < n; ++i)
-                    x[static_cast<size_t>(i)] = std::cos(static_cast<float>(ambient::kTwoPi * bin * i / n));
+                    x[static_cast<size_t>(i)] = std::cos(static_cast<float>(ambient::TwoPi * bin * i / n));
             }
 
             // What the complex transform says, on the same samples with a row of zeros beside them.
@@ -97,8 +97,8 @@ inline void fftChecks()
             for (int k = 0; k <= m; ++k) {
                 const float a = 0.2f + rng.uniform();
                 const float ph = rng.uniform();
-                hr[static_cast<size_t>(k)] = a * std::cos(static_cast<float>(ambient::kTwoPi * ph));
-                hi[static_cast<size_t>(k)] = a * std::sin(static_cast<float>(ambient::kTwoPi * ph));
+                hr[static_cast<size_t>(k)] = a * std::cos(static_cast<float>(ambient::TwoPi * ph));
+                hi[static_cast<size_t>(k)] = a * std::sin(static_cast<float>(ambient::TwoPi * ph));
             }
             hi[0] = 0.0f; hi[static_cast<size_t>(m)] = 0.0f;          // the two real bins
             for (int k = 1; k < m; ++k) { hr[static_cast<size_t>(n - k)] = hr[static_cast<size_t>(k)]; hi[static_cast<size_t>(n - k)] = -hi[static_cast<size_t>(k)]; }

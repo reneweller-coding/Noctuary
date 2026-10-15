@@ -85,7 +85,7 @@ std::string listOf(const std::vector<std::string>& v)
 /**
  * @brief What a source type is called in a sentence: "an additive bank", "a grain texture", "noise".
  *
- * The names are the choice names of the source slots (kSourceTypeNames, Sources.h) as they stand
+ * The names are the choice names of the source slots (SourceTypeNames, Sources.h) as they stand
  * in a preset's settings; "Wavetable" is the pre-format-2 spelling of "Table" and reads the same.
  *
  * @param type  the source type as written in the settings, e.g. "Additive" or "Clip"
@@ -129,24 +129,24 @@ std::string presetDescription(int index)
 {
     if (index < 0 || index >= numPresets()) return {};
     const Preset& p = preset(index);
-    const char* st = p.settings;
+    const char* st = p.m_settings;
     std::string character;
     if (numPresetMeta() == numPresets()) {
         const PresetMeta& m = presetMeta(index);
         // The three ranks furthest from the middle, said in words -- the same vocabulary the map's
         // groups are named with, so a preset's line and the group it sits in agree.
-        struct Axis { float v; const char* hi; const char* lo; };
+        struct Axis { float m_v; const char* m_hi; const char* m_lo; };
         const Axis ax[] = {
-            { m.bright, "bright", "dark" }, { m.motion, "moving", "calm" },
-            { m.width, "wide", "narrow" },  { m.noisy, "noisy", "tonal" },
-            { m.bass, "deep", "light" },    { m.density, "dense", "sparse" },
-            { m.evolve, "evolving", "still" }, { m.rough, "rough", "smooth" },
-            { m.wet, "distant", "close" },
+            { m.m_bright, "bright", "dark" }, { m.m_motion, "moving", "calm" },
+            { m.m_width, "wide", "narrow" },  { m.m_noisy, "noisy", "tonal" },
+            { m.m_bass, "deep", "light" },    { m.m_density, "dense", "sparse" },
+            { m.m_evolve, "evolving", "still" }, { m.m_rough, "rough", "smooth" },
+            { m.m_wet, "distant", "close" },
         };
         std::vector<std::pair<float, std::string>> picked;
         for (const Axis& a : ax) {
-            const float d = a.v - 0.5f;
-            if (std::abs(d) > 0.22f) picked.push_back({ -std::abs(d), std::string(d > 0.0f ? a.hi : a.lo) });
+            const float d = a.m_v - 0.5f;
+            if (std::abs(d) > 0.22f) picked.push_back({ -std::abs(d), std::string(d > 0.0f ? a.m_hi : a.m_lo) });
         }
         std::sort(picked.begin(), picked.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
         std::vector<std::string> words;
@@ -225,7 +225,7 @@ std::string presetInfoText(int index)
 {
     if (index < 0 || index >= numPresets()) return {};
     const Preset& p = preset(index);
-    const char* st = p.settings != nullptr ? p.settings : "";
+    const char* st = p.m_settings != nullptr ? p.m_settings : "";
     std::string out = presetDescription(index);
 
     // A sentence about how it moves: the conductor's own pace, and how long a note stands. These
@@ -260,32 +260,32 @@ std::string presetInfoText(int index)
         // What a model that listened to the render says. The sentence above was written from the
         // settings -- it knows what is switched on; this line knows only the sound, which is why
         // the two are kept apart and never blended into one paragraph.
-        if (numPresetPhrases() > 0 && m.phrase[0] >= 0) {
+        if (numPresetPhrases() > 0 && m.m_phrase[0] >= 0) {
             out += "\n\nSOUNDS LIKE\n";
-            out += presetPhrase(m.phrase[0]);
-            if (m.phrase[1] >= 0 && m.phrase[1] != m.phrase[0]) { out += ", "; out += presetPhrase(m.phrase[1]); }
+            out += presetPhrase(m.m_phrase[0]);
+            if (m.m_phrase[1] >= 0 && m.m_phrase[1] != m.m_phrase[0]) { out += ", "; out += presetPhrase(m.m_phrase[1]); }
             out += "\n";
         }
         out += "\n\nFILED UNDER\n";
-        out += presetFamilyName(m.family);
+        out += presetFamilyName(m.m_family);
         const int c = presetClusterOf(m);
         if (c >= 0 && *presetClusterName(c) != 0) { out += "   -   group: "; out += presetClusterName(c); }
         out += "\n";
         std::string tags;
-        for (int t = 0; t < kNumPresetTags; ++t)
-            if (m.tags & (1u << t)) { if (!tags.empty()) tags += "  "; tags += presetTagName(t); }
+        for (int t = 0; t < NumPresetTags; ++t)
+            if (m.m_tags & (1u << t)) { if (!tags.empty()) tags += "  "; tags += presetTagName(t); }
         if (!tags.empty()) out += tags + "\n";
-        if (m.loudDb < -0.5f) {
+        if (m.m_loudDb < -0.5f) {
             char buf[64];
-            std::snprintf(buf, sizeof(buf), "measured at %.1f dBFS\n", static_cast<double>(m.loudDb));
+            std::snprintf(buf, sizeof(buf), "measured at %.1f dBFS\n", static_cast<double>(m.m_loudDb));
             out += buf;
         }
     }
     // What your hands do here. Only the routes a player can reach -- the macros, the wheel, the
     // pressure and the slide; the LFOs and the fields are the instrument moving by itself.
-    if (p.mod != nullptr && *p.mod != 0) {
+    if (p.m_mod != nullptr && *p.m_mod != 0) {
         std::vector<std::string> hands, itself;
-        std::string t(p.mod);
+        std::string t(p.m_mod);
         size_t at = 0;
         while (at < t.size()) {
             const size_t semi = t.find(';', at);
@@ -302,7 +302,7 @@ std::string presetInfoText(int index)
             for (char& c : pretty) if (c == '_') c = ' ';
             if (!pretty.empty()) pretty[0] = static_cast<char>(std::toupper(pretty[0]));
             const bool byHand = src.rfind("macro", 0) == 0 || src == "wheel" || src == "pressure" || src == "slide";
-            (byHand ? hands : itself).push_back(pretty + "  ->  " + d->name);
+            (byHand ? hands : itself).push_back(pretty + "  ->  " + d->m_name);
         }
         if (!hands.empty()) {
             out += "\n\nUNDER YOUR HANDS\n";

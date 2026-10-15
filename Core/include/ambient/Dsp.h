@@ -18,8 +18,8 @@
 
 namespace ambient {
 
-constexpr float  kPi    = 3.14159265358979f;   ///< pi in single precision
-constexpr float  kTwoPi = 6.28318530717959f;   ///< 2 pi in single precision: radians per cycle
+constexpr float  Pi    = 3.14159265358979f;   ///< pi in single precision
+constexpr float  TwoPi = 6.28318530717959f;   ///< 2 pi in single precision: radians per cycle
 
 /**
  * @brief Clamps a value into [lo, hi]; the only clamp the engine uses, so that ints and floats read alike.
@@ -45,17 +45,17 @@ inline float dbToGain(float db) { return std::pow(10.0f, db * 0.05f); }
  * read the same stream.
  */
 struct Rng {
-    uint64_t s = 0x9E3779B97F4A7C15ull;   ///< the generator's state; never zero after seed()
+    uint64_t m_s = 0x9E3779B97F4A7C15ull;   ///< the generator's state; never zero after seed()
     /**
      * @brief Sets the state from a seed and discards the first two outputs.
      * @param v  any 64-bit seed; the state is scrambled with two odd constants so nearby seeds diverge, and a zero state is nudged to 1
      */
-    void seed(uint64_t v) { s = v * 0x9E3779B97F4A7C15ull + 0xD1B54A32D192ED03ull; if (s == 0) s = 1; next(); next(); }
+    void seed(uint64_t v) { m_s = v * 0x9E3779B97F4A7C15ull + 0xD1B54A32D192ED03ull; if (m_s == 0) m_s = 1; next(); next(); }
     /**
      * @brief Advances the generator by one step.
      * @return  the new 64-bit state, all bits usable
      */
-    uint64_t next() { s ^= s << 13; s ^= s >> 7; s ^= s << 17; return s; }
+    uint64_t next() { m_s ^= m_s << 13; m_s ^= m_s >> 7; m_s ^= m_s << 17; return m_s; }
     /**
      * @brief A uniform draw in [0,1), from the top 24 bits of the state.
      * @return  a float in [0,1), never 1
@@ -91,9 +91,9 @@ struct SineTable {
      * exactly 1.0 -- which the chorus produces as 1.0 - phase when the phase is zero -- lands
      * on i == N and read v[N + 1], one past the end of the table.
      */
-    float v[N + 2];
+    float m_v[N + 2];
     /** @brief Fills the table with one cycle of the sine, guards included. */
-    SineTable() { for (int i = 0; i <= N + 1; ++i) v[i] = std::sin(kTwoPi * static_cast<float>(i) / static_cast<float>(N)); }
+    SineTable() { for (int i = 0; i <= N + 1; ++i) m_v[i] = std::sin(TwoPi * static_cast<float>(i) / static_cast<float>(N)); }
 };
 /**
  * @brief The one sine table of the process, built on first use.
@@ -128,7 +128,7 @@ inline float sin01(double phase01)
         if (static_cast<unsigned>(i) > static_cast<unsigned>(SineTable::N)) return 0.0f;
     }
     const float f = static_cast<float>(x - i);
-    const float* t = sineTable().v;
+    const float* t = sineTable().m_v;
     return t[i] + f * (t[i + 1] - t[i]);
 }
 
@@ -158,8 +158,8 @@ public:
      */
     void init(Rng& r)
     {
-        prev_ = r.bipolar(); next_ = r.bipolar();
-        t_ = r.uniform(); scale_ = 0.7f + 0.6f * r.uniform();
+        m_prev = r.bipolar(); m_next = r.bipolar();
+        m_t = r.uniform(); m_scale = 0.7f + 0.6f * r.uniform();
     }
     /**
      * @brief Advances the curve by a stretch of time and returns its value.
@@ -170,27 +170,27 @@ public:
      */
     float update(float dtSeconds, float rateHz, Rng& r)
     {
-        t_ += dtSeconds * rateHz * scale_;
-        if (t_ >= 1.0f) {
-            t_ -= std::floor(t_);
-            prev_ = next_; next_ = r.bipolar();
-            scale_ = 0.7f + 0.6f * r.uniform();
+        m_t += dtSeconds * rateHz * m_scale;
+        if (m_t >= 1.0f) {
+            m_t -= std::floor(m_t);
+            m_prev = m_next; m_next = r.bipolar();
+            m_scale = 0.7f + 0.6f * r.uniform();
         }
-        const float c = t_ * t_ * (3.0f - 2.0f * t_);
-        value_ = prev_ + (next_ - prev_) * c;
-        return value_;
+        const float c = m_t * m_t * (3.0f - 2.0f * m_t);
+        m_value = m_prev + (m_next - m_prev) * c;
+        return m_value;
     }
     /**
      * @brief The value of the last update(), without advancing.
      * @return  the current value in [-1,1]
      */
-    float value() const { return value_; }
+    float value() const { return m_value; }
 private:
-    float prev_ = 0,    ///< the knot being left
-          next_ = 0,    ///< the knot being approached
-          t_ = 0,       ///< position between them, 0 .. 1
-          scale_ = 1,   ///< this segment's period jitter, 0.7 .. 1.3
-          value_ = 0;   ///< the last value returned
+    float m_prev = 0,    ///< the knot being left
+          m_next = 0,    ///< the knot being approached
+          m_t = 0,       ///< position between them, 0 .. 1
+          m_scale = 1,   ///< this segment's period jitter, 0.7 .. 1.3
+          m_value = 0;   ///< the last value returned
 };
 
 /**
@@ -206,18 +206,18 @@ private:
 class Envelope {
 public:
     /** @brief Where the envelope is. */
-    enum class Stage {
-        Idle,      ///< silent, level 0; process() does nothing
-        Attack,    ///< rising towards 1
-        Decay,     ///< falling towards the sustain
-        Sustain,   ///< holding the sustain until noteOff()
-        Release    ///< falling towards silence
+    enum class StageE {
+        IDLE,      ///< silent, level 0; process() does nothing
+        ATTACK,    ///< rising towards 1
+        DECAY,     ///< falling towards the sustain
+        SUSTAIN,   ///< holding the sustain until noteOff()
+        RELEASE    ///< falling towards silence
     };
     /**
      * @brief Sets the rate the coefficients are computed against; call before setTimes().
      * @param sr  the engine's rate in Hz
      */
-    void setSampleRate(double sr) { sr_ = sr; }
+    void setSampleRate(double sr) { m_sr = sr; }
     /**
      * @brief Sets the four segments.
      * @param attackS   attack time in seconds: how long the level takes to reach 1 (at least 0.5 ms)
@@ -227,13 +227,13 @@ public:
      */
     void setTimes(float attackS, float decayS, float sustain, float releaseS)
     {
-        aCoef_ = coef(attackS, 1.466f);   // one-pole toward 1.3 reaches 1.0 after `attackS`
-        dCoef_ = coef(decayS, 3.0f);
-        rCoef_ = coef(releaseS, 5.0f);    // -43 dB after `releaseS`, silent (-80 dB) at ~1.8x
-        sus_   = sustain;
+        m_aCoef = coef(attackS, 1.466f);   // one-pole toward 1.3 reaches 1.0 after `attackS`
+        m_dCoef = coef(decayS, 3.0f);
+        m_rCoef = coef(releaseS, 5.0f);    // -43 dB after `releaseS`, silent (-80 dB) at ~1.8x
+        m_sus   = sustain;
     }
     /** @brief Starts the attack; continues from the current level, so a retriggered note does not dip. */
-    void noteOn()  { stage_ = Stage::Attack; }
+    void noteOn()  { m_stage = StageE::ATTACK; }
     /**
      * @brief Starts a note that has been sounding for a while already, at the level it would have.
      *
@@ -248,37 +248,37 @@ public:
      */
     void noteOnAged(float seconds)
     {
-        stage_ = Stage::Attack;
+        m_stage = StageE::ATTACK;
         if (!(seconds > 0.0f)) return;
-        const double n = static_cast<double>(seconds) * sr_;
-        const double reached = 1.3 * (1.0 - std::pow(1.0 - static_cast<double>(aCoef_), n));
-        if (reached >= 1.0) { level_ = sus_; stage_ = sus_ > 1e-4f ? Stage::Sustain : Stage::Idle; if (sus_ <= 1e-4f) level_ = 0.0f; }
-        else level_ = std::max(level_, static_cast<float>(reached));
+        const double n = static_cast<double>(seconds) * m_sr;
+        const double reached = 1.3 * (1.0 - std::pow(1.0 - static_cast<double>(m_aCoef), n));
+        if (reached >= 1.0) { m_level = m_sus; m_stage = m_sus > 1e-4f ? StageE::SUSTAIN : StageE::IDLE; if (m_sus <= 1e-4f) m_level = 0.0f; }
+        else m_level = std::max(m_level, static_cast<float>(reached));
     }
     /** @brief Enters the release from wherever the envelope is; nothing happens when it is Idle. */
-    void noteOff() { if (stage_ != Stage::Idle) stage_ = Stage::Release; }
+    void noteOff() { if (m_stage != StageE::IDLE) m_stage = StageE::RELEASE; }
     /** @brief Silences the envelope at once: Idle, level 0. */
-    void kill()    { stage_ = Stage::Idle; level_ = 0.0f; }
+    void kill()    { m_stage = StageE::IDLE; m_level = 0.0f; }
     /**
      * @brief Whether the envelope is in any stage but Idle.
      * @return  true while the note sounds, release included
      */
-    bool isActive() const    { return stage_ != Stage::Idle; }
+    bool isActive() const    { return m_stage != StageE::IDLE; }
     /**
      * @brief Whether the envelope is in its release.
      * @return  true after noteOff() until the level has died
      */
-    bool isReleasing() const { return stage_ == Stage::Release; }
+    bool isReleasing() const { return m_stage == StageE::RELEASE; }
     /**
      * @brief The current level without advancing.
      * @return  0 .. 1
      */
-    float level() const      { return level_; }
+    float level() const      { return m_level; }
     /**
      * @brief The current stage.
      * @return  the Stage
      */
-    Stage stage() const      { return stage_; }
+    StageE stage() const      { return m_stage; }
 
     /**
      * @brief Advances one sample.
@@ -289,27 +289,27 @@ public:
      */
     float process()
     {
-        switch (stage_) {
-        case Stage::Attack:
-            level_ += (1.3f - level_) * aCoef_;
-            if (level_ >= 1.0f) { level_ = 1.0f; stage_ = Stage::Decay; }
+        switch (m_stage) {
+        case StageE::ATTACK:
+            m_level += (1.3f - m_level) * m_aCoef;
+            if (m_level >= 1.0f) { m_level = 1.0f; m_stage = StageE::DECAY; }
             break;
-        case Stage::Decay:
-            level_ += (sus_ - level_) * dCoef_;
-            if (std::fabs(level_ - sus_) < 1e-4f) { level_ = sus_; stage_ = Stage::Sustain; }
-            if (sus_ < 1e-4f && level_ < 1e-4f) { level_ = 0.0f; stage_ = Stage::Idle; }
+        case StageE::DECAY:
+            m_level += (m_sus - m_level) * m_dCoef;
+            if (std::fabs(m_level - m_sus) < 1e-4f) { m_level = m_sus; m_stage = StageE::SUSTAIN; }
+            if (m_sus < 1e-4f && m_level < 1e-4f) { m_level = 0.0f; m_stage = StageE::IDLE; }
             break;
-        case Stage::Sustain:
-            level_ = sus_;
-            if (sus_ < 1e-4f) { level_ = 0.0f; stage_ = Stage::Idle; }
+        case StageE::SUSTAIN:
+            m_level = m_sus;
+            if (m_sus < 1e-4f) { m_level = 0.0f; m_stage = StageE::IDLE; }
             break;
-        case Stage::Release:
-            level_ -= level_ * rCoef_;
-            if (level_ < 1e-4f) { level_ = 0.0f; stage_ = Stage::Idle; }
+        case StageE::RELEASE:
+            m_level -= m_level * m_rCoef;
+            if (m_level < 1e-4f) { m_level = 0.0f; m_stage = StageE::IDLE; }
             break;
         default: break;
         }
-        return level_;
+        return m_level;
     }
 private:
     /**
@@ -321,15 +321,15 @@ private:
     float coef(float seconds, float k) const
     {
         const float tau = std::max(seconds, 0.0005f) / k;
-        return 1.0f - std::exp(-1.0f / (tau * static_cast<float>(sr_)));
+        return 1.0f - std::exp(-1.0f / (tau * static_cast<float>(m_sr)));
     }
-    double sr_ = 48000.0;   ///< sample rate the coefficients were computed for
-    float aCoef_ = 0.01f,     ///< attack one-pole coefficient
-          dCoef_ = 0.001f,    ///< decay one-pole coefficient
-          rCoef_ = 0.0005f,   ///< release one-pole coefficient
-          sus_ = 1.0f;        ///< the sustain level
-    float level_ = 0.0f;   ///< the current level, 0 .. 1
-    Stage stage_ = Stage::Idle;   ///< the current stage
+    double m_sr = 48000.0;   ///< sample rate the coefficients were computed for
+    float m_aCoef = 0.01f,     ///< attack one-pole coefficient
+          m_dCoef = 0.001f,    ///< decay one-pole coefficient
+          m_rCoef = 0.0005f,   ///< release one-pole coefficient
+          m_sus = 1.0f;        ///< the sustain level
+    float m_level = 0.0f;   ///< the current level, 0 .. 1
+    StageE m_stage = StageE::IDLE;   ///< the current stage
 };
 
 /**
@@ -340,12 +340,12 @@ private:
  * the low pass alone a little cheaper.
  */
 struct Svf {
-    float ic1 = 0,   ///< the first integrator's state
-          ic2 = 0;   ///< the second integrator's state
-    float a1 = 0,     ///< 1 / (1 + g (g + k))
-          a2 = 0,     ///< g a1
-          a3 = 0,     ///< g a2
-          k = 1.0f;   ///< the damping, 1 / Q; the band pass times k has unity gain at the cutoff
+    float m_ic1 = 0,   ///< the first integrator's state
+          m_ic2 = 0;   ///< the second integrator's state
+    float m_a1 = 0,     ///< 1 / (1 + g (g + k))
+          m_a2 = 0,     ///< g a1
+          m_a3 = 0,     ///< g a2
+          m_k = 1.0f;   ///< the damping, 1 / Q; the band pass times k has unity gain at the cutoff
     /**
      * @brief Coefficients from a cutoff and a 0 .. 1 resonance.
      * @param cutoffHz   the cutoff in Hz, clamped between 10 Hz and 0.45 of the rate
@@ -367,7 +367,7 @@ struct Svf {
      * @brief Takes another filter's coefficients, leaving this one's state alone.
      * @param o  the filter to copy a1, a2, a3 and k from
      */
-    void copyCoefficients(const Svf& o) { a1 = o.a1; a2 = o.a2; a3 = o.a3; k = o.k; }
+    void copyCoefficients(const Svf& o) { m_a1 = o.m_a1; m_a2 = o.m_a2; m_a3 = o.m_a3; m_k = o.m_k; }
     /**
      * @brief Coefficients from a cutoff and the damping itself.
      * @param cutoffHz  the cutoff in Hz, clamped between 10 Hz and 0.45 of the rate
@@ -377,11 +377,11 @@ struct Svf {
     void setK(float cutoffHz, float damping, float sr)
     {
         const float fc = clampv(cutoffHz, 10.0f, sr * 0.45f);
-        const float g = std::tan(kPi * fc / sr);
-        k = damping;
-        a1 = 1.0f / (1.0f + g * (g + k));
-        a2 = g * a1;
-        a3 = g * a2;
+        const float g = std::tan(Pi * fc / sr);
+        m_k = damping;
+        m_a1 = 1.0f / (1.0f + g * (g + m_k));
+        m_a2 = g * m_a1;
+        m_a3 = g * m_a2;
     }
     /**
      * @brief All three outputs at once (band-pass has unity gain at the cutoff).
@@ -392,12 +392,12 @@ struct Svf {
      */
     inline void tick(float in, float& lp, float& bp, float& hp)
     {
-        const float v3 = in - ic2;
-        const float v1 = a1 * ic1 + a2 * v3;
-        const float v2 = ic2 + a2 * ic1 + a3 * v3;
-        ic1 = 2.0f * v1 - ic1;
-        ic2 = 2.0f * v2 - ic2;
-        lp = v2; bp = v1; hp = in - k * v1 - v2;
+        const float v3 = in - m_ic2;
+        const float v1 = m_a1 * m_ic1 + m_a2 * v3;
+        const float v2 = m_ic2 + m_a2 * m_ic1 + m_a3 * v3;
+        m_ic1 = 2.0f * v1 - m_ic1;
+        m_ic2 = 2.0f * v2 - m_ic2;
+        lp = v2; bp = v1; hp = in - m_k * v1 - v2;
     }
     /**
      * @brief The low pass alone.
@@ -406,15 +406,15 @@ struct Svf {
      */
     inline float lp(float in)
     {
-        const float v3 = in - ic2;
-        const float v1 = a1 * ic1 + a2 * v3;
-        const float v2 = ic2 + a2 * ic1 + a3 * v3;
-        ic1 = 2.0f * v1 - ic1;
-        ic2 = 2.0f * v2 - ic2;
+        const float v3 = in - m_ic2;
+        const float v1 = m_a1 * m_ic1 + m_a2 * v3;
+        const float v2 = m_ic2 + m_a2 * m_ic1 + m_a3 * v3;
+        m_ic1 = 2.0f * v1 - m_ic1;
+        m_ic2 = 2.0f * v2 - m_ic2;
         return v2;
     }
     /** @brief Clears the two integrators; the coefficients stay. */
-    void reset() { ic1 = ic2 = 0.0f; }
+    void reset() { m_ic1 = m_ic2 = 0.0f; }
 };
 
 /**
@@ -424,25 +424,25 @@ struct Svf {
  * reaches a coefficient, so a jump on the panel is a glide in the sound.
  */
 struct Smoother {
-    float value = 0,       ///< the current smoothed value
-          coef = 0.001f;   ///< the one-pole coefficient, from setTime()
+    float m_value = 0,       ///< the current smoothed value
+          m_coef = 0.001f;   ///< the one-pole coefficient, from setTime()
     /**
      * @brief Sets the time constant.
      * @param seconds  the time constant (floored at 0.1 ms): about 63 % of a step in this time, 99 % in five times it
      * @param sr       how many times a second next() will be called
      */
-    void setTime(float seconds, double sr) { coef = 1.0f - std::exp(-1.0f / (std::max(seconds, 1e-4f) * static_cast<float>(sr))); }
+    void setTime(float seconds, double sr) { m_coef = 1.0f - std::exp(-1.0f / (std::max(seconds, 1e-4f) * static_cast<float>(sr))); }
     /**
      * @brief One step towards the target.
      * @param target  where the value is heading
      * @return        the value after the step
      */
-    inline float next(float target) { value += (target - value) * coef; return value; }
+    inline float next(float target) { m_value += (target - m_value) * m_coef; return m_value; }
     /**
      * @brief Jumps to a value without smoothing, as at prepare or a preset load.
      * @param v  the new value
      */
-    void snap(float v) { value = v; }
+    void snap(float v) { m_value = v; }
 };
 
 /**

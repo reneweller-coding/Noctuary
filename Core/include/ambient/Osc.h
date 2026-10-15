@@ -39,19 +39,19 @@ namespace ambient {
 /** @brief Events that must reach the audio thread (notes, presets). Single producer, single consumer. */
 struct ControlEvent {
     /** @brief What the event is: a note on or off (a = note, b = velocity), or a full, sound-layer or Cosmos-layer preset change (a = index). */
-    enum class Type : int { NoteOn, NoteOff, Preset, SoundPreset, CosmosPreset };
-    Type  type;   ///< which of the five
-    int   a;      ///< the note number, or the preset index
-    float b;      ///< the velocity 0..1 for NoteOn; unused otherwise
+    enum class TypeE : int { NOTE_ON, NOTE_OFF, PRESET, SOUND_PRESET, COSMOS_PRESET };
+    TypeE  m_type;   ///< which of the five
+    int   m_a;      ///< the note number, or the preset index
+    float m_b;      ///< the velocity 0..1 for NoteOn; unused otherwise
 };
 
 /**
- * @brief A lock-free ring of kSize - 1 ControlEvents from one producer (the OSC thread) to one
+ * @brief A lock-free ring of Size - 1 ControlEvents from one producer (the OSC thread) to one
  *        consumer (the audio thread).
  */
 class EventQueue {
 public:
-    static constexpr int kSize = 256;   ///< ring length, a power of two; one slot is always kept empty
+    static constexpr int Size = 256;   ///< ring length, a power of two; one slot is always kept empty
     /**
      * @brief Producer side: appends an event.
      * @param e  the event
@@ -59,11 +59,11 @@ public:
      */
     bool push(const ControlEvent& e)
     {
-        const int w = write_.load(std::memory_order_relaxed);
-        const int next = (w + 1) & (kSize - 1);
-        if (next == read_.load(std::memory_order_acquire)) return false;
-        buf_[w] = e;
-        write_.store(next, std::memory_order_release);
+        const int w = m_write.load(std::memory_order_relaxed);
+        const int next = (w + 1) & (Size - 1);
+        if (next == m_read.load(std::memory_order_acquire)) return false;
+        m_buf[w] = e;
+        m_write.store(next, std::memory_order_release);
         return true;
     }
     /**
@@ -73,16 +73,16 @@ public:
      */
     bool pop(ControlEvent& e)
     {
-        const int r = read_.load(std::memory_order_relaxed);
-        if (r == write_.load(std::memory_order_acquire)) return false;
-        e = buf_[r];
-        read_.store((r + 1) & (kSize - 1), std::memory_order_release);
+        const int r = m_read.load(std::memory_order_relaxed);
+        if (r == m_write.load(std::memory_order_acquire)) return false;
+        e = m_buf[r];
+        m_read.store((r + 1) & (Size - 1), std::memory_order_release);
         return true;
     }
 private:
-    ControlEvent buf_[kSize] = {};             ///< the ring
-    std::atomic<int> read_{ 0 },    ///< @brief the consumer's position, wrapped with kSize - 1
-                     write_{ 0 };   ///< the producer's position, wrapped with kSize - 1
+    ControlEvent m_buf[Size] = {};             ///< the ring
+    std::atomic<int> m_read{ 0 },    ///< @brief the consumer's position, wrapped with Size - 1
+                     m_write{ 0 };   ///< the producer's position, wrapped with Size - 1
 };
 
 /** @brief What the receiver does with messages. Parameter writes may come on the OSC thread. */
@@ -94,13 +94,13 @@ struct OscSink {
      * @param id     the parameter
      * @param value  real value
      */
-    virtual void setParam(ParamId id, float value) = 0;
+    virtual void setParam(ParamIdE id, float value) = 0;
     /**
      * @brief A parameter set along its knob curve.
      * @param id    the parameter
      * @param norm  0..1 along the knob curve
      */
-    virtual void setParamNormalised(ParamId id, float norm) = 0;
+    virtual void setParamNormalised(ParamIdE id, float norm) = 0;
     /**
      * @brief A note or a preset change, to be queued for the audio thread.
      * @param e  the event
@@ -117,12 +117,12 @@ struct OscSink {
 
 /** @brief One parsed OSC message (arguments already decoded). */
 struct OscMessage {
-    static constexpr int kMaxArgs = 8;    ///< arguments beyond this are ignored
-    const char* address = nullptr;        ///< the address pattern, pointing into the packet
-    int   numArgs = 0;                    ///< how many of types/floats/strings are valid
-    char  types[kMaxArgs] = {};           ///< the type tag per argument: 'f', 'i', 's', 'T' or 'F'
-    float floats[kMaxArgs] = {};          ///< 'f' and 'i' (converted) arguments
-    const char* strings[kMaxArgs] = {};   ///< 's' arguments
+    static constexpr int MaxArgs = 8;    ///< arguments beyond this are ignored
+    const char* m_address = nullptr;        ///< the address pattern, pointing into the packet
+    int   m_numArgs = 0;                    ///< how many of types/floats/strings are valid
+    char  m_types[MaxArgs] = {};           ///< the type tag per argument: 'f', 'i', 's', 'T' or 'F'
+    float m_floats[MaxArgs] = {};          ///< 'f' and 'i' (converted) arguments
+    const char* m_strings[MaxArgs] = {};   ///< 's' arguments
 };
 
 /** @brief The parser's innards: big-endian readers and the recursive packet walk. */
@@ -171,8 +171,8 @@ inline size_t padded(size_t n) { return (n + 4) & ~static_cast<size_t>(3); }
  * @param handler   receives each message
  * @return          the number of messages delivered, or -1 on malformed data
  */
-template <class Handler>
-int parseOne(const char* data, size_t size, Handler& handler)
+template <class HandlerT>
+int parseOne(const char* data, size_t size, HandlerT& handler)
 {
     if (size < 4) return -1;
     if (size >= 8 && std::memcmp(data, "#bundle", 8) == 0) {
@@ -194,27 +194,27 @@ int parseOne(const char* data, size_t size, Handler& handler)
     if (addrLen >= size) return -1;
     size_t pos = padded(addrLen);
     OscMessage m;
-    m.address = data;
+    m.m_address = data;
     if (pos >= size) { handler(m); return 1; }   // no type tags: message without arguments
     if (data[pos] != ',') return -1;
     const size_t tagsLen = ::strnlen(data + pos, size - pos);
     const char* tags = data + pos + 1;
     const size_t numTags = tagsLen - 1;
     pos += padded(tagsLen);
-    for (size_t t = 0; t < numTags && m.numArgs < OscMessage::kMaxArgs; ++t) {
+    for (size_t t = 0; t < numTags && m.m_numArgs < OscMessage::MaxArgs; ++t) {
         const char tag = tags[t];
-        const int k = m.numArgs;
-        if (tag == 'f') { if (pos + 4 > size) return -1; m.floats[k] = readFloat(data + pos); m.types[k] = 'f'; pos += 4; }
-        else if (tag == 'i') { if (pos + 4 > size) return -1; m.floats[k] = static_cast<float>(readInt(data + pos)); m.types[k] = 'i'; pos += 4; }
+        const int k = m.m_numArgs;
+        if (tag == 'f') { if (pos + 4 > size) return -1; m.m_floats[k] = readFloat(data + pos); m.m_types[k] = 'f'; pos += 4; }
+        else if (tag == 'i') { if (pos + 4 > size) return -1; m.m_floats[k] = static_cast<float>(readInt(data + pos)); m.m_types[k] = 'i'; pos += 4; }
         else if (tag == 's') {
             const size_t sl = ::strnlen(data + pos, size - pos);
             if (pos + sl >= size) return -1;
-            m.strings[k] = data + pos; m.types[k] = 's'; pos += padded(sl);
+            m.m_strings[k] = data + pos; m.m_types[k] = 's'; pos += padded(sl);
         }
-        else if (tag == 'T') { m.floats[k] = 1.0f; m.types[k] = 'T'; }
-        else if (tag == 'F') { m.floats[k] = 0.0f; m.types[k] = 'F'; }
+        else if (tag == 'T') { m.m_floats[k] = 1.0f; m.m_types[k] = 'T'; }
+        else if (tag == 'F') { m.m_floats[k] = 0.0f; m.m_types[k] = 'F'; }
         else return -1;   // blobs, doubles etc. are not needed here
-        ++m.numArgs;
+        ++m.m_numArgs;
     }
     handler(m);
     return 1;
@@ -231,8 +231,8 @@ int parseOne(const char* data, size_t size, Handler& handler)
  * @param handler   receives each message; the OscMessage points into @p data and is valid only during the call
  * @return          the number of messages, or -1 on malformed data
  */
-template <class Handler>
-int parseOscPacket(const char* data, size_t size, Handler&& handler)
+template <class HandlerT>
+int parseOscPacket(const char* data, size_t size, HandlerT&& handler)
 {
     return osc_detail::parseOne(data, size, handler);
 }
@@ -278,25 +278,25 @@ public:
     /** @brief Asks the thread to leave, joins it, closes the socket. Safe when not running. */
     void stop();
     /** @return whether the server is listening */
-    bool running() const { return running_.load(std::memory_order_relaxed); }
+    bool running() const { return m_running.load(std::memory_order_relaxed); }
     /** @return the port start() was given (0 before any start) */
-    int  port() const { return port_; }
+    int  port() const { return m_port; }
     /** @return how many messages were dispatched to a known address since start() */
-    uint64_t messagesReceived() const { return received_.load(std::memory_order_relaxed); }
+    uint64_t messagesReceived() const { return m_received.load(std::memory_order_relaxed); }
     /** @return why the last start() failed, "" when it did not */
-    const char* lastError() const { return error_; }
+    const char* lastError() const { return m_error; }
 private:
     /** @brief The thread's loop: select with a 100 ms timeout, recvfrom, parseOscPacket, dispatchOsc, until stop() asks. */
     void run();
-    std::thread thread_;                                            ///< the receiving thread
-    std::atomic<bool> running_{ false },         ///< @brief listening
-                      stopRequested_{ false };   ///< told to leave
-    std::atomic<uint64_t> received_{ 0 };                           ///< dispatched messages, behind messagesReceived()
-    OscSink* sink_ = nullptr;                                       ///< where messages go (not owned)
-    GestureLayer* gestures_ = nullptr;                              ///< where hands and head go (not owned)
-    int port_ = 0;                                                  ///< the bound port
-    long long socket_ = -1;                                         ///< the socket handle, -1 when closed (wide enough for Winsock's SOCKET)
-    char error_[128] = "";                                          ///< the last start() failure, for lastError()
+    std::thread m_thread;                                            ///< the receiving thread
+    std::atomic<bool> m_running{ false },         ///< @brief listening
+                      m_stopRequested{ false };   ///< told to leave
+    std::atomic<uint64_t> m_received{ 0 };                           ///< dispatched messages, behind messagesReceived()
+    OscSink* m_sink = nullptr;                                       ///< where messages go (not owned)
+    GestureLayer* m_gestures = nullptr;                              ///< where hands and head go (not owned)
+    int m_port = 0;                                                  ///< the bound port
+    long long m_socket = -1;                                         ///< the socket handle, -1 when closed (wide enough for Winsock's SOCKET)
+    char m_error[128] = "";                                          ///< the last start() failure, for lastError()
 };
 
 } // namespace ambient

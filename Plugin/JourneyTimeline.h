@@ -38,12 +38,12 @@ public:
 private:
     /** @brief One step's place in a band: where its crossfade begins, where it stands, where it ends. */
     struct Block {
-        float x0 = 0.0f;   ///< the crossfade's start
-        float xg = 0.0f;   ///< the step's own start
-        float x1 = 0.0f;   ///< its end
+        float m_x0 = 0.0f;   ///< the crossfade's start
+        float m_xg = 0.0f;   ///< the step's own start
+        float m_x1 = 0.0f;   ///< its end
     };
     /** @brief What a drag on the journey being written does. */
-    enum class Drag { None, Dwell, Fade, Move };
+    enum class DragE { NONE, DWELL, FADE, MOVE };
     /** @brief Twice a second while it is seen (ten while a drag is on). */
     void timerCallback() override;
     /** @brief The journey above: the one under way, else the one chosen. @param out receives it @return false when there is none */
@@ -65,18 +65,18 @@ private:
      */
     void drawBand(juce::Graphics& g, const ambient::Journey& j, juce::Rectangle<float> r, int lit, double done, bool faint) const;
     /** @brief The block of the one being written under a point. @param p the point @param drag receives what a drag there does @return its index, -1 none */
-    int draftAt(juce::Point<float> p, Drag& drag) const;
+    int draftAt(juce::Point<float> p, DragE& drag) const;
 
-    NoctuaryProcessor& proc_;                            ///< whose journeys
-    std::function<bool(ambient::Journey&)> chosen_;      ///< the journey chosen in the box
-    std::function<void(int)> startAt_;                   ///< starts it at a step
-    juce::TextButton copy_{ "Edit a copy" };             ///< the journey above into the one being written
-    Drag drag_ = Drag::None;                             ///< the drag under way
-    int dragStep_ = -1;                                  ///< its step
-    float dragX_ = 0.0f;                                 ///< where it began
-    double perPixel_ = 1.0;                              ///< seconds a pixel when it began (the scale held while dragging)
-    ambient::JourneyStep before_;                        ///< the step as it was when it began
-    int dropAt_ = -1;                                    ///< where a moved block would land, -1 nowhere
+    NoctuaryProcessor& m_proc;                            ///< whose journeys
+    std::function<bool(ambient::Journey&)> m_chosen;      ///< the journey chosen in the box
+    std::function<void(int)> m_startAt;                   ///< starts it at a step
+    juce::TextButton m_copy{ "Edit a copy" };             ///< the journey above into the one being written
+    DragE m_drag = DragE::NONE;                             ///< the drag under way
+    int m_dragStep = -1;                                  ///< its step
+    float m_dragX = 0.0f;                                 ///< where it began
+    double m_perPixel = 1.0;                              ///< seconds a pixel when it began (the scale held while dragging)
+    ambient::JourneyStep m_before;                        ///< the step as it was when it began
+    int m_dropAt = -1;                                    ///< where a moved block would land, -1 nowhere
 };
 
 /** @brief The timeline as an overlay over the panel: a title, the timeline, a close button; Esc or a click beside it closes it. */
@@ -98,6 +98,6 @@ public:
 private:
     /** @brief The panel's rectangle. @return pixels */
     juce::Rectangle<int> panel() const;
-    JourneyTimeline timeline_;                   ///< the bands
-    juce::TextButton close_{ "Close" };          ///< closes the overlay
+    JourneyTimeline m_timeline;                   ///< the bands
+    juce::TextButton m_close{ "Close" };          ///< closes the overlay
 };

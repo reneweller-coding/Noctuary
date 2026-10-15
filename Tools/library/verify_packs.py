@@ -28,7 +28,7 @@ def _sources():
     import re as _re
     path = os.path.join(ROOT, "Core", "src", "Modulation.cpp")
     text = open(path, encoding="utf-8").read()
-    body = text[text.index("kSourceNames[kNumModSources] = {"):]
+    body = text[text.index("SourceNames[NumModSources] = {"):]
     return set(_re.findall(r'"([^"]+)"', body[:body.index("};")]))
 
 

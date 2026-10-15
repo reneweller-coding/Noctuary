@@ -26,18 +26,18 @@
 
 namespace ambient {
 
-constexpr int kMaxScoreEvents = 512;   ///< the most ramps a score may hold; fixed so a Score has no allocation in it
+constexpr int MaxScoreEvents = 512;   ///< the most ramps a score may hold; fixed so a Score has no allocation in it
 
 /** @brief One line of a score: a parameter travelling to a value, starting at a time, over a duration. */
 struct ScoreEvent {
-    double  at = 0.0;        ///< seconds from the start of the piece
-    double  over = 0.0;      ///< seconds the ramp takes; 0 = immediately
-    ParamId target = ParamId::MasterGain;   ///< the parameter that moves
-    float   value = 0.0f;    ///< where it ends up, in the parameter's real range (clamped by parse)
+    double  m_at = 0.0;        ///< seconds from the start of the piece
+    double  m_over = 0.0;      ///< seconds the ramp takes; 0 = immediately
+    ParamIdE m_target = ParamIdE::MASTER_GAIN;   ///< the parameter that moves
+    float   m_value = 0.0f;    ///< where it ends up, in the parameter's real range (clamped by parse)
 };
 
 /**
- * @brief The score: up to kMaxScoreEvents ramps and the clock that plays them.
+ * @brief The score: up to MaxScoreEvents ramps and the clock that plays them.
  *
  * No allocation inside the object, so step() may run on the audio thread; load() and save() go
  * through files and belong to the message thread.
@@ -80,21 +80,21 @@ public:
     bool save(const char* path) const;
 
     /** @return how many events the score holds */
-    int  count() const { return count_; }
+    int  count() const { return m_count; }
     /**
      * @brief One event, in the order of the text.
      * @param i  0 .. count()-1, unchecked
      * @return   the event
      */
-    const ScoreEvent& event(int i) const { return events_[i]; }
+    const ScoreEvent& event(int i) const { return m_events[i]; }
     /** @return when the last ramp finishes, in seconds (the latest at + over) */
     double length() const;
     /** @brief Forgets every event; the clock is left where it was. */
-    void clear() { count_ = 0; }
+    void clear() { m_count = 0; }
     /**
      * @brief Appends an event, not yet started.
      * @param e  the event
-     * @return   false when the score is full (kMaxScoreEvents)
+     * @return   false when the score is full (MaxScoreEvents)
      */
     bool add(const ScoreEvent& e);
 
@@ -110,7 +110,7 @@ public:
      */
     void  rewind();
     /** @return seconds since the piece started, as step() has counted them */
-    double position() const { return t_; }
+    double position() const { return m_t; }
     /**
      * @brief Advances the clock by @p dt and drives every ramp that is due.
      *
@@ -125,20 +125,20 @@ public:
      * @param valueOf   where a parameter is now, read when a ramp starts
      * @param set       receives every parameter that moved
      */
-    template <class ValueFn, class SetFn>
-    void step(double dt, ValueFn&& valueOf, SetFn&& set)
+    template <class ValueFnT, class SetFnT>
+    void step(double dt, ValueFnT&& valueOf, SetFnT&& set)
     {
-        if (count_ == 0 || dt <= 0.0) return;
-        const double t0 = t_, t1 = t_ + dt;
-        t_ = t1;
-        for (int i = 0; i < count_; ++i) {
-            const ScoreEvent& e = events_[i];
-            if (t1 < e.at) continue;
-            if (t0 >= e.at + e.over && started_[i]) continue;   // finished, and it did run
-            if (!started_[i]) { from_[i] = valueOf(e.target); started_[i] = true; }
-            if (e.over <= 0.0) { set(e.target, e.value); continue; }
-            const double x = clampv((t1 - e.at) / e.over, 0.0, 1.0);
-            set(e.target, rampValue(e.target, from_[i], e.value, static_cast<float>(x)));
+        if (m_count == 0 || dt <= 0.0) return;
+        const double t0 = m_t, t1 = m_t + dt;
+        m_t = t1;
+        for (int i = 0; i < m_count; ++i) {
+            const ScoreEvent& e = m_events[i];
+            if (t1 < e.m_at) continue;
+            if (t0 >= e.m_at + e.m_over && m_started[i]) continue;   // finished, and it did run
+            if (!m_started[i]) { m_from[i] = valueOf(e.m_target); m_started[i] = true; }
+            if (e.m_over <= 0.0) { set(e.m_target, e.m_value); continue; }
+            const double x = clampv((t1 - e.m_at) / e.m_over, 0.0, 1.0);
+            set(e.m_target, rampValue(e.m_target, m_from[i], e.m_value, static_cast<float>(x)));
         }
     }
 
@@ -155,14 +155,14 @@ public:
      * @param x     progress 0 .. 1 (clamped)
      * @return      the value to set now, in the parameter's real range
      */
-    static float rampValue(ParamId id, float from, float to, float x);
+    static float rampValue(ParamIdE id, float from, float to, float x);
 
 private:
-    ScoreEvent events_[kMaxScoreEvents];   ///< the events, in the order added
-    int    count_ = 0;                     ///< how many of events_ are in use
-    double t_ = 0.0;                       ///< the clock: seconds since the piece started
-    bool   started_[kMaxScoreEvents] = {}; ///< per event: whether its starting value has been read
-    float  from_[kMaxScoreEvents] = {};    ///< per event: the value it started from, valid once started_
+    ScoreEvent m_events[MaxScoreEvents];   ///< the events, in the order added
+    int    m_count = 0;                     ///< how many of m_events are in use
+    double m_t = 0.0;                       ///< the clock: seconds since the piece started
+    bool   m_started[MaxScoreEvents] = {}; ///< per event: whether its starting value has been read
+    float  m_from[MaxScoreEvents] = {};    ///< per event: the value it started from, valid once m_started
 };
 
 /**

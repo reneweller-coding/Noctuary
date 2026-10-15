@@ -48,14 +48,14 @@ namespace ambient {
  * runs of the same journey differ. A single time in the file sets the two ends equal.
  */
 struct JourneyStep {
-    std::string preset;                        ///< the sound preset's name, as the bank spells it
-    /** @var double dwellLo
+    std::string m_preset;                        ///< the sound preset's name, as the bank spells it
+    /** @var double m_dwellLo
      *  @brief the shortest dwell, in seconds */
-    double dwellLo = 300.0, dwellHi = 600.0;   ///< seconds the preset is held (drawn between)
-    /** @var double fadeLo
+    double m_dwellLo = 300.0, m_dwellHi = 600.0;   ///< seconds the preset is held (drawn between)
+    /** @var double m_fadeLo
      *  @brief the shortest crossfade, in seconds */
-    double fadeLo = 30.0, fadeHi = 90.0;       ///< seconds of the crossfade into it (drawn between)
-    std::string nearPreset;                    ///< "", "auto", "keep", or a near preset's name
+    double m_fadeLo = 30.0, m_fadeHi = 90.0;       ///< seconds of the crossfade into it (drawn between)
+    std::string m_nearPreset;                    ///< "", "auto", "keep", or a near preset's name
 };
 
 /**
@@ -66,9 +66,9 @@ struct JourneyStep {
  * and print the times the file uses (m:ss, h:mm:ss or plain seconds, a range as two with a dash).
  */
 struct Journey {
-    std::string name;                 ///< the "journey" line, "" when the file has none
-    bool cyclic = true;               ///< the "cyclic" line (on, 1, true or yes); on when the file has none
-    std::vector<JourneyStep> steps;   ///< the preset lines, in file order
+    std::string m_name;                 ///< the "journey" line, "" when the file has none
+    bool m_cyclic = true;               ///< the "cyclic" line (on, 1, true or yes); on when the file has none
+    std::vector<JourneyStep> m_steps;   ///< the preset lines, in file order
 
     /**
      * @brief Seconds as the file writes them: m:ss, or h:mm:ss from an hour up.
@@ -151,14 +151,14 @@ struct Journey {
      */
     bool parse(const char* text)
     {
-        name.clear(); cyclic = true; steps.clear();
+        m_name.clear(); m_cyclic = true; m_steps.clear();
         std::istringstream in(text);
         std::string line;
         while (std::getline(in, line)) {
             line = trim(line);
             if (line.empty() || line[0] == '#') continue;
-            if (line.compare(0, 8, "journey ") == 0) { name = trim(line.substr(8)); continue; }
-            if (line.compare(0, 7, "cyclic ") == 0) { const std::string v = trim(line.substr(7)); cyclic = v == "on" || v == "1" || v == "true" || v == "yes"; continue; }
+            if (line.compare(0, 8, "journey ") == 0) { m_name = trim(line.substr(8)); continue; }
+            if (line.compare(0, 7, "cyclic ") == 0) { const std::string v = trim(line.substr(7)); m_cyclic = v == "on" || v == "1" || v == "true" || v == "yes"; continue; }
             std::vector<std::string> fields;
             size_t start = 0;
             while (true) {
@@ -169,12 +169,12 @@ struct Journey {
             }
             if (fields.empty() || fields[0].empty()) return false;
             JourneyStep st;
-            st.preset = fields[0];
-            if (fields.size() > 1 && !fields[1].empty() && !parseRange(fields[1], st.dwellLo, st.dwellHi)) return false;
-            if (fields.size() > 2 && !fields[2].empty() && !parseRange(fields[2], st.fadeLo, st.fadeHi)) return false;
+            st.m_preset = fields[0];
+            if (fields.size() > 1 && !fields[1].empty() && !parseRange(fields[1], st.m_dwellLo, st.m_dwellHi)) return false;
+            if (fields.size() > 2 && !fields[2].empty() && !parseRange(fields[2], st.m_fadeLo, st.m_fadeHi)) return false;
             for (size_t k = 3; k < fields.size(); ++k)
-                if (fields[k].compare(0, 5, "near=") == 0) st.nearPreset = trim(fields[k].substr(5));
-            steps.push_back(st);
+                if (fields[k].compare(0, 5, "near=") == 0) st.m_nearPreset = trim(fields[k].substr(5));
+            m_steps.push_back(st);
         }
         return true;
     }
@@ -186,11 +186,11 @@ struct Journey {
     std::string text() const
     {
         std::string out = "# Noctuary journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n";
-        out += "journey " + name + "\n";
-        out += std::string("cyclic ") + (cyclic ? "on" : "off") + "\n";
-        for (const JourneyStep& st : steps) {
-            out += st.preset + " | " + rangeText(st.dwellLo, st.dwellHi) + " | " + rangeText(st.fadeLo, st.fadeHi);
-            if (!st.nearPreset.empty()) out += " | near=" + st.nearPreset;
+        out += "journey " + m_name + "\n";
+        out += std::string("cyclic ") + (m_cyclic ? "on" : "off") + "\n";
+        for (const JourneyStep& st : m_steps) {
+            out += st.m_preset + " | " + rangeText(st.m_dwellLo, st.m_dwellHi) + " | " + rangeText(st.m_fadeLo, st.m_fadeHi);
+            if (!st.m_nearPreset.empty()) out += " | near=" + st.m_nearPreset;
             out += "\n";
         }
         return out;
@@ -227,7 +227,7 @@ struct Journey {
     double meanLength() const
     {
         double s = 0.0;
-        for (const JourneyStep& st : steps) s += 0.5 * (st.dwellLo + st.dwellHi);
+        for (const JourneyStep& st : m_steps) s += 0.5 * (st.m_dwellLo + st.m_dwellHi);
         return s;
     }
 };
@@ -256,27 +256,27 @@ public:
      */
     void start(const Journey& j, uint64_t seed, int startStep = 0)
     {
-        journey_ = j;
-        rng_ = seed ? seed : 0x9E3779B97F4A7C15ull;
-        running_ = !journey_.steps.empty(); left_ = 0.0; passes_ = 0;
-        pending_ = running_;
+        m_journey = j;
+        m_rng = seed ? seed : 0x9E3779B97F4A7C15ull;
+        m_running = !m_journey.m_steps.empty(); m_left = 0.0; m_passes = 0;
+        m_pending = m_running;
         // The step before the first one asked for: the first advance() moves on to it, and a
         // journey that is not cyclic must not see that first move as its end (it did once).
-        const int n = static_cast<int>(journey_.steps.size());
-        step_ = running_ ? ((startStep % n + n) % n) - 1 : -1;
+        const int n = static_cast<int>(m_journey.m_steps.size());
+        m_step = m_running ? ((startStep % n + n) % n) - 1 : -1;
     }
     /** @brief Ends the journey; advance() then returns false until start() is called again. */
-    void stop() { running_ = false; pending_ = false; }
+    void stop() { m_running = false; m_pending = false; }
     /** @brief Whether a journey is under way: started, not stopped, and not run off the end of a non-cyclic one. @return true while running */
-    bool running() const { return running_; }
+    bool running() const { return m_running; }
     /** @brief The index of the current step. @return 0 .. steps - 1, or -1 before the first has begun */
-    int  step() const { return step_; }
+    int  step() const { return m_step; }
     /** @brief How many times a cyclic journey has wrapped round to its first step. @return the count of completed passes */
-    int  passes() const { return passes_; }
+    int  passes() const { return m_passes; }
     /** @brief Seconds left in the current step's dwell (the crossfade included). @return seconds, 0 or below once it is due */
-    double remaining() const { return left_; }
+    double remaining() const { return m_left; }
     /** @brief The journey being played, as start() copied it. @return the copy */
-    const Journey& journey() const { return journey_; }
+    const Journey& journey() const { return m_journey; }
 
     /**
      * @brief Advance by dt.
@@ -292,23 +292,23 @@ public:
      */
     bool advance(double dt, JourneyStep& step, double& fade)
     {
-        if (!running_) return false;
-        if (!pending_) {
-            left_ -= dt;
-            if (left_ > 0.0) return false;
+        if (!m_running) return false;
+        if (!m_pending) {
+            m_left -= dt;
+            if (m_left > 0.0) return false;
         }
-        pending_ = false;
-        const int n = static_cast<int>(journey_.steps.size());
-        int next = step_ + 1;
+        m_pending = false;
+        const int n = static_cast<int>(m_journey.m_steps.size());
+        int next = m_step + 1;
         if (next >= n) {
-            if (!journey_.cyclic) { running_ = false; return false; }
-            next = 0; ++passes_;
+            if (!m_journey.m_cyclic) { m_running = false; return false; }
+            next = 0; ++m_passes;
         }
-        step_ = next;
-        const JourneyStep& st = journey_.steps[static_cast<size_t>(step_)];
-        fade = draw(st.fadeLo, st.fadeHi);
+        m_step = next;
+        const JourneyStep& st = m_journey.m_steps[static_cast<size_t>(m_step)];
+        fade = draw(st.m_fadeLo, st.m_fadeHi);
         // The dwell counts from now: the crossfade is part of the stay.
-        left_ = draw(st.dwellLo, st.dwellHi);
+        m_left = draw(st.m_dwellLo, st.m_dwellHi);
         step = st;
         return true;
     }
@@ -323,19 +323,19 @@ private:
      */
     double draw(double lo, double hi)
     {
-        rng_ ^= rng_ << 13; rng_ ^= rng_ >> 7; rng_ ^= rng_ << 17;
-        const double u = static_cast<double>(rng_ >> 11) * (1.0 / 9007199254740992.0);
+        m_rng ^= m_rng << 13; m_rng ^= m_rng >> 7; m_rng ^= m_rng << 17;
+        const double u = static_cast<double>(m_rng >> 11) * (1.0 / 9007199254740992.0);
         return lo + (hi - lo) * u;
     }
-    Journey  journey_;                            ///< the journey being played, copied in start()
-    uint64_t rng_ = 0x9E3779B97F4A7C15ull;        ///< xorshift64 state; never zero
-    /** @var int step_
+    Journey  m_journey;                            ///< the journey being played, copied in start()
+    uint64_t m_rng = 0x9E3779B97F4A7C15ull;        ///< xorshift64 state; never zero
+    /** @var int m_step
      *  @brief index of the current step, -1 before the first (start() puts it one before the step asked for) */
-    int      step_ = -1, passes_ = 0;             ///< passes_: completed cycles of a cyclic journey
-    double   left_ = 0.0;                         ///< seconds left in the current dwell
-    /** @var bool running_
+    int      m_step = -1, m_passes = 0;             ///< m_passes: completed cycles of a cyclic journey
+    double   m_left = 0.0;                         ///< seconds left in the current dwell
+    /** @var bool m_running
      *  @brief a journey is under way */
-    bool     running_ = false, pending_ = false;  ///< pending_: the first step has been asked for but not begun; the next advance() begins it whatever its dt
+    bool     m_running = false, m_pending = false;  ///< m_pending: the first step has been asked for but not begun; the next advance() begins it whatever its dt
 };
 
 } // namespace ambient

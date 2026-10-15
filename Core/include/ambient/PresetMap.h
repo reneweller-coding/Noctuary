@@ -28,7 +28,7 @@ namespace ambient {
  */
 class PresetMap {
 public:
-    static constexpr int kNeighbours = 6;   ///< how many of the closest presets take part in a blend
+    static constexpr int Neighbours = 6;   ///< how many of the closest presets take part in a blend
 
     /**
      * @brief Builds the cached parameter vectors of all presets (allocates; call before the audio thread
@@ -62,14 +62,14 @@ public:
 
     /** @brief The result of a neighbour search: which presets, and how much of each. */
     struct Blend {
-        int   index[kNeighbours];    ///< preset indices, closest first; count of them are valid
-        float weight[kNeighbours];   ///< normalised, descending
-        int   count = 0;             ///< how many neighbours were found (0 when there are no presets)
+        int   m_index[Neighbours];    ///< preset indices, closest first; count of them are valid
+        float m_weight[Neighbours];   ///< normalised, descending
+        int   m_count = 0;             ///< how many neighbours were found (0 when there are no presets)
     };
     /**
      * @brief Neighbour weights for a cursor (0..1 plane). Never allocates.
      *
-     * Keeps the kNeighbours closest points by squared distance and weights them by a Gaussian of
+     * Keeps the Neighbours closest points by squared distance and weights them by a Gaussian of
      * sigma @p radius. In a gap -- the nearest point further away than the radius -- the sigma
      * grows to reach the third neighbour, so the blend never collapses onto one point between two
      * clusters; standing on a point still plays that preset alone. Far from everything the nearest
@@ -82,18 +82,18 @@ public:
      */
     static Blend neighbours(float x, float y, float radius);
     /**
-     * @brief Blended parameter vector (kNumParams values): floats in the skew domain, ints
+     * @brief Blended parameter vector (NumParams values): floats in the skew domain, ints
      *        rounded, choices and switches from the strongest neighbour. Never allocates.
      *
      * Audio thread, control rate. Before ready(), or with no neighbours, every parameter is its
      * default; if a rebuild pulls the table away mid-call, @p out is left untouched.
      *
      * @param b    the neighbours, from neighbours()
-     * @param out  kNumParams floats, indexed by ParamId, in each parameter's real range
+     * @param out  NumParams floats, indexed by ParamId, in each parameter's real range
      */
     static void blend(const Blend& b, float* out);
     /**
-     * @brief The cached vector of one preset (kNumParams values), or nullptr before warmup.
+     * @brief The cached vector of one preset (NumParams values), or nullptr before warmup.
      * @param index  preset index as numPresets() counts them
      * @return       a pointer into the published table (valid for the life of the process), or
      *               nullptr before warmup or for an index the table does not cover

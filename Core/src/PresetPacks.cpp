@@ -40,21 +40,21 @@ namespace {
  * when the line stopped before it, and the Preset view then carries nullptr for it.
  */
 struct PackEntry {
-    std::string name,        ///< the preset's name
-                settings,    ///< its "key=value;..." settings, format-1 names translated
-                texture,     ///< the texture file(s) for the source slots, up to four separated by ';'
-                wavetable,   ///< the wavetable file for the User table
-                impulse,     ///< the impulse response of the convolution Room
-                mod,         ///< the modulation matrix rows
-                envs,        ///< the envelope shapes, '~' between them
-                impulseB;    ///< the impulse Room Morph goes to
-    PresetMeta  meta{ 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 };   ///< the metadata field, or this neutral centre-of-the-map default when the line has none; the family is filled in by loadPresetPack()
+    std::string m_name,        ///< the preset's name
+                m_settings,    ///< its "key=value;..." settings, format-1 names translated
+                m_texture,     ///< the texture file(s) for the source slots, up to four separated by ';'
+                m_wavetable,   ///< the wavetable file for the User table
+                m_impulse,     ///< the impulse response of the convolution Room
+                m_mod,         ///< the modulation matrix rows
+                m_envs,        ///< the envelope shapes, '~' between them
+                m_impulseB;    ///< the impulse Room Morph goes to
+    PresetMeta  m_meta{ 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 };   ///< the metadata field, or this neutral centre-of-the-map default when the line has none; the family is filled in by loadPresetPack()
 };
 /** @brief One loaded pack file. */
 struct Pack {
-    std::string name;                 ///< the "pack" line's name, else the file's stem; also the family name of its presets
-    std::string dir;                  ///< the pack file's folder, for relative sample paths
-    std::vector<PackEntry> entries;   ///< its presets, in file order
+    std::string m_name;                 ///< the "pack" line's name, else the file's stem; also the family name of its presets
+    std::string m_dir;                  ///< the pack file's folder, for relative sample paths
+    std::vector<PackEntry> m_entries;   ///< its presets, in file order
 };
 
 /**
@@ -78,7 +78,7 @@ std::vector<std::unique_ptr<Pack>>& packs() { static std::vector<std::unique_ptr
  */
 std::vector<Preset>& views() { static std::vector<Preset> v; return v; }
 /**
- * @brief The resolved file paths of the pack presets: absolute, kPresetFiles per entry, in the
+ * @brief The resolved file paths of the pack presets: absolute, PresetFiles per entry, in the
  *        order of views() (texture, wavetable, impulse, impulse B).
  * @return  the one list
  */
@@ -107,17 +107,17 @@ std::vector<int>& viewPacks() { static std::vector<int> v; return v; }
 
 /** @brief One candidate foreground of an artist's near table (NearAuto.inc, compiled from Tools/library/near_by_artist.json). */
 struct NearAutoEntry {
-    const char* preset;   ///< the near preset's name (nearPreset(i).name)
-    float weight;         ///< its share of the draw within the pack's list
-    float rateLo,         ///< the lowest factor the near preset's Every is multiplied by
-    rateHi;               ///< and the highest; the factor is drawn uniformly between the two
+    const char* m_preset;   ///< the near preset's name (nearPreset(i).name)
+    float m_weight;         ///< its share of the draw within the pack's list
+    float m_rateLo,         ///< the lowest factor the near preset's Every is multiplied by
+    m_rateHi;               ///< and the highest; the factor is drawn uniformly between the two
 };
-/** @brief One pack's near table: which share of its presets get a foreground at all, and where its candidates lie in kNearAutoEntries. */
+/** @brief One pack's near table: which share of its presets get a foreground at all, and where its candidates lie in NearAutoEntries. */
 struct NearAutoPack  {
-    const char* pack;   ///< the pack's name as loadPresetPack() reads it
-    float share;        ///< 0 .. 1, the fraction of the pack's presets that bring a foreground
-    int first,          ///< index of the pack's first entry in kNearAutoEntries
-    count;              ///< how many entries follow it there
+    const char* m_pack;   ///< the pack's name as loadPresetPack() reads it
+    float m_share;        ///< 0 .. 1, the fraction of the pack's presets that bring a foreground
+    int m_first,          ///< index of the pack's first entry in NearAutoEntries
+    m_count;              ///< how many entries follow it there
 };
 #include "NearAuto.inc"
 
@@ -136,17 +136,17 @@ void appendViews(const Pack& pk)
     {
         int packIndex = -1;
         for (size_t i = 0; i < packs().size(); ++i) if (packs()[i].get() == &pk) packIndex = static_cast<int>(i);
-        for (const PackEntry& e : pk.entries) {
-            metaViews().push_back(&e.meta);
+        for (const PackEntry& e : pk.m_entries) {
+            metaViews().push_back(&e.m_meta);
             viewPacks().push_back(packIndex);
-            views().push_back(Preset{ e.name.c_str(), e.settings.c_str(),
-                                      e.texture.empty() ? nullptr : e.texture.c_str(),
-                                      e.wavetable.empty() ? nullptr : e.wavetable.c_str(),
-                                      e.impulse.empty() ? nullptr : e.impulse.c_str(),
-                                      e.mod.empty() ? nullptr : e.mod.c_str(),
-                                      e.envs.empty() ? nullptr : e.envs.c_str(),
-                                      e.impulseB.empty() ? nullptr : e.impulseB.c_str() });
-            const std::filesystem::path dir(pk.dir);
+            views().push_back(Preset{ e.m_name.c_str(), e.m_settings.c_str(),
+                                      e.m_texture.empty() ? nullptr : e.m_texture.c_str(),
+                                      e.m_wavetable.empty() ? nullptr : e.m_wavetable.c_str(),
+                                      e.m_impulse.empty() ? nullptr : e.m_impulse.c_str(),
+                                      e.m_mod.empty() ? nullptr : e.m_mod.c_str(),
+                                      e.m_envs.empty() ? nullptr : e.m_envs.c_str(),
+                                      e.m_impulseB.empty() ? nullptr : e.m_impulseB.c_str() });
+            const std::filesystem::path dir(pk.m_dir);
             auto resolveOne = [&dir](const std::string& rel) {
                 return rel.empty() ? std::string() : (dir / rel).lexically_normal().string();
             };
@@ -169,10 +169,10 @@ void appendViews(const Pack& pk)
                 }
                 return out;
             };
-            paths().push_back(resolve(e.texture));
-            paths().push_back(resolve(e.wavetable));
-            paths().push_back(resolve(e.impulse));
-            paths().push_back(resolve(e.impulseB));
+            paths().push_back(resolve(e.m_texture));
+            paths().push_back(resolve(e.m_wavetable));
+            paths().push_back(resolve(e.m_impulse));
+            paths().push_back(resolve(e.m_impulseB));
         }
     }
 }
@@ -262,20 +262,20 @@ bool loadPresetPack(const char* path)
     if (!f) return false;
     Pack pack;
     int format = 1;   // no "format" line: written before the classic wavetable (see migrateFormat1)
-    pack.dir = std::filesystem::path(path).parent_path().string();
-    pack.name = std::filesystem::path(path).stem().string();
+    pack.m_dir = std::filesystem::path(path).parent_path().string();
+    pack.m_name = std::filesystem::path(path).stem().string();
     std::string line;
     while (std::getline(f, line)) {
         const std::string t = trim(line);
         if (t.empty() || t[0] == '#') continue;
-        if (t.rfind("pack ", 0) == 0) { pack.name = trim(t.substr(5)); continue; }
+        if (t.rfind("pack ", 0) == 0) { pack.m_name = trim(t.substr(5)); continue; }
         if (t.rfind("format ", 0) == 0 && t.find('|') == std::string::npos) { format = std::atoi(t.substr(7).c_str()); continue; }
         const std::vector<std::string> fields = split(t, '|');
         if (fields.size() < 2) return false;
         PackEntry e;
-        e.name = trim(fields[0]);
-        e.settings = format < 2 ? migrateFormat1(trim(fields[1])) : trim(fields[1]);
-        if (e.name.empty()) return false;
+        e.m_name = trim(fields[0]);
+        e.m_settings = format < 2 ? migrateFormat1(trim(fields[1])) : trim(fields[1]);
+        if (e.m_name.empty()) return false;
         if (fields.size() > 2) {   // x y bright motion width noisy bass density tagbits
             const std::vector<std::string> m = split(trim(fields[2]), ' ');
             float v[8] = { 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f };
@@ -283,35 +283,35 @@ bool loadPresetPack(const char* path)
             for (const std::string& tok : m) {
                 if (tok.empty()) continue;
                 if (j < 8) v[j] = static_cast<float>(std::atof(tok.c_str()));
-                else if (j == 8) e.meta.tags = static_cast<uint32_t>(std::strtoul(tok.c_str(), nullptr, 0));
-                else if (j == 9) e.meta.loudDb = static_cast<float>(std::atof(tok.c_str()));   // optional: older packs have none
-                else if (j == 10) e.meta.evolve = static_cast<float>(std::atof(tok.c_str()));  // the drone descriptors, added in 1.11.0
-                else if (j == 11) e.meta.rough = static_cast<float>(std::atof(tok.c_str()));
-                else if (j == 12) e.meta.wet = static_cast<float>(std::atof(tok.c_str()));
-                else if (j == 13) e.meta.phrase[0] = static_cast<short>(std::atoi(tok.c_str()));   // what it sounds like,
-                else if (j == 14) e.meta.phrase[1] = static_cast<short>(std::atoi(tok.c_str()));   // chosen by CLAP
-                else if (j == 15) e.meta.cluster = static_cast<short>(std::atoi(tok.c_str()));      // the group it was laid out in
+                else if (j == 8) e.m_meta.m_tags = static_cast<uint32_t>(std::strtoul(tok.c_str(), nullptr, 0));
+                else if (j == 9) e.m_meta.m_loudDb = static_cast<float>(std::atof(tok.c_str()));   // optional: older packs have none
+                else if (j == 10) e.m_meta.m_evolve = static_cast<float>(std::atof(tok.c_str()));  // the drone descriptors, added in 1.11.0
+                else if (j == 11) e.m_meta.m_rough = static_cast<float>(std::atof(tok.c_str()));
+                else if (j == 12) e.m_meta.m_wet = static_cast<float>(std::atof(tok.c_str()));
+                else if (j == 13) e.m_meta.m_phrase[0] = static_cast<short>(std::atoi(tok.c_str()));   // what it sounds like,
+                else if (j == 14) e.m_meta.m_phrase[1] = static_cast<short>(std::atoi(tok.c_str()));   // chosen by CLAP
+                else if (j == 15) e.m_meta.m_cluster = static_cast<short>(std::atoi(tok.c_str()));      // the group it was laid out in
                 ++j;
             }
-            e.meta.x = v[0]; e.meta.y = v[1]; e.meta.bright = v[2]; e.meta.motion = v[3];
-            e.meta.width = v[4]; e.meta.noisy = v[5]; e.meta.bass = v[6]; e.meta.density = v[7];
+            e.m_meta.m_x = v[0]; e.m_meta.m_y = v[1]; e.m_meta.m_bright = v[2]; e.m_meta.m_motion = v[3];
+            e.m_meta.m_width = v[4]; e.m_meta.m_noisy = v[5]; e.m_meta.m_bass = v[6]; e.m_meta.m_density = v[7];
         }
-        if (fields.size() > 3) e.texture = trim(fields[3]);
-        if (fields.size() > 4) e.wavetable = trim(fields[4]);
-        if (fields.size() > 5) e.impulse = trim(fields[5]);
-        if (fields.size() > 6) e.mod = trim(fields[6]);
-        if (fields.size() > 7) e.envs = trim(fields[7]);
-        if (fields.size() > 8) e.impulseB = trim(fields[8]);   // the impulse Room Morph goes to
-        pack.entries.push_back(std::move(e));
+        if (fields.size() > 3) e.m_texture = trim(fields[3]);
+        if (fields.size() > 4) e.m_wavetable = trim(fields[4]);
+        if (fields.size() > 5) e.m_impulse = trim(fields[5]);
+        if (fields.size() > 6) e.m_mod = trim(fields[6]);
+        if (fields.size() > 7) e.m_envs = trim(fields[7]);
+        if (fields.size() > 8) e.m_impulseB = trim(fields[8]);   // the impulse Room Morph goes to
+        pack.m_entries.push_back(std::move(e));
     }
-    if (pack.entries.empty()) return false;
+    if (pack.m_entries.empty()) return false;
     // The same pack can sit in two of the searched folders at once -- one copy put there by the
     // installer for everybody, one in the user's own Documents. Loading it twice would double
     // every preset in it, so the first one found wins.
-    for (const auto& have : packs()) if (have->name == pack.name) return false;
+    for (const auto& have : packs()) if (have->m_name == pack.m_name) return false;
     // Every preset of a pack belongs to that pack's family, appended after the built-in families.
     const int family = builtinPresetFamilyCount() + static_cast<int>(packs().size());
-    for (PackEntry& e : pack.entries) e.meta.family = family;
+    for (PackEntry& e : pack.m_entries) e.m_meta.m_family = family;
     packs().push_back(std::make_unique<Pack>(std::move(pack)));
     appendViews(*packs().back());
     // Remembered as loaded only now that it is. Remembered at the top, a pack that failed to
@@ -442,7 +442,7 @@ int loadDefaultPresetPacks()
 
 void clearPresetPacks() { packs().clear(); loadedPaths().clear(); rebuildViews(); }
 int  numPresetPacks() { return static_cast<int>(packs().size()); }
-const char* presetPackName(int pack) { return (pack >= 0 && pack < numPresetPacks()) ? packs()[static_cast<size_t>(pack)]->name.c_str() : ""; }
+const char* presetPackName(int pack) { return (pack >= 0 && pack < numPresetPacks()) ? packs()[static_cast<size_t>(pack)]->m_name.c_str() : ""; }
 
 int numPresets() { return builtinPresetCount() + static_cast<int>(views().size()); }
 
@@ -478,20 +478,20 @@ int nearAutoPick(const char* packName, const char* presetName, float& rateFactor
     rateFactor = 1.0f;
     if (packName == nullptr || presetName == nullptr) return -1;
     const NearAutoPack* pk = nullptr;
-    for (int i = 0; i < kNumNearAutoPacks; ++i) if (std::strcmp(kNearAutoPacks[i].pack, packName) == 0) { pk = &kNearAutoPacks[i]; break; }
-    if (pk == nullptr || pk->count <= 0) return -1;
-    if (hashUnit(presetName, 1u) >= static_cast<double>(pk->share)) return 0;   // no foreground for this one: Near Off
+    for (int i = 0; i < NumNearAutoPacks; ++i) if (std::strcmp(NearAutoPacks[i].m_pack, packName) == 0) { pk = &NearAutoPacks[i]; break; }
+    if (pk == nullptr || pk->m_count <= 0) return -1;
+    if (hashUnit(presetName, 1u) >= static_cast<double>(pk->m_share)) return 0;   // no foreground for this one: Near Off
     double total = 0.0;
-    for (int i = 0; i < pk->count; ++i) total += kNearAutoEntries[pk->first + i].weight;
+    for (int i = 0; i < pk->m_count; ++i) total += NearAutoEntries[pk->m_first + i].m_weight;
     double u = hashUnit(presetName, 2u) * total;
-    const NearAutoEntry* pick = &kNearAutoEntries[pk->first + pk->count - 1];
-    for (int i = 0; i < pk->count; ++i) {
-        const NearAutoEntry& e = kNearAutoEntries[pk->first + i];
-        if (u < e.weight) { pick = &e; break; }
-        u -= e.weight;
+    const NearAutoEntry* pick = &NearAutoEntries[pk->m_first + pk->m_count - 1];
+    for (int i = 0; i < pk->m_count; ++i) {
+        const NearAutoEntry& e = NearAutoEntries[pk->m_first + i];
+        if (u < e.m_weight) { pick = &e; break; }
+        u -= e.m_weight;
     }
-    rateFactor = pick->rateLo + (pick->rateHi - pick->rateLo) * static_cast<float>(hashUnit(presetName, 3u));
-    for (int i = 0; i < numNearPresets(); ++i) if (std::strcmp(nearPreset(i).name, pick->preset) == 0) return i;
+    rateFactor = pick->m_rateLo + (pick->m_rateHi - pick->m_rateLo) * static_cast<float>(hashUnit(presetName, 3u));
+    for (int i = 0; i < numNearPresets(); ++i) if (std::strcmp(nearPreset(i).m_name, pick->m_preset) == 0) return i;
     return -1;
 }
 
@@ -506,8 +506,8 @@ const Preset& preset(int index)
 const char* presetFilePath(int presetIndex, int which)
 {
     const int b = builtinPresetCount();
-    if (which < 0 || which >= kPresetFiles) return "";
-    const size_t i = static_cast<size_t>(presetIndex - b) * kPresetFiles + static_cast<size_t>(which);
+    if (which < 0 || which >= PresetFiles) return "";
+    const size_t i = static_cast<size_t>(presetIndex - b) * PresetFiles + static_cast<size_t>(which);
     return (presetIndex >= b && i < paths().size()) ? paths()[i].c_str() : "";
 }
 

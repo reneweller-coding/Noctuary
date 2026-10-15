@@ -128,7 +128,7 @@ def parse_presets():
     """[(name, settings, span)] over Presets.cpp, span being where the settings literal sits."""
     with open(PRESETS, encoding="utf-8") as f:
         text = strip_line_comments(f.read())
-    start = text.index("const Preset kPresets[]")
+    start = text.index("const Preset Presets[]")
     end = text.index("int numCosmosPresets")
     out = []
     # The tail is optional: an entry this tool has already rewritten carries the four extra

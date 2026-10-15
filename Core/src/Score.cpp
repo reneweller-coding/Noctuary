@@ -60,24 +60,24 @@ int writeScoreTime(double seconds, char* buf, size_t cap)
 
 bool Score::add(const ScoreEvent& e)
 {
-    if (count_ >= kMaxScoreEvents) return false;
-    events_[count_] = e;
-    started_[count_] = false;
-    from_[count_] = 0.0f;
-    ++count_;
+    if (m_count >= MaxScoreEvents) return false;
+    m_events[m_count] = e;
+    m_started[m_count] = false;
+    m_from[m_count] = 0.0f;
+    ++m_count;
     return true;
 }
 
 void Score::rewind()
 {
-    t_ = 0.0;
-    for (int i = 0; i < count_; ++i) { started_[i] = false; from_[i] = 0.0f; }
+    m_t = 0.0;
+    for (int i = 0; i < m_count; ++i) { m_started[i] = false; m_from[i] = 0.0f; }
 }
 
 double Score::length() const
 {
     double last = 0.0;
-    for (int i = 0; i < count_; ++i) last = std::max(last, events_[i].at + events_[i].over);
+    for (int i = 0; i < m_count; ++i) last = std::max(last, m_events[i].m_at + m_events[i].m_over);
     return last;
 }
 
@@ -105,23 +105,23 @@ bool Score::parse(const char* text)
             if (!tok.empty()) {
                 if (tok.size() < 3) return false;
                 ScoreEvent e;
-                e.at = parseScoreTime(tok[0].c_str());
-                if (e.at < 0.0) return false;
+                e.m_at = parseScoreTime(tok[0].c_str());
+                if (e.m_at < 0.0) return false;
                 const ParamDesc* d = findParam(tok[1].c_str());
                 if (d == nullptr) return false;
-                e.target = d->id;
+                e.m_target = d->m_id;
                 // A choice or a switch may be written by name as well as by number.
                 bool byName = false;
-                if (d->kind == ParamKind::Choice)
-                    for (int i = 0; i < d->numChoices; ++i)
-                        if (tok[2] == d->choices[i]) { e.value = static_cast<float>(i); byName = true; }
-                if (!byName && d->kind == ParamKind::Bool && (tok[2] == "on" || tok[2] == "off")) { e.value = tok[2] == "on" ? 1.0f : 0.0f; byName = true; }
-                if (!byName) e.value = static_cast<float>(std::atof(tok[2].c_str()));
-                if (!std::isfinite(e.value)) e.value = d->def;   // clampv lets NaN through
-                e.value = clampv(e.value, d->min, d->max);
+                if (d->m_kind == ParamKindE::CHOICE)
+                    for (int i = 0; i < d->m_numChoices; ++i)
+                        if (tok[2] == d->m_choices[i]) { e.m_value = static_cast<float>(i); byName = true; }
+                if (!byName && d->m_kind == ParamKindE::BOOL && (tok[2] == "on" || tok[2] == "off")) { e.m_value = tok[2] == "on" ? 1.0f : 0.0f; byName = true; }
+                if (!byName) e.m_value = static_cast<float>(std::atof(tok[2].c_str()));
+                if (!std::isfinite(e.m_value)) e.m_value = d->m_def;   // clampv lets NaN through
+                e.m_value = clampv(e.m_value, d->m_min, d->m_max);
                 if (tok.size() >= 5 && tok[3] == "over") {
-                    e.over = parseScoreTime(tok[4].c_str());
-                    if (e.over < 0.0) return false;
+                    e.m_over = parseScoreTime(tok[4].c_str());
+                    if (e.m_over < 0.0) return false;
                 } else if (tok.size() != 3) {
                     return false;
                 }
@@ -141,20 +141,20 @@ int Score::write(char* buf, size_t cap) const
 {
     size_t used = 0;
     char t[32], o[32];
-    for (int i = 0; i < count_; ++i) {
-        const ScoreEvent& e = events_[i];
-        const ParamDesc& d = paramDesc(e.target);
-        writeScoreTime(e.at, t, sizeof(t));
+    for (int i = 0; i < m_count; ++i) {
+        const ScoreEvent& e = m_events[i];
+        const ParamDesc& d = paramDesc(e.m_target);
+        writeScoreTime(e.m_at, t, sizeof(t));
         char value[64];
-        if (d.kind == ParamKind::Choice) std::snprintf(value, sizeof(value), "%s", d.choices[clampv(static_cast<int>(std::lround(e.value)), 0, d.numChoices - 1)]);
-        else if (d.kind == ParamKind::Bool) std::snprintf(value, sizeof(value), "%s", e.value >= 0.5f ? "on" : "off");
-        else std::snprintf(value, sizeof(value), "%g", static_cast<double>(e.value));
+        if (d.m_kind == ParamKindE::CHOICE) std::snprintf(value, sizeof(value), "%s", d.m_choices[clampv(static_cast<int>(std::lround(e.m_value)), 0, d.m_numChoices - 1)]);
+        else if (d.m_kind == ParamKindE::BOOL) std::snprintf(value, sizeof(value), "%s", e.m_value >= 0.5f ? "on" : "off");
+        else std::snprintf(value, sizeof(value), "%g", static_cast<double>(e.m_value));
         int len;
-        if (e.over > 0.0) {
-            writeScoreTime(e.over, o, sizeof(o));
-            len = std::snprintf(buf + used, used < cap ? cap - used : 0, "%s %s %s over %s\n", t, d.key, value, o);
+        if (e.m_over > 0.0) {
+            writeScoreTime(e.m_over, o, sizeof(o));
+            len = std::snprintf(buf + used, used < cap ? cap - used : 0, "%s %s %s over %s\n", t, d.m_key, value, o);
         } else {
-            len = std::snprintf(buf + used, used < cap ? cap - used : 0, "%s %s %s\n", t, d.key, value);
+            len = std::snprintf(buf + used, used < cap ? cap - used : 0, "%s %s %s\n", t, d.m_key, value);
         }
         if (len < 0) return -1;
         used += static_cast<size_t>(len);
@@ -163,19 +163,19 @@ int Score::write(char* buf, size_t cap) const
     return static_cast<int>(used);
 }
 
-float Score::rampValue(ParamId id, float from, float to, float x)
+float Score::rampValue(ParamIdE id, float from, float to, float x)
 {
     const ParamDesc& d = paramDesc(id);
     x = clampv(x, 0.0f, 1.0f);
-    if (d.kind != ParamKind::Float) {
+    if (d.m_kind != ParamKindE::FLOAT) {
         // A choice, a switch or an integer does not travel: it changes when the ramp is over
         // (a half-open switch is not a thing).
         return x >= 1.0f ? to : from;
     }
-    const float span = std::max(d.max - d.min, 1e-9f);
-    const float a = std::pow(clampv((from - d.min) / span, 0.0f, 1.0f), d.skew);
-    const float b = std::pow(clampv((to - d.min) / span, 0.0f, 1.0f), d.skew);
-    return d.min + span * std::pow(a + (b - a) * x, 1.0f / d.skew);
+    const float span = std::max(d.m_max - d.m_min, 1e-9f);
+    const float a = std::pow(clampv((from - d.m_min) / span, 0.0f, 1.0f), d.m_skew);
+    const float b = std::pow(clampv((to - d.m_min) / span, 0.0f, 1.0f), d.m_skew);
+    return d.m_min + span * std::pow(a + (b - a) * x, 1.0f / d.m_skew);
 }
 
 bool Score::load(const char* path)
@@ -192,7 +192,7 @@ bool Score::load(const char* path)
 
 bool Score::save(const char* path) const
 {
-    std::vector<char> buf(static_cast<size_t>(count_) * 96 + 64);
+    std::vector<char> buf(static_cast<size_t>(m_count) * 96 + 64);
     const int n = write(buf.data(), buf.size());
     if (n < 0) return false;
     FILE* f = std::fopen(path, "wb");

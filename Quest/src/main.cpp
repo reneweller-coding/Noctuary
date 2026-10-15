@@ -87,20 +87,20 @@ namespace {
  * Only what the two eyes' view-projection needs; there is no general linear algebra here.
  */
 struct Mat4 {
-    float m[16];   ///< the sixteen elements, column after column, as glUniformMatrix4fv reads them
+    float m_m[16];   ///< the sixteen elements, column after column, as glUniformMatrix4fv reads them
 };
 /** @brief A point or direction in metres, OpenXR convention: x right, y up, z back (towards the viewer). */
 struct Vec3 {
-    float x,   ///< right, in metres (unitless for a direction)
-    y,         ///< up
-    z;         ///< back, towards the viewer
+    float m_x,   ///< right, in metres (unitless for a direction)
+    m_y,         ///< up
+    m_z;         ///< back, towards the viewer
 };
 
 /**
  * @brief The identity matrix, the starting point of every matrix built below.
  * @return a Mat4 with ones on the diagonal and zeros elsewhere
  */
-Mat4 identity() { Mat4 r{}; r.m[0] = r.m[5] = r.m[10] = r.m[15] = 1.0f; return r; }
+Mat4 identity() { Mat4 r{}; r.m_m[0] = r.m_m[5] = r.m_m[10] = r.m_m[15] = 1.0f; return r; }
 
 /**
  * @brief The matrix product a * b, so that (a * b) v applies b first and a second.
@@ -113,7 +113,7 @@ Mat4 multiply(const Mat4& a, const Mat4& b)
     Mat4 r{};
     for (int c = 0; c < 4; ++c)
         for (int rr = 0; rr < 4; ++rr)
-            r.m[c * 4 + rr] = a.m[0 * 4 + rr] * b.m[c * 4 + 0] + a.m[1 * 4 + rr] * b.m[c * 4 + 1] + a.m[2 * 4 + rr] * b.m[c * 4 + 2] + a.m[3 * 4 + rr] * b.m[c * 4 + 3];
+            r.m_m[c * 4 + rr] = a.m_m[0 * 4 + rr] * b.m_m[c * 4 + 0] + a.m_m[1 * 4 + rr] * b.m_m[c * 4 + 1] + a.m_m[2 * 4 + rr] * b.m_m[c * 4 + 2] + a.m_m[3 * 4 + rr] * b.m_m[c * 4 + 3];
     return r;
 }
 
@@ -133,11 +133,11 @@ Mat4 projectionFromFov(const XrFovf& fov, float nearZ, float farZ)
     const float l = std::tan(fov.angleLeft), r = std::tan(fov.angleRight), u = std::tan(fov.angleUp), d = std::tan(fov.angleDown);
     const float w = r - l, h = u - d;
     Mat4 p{};
-    p.m[0] = 2.0f / w;  p.m[8] = (r + l) / w;
-    p.m[5] = 2.0f / h;  p.m[9] = (u + d) / h;
-    p.m[10] = -(farZ + nearZ) / (farZ - nearZ);
-    p.m[11] = -1.0f;
-    p.m[14] = -(2.0f * farZ * nearZ) / (farZ - nearZ);
+    p.m_m[0] = 2.0f / w;  p.m_m[8] = (r + l) / w;
+    p.m_m[5] = 2.0f / h;  p.m_m[9] = (u + d) / h;
+    p.m_m[10] = -(farZ + nearZ) / (farZ - nearZ);
+    p.m_m[11] = -1.0f;
+    p.m_m[14] = -(2.0f * farZ * nearZ) / (farZ - nearZ);
     return p;
 }
 
@@ -150,9 +150,9 @@ Mat4 rotationFromQuat(const XrQuaternionf& q)
 {
     const float x = q.x, y = q.y, z = q.z, w = q.w;
     Mat4 r = identity();
-    r.m[0] = 1 - 2 * (y * y + z * z); r.m[4] = 2 * (x * y - z * w);     r.m[8] = 2 * (x * z + y * w);
-    r.m[1] = 2 * (x * y + z * w);     r.m[5] = 1 - 2 * (x * x + z * z); r.m[9] = 2 * (y * z - x * w);
-    r.m[2] = 2 * (x * z - y * w);     r.m[6] = 2 * (y * z + x * w);     r.m[10] = 1 - 2 * (x * x + y * y);
+    r.m_m[0] = 1 - 2 * (y * y + z * z); r.m_m[4] = 2 * (x * y - z * w);     r.m_m[8] = 2 * (x * z + y * w);
+    r.m_m[1] = 2 * (x * y + z * w);     r.m_m[5] = 1 - 2 * (x * x + z * z); r.m_m[9] = 2 * (y * z - x * w);
+    r.m_m[2] = 2 * (x * z - y * w);     r.m_m[6] = 2 * (y * z + x * w);     r.m_m[10] = 1 - 2 * (x * x + y * y);
     return r;
 }
 
@@ -165,7 +165,7 @@ Mat4 rotationFromQuat(const XrQuaternionf& q)
 Vec3 rotate(const XrQuaternionf& q, Vec3 v)
 {
     const Mat4 r = rotationFromQuat(q);
-    return { r.m[0] * v.x + r.m[4] * v.y + r.m[8] * v.z, r.m[1] * v.x + r.m[5] * v.y + r.m[9] * v.z, r.m[2] * v.x + r.m[6] * v.y + r.m[10] * v.z };
+    return { r.m_m[0] * v.m_x + r.m_m[4] * v.m_y + r.m_m[8] * v.m_z, r.m_m[1] * v.m_x + r.m_m[5] * v.m_y + r.m_m[9] * v.m_z, r.m_m[2] * v.m_x + r.m_m[6] * v.m_y + r.m_m[10] * v.m_z };
 }
 
 /**
@@ -181,9 +181,9 @@ Mat4 viewFromPose(const XrPosef& pose)
 {
     Mat4 r = rotationFromQuat(pose.orientation);
     Mat4 rt = identity();
-    for (int c = 0; c < 3; ++c) for (int rr = 0; rr < 3; ++rr) rt.m[c * 4 + rr] = r.m[rr * 4 + c];
+    for (int c = 0; c < 3; ++c) for (int rr = 0; rr < 3; ++rr) rt.m_m[c * 4 + rr] = r.m_m[rr * 4 + c];
     Mat4 t = identity();
-    t.m[12] = -pose.position.x; t.m[13] = -pose.position.y; t.m[14] = -pose.position.z;
+    t.m_m[12] = -pose.position.x; t.m_m[13] = -pose.position.y; t.m_m[14] = -pose.position.z;
     return multiply(rt, t);
 }
 
@@ -221,7 +221,7 @@ void quatToEulerDeg(const XrQuaternionf& q, float& yaw, float& pitch, float& rol
  */
 const unsigned char* glyph(char c)
 {
-    static const unsigned char kFont[][7] = {
+    static const unsigned char Font[][7] = {
         {0x0E,0x11,0x11,0x1F,0x11,0x11,0x11}, {0x1E,0x11,0x11,0x1E,0x11,0x11,0x1E}, {0x0E,0x11,0x10,0x10,0x10,0x11,0x0E}, // A B C
         {0x1E,0x11,0x11,0x11,0x11,0x11,0x1E}, {0x1F,0x10,0x10,0x1E,0x10,0x10,0x1F}, {0x1F,0x10,0x10,0x1E,0x10,0x10,0x10}, // D E F
         {0x0E,0x11,0x10,0x17,0x11,0x11,0x0F}, {0x11,0x11,0x11,0x1F,0x11,0x11,0x11}, {0x0E,0x04,0x04,0x04,0x04,0x04,0x0E}, // G H I
@@ -241,11 +241,11 @@ const unsigned char* glyph(char c)
         {0x00,0x00,0x00,0x00,0x00,0x00,0x00},                                                                              // unknown
     };
     if (c >= 'a' && c <= 'z') c = static_cast<char>(c - 'a' + 'A');
-    if (c >= 'A' && c <= 'Z') return kFont[c - 'A'];
-    if (c >= '0' && c <= '9') return kFont[26 + (c - '0')];
-    switch (c) { case ' ': return kFont[36]; case '-': return kFont[37]; case '.': return kFont[38]; case ':': return kFont[39];
-                 case '/': return kFont[40]; case '<': return kFont[41]; case '>': return kFont[42]; case '+': return kFont[43]; case '=': return kFont[44]; }
-    return kFont[45];
+    if (c >= 'A' && c <= 'Z') return Font[c - 'A'];
+    if (c >= '0' && c <= '9') return Font[26 + (c - '0')];
+    switch (c) { case ' ': return Font[36]; case '-': return Font[37]; case '.': return Font[38]; case ':': return Font[39];
+                 case '/': return Font[40]; case '<': return Font[41]; case '>': return Font[42]; case '+': return Font[43]; case '=': return Font[44]; }
+    return Font[45];
 }
 
 // ---------------------------------------------------------------- OSC sender (bridge mode)
@@ -269,18 +269,18 @@ public:
     bool open(const std::string& host, int port)
     {
         close();
-        sock_ = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (sock_ < 0) return false;
-        std::memset(&to_, 0, sizeof(to_));
-        to_.sin_family = AF_INET;
-        to_.sin_port = htons(static_cast<uint16_t>(port));
-        if (inet_pton(AF_INET, host.c_str(), &to_.sin_addr) != 1) { close(); return false; }
+        m_sock = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (m_sock < 0) return false;
+        std::memset(&m_to, 0, sizeof(m_to));
+        m_to.sin_family = AF_INET;
+        m_to.sin_port = htons(static_cast<uint16_t>(port));
+        if (inet_pton(AF_INET, host.c_str(), &m_to.sin_addr) != 1) { close(); return false; }
         return true;
     }
     /** @brief Closes the socket; afterwards ok() is false and send() does nothing. */
-    void close() { if (sock_ >= 0) ::close(sock_); sock_ = -1; }
+    void close() { if (m_sock >= 0) ::close(m_sock); m_sock = -1; }
     /** @brief Whether a socket is open, i.e. the bridge is on. @return true after a successful open() */
-    bool ok() const { return sock_ >= 0; }
+    bool ok() const { return m_sock >= 0; }
     /**
      * @brief Sends one OSC message of float arguments; a no-op while the socket is closed.
      *
@@ -293,18 +293,18 @@ public:
      */
     void send(const char* address, const float* args, int n)
     {
-        if (sock_ < 0) return;
+        if (m_sock < 0) return;
         char buf[256]; size_t pos = 0;
         auto putStr = [&](const char* s) { const size_t l = std::strlen(s) + 1; std::memcpy(buf + pos, s, l); pos += l; while (pos & 3) buf[pos++] = 0; };
         putStr(address);
         char tags[16]; tags[0] = ','; for (int i = 0; i < n; ++i) tags[1 + i] = 'f'; tags[1 + n] = 0;
         putStr(tags);
         for (int i = 0; i < n; ++i) { uint32_t u; std::memcpy(&u, &args[i], 4); buf[pos++] = static_cast<char>(u >> 24); buf[pos++] = static_cast<char>(u >> 16); buf[pos++] = static_cast<char>(u >> 8); buf[pos++] = static_cast<char>(u); }
-        ::sendto(sock_, buf, pos, 0, reinterpret_cast<sockaddr*>(&to_), sizeof(to_));
+        ::sendto(m_sock, buf, pos, 0, reinterpret_cast<sockaddr*>(&m_to), sizeof(m_to));
     }
 private:
-    int sock_ = -1;      ///< the UDP socket, or -1 while closed
-    sockaddr_in to_{};   ///< the plugin's address and port, filled by open()
+    int m_sock = -1;      ///< the UDP socket, or -1 while closed
+    sockaddr_in m_to{};   ///< the plugin's address and port, filled by open()
 };
 
 // ---------------------------------------------------------------- audio
@@ -324,7 +324,7 @@ public:
      * @param e  the engine, prepared by start() and run by the callback
      * @param r  the recorder that gets every rendered block (it ignores them while not recording)
      */
-    Audio(Engine& e, WavRecorder& r) : engine_(e), recorder_(r) {}
+    Audio(Engine& e, WavRecorder& r) : m_engine(e), m_recorder(r) {}
     /**
      * @brief Opens and starts the stream and prepares the engine at the stream's rate.
      *
@@ -343,23 +343,23 @@ public:
          ->setChannelCount(2)
          ->setSampleRate(48000)
          ->setDataCallback(this);
-        if (b.openStream(stream_) != oboe::Result::OK) { LOGE("Oboe: cannot open stream"); return false; }
-        sampleRate_ = stream_->getSampleRate();
-        const int burst = stream_->getFramesPerBurst();
-        stream_->setBufferSizeInFrames(burst * 2);
-        bufL_.assign(8192, 0.0f); bufR_.assign(8192, 0.0f);
-        engine_.prepare(sampleRate_, 1024);
-        LOGI("Oboe: %d Hz, burst %d", sampleRate_, burst);
-        return stream_->requestStart() == oboe::Result::OK;
+        if (b.openStream(m_stream) != oboe::Result::OK) { LOGE("Oboe: cannot open stream"); return false; }
+        m_sampleRate = m_stream->getSampleRate();
+        const int burst = m_stream->getFramesPerBurst();
+        m_stream->setBufferSizeInFrames(burst * 2);
+        m_bufL.assign(8192, 0.0f); m_bufR.assign(8192, 0.0f);
+        m_engine.prepare(m_sampleRate, 1024);
+        LOGI("Oboe: %d Hz, burst %d", m_sampleRate, burst);
+        return m_stream->requestStart() == oboe::Result::OK;
     }
     /** @brief Stops and closes the stream, if one is open; called once at shutdown. */
-    void stop() { if (stream_) { stream_->requestStop(); stream_->close(); stream_.reset(); } }
+    void stop() { if (m_stream) { m_stream->requestStop(); m_stream->close(); m_stream.reset(); } }
     /** @brief The stream's rate in Hz (48000 until start() learned the real one); a recording is written at it. @return the sample rate */
-    int sampleRate() const { return sampleRate_; }
+    int sampleRate() const { return m_sampleRate; }
     /**
      * @brief Oboe's data callback, the audio thread: renders @p frames stereo frames into @p data.
      *
-     * The engine renders into bufL_ / bufR_ in chunks of at most 4096 frames, the recorder is fed
+     * The engine renders into m_bufL / m_bufR in chunks of at most 4096 frames, the recorder is fed
      * the same chunk, and the two channels are interleaved into the stream's float buffer.
      *
      * @param data    the stream's output buffer, interleaved stereo float
@@ -372,20 +372,20 @@ public:
         int done = 0;
         while (done < frames) {
             const int n = std::min(frames - done, 4096);
-            engine_.process(bufL_.data(), bufR_.data(), n);
-            recorder_.write(bufL_.data(), bufR_.data(), n);
-            for (int i = 0; i < n; ++i) { out[(done + i) * 2] = bufL_[static_cast<size_t>(i)]; out[(done + i) * 2 + 1] = bufR_[static_cast<size_t>(i)]; }
+            m_engine.process(m_bufL.data(), m_bufR.data(), n);
+            m_recorder.write(m_bufL.data(), m_bufR.data(), n);
+            for (int i = 0; i < n; ++i) { out[(done + i) * 2] = m_bufL[static_cast<size_t>(i)]; out[(done + i) * 2 + 1] = m_bufR[static_cast<size_t>(i)]; }
             done += n;
         }
         return oboe::DataCallbackResult::Continue;
     }
 private:
-    Engine& engine_;                              ///< the synthesizer, owned by App
-    WavRecorder& recorder_;                       ///< the recorder, owned by App; taps every rendered block
-    std::shared_ptr<oboe::AudioStream> stream_;   ///< the open Oboe stream, null before start() and after stop()
-    std::vector<float> bufL_,   ///< left scratch buffer the engine renders into, 8192 frames
-                       bufR_;   ///< right scratch buffer, the same size
-    int sampleRate_ = 48000;                      ///< the rate the stream really opened at, in Hz
+    Engine& m_engine;                              ///< the synthesizer, owned by App
+    WavRecorder& m_recorder;                       ///< the recorder, owned by App; taps every rendered block
+    std::shared_ptr<oboe::AudioStream> m_stream;   ///< the open Oboe stream, null before start() and after stop()
+    std::vector<float> m_bufL,   ///< left scratch buffer the engine renders into, 8192 frames
+                       m_bufR;   ///< right scratch buffer, the same size
+    int m_sampleRate = 48000;                      ///< the rate the stream really opened at, in Hz
 };
 
 // ---------------------------------------------------------------- config
@@ -397,12 +397,12 @@ private:
  * at start by readConfig(); nothing rereads it while the app runs.
  */
 struct Config {
-    std::string oscHost;      ///< `osc_host`: IPv4 address of the PC running the desktop plugin; empty = no bridge
-    int oscPort = 9000;       ///< `osc_port`: the plugin's OSC port
-    bool audio = true;        ///< `audio`: false (`audio=0`) means no on-device sound, a pure bridge
-    std::string preset;       ///< `preset`: a preset applied at start, by its exact name; empty = the engine's init state
-    std::string route;   ///< `route`: route preset name or route text for ROUTE PLAY/STOP
-    float restZone = 0.08f;   ///< `rest_zone`: both hands below this share of the calibrated height = resting, nothing moves
+    std::string m_oscHost;      ///< `osc_host`: IPv4 address of the PC running the desktop plugin; empty = no bridge
+    int m_oscPort = 9000;       ///< `osc_port`: the plugin's OSC port
+    bool m_audio = true;        ///< `audio`: false (`audio=0`) means no on-device sound, a pure bridge
+    std::string m_preset;       ///< `preset`: a preset applied at start, by its exact name; empty = the engine's init state
+    std::string m_route;   ///< `route`: route preset name or route text for ROUTE PLAY/STOP
+    float m_restZone = 0.08f;   ///< `rest_zone`: both hands below this share of the calibrated height = resting, nothing moves
 };
 
 /**
@@ -428,12 +428,12 @@ Config readConfig(const char* dir)
         const size_t eq = s.find('=');
         if (eq == std::string::npos) continue;
         const std::string k = s.substr(0, eq), v = s.substr(eq + 1);
-        if (k == "osc_host") c.oscHost = v;
-        else if (k == "osc_port") c.oscPort = std::atoi(v.c_str());
-        else if (k == "audio") c.audio = v != "0";
-        else if (k == "preset") c.preset = v;
-        else if (k == "route") c.route = v;
-        else if (k == "rest_zone") c.restZone = static_cast<float>(std::atof(v.c_str()));
+        if (k == "osc_host") c.m_oscHost = v;
+        else if (k == "osc_port") c.m_oscPort = std::atoi(v.c_str());
+        else if (k == "audio") c.m_audio = v != "0";
+        else if (k == "preset") c.m_preset = v;
+        else if (k == "route") c.m_route = v;
+        else if (k == "rest_zone") c.m_restZone = static_cast<float>(std::atof(v.c_str()));
     }
     std::fclose(f);
     return c;
@@ -484,14 +484,14 @@ void main() {
  *        offset 0, colour at 12, size at 28.
  */
 struct Point {
-    float x,      ///< position in metres, stage space: x right
-    y,            ///< y up
-    z;            ///< z back
-    float r,      ///< red 0 .. 1
-    g,            ///< green 0 .. 1
-    b,            ///< blue 0 .. 1
-    a;            ///< brightness of the additive dot, 0 .. 1 (not a coverage)
-    float size;   ///< point size in pixels at clip w = 1, divided by the depth in the shader
+    float m_x,      ///< position in metres, stage space: x right
+    m_y,            ///< y up
+    m_z;            ///< z back
+    float m_r,      ///< red 0 .. 1
+    m_g,            ///< green 0 .. 1
+    m_b,            ///< blue 0 .. 1
+    m_a;            ///< brightness of the additive dot, 0 .. 1 (not a coverage)
+    float m_size;   ///< point size in pixels at clip w = 1, divided by the depth in the shader
 };
 
 /**
@@ -512,9 +512,9 @@ GLuint compile(GLenum type, const char* src)
 
 /** @brief A head-locked text panel: origin in front of the eyes, axes from the head's yaw only. */
 struct Panel {
-    Vec3 origin,   ///< the panel's top-left corner in stage space
-    right,         ///< unit axis along the text
-    up;            ///< unit axis up the lines (world up)
+    Vec3 m_origin,   ///< the panel's top-left corner in stage space
+    m_right,         ///< unit axis along the text
+    m_up;            ///< unit axis up the lines (world up)
 };
 
 /**
@@ -532,17 +532,17 @@ public:
      */
     bool init()
     {
-        program_ = glCreateProgram();
-        glAttachShader(program_, compile(GL_VERTEX_SHADER, kVertexShader));
-        glAttachShader(program_, compile(GL_FRAGMENT_SHADER, kFragmentShader));
-        glLinkProgram(program_);
-        GLint ok = 0; glGetProgramiv(program_, GL_LINK_STATUS, &ok);
+        m_program = glCreateProgram();
+        glAttachShader(m_program, compile(GL_VERTEX_SHADER, kVertexShader));
+        glAttachShader(m_program, compile(GL_FRAGMENT_SHADER, kFragmentShader));
+        glLinkProgram(m_program);
+        GLint ok = 0; glGetProgramiv(m_program, GL_LINK_STATUS, &ok);
         if (!ok) { LOGE("program link failed"); return false; }
-        uVP_ = glGetUniformLocation(program_, "uVP");
-        glGenBuffers(1, &vbo_);
-        glGenVertexArrays(1, &vao_);
-        glBindVertexArray(vao_);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_);
+        m_uVP = glGetUniformLocation(m_program, "uVP");
+        glGenBuffers(1, &m_vbo);
+        glGenVertexArrays(1, &m_vao);
+        glBindVertexArray(m_vao);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
         glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Point), reinterpret_cast<void*>(0));
         glEnableVertexAttribArray(1); glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Point), reinterpret_cast<void*>(12));
         glEnableVertexAttribArray(2); glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Point), reinterpret_cast<void*>(28));
@@ -551,7 +551,7 @@ public:
     }
 
     /** @brief Starts a new frame's cloud: forgets last frame's points. */
-    void begin() { points_.clear(); }
+    void begin() { m_points.clear(); }
 
     /**
      * @brief Adds the world of the current frame from what the engine and the hands report.
@@ -572,7 +572,7 @@ public:
     {
         for (int i = 0; i < 64; ++i) {   // horizon ring
             const float a = static_cast<float>(i) / 64.0f * 6.2831853f;
-            points_.push_back({ 2.5f * std::sin(a), 0.02f, -2.5f * std::cos(a), 0.25f, 0.3f, 0.4f, 0.35f, 40.0f });
+            m_points.push_back({ 2.5f * std::sin(a), 0.02f, -2.5f * std::cos(a), 0.25f, 0.3f, 0.4f, 0.35f, 40.0f });
         }
         bool notes[128];
         engine.soundingNotes(notes);
@@ -585,24 +585,24 @@ public:
             const float radius = 1.2f + 4.0f * d;
             const float y = 0.5f + (static_cast<float>(n / 12) - 3.0f) * 0.35f;
             const float warm = 1.0f - d;
-            points_.push_back({ radius * std::sin(ang), y, -radius * std::cos(ang),
+            m_points.push_back({ radius * std::sin(ang), y, -radius * std::cos(ang),
                                 0.5f + 0.5f * warm, 0.55f + 0.25f * warm, 1.0f - 0.5f * warm, 0.2f + 0.8f * lv, (120.0f + 160.0f * lv) * (1.0f - 0.5f * d) });
         }
         {
             const float ang = static_cast<float>(root % 12) / 12.0f * 6.2831853f;
-            points_.push_back({ 1.0f * std::sin(ang), 0.1f, -1.0f * std::cos(ang), 1.0f, 0.6f, 0.2f, 0.8f, 120.0f });
+            m_points.push_back({ 1.0f * std::sin(ang), 0.1f, -1.0f * std::cos(ang), 1.0f, 0.6f, 0.2f, 0.8f, 120.0f });
         }
         for (int h = 0; h < 2; ++h) {
             if (!palmsValid[h]) continue;
             const float p = pinch[h];
-            points_.push_back({ palms[h].x, palms[h].y, palms[h].z, 0.3f + 0.7f * p, 0.9f * (1.0f - p) + 0.2f, 0.4f * (1.0f - p), 0.95f, 90.0f });
+            m_points.push_back({ palms[h].x, palms[h].y, palms[h].z, 0.3f + 0.7f * p, 0.9f * (1.0f - p) + 0.2f, 0.4f * (1.0f - p), 0.95f, 90.0f });
         }
         if (palmsValid[0] && palmsValid[1]) {
             const float m = engine.morphPosition();
             for (int i = 1; i < 8; ++i) {
                 const float t = static_cast<float>(i) / 8.0f;
                 const float lit = (t <= m) ? 0.9f : 0.25f;
-                points_.push_back({ palms[0].x + (palms[1].x - palms[0].x) * t, palms[0].y + (palms[1].y - palms[0].y) * t, palms[0].z + (palms[1].z - palms[0].z) * t,
+                m_points.push_back({ palms[0].x + (palms[1].x - palms[0].x) * t, palms[0].y + (palms[1].y - palms[0].y) * t, palms[0].z + (palms[1].z - palms[0].z) * t,
                                     0.9f, 0.5f, 0.8f, lit, 35.0f });
             }
         }
@@ -632,7 +632,7 @@ public:
                 for (int col = 0; col < 5; ++col)
                     if (gl[row] & (0x10 >> col)) {
                         const float x = u + static_cast<float>(col) * cell, y = v - static_cast<float>(row) * cell;
-                        points_.push_back({ p.origin.x + p.right.x * x + p.up.x * y, p.origin.y + p.right.y * x + p.up.y * y, p.origin.z + p.right.z * x + p.up.z * y,
+                        m_points.push_back({ p.m_origin.m_x + p.m_right.m_x * x + p.m_up.m_x * y, p.m_origin.m_y + p.m_right.m_y * x + p.m_up.m_y * y, p.m_origin.m_z + p.m_right.m_z * x + p.m_up.m_z * y,
                                             r, g, b, a, cell * 900.0f });
                     }
             u += 6.0f * cell;
@@ -642,8 +642,8 @@ public:
     /** @brief Sends this frame's points to the VBO (GL_DYNAMIC_DRAW); once per frame, before the eyes are drawn. */
     void upload()
     {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(points_.size() * sizeof(Point)), points_.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(m_points.size() * sizeof(Point)), m_points.data(), GL_DYNAMIC_DRAW);
     }
 
     /**
@@ -661,30 +661,30 @@ public:
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE);
-        glUseProgram(program_);
-        glUniformMatrix4fv(uVP_, 1, GL_FALSE, vp.m);
-        glBindVertexArray(vao_);
-        glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(points_.size()));
+        glUseProgram(m_program);
+        glUniformMatrix4fv(m_uVP, 1, GL_FALSE, vp.m_m);
+        glBindVertexArray(m_vao);
+        glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(m_points.size()));
         glBindVertexArray(0);
     }
 private:
-    GLuint program_ = 0,   ///< the linked program
-           vbo_ = 0,       ///< the vertex buffer the points are uploaded to
-           vao_ = 0;       ///< the vertex array with the Point layout
-    GLint uVP_ = -1;                           ///< location of the uVP uniform
-    std::vector<Point> points_;                ///< this frame's cloud, cleared by begin(), uploaded by upload()
+    GLuint m_program = 0,   ///< the linked program
+           m_vbo = 0,       ///< the vertex buffer the points are uploaded to
+           m_vao = 0;       ///< the vertex array with the Point layout
+    GLint m_uVP = -1;                           ///< location of the uVP uniform
+    std::vector<Point> m_points;                ///< this frame's cloud, cleared by begin(), uploaded by upload()
 };
 
 // ---------------------------------------------------------------- the app
 
 /** @brief One eye's render target: its OpenXR swapchain, the GLES textures behind it, and a framebuffer to draw them through. */
 struct SwapchainTarget {
-    XrSwapchain swapchain = XR_NULL_HANDLE;              ///< the eye's colour swapchain
-    int width = 0,    ///< the swapchain image width in pixels, the runtime's recommended size for the view
-        height = 0;   ///< its height in pixels
-    std::vector<XrSwapchainImageOpenGLESKHR> images;     ///< the swapchain's images as GL texture names, indexed by the acquired index
-    GLuint fbo = 0,     ///< the framebuffer the acquired image is attached to per frame
-           depth = 0;   ///< its 24-bit depth renderbuffer
+    XrSwapchain m_swapchain = XR_NULL_HANDLE;              ///< the eye's colour swapchain
+    int m_width = 0,    ///< the swapchain image width in pixels, the runtime's recommended size for the view
+        m_height = 0;   ///< its height in pixels
+    std::vector<XrSwapchainImageOpenGLESKHR> m_images;     ///< the swapchain's images as GL texture names, indexed by the acquired index
+    GLuint m_fbo = 0,     ///< the framebuffer the acquired image is attached to per frame
+           m_depth = 0;   ///< its 24-bit depth renderbuffer
 };
 
 /**
@@ -705,7 +705,7 @@ public:
      * @brief Remembers the glue's android_app; nothing is created until init().
      * @param app  the NativeActivity glue's application object
      */
-    explicit App(android_app* app) : app_(app) {}
+    explicit App(android_app* app) : m_app(app) {}
 
     /**
      * @brief Brings everything up, in the order the dependencies demand.
@@ -721,43 +721,43 @@ public:
      */
     bool init()
     {
-        dataDir_ = app_->activity->externalDataPath ? app_->activity->externalDataPath : "";
+        m_dataDir = m_app->activity->externalDataPath ? m_app->activity->externalDataPath : "";
         // Preset packs from <externalDataPath>/Packs, before anything looks a preset up by name.
-        if (!dataDir_.empty()) {
-            const int packs = loadPresetPacksIn((dataDir_ + "/Packs").c_str());
+        if (!m_dataDir.empty()) {
+            const int packs = loadPresetPacksIn((m_dataDir + "/Packs").c_str());
             if (packs > 0) LOGI("Packs: %d pack(s), %d presets in total", packs, numPresets());
         }
-        config_ = readConfig(dataDir_.c_str());
-        if (!config_.preset.empty())
-            for (int i = 0; i < numPresets(); ++i) if (config_.preset == preset(i).name) { engine_.applyPreset(i); presetA_ = presetB_ = i; }
+        m_config = readConfig(m_dataDir.c_str());
+        if (!m_config.m_preset.empty())
+            for (int i = 0; i < numPresets(); ++i) if (m_config.m_preset == preset(i).m_name) { m_engine.applyPreset(i); m_presetA = m_presetB = i; }
         loadCalibration();
         loadSourceFiles();
         // After loadSourceFiles, so a pack preset's own sample wins over the folder's texture.wav.
-        if (!config_.preset.empty()) loadPresetFiles(presetA_);
-        gestures_.setRestZone(config_.restZone);
-        engine_.setRoomMaxSeconds(4.0f);   // a 4 s convolution is about a third of one XR2 core; 8 s would be two thirds
-        if (!config_.oscHost.empty()) {
-            if (osc_.open(config_.oscHost, config_.oscPort)) LOGI("bridge: OSC to %s:%d", config_.oscHost.c_str(), config_.oscPort);
-            else LOGE("bridge: bad host %s", config_.oscHost.c_str());
+        if (!m_config.m_preset.empty()) loadPresetFiles(m_presetA);
+        m_gestures.setRestZone(m_config.m_restZone);
+        m_engine.setRoomMaxSeconds(4.0f);   // a 4 s convolution is about a third of one XR2 core; 8 s would be two thirds
+        if (!m_config.m_oscHost.empty()) {
+            if (m_osc.open(m_config.m_oscHost, m_config.m_oscPort)) LOGI("bridge: OSC to %s:%d", m_config.m_oscHost.c_str(), m_config.m_oscPort);
+            else LOGE("bridge: bad host %s", m_config.m_oscHost.c_str());
         }
         if (!initLoader()) return false;
         if (!initInstance()) return false;
         if (!initEgl()) return false;
         if (!initSession()) return false;
         if (!initHands()) LOGE("hand tracking unavailable");
-        if (!scene_.init()) return false;
-        if (config_.audio && !audio_.start()) LOGE("audio failed to start");
-        audioStarted_ = true;        // the engine is prepared now; the convolver has its buffers
+        if (!m_scene.init()) return false;
+        if (m_config.m_audio && !m_audio.start()) LOGE("audio failed to start");
+        m_audioStarted = true;        // the engine is prepared now; the convolver has its buffers
         applyPendingImpulses();
-        if (!calibrated_) { gestures_.startCalibration(8.0f); LOGI("no calibration file: calibrating for 8 s"); }
+        if (!m_calibrated) { m_gestures.startCalibration(8.0f); LOGI("no calibration file: calibrating for 8 s"); }
         return true;
     }
 
     /**
      * @brief A pack preset may bring its own sample, wavetable and impulse; the paths sit next to the pack.
      *
-     * The texture goes straight into the engine, the wavetable too; the impulses wait in pendingIr_
-     * / pendingIrB_ until the engine is prepared, or go in at once when the audio already runs.
+     * The texture goes straight into the engine, the wavetable too; the impulses wait in m_pendingIr
+     * / m_pendingIrB until the engine is prepared, or go in at once when the audio already runs.
      * Called from init() for the config's preset and from applyMenu() when A changes without morph.
      *
      * @param index  the preset's index in the preset list (presetFilePath reads its four file fields)
@@ -772,7 +772,7 @@ public:
             const std::string all(tex);
             const bool perSlot = all.find(';') != std::string::npos;
             size_t start = 0;
-            for (int slot = 0; slot < ambient::kSlots; ++slot) {
+            for (int slot = 0; slot < ambient::Slots; ++slot) {
                 const size_t semi = all.find(';', start);
                 std::string one = all.substr(start, semi == std::string::npos ? std::string::npos : semi - start);
                 while (!one.empty() && one.front() == ' ') one.erase(one.begin());
@@ -782,8 +782,8 @@ public:
                     const double base = baseHzFromName(one.c_str());
                     const bool seamless = loopFromName(one.c_str());
                     const float* rp = right.empty() ? nullptr : right.data();
-                    if (perSlot) engine_.setTexture(slot, mono.data(), rp, static_cast<int>(mono.size()), rate, base > 0.0 ? base : 261.6256, seamless);
-                    else         engine_.setTexture(mono.data(), rp, static_cast<int>(mono.size()), rate, base > 0.0 ? base : 261.6256, seamless);
+                    if (perSlot) m_engine.setTexture(slot, mono.data(), rp, static_cast<int>(mono.size()), rate, base > 0.0 ? base : 261.6256, seamless);
+                    else         m_engine.setTexture(mono.data(), rp, static_cast<int>(mono.size()), rate, base > 0.0 ? base : 261.6256, seamless);
                     LOGI("preset texture %d: %s", slot + 1, one.c_str());
                 }
                 if (semi == std::string::npos) break;
@@ -793,83 +793,83 @@ public:
         const char* tab = presetFilePath(index, 1);
         int cycle = 0;
         if (tab != nullptr && *tab && readWavetableFile(tab, mono, cycle))
-            if (!engine_.loadUserWavetable(mono.data(), static_cast<int>(mono.size()), cycle))
+            if (!m_engine.loadUserWavetable(mono.data(), static_cast<int>(mono.size()), cycle))
                 LOGE("%s: not a usable wavetable", tab);
         const char* imp = presetFilePath(index, 2);
         const char* impB = presetFilePath(index, 3);
         std::vector<std::vector<float>> ir;
         if (imp != nullptr && *imp && readWavChannels(imp, ir, rate) && !ir.empty()) {
-            pendingIr_ = ir; pendingIrRate_ = rate;   // set once the engine is prepared
+            m_pendingIr = ir; m_pendingIrRate = rate;   // set once the engine is prepared
             LOGI("preset impulse %s", imp);
-            pendingIrB_.clear();                      // a preset that names its room and no B plays A alone
-            clearIrB_ = true;
+            m_pendingIrB.clear();                      // a preset that names its room and no B plays A alone
+            m_clearIrB = true;
         }
         if (impB != nullptr && *impB && readWavChannels(impB, ir, rate) && !ir.empty()) {
-            pendingIrB_ = ir; pendingIrBRate_ = rate; clearIrB_ = false;
+            m_pendingIrB = ir; m_pendingIrBRate = rate; m_clearIrB = false;
             LOGI("preset impulse B %s", impB);
         }
         // A preset picked from the menu arrives after the audio started: its rooms go in now. They
         // used to wait for a start that had already happened, and the Room kept the first preset's.
-        if (audioStarted_) applyPendingImpulses();
+        if (m_audioStarted) applyPendingImpulses();
     }
 
     /**
      * @brief Message thread, engine prepared: the impulses a preset or the data folder asked for.
      *
-     * Hands pendingIr_ and pendingIrB_ to the engine and clears them; when a preset named a room and
-     * no B (clearIrB_), the engine's B impulse is cleared instead so the Room plays A alone.
+     * Hands m_pendingIr and m_pendingIrB to the engine and clears them; when a preset named a room and
+     * no B (m_clearIrB), the engine's B impulse is cleared instead so the Room plays A alone.
      */
     void applyPendingImpulses()
     {
-        if (!pendingIr_.empty()) {
-            engine_.setImpulse(pendingIr_[0].data(), pendingIr_.size() > 1 ? pendingIr_[1].data() : nullptr, static_cast<int>(pendingIr_[0].size()), pendingIrRate_);
-            pendingIr_.clear();
+        if (!m_pendingIr.empty()) {
+            m_engine.setImpulse(m_pendingIr[0].data(), m_pendingIr.size() > 1 ? m_pendingIr[1].data() : nullptr, static_cast<int>(m_pendingIr[0].size()), m_pendingIrRate);
+            m_pendingIr.clear();
         }
-        if (!pendingIrB_.empty()) {
-            engine_.setImpulseB(pendingIrB_[0].data(), pendingIrB_.size() > 1 ? pendingIrB_[1].data() : nullptr, static_cast<int>(pendingIrB_[0].size()), pendingIrBRate_);
-            pendingIrB_.clear();
-        } else if (clearIrB_) {
-            engine_.clearImpulseB();
+        if (!m_pendingIrB.empty()) {
+            m_engine.setImpulseB(m_pendingIrB[0].data(), m_pendingIrB.size() > 1 ? m_pendingIrB[1].data() : nullptr, static_cast<int>(m_pendingIrB[0].size()), m_pendingIrBRate);
+            m_pendingIrB.clear();
+        } else if (m_clearIrB) {
+            m_engine.clearImpulseB();
         }
-        clearIrB_ = false;
+        m_clearIrB = false;
     }
 
     /**
      * @brief texture.wav (a field recording etc., assumed at C4 for Pitch = Note) and wavetable.wav
      *        (2048-sample frames) in the data folder feed the Texture and User-table source slots.
      *
-     * Also impulse.wav, which waits in pendingIr_ for the engine to be prepared. Once at init(),
+     * Also impulse.wav, which waits in m_pendingIr for the engine to be prepared. Once at init(),
      * before the config preset's own files, so those take precedence.
      */
     void loadSourceFiles()
     {
-        if (dataDir_.empty()) return;
+        if (m_dataDir.empty()) return;
         std::vector<float> mono; int rate = 0;
         // texture.wav, or any texture*.wav (a "_A3" suffix from TextureGen sets the base pitch).
         std::string texPath;
-        if (DIR* d = opendir(dataDir_.c_str())) {
+        if (DIR* d = opendir(m_dataDir.c_str())) {
             while (dirent* e = readdir(d)) {
                 const std::string n = e->d_name;
-                if (n.rfind("texture", 0) == 0 && n.size() > 4 && n.compare(n.size() - 4, 4, ".wav") == 0) { texPath = dataDir_ + "/" + n; if (n == "texture.wav") break; }
+                if (n.rfind("texture", 0) == 0 && n.size() > 4 && n.compare(n.size() - 4, 4, ".wav") == 0) { texPath = m_dataDir + "/" + n; if (n == "texture.wav") break; }
             }
             closedir(d);
         }
         std::vector<float> texRight;
         if (!texPath.empty() && readWavStereo(texPath.c_str(), mono, texRight, rate)) {
             const double base = baseHzFromName(texPath.c_str());
-            engine_.setTexture(mono.data(), texRight.empty() ? nullptr : texRight.data(),
+            m_engine.setTexture(mono.data(), texRight.empty() ? nullptr : texRight.data(),
                                static_cast<int>(mono.size()), rate, base > 0.0 ? base : 261.6256,
                                loopFromName(texPath.c_str()));
             LOGI("%s: %.1f s @ %d Hz, base %.1f Hz", texPath.c_str(), mono.size() / static_cast<double>(rate), rate, base > 0.0 ? base : 261.6256);
         }
         std::vector<std::vector<float>> ir;
-        if (readWavChannels((dataDir_ + "/impulse.wav").c_str(), ir, rate) && !ir.empty()) {
-            pendingIr_ = ir; pendingIrRate_ = rate;   // set after the engine is prepared (audio start)
+        if (readWavChannels((m_dataDir + "/impulse.wav").c_str(), ir, rate) && !ir.empty()) {
+            m_pendingIr = ir; m_pendingIrRate = rate;   // set after the engine is prepared (audio start)
             LOGI("impulse.wav: %zu ch, %.2f s @ %d Hz", ir.size(), ir[0].size() / static_cast<double>(rate), rate);
         }
         int cycle = 0;
-        if (readWavetableFile((dataDir_ + "/wavetable.wav").c_str(), mono, cycle)) {
-            if (engine_.loadUserWavetable(mono.data(), static_cast<int>(mono.size()), cycle)) LOGI("wavetable.wav: cycles of %d samples", cycle);
+        if (readWavetableFile((m_dataDir + "/wavetable.wav").c_str(), mono, cycle)) {
+            if (m_engine.loadUserWavetable(mono.data(), static_cast<int>(mono.size()), cycle)) LOGI("wavetable.wav: cycles of %d samples", cycle);
             else LOGE("wavetable.wav: not a usable wavetable");
         }
     }
@@ -882,51 +882,51 @@ public:
      */
     void run()
     {
-        while (!app_->destroyRequested) {
+        while (!m_app->destroyRequested) {
             int events; android_poll_source* source;
-            const int timeout = (sessionRunning_ || app_->window == nullptr) ? 0 : -1;
+            const int timeout = (m_sessionRunning || m_app->window == nullptr) ? 0 : -1;
             while (ALooper_pollOnce(timeout, nullptr, &events, reinterpret_cast<void**>(&source)) >= 0) {
-                if (source) source->process(app_, source);
-                if (app_->destroyRequested) break;
+                if (source) source->process(m_app, source);
+                if (m_app->destroyRequested) break;
             }
             pollXrEvents();
-            if (quit_) break;
-            if (sessionRunning_) frame();
+            if (m_quit) break;
+            if (m_sessionRunning) frame();
         }
     }
 
     /** @brief Stops the recorder and the audio and destroys swapchains, hand trackers, spaces, session, instance and the socket. */
     void shutdown()
     {
-        recorder_.stop();
-        audio_.stop();
-        for (auto& t : targets_) { if (t.swapchain != XR_NULL_HANDLE) xrDestroySwapchain(t.swapchain); }
-        for (int h = 0; h < 2; ++h) if (handTracker_[h] != XR_NULL_HANDLE && pfnDestroyHandTracker_) pfnDestroyHandTracker_(handTracker_[h]);
-        if (viewSpace_ != XR_NULL_HANDLE) xrDestroySpace(viewSpace_);
-        if (stageSpace_ != XR_NULL_HANDLE) xrDestroySpace(stageSpace_);
-        if (session_ != XR_NULL_HANDLE) xrDestroySession(session_);
-        if (instance_ != XR_NULL_HANDLE) xrDestroyInstance(instance_);
-        osc_.close();
+        m_recorder.stop();
+        m_audio.stop();
+        for (auto& t : m_targets) { if (t.m_swapchain != XR_NULL_HANDLE) xrDestroySwapchain(t.m_swapchain); }
+        for (int h = 0; h < 2; ++h) if (m_handTracker[h] != XR_NULL_HANDLE && m_pfnDestroyHandTracker) m_pfnDestroyHandTracker(m_handTracker[h]);
+        if (m_viewSpace != XR_NULL_HANDLE) xrDestroySpace(m_viewSpace);
+        if (m_stageSpace != XR_NULL_HANDLE) xrDestroySpace(m_stageSpace);
+        if (m_session != XR_NULL_HANDLE) xrDestroySession(m_session);
+        if (m_instance != XR_NULL_HANDLE) xrDestroyInstance(m_instance);
+        m_osc.close();
     }
 
 private:
     // ------------------------------------------------ persistence
 
     /**
-     * @brief Reads the first line of calib.txt into the gesture layer; calibrated_ says whether it parsed.
+     * @brief Reads the first line of calib.txt into the gesture layer; m_calibrated says whether it parsed.
      *
-     * Without a file nothing is logged and calibrated_ stays false, which makes init() start the
+     * Without a file nothing is logged and m_calibrated stays false, which makes init() start the
      * calibration gesture.
      */
     void loadCalibration()
     {
-        if (dataDir_.empty()) return;
-        FILE* f = std::fopen((dataDir_ + "/calib.txt").c_str(), "r");
+        if (m_dataDir.empty()) return;
+        FILE* f = std::fopen((m_dataDir + "/calib.txt").c_str(), "r");
         if (f == nullptr) return;
         char line[256] = {};
-        if (std::fgets(line, sizeof(line), f)) calibrated_ = gestures_.parseCalibration(line);
+        if (std::fgets(line, sizeof(line), f)) m_calibrated = m_gestures.parseCalibration(line);
         std::fclose(f);
-        LOGI("calibration %s", calibrated_ ? "loaded" : "invalid");
+        LOGI("calibration %s", m_calibrated ? "loaded" : "invalid");
     }
 
     /**
@@ -936,12 +936,12 @@ private:
      */
     void saveCalibration()
     {
-        if (dataDir_.empty()) return;
+        if (m_dataDir.empty()) return;
         char text[128];
-        gestures_.writeCalibration(text, sizeof(text));
-        FILE* f = std::fopen((dataDir_ + "/calib.txt").c_str(), "w");
+        m_gestures.writeCalibration(text, sizeof(text));
+        FILE* f = std::fopen((m_dataDir + "/calib.txt").c_str(), "w");
         if (f) { std::fputs(text, f); std::fclose(f); }
-        calibrated_ = true;
+        m_calibrated = true;
         LOGI("calibration saved: %s", text);
     }
 
@@ -958,62 +958,62 @@ private:
      *
      * @param a  the fired item, never None
      */
-    void applyMenu(MenuAction a)
+    void applyMenu(MenuActionE a)
     {
         switch (a) {
-        case MenuAction::ToggleMorph:
-            engine_.setParam(ParamId::MorphActive, engine_.getParam(ParamId::MorphActive) >= 0.5f ? 0.0f : 1.0f);
+        case MenuActionE::TOGGLE_MORPH:
+            m_engine.setParam(ParamIdE::MORPH_ACTIVE, m_engine.getParam(ParamIdE::MORPH_ACTIVE) >= 0.5f ? 0.0f : 1.0f);
             break;
-        case MenuAction::CaptureA: engine_.captureMorphSlot(0); slotName_[0] = "NOW"; break;
-        case MenuAction::CaptureB: engine_.captureMorphSlot(1); slotName_[1] = "NOW"; break;
-        case MenuAction::PresetAPrev: case MenuAction::PresetANext: case MenuAction::PresetBPrev: case MenuAction::PresetBNext: {
-            const int slot = (a == MenuAction::PresetAPrev || a == MenuAction::PresetANext) ? 0 : 1;
-            int& idx = slot == 0 ? presetA_ : presetB_;
-            idx = (idx + ((a == MenuAction::PresetANext || a == MenuAction::PresetBNext) ? 1 : numPresets() - 1)) % numPresets();
-            float values[kNumParams];
-            for (int i = 0; i < kNumParams; ++i) values[i] = engine_.getParam(static_cast<ParamId>(i));
-            applyPreset(preset(idx), [&](ParamId id, float v) { values[static_cast<int>(id)] = v; });
-            engine_.setMorphSlot(slot, values);
-            slotName_[slot] = preset(idx).name;
-            if (engine_.getParam(ParamId::MorphActive) < 0.5f && slot == 0) { engine_.applyPreset(idx); loadPresetFiles(idx); }   // without morph, A is what plays
+        case MenuActionE::CAPTURE_A: m_engine.captureMorphSlot(0); m_slotName[0] = "NOW"; break;
+        case MenuActionE::CAPTURE_B: m_engine.captureMorphSlot(1); m_slotName[1] = "NOW"; break;
+        case MenuActionE::PRESET_A_PREV: case MenuActionE::PRESET_A_NEXT: case MenuActionE::PRESET_B_PREV: case MenuActionE::PRESET_B_NEXT: {
+            const int slot = (a == MenuActionE::PRESET_A_PREV || a == MenuActionE::PRESET_A_NEXT) ? 0 : 1;
+            int& idx = slot == 0 ? m_presetA : m_presetB;
+            idx = (idx + ((a == MenuActionE::PRESET_A_NEXT || a == MenuActionE::PRESET_B_NEXT) ? 1 : numPresets() - 1)) % numPresets();
+            float values[NumParams];
+            for (int i = 0; i < NumParams; ++i) values[i] = m_engine.getParam(static_cast<ParamIdE>(i));
+            applyPreset(preset(idx), [&](ParamIdE id, float v) { values[static_cast<int>(id)] = v; });
+            m_engine.setMorphSlot(slot, values);
+            m_slotName[slot] = preset(idx).m_name;
+            if (m_engine.getParam(ParamIdE::MORPH_ACTIVE) < 0.5f && slot == 0) { m_engine.applyPreset(idx); loadPresetFiles(idx); }   // without morph, A is what plays
             break;
         }
-        case MenuAction::ToggleMap: {
+        case MenuActionE::TOGGLE_MAP: {
             // Map on: the left hand's reach (x) and height (y) steer the cursor over the preset map,
             // the engine glides toward the blend of the presets around it. Map off: keep what the
             // map left behind by copying the gliding values into the live parameters.
-            const bool on = engine_.getParam(ParamId::MapActive) >= 0.5f;
+            const bool on = m_engine.getParam(ParamIdE::MAP_ACTIVE) >= 0.5f;
             if (on) {
                 for (const ParamDesc& d : paramTable())
-                    if (!isMapParam(d.id) && !isMorphParam(d.id) && !isMacroParam(d.id)) engine_.setParam(d.id, engine_.blendValue(d.id));
+                    if (!isMapParam(d.m_id) && !isMorphParam(d.m_id) && !isMacroParam(d.m_id)) m_engine.setParam(d.m_id, m_engine.blendValue(d.m_id));
             }
-            engine_.setParam(ParamId::MapActive, on ? 0.0f : 1.0f);
+            m_engine.setParam(ParamIdE::MAP_ACTIVE, on ? 0.0f : 1.0f);
             LOGI("preset map %s", on ? "off" : "on");
             break;
         }
-        case MenuAction::ToggleRoute: {
+        case MenuActionE::TOGGLE_ROUTE: {
             // Plays the route from ambient.cfg (route=<preset name or text>), or the first route preset.
-            if (engine_.routeEdit().count() == 0) {
-                const char* text = routePreset(0).points;
-                for (int r = 0; r < numRoutePresets(); ++r) if (config_.route == routePreset(r).name) text = routePreset(r).points;
-                if (!config_.route.empty() && !engine_.setRouteText(config_.route.c_str())) engine_.setRouteText(text);
-                else if (config_.route.empty()) engine_.setRouteText(text);
+            if (m_engine.routeEdit().count() == 0) {
+                const char* text = routePreset(0).m_points;
+                for (int r = 0; r < numRoutePresets(); ++r) if (m_config.m_route == routePreset(r).m_name) text = routePreset(r).m_points;
+                if (!m_config.m_route.empty() && !m_engine.setRouteText(m_config.m_route.c_str())) m_engine.setRouteText(text);
+                else if (m_config.m_route.empty()) m_engine.setRouteText(text);
             }
-            const bool on = engine_.getParam(ParamId::RouteActive) >= 0.5f;
-            engine_.setParam(ParamId::RouteActive, on ? 0.0f : 1.0f);
-            LOGI("route %s (%d points)", on ? "stopped" : "playing", engine_.routeEdit().count());
+            const bool on = m_engine.getParam(ParamIdE::ROUTE_ACTIVE) >= 0.5f;
+            m_engine.setParam(ParamIdE::ROUTE_ACTIVE, on ? 0.0f : 1.0f);
+            LOGI("route %s (%d points)", on ? "stopped" : "playing", m_engine.routeEdit().count());
             break;
         }
-        case MenuAction::ToggleRecord:
-            if (recorder_.recording()) { recorder_.stop(); LOGI("recording stopped, %.1f s", recorder_.seconds()); }
-            else if (!dataDir_.empty()) {
+        case MenuActionE::TOGGLE_RECORD:
+            if (m_recorder.recording()) { m_recorder.stop(); LOGI("recording stopped, %.1f s", m_recorder.seconds()); }
+            else if (!m_dataDir.empty()) {
                 char name[64]; const std::time_t t = std::time(nullptr); std::strftime(name, sizeof(name), "rec-%Y%m%d-%H%M%S.wav", std::localtime(&t));
-                if (recorder_.start((dataDir_ + "/" + name).c_str(), audio_.sampleRate(), 2)) LOGI("recording to %s", name);
+                if (m_recorder.start((m_dataDir + "/" + name).c_str(), m_audio.sampleRate(), 2)) LOGI("recording to %s", name);
                 else LOGE("cannot start recording");
             }
             break;
-        case MenuAction::Calibrate:
-            gestures_.startCalibration(8.0f);
+        case MenuActionE::CALIBRATE:
+            m_gestures.startCalibration(8.0f);
             break;
         default: break;
         }
@@ -1031,8 +1031,8 @@ private:
         xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", reinterpret_cast<PFN_xrVoidFunction*>(&initLoader));
         if (initLoader == nullptr) { LOGE("no xrInitializeLoaderKHR"); return false; }
         XrLoaderInitInfoAndroidKHR li{ XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR };
-        li.applicationVM = app_->activity->vm;
-        li.applicationContext = app_->activity->clazz;
+        li.applicationVM = m_app->activity->vm;
+        li.applicationContext = m_app->activity->clazz;
         return XR_SUCCEEDED(initLoader(reinterpret_cast<const XrLoaderInitInfoBaseHeaderKHR*>(&li)));
     }
 
@@ -1045,8 +1045,8 @@ private:
     {
         const char* exts[] = { XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME, XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME, XR_EXT_HAND_TRACKING_EXTENSION_NAME };
         XrInstanceCreateInfoAndroidKHR android{ XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR };
-        android.applicationVM = app_->activity->vm;
-        android.applicationActivity = app_->activity->clazz;
+        android.applicationVM = m_app->activity->vm;
+        android.applicationActivity = m_app->activity->clazz;
         XrInstanceCreateInfo ci{ XR_TYPE_INSTANCE_CREATE_INFO };
         ci.next = &android;
         std::strncpy(ci.applicationInfo.applicationName, "Noctuary", XR_MAX_APPLICATION_NAME_SIZE - 1);
@@ -1055,16 +1055,16 @@ private:
         ci.applicationInfo.apiVersion = XR_API_VERSION_1_0;
         ci.enabledExtensionCount = 3;
         ci.enabledExtensionNames = exts;
-        if (XR_FAILED(xrCreateInstance(&ci, &instance_))) { LOGE("xrCreateInstance failed"); return false; }
+        if (XR_FAILED(xrCreateInstance(&ci, &m_instance))) { LOGE("xrCreateInstance failed"); return false; }
 
         XrSystemGetInfo sgi{ XR_TYPE_SYSTEM_GET_INFO };
         sgi.formFactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
-        if (XR_FAILED(xrGetSystem(instance_, &sgi, &system_))) { LOGE("xrGetSystem failed"); return false; }
+        if (XR_FAILED(xrGetSystem(m_instance, &sgi, &m_system))) { LOGE("xrGetSystem failed"); return false; }
         XrSystemHandTrackingPropertiesEXT ht{ XR_TYPE_SYSTEM_HAND_TRACKING_PROPERTIES_EXT };
         XrSystemProperties sp{ XR_TYPE_SYSTEM_PROPERTIES, &ht };
-        xrGetSystemProperties(instance_, system_, &sp);
-        handsSupported_ = ht.supportsHandTracking == XR_TRUE;
-        LOGI("system: %s, hand tracking %d", sp.systemName, handsSupported_ ? 1 : 0);
+        xrGetSystemProperties(m_instance, m_system, &sp);
+        m_handsSupported = ht.supportsHandTracking == XR_TRUE;
+        LOGI("system: %s, hand tracking %d", sp.systemName, m_handsSupported ? 1 : 0);
         return true;
     }
 
@@ -1079,22 +1079,22 @@ private:
     bool initEgl()
     {
         PFN_xrGetOpenGLESGraphicsRequirementsKHR getReq = nullptr;
-        xrGetInstanceProcAddr(instance_, "xrGetOpenGLESGraphicsRequirementsKHR", reinterpret_cast<PFN_xrVoidFunction*>(&getReq));
+        xrGetInstanceProcAddr(m_instance, "xrGetOpenGLESGraphicsRequirementsKHR", reinterpret_cast<PFN_xrVoidFunction*>(&getReq));
         XrGraphicsRequirementsOpenGLESKHR req{ XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR };
-        if (getReq == nullptr || XR_FAILED(getReq(instance_, system_, &req))) { LOGE("GLES requirements failed"); return false; }
+        if (getReq == nullptr || XR_FAILED(getReq(m_instance, m_system, &req))) { LOGE("GLES requirements failed"); return false; }
 
-        display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        m_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
         EGLint major, minor;
-        if (!eglInitialize(display_, &major, &minor)) { LOGE("eglInitialize failed"); return false; }
+        if (!eglInitialize(m_display, &major, &minor)) { LOGE("eglInitialize failed"); return false; }
         const EGLint attribs[] = { EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT, EGL_SURFACE_TYPE, EGL_PBUFFER_BIT,
                                    EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8, EGL_DEPTH_SIZE, 0, EGL_NONE };
         EGLint count = 0;
-        if (!eglChooseConfig(display_, attribs, &config_egl_, 1, &count) || count == 0) { LOGE("eglChooseConfig failed"); return false; }
+        if (!eglChooseConfig(m_display, attribs, &m_config_egl, 1, &count) || count == 0) { LOGE("eglChooseConfig failed"); return false; }
         const EGLint pbuf[] = { EGL_WIDTH, 16, EGL_HEIGHT, 16, EGL_NONE };
-        surface_ = eglCreatePbufferSurface(display_, config_egl_, pbuf);
+        m_surface = eglCreatePbufferSurface(m_display, m_config_egl, pbuf);
         const EGLint ctx[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
-        context_ = eglCreateContext(display_, config_egl_, EGL_NO_CONTEXT, ctx);
-        if (context_ == EGL_NO_CONTEXT || !eglMakeCurrent(display_, surface_, surface_, context_)) { LOGE("EGL context failed"); return false; }
+        m_context = eglCreateContext(m_display, m_config_egl, EGL_NO_CONTEXT, ctx);
+        if (m_context == EGL_NO_CONTEXT || !eglMakeCurrent(m_display, m_surface, m_surface, m_context)) { LOGE("EGL context failed"); return false; }
         LOGI("EGL %d.%d, GL %s", major, minor, glGetString(GL_VERSION));
         return true;
     }
@@ -1111,37 +1111,37 @@ private:
     bool initSession()
     {
         XrGraphicsBindingOpenGLESAndroidKHR gb{ XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR };
-        gb.display = display_; gb.config = config_egl_; gb.context = context_;
+        gb.display = m_display; gb.config = m_config_egl; gb.context = m_context;
         XrSessionCreateInfo sci{ XR_TYPE_SESSION_CREATE_INFO, &gb };
-        sci.systemId = system_;
-        if (XR_FAILED(xrCreateSession(instance_, &sci, &session_))) { LOGE("xrCreateSession failed"); return false; }
+        sci.systemId = m_system;
+        if (XR_FAILED(xrCreateSession(m_instance, &sci, &m_session))) { LOGE("xrCreateSession failed"); return false; }
 
         XrReferenceSpaceCreateInfo rs{ XR_TYPE_REFERENCE_SPACE_CREATE_INFO };
         rs.poseInReferenceSpace.orientation.w = 1.0f;
         rs.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
-        if (XR_FAILED(xrCreateReferenceSpace(session_, &rs, &stageSpace_))) {
+        if (XR_FAILED(xrCreateReferenceSpace(m_session, &rs, &m_stageSpace))) {
             rs.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
-            if (XR_FAILED(xrCreateReferenceSpace(session_, &rs, &stageSpace_))) { LOGE("no reference space"); return false; }
+            if (XR_FAILED(xrCreateReferenceSpace(m_session, &rs, &m_stageSpace))) { LOGE("no reference space"); return false; }
         }
         rs.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
-        xrCreateReferenceSpace(session_, &rs, &viewSpace_);
+        xrCreateReferenceSpace(m_session, &rs, &m_viewSpace);
 
         uint32_t viewCount = 0;
-        xrEnumerateViewConfigurationViews(instance_, system_, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0, &viewCount, nullptr);
+        xrEnumerateViewConfigurationViews(m_instance, m_system, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 0, &viewCount, nullptr);
         std::vector<XrViewConfigurationView> cfg(viewCount, { XR_TYPE_VIEW_CONFIGURATION_VIEW });
-        xrEnumerateViewConfigurationViews(instance_, system_, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewCount, &viewCount, cfg.data());
-        views_.assign(viewCount, { XR_TYPE_VIEW });
+        xrEnumerateViewConfigurationViews(m_instance, m_system, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, viewCount, &viewCount, cfg.data());
+        m_views.assign(viewCount, { XR_TYPE_VIEW });
 
         uint32_t fmtCount = 0;
-        xrEnumerateSwapchainFormats(session_, 0, &fmtCount, nullptr);
+        xrEnumerateSwapchainFormats(m_session, 0, &fmtCount, nullptr);
         std::vector<int64_t> formats(fmtCount);
-        xrEnumerateSwapchainFormats(session_, fmtCount, &fmtCount, formats.data());
+        xrEnumerateSwapchainFormats(m_session, fmtCount, &fmtCount, formats.data());
         int64_t format = formats.empty() ? GL_RGBA8 : formats[0];
         for (int64_t f : formats) if (f == GL_SRGB8_ALPHA8) { format = f; break; }
 
-        targets_.resize(viewCount);
+        m_targets.resize(viewCount);
         for (uint32_t v = 0; v < viewCount; ++v) {
-            SwapchainTarget& t = targets_[v];
+            SwapchainTarget& t = m_targets[v];
             XrSwapchainCreateInfo sc{ XR_TYPE_SWAPCHAIN_CREATE_INFO };
             sc.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_SAMPLED_BIT;
             sc.format = format;
@@ -1149,17 +1149,17 @@ private:
             sc.width = cfg[v].recommendedImageRectWidth;
             sc.height = cfg[v].recommendedImageRectHeight;
             sc.faceCount = 1; sc.arraySize = 1; sc.mipCount = 1;
-            if (XR_FAILED(xrCreateSwapchain(session_, &sc, &t.swapchain))) { LOGE("xrCreateSwapchain failed"); return false; }
-            t.width = static_cast<int>(sc.width); t.height = static_cast<int>(sc.height);
+            if (XR_FAILED(xrCreateSwapchain(m_session, &sc, &t.m_swapchain))) { LOGE("xrCreateSwapchain failed"); return false; }
+            t.m_width = static_cast<int>(sc.width); t.m_height = static_cast<int>(sc.height);
             uint32_t imgCount = 0;
-            xrEnumerateSwapchainImages(t.swapchain, 0, &imgCount, nullptr);
-            t.images.assign(imgCount, { XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR });
-            xrEnumerateSwapchainImages(t.swapchain, imgCount, &imgCount, reinterpret_cast<XrSwapchainImageBaseHeader*>(t.images.data()));
-            glGenFramebuffers(1, &t.fbo);
-            glGenRenderbuffers(1, &t.depth);
-            glBindRenderbuffer(GL_RENDERBUFFER, t.depth);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, t.width, t.height);
-            LOGI("view %u: %dx%d, %u images", v, t.width, t.height, imgCount);
+            xrEnumerateSwapchainImages(t.m_swapchain, 0, &imgCount, nullptr);
+            t.m_images.assign(imgCount, { XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR });
+            xrEnumerateSwapchainImages(t.m_swapchain, imgCount, &imgCount, reinterpret_cast<XrSwapchainImageBaseHeader*>(t.m_images.data()));
+            glGenFramebuffers(1, &t.m_fbo);
+            glGenRenderbuffers(1, &t.m_depth);
+            glBindRenderbuffer(GL_RENDERBUFFER, t.m_depth);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, t.m_width, t.m_height);
+            LOGI("view %u: %dx%d, %u images", v, t.m_width, t.m_height, imgCount);
         }
         return true;
     }
@@ -1170,16 +1170,16 @@ private:
      */
     bool initHands()
     {
-        if (!handsSupported_) return false;
-        xrGetInstanceProcAddr(instance_, "xrCreateHandTrackerEXT", reinterpret_cast<PFN_xrVoidFunction*>(&pfnCreateHandTracker_));
-        xrGetInstanceProcAddr(instance_, "xrLocateHandJointsEXT", reinterpret_cast<PFN_xrVoidFunction*>(&pfnLocateHandJoints_));
-        xrGetInstanceProcAddr(instance_, "xrDestroyHandTrackerEXT", reinterpret_cast<PFN_xrVoidFunction*>(&pfnDestroyHandTracker_));
-        if (!pfnCreateHandTracker_ || !pfnLocateHandJoints_) return false;
+        if (!m_handsSupported) return false;
+        xrGetInstanceProcAddr(m_instance, "xrCreateHandTrackerEXT", reinterpret_cast<PFN_xrVoidFunction*>(&m_pfnCreateHandTracker));
+        xrGetInstanceProcAddr(m_instance, "xrLocateHandJointsEXT", reinterpret_cast<PFN_xrVoidFunction*>(&m_pfnLocateHandJoints));
+        xrGetInstanceProcAddr(m_instance, "xrDestroyHandTrackerEXT", reinterpret_cast<PFN_xrVoidFunction*>(&m_pfnDestroyHandTracker));
+        if (!m_pfnCreateHandTracker || !m_pfnLocateHandJoints) return false;
         for (int h = 0; h < 2; ++h) {
             XrHandTrackerCreateInfoEXT hci{ XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT };
             hci.hand = (h == 0) ? XR_HAND_LEFT_EXT : XR_HAND_RIGHT_EXT;
             hci.handJointSet = XR_HAND_JOINT_SET_DEFAULT_EXT;
-            if (XR_FAILED(pfnCreateHandTracker_(session_, &hci, &handTracker_[h]))) return false;
+            if (XR_FAILED(m_pfnCreateHandTracker(m_session, &hci, &m_handTracker[h]))) return false;
         }
         return true;
     }
@@ -1187,35 +1187,35 @@ private:
     /**
      * @brief Drains the OpenXR event queue and follows the session state.
      *
-     * READY begins the session (sessionRunning_), STOPPING ends it, EXITING and LOSS_PENDING -- as
-     * an instance loss -- set quit_ so run() returns.
+     * READY begins the session (m_sessionRunning), STOPPING ends it, EXITING and LOSS_PENDING -- as
+     * an instance loss -- set m_quit so run() returns.
      */
     void pollXrEvents()
     {
         XrEventDataBuffer ev{ XR_TYPE_EVENT_DATA_BUFFER };
-        while (xrPollEvent(instance_, &ev) == XR_SUCCESS) {
+        while (xrPollEvent(m_instance, &ev) == XR_SUCCESS) {
             if (ev.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
                 const auto* sc = reinterpret_cast<const XrEventDataSessionStateChanged*>(&ev);
-                sessionState_ = sc->state;
-                switch (sessionState_) {
+                m_sessionState = sc->state;
+                switch (m_sessionState) {
                 case XR_SESSION_STATE_READY: {
                     XrSessionBeginInfo bi{ XR_TYPE_SESSION_BEGIN_INFO };
                     bi.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-                    if (XR_SUCCEEDED(xrBeginSession(session_, &bi))) sessionRunning_ = true;
+                    if (XR_SUCCEEDED(xrBeginSession(m_session, &bi))) m_sessionRunning = true;
                     break;
                 }
                 case XR_SESSION_STATE_STOPPING:
-                    xrEndSession(session_);
-                    sessionRunning_ = false;
+                    xrEndSession(m_session);
+                    m_sessionRunning = false;
                     break;
                 case XR_SESSION_STATE_EXITING:
                 case XR_SESSION_STATE_LOSS_PENDING:
-                    quit_ = true;
+                    m_quit = true;
                     break;
                 default: break;
                 }
             } else if (ev.type == XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING) {
-                quit_ = true;
+                m_quit = true;
             }
             ev = { XR_TYPE_EVENT_DATA_BUFFER };
         }
@@ -1236,16 +1236,16 @@ private:
     void updateHands(XrTime time)
     {
         for (int h = 0; h < 2; ++h) {
-            palmValid_[h] = false;
-            if (handTracker_[h] == XR_NULL_HANDLE) continue;
+            m_palmValid[h] = false;
+            if (m_handTracker[h] == XR_NULL_HANDLE) continue;
             XrHandJointLocationEXT joints[XR_HAND_JOINT_COUNT_EXT];
             XrHandJointLocationsEXT locs{ XR_TYPE_HAND_JOINT_LOCATIONS_EXT };
             locs.jointCount = XR_HAND_JOINT_COUNT_EXT;
             locs.jointLocations = joints;
             XrHandJointsLocateInfoEXT li{ XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT };
-            li.baseSpace = stageSpace_;
+            li.baseSpace = m_stageSpace;
             li.time = time;
-            if (XR_FAILED(pfnLocateHandJoints_(handTracker_[h], &li, &locs)) || !locs.isActive) continue;
+            if (XR_FAILED(m_pfnLocateHandJoints(m_handTracker[h], &li, &locs)) || !locs.isActive) continue;
             const XrHandJointLocationEXT& palm = joints[XR_HAND_JOINT_PALM_EXT];
             const XrHandJointLocationEXT& thumb = joints[XR_HAND_JOINT_THUMB_TIP_EXT];
             const XrHandJointLocationEXT& index = joints[XR_HAND_JOINT_INDEX_TIP_EXT];
@@ -1255,14 +1255,14 @@ private:
             const float dist = std::sqrt(dx * dx + dy * dy + dz * dz);
             const float pinch = std::fmax(0.0f, std::fmin(1.0f, 1.0f - (dist - 0.015f) / 0.035f));
             const Mat4 r = rotationFromQuat(palm.pose.orientation);
-            const float tilt = std::fmax(-1.0f, std::fmin(1.0f, r.m[1]));   // world y of the palm's sideways axis
-            palms_[h] = palm.pose.position;
-            palmValid_[h] = true;
-            pinch_[h] = pinch;
-            gestures_.setHand(h, palm.pose.position.x, palm.pose.position.y, palm.pose.position.z, pinch, tilt);
-            if (osc_.ok()) {
+            const float tilt = std::fmax(-1.0f, std::fmin(1.0f, r.m_m[1]));   // world y of the palm's sideways axis
+            m_palms[h] = palm.pose.position;
+            m_palmValid[h] = true;
+            m_pinch[h] = pinch;
+            m_gestures.setHand(h, palm.pose.position.x, palm.pose.position.y, palm.pose.position.z, pinch, tilt);
+            if (m_osc.ok()) {
                 const float args[5] = { palm.pose.position.x, palm.pose.position.y, palm.pose.position.z, pinch, tilt };
-                osc_.send(h == 0 ? "/ambient/hand/L" : "/ambient/hand/R", args, 5);
+                m_osc.send(h == 0 ? "/ambient/hand/L" : "/ambient/hand/R", args, 5);
             }
         }
     }
@@ -1271,24 +1271,24 @@ private:
      * @brief Locates the head (the view space in the stage space) and passes its yaw, pitch and roll on.
      *
      * The gesture layer gets all three, the engine the yaw for its binaural mode, the bridge the three
-     * as `/ambient/head`. headPose_ and headValid_ feed the panel.
+     * as `/ambient/head`. m_headPose and m_headValid feed the panel.
      *
      * @param time  the frame's predicted display time
      */
     void updateHead(XrTime time)
     {
-        headValid_ = false;
-        if (viewSpace_ == XR_NULL_HANDLE) return;
+        m_headValid = false;
+        if (m_viewSpace == XR_NULL_HANDLE) return;
         XrSpaceLocation loc{ XR_TYPE_SPACE_LOCATION };
-        if (XR_FAILED(xrLocateSpace(viewSpace_, stageSpace_, time, &loc))) return;
+        if (XR_FAILED(xrLocateSpace(m_viewSpace, m_stageSpace, time, &loc))) return;
         if (!(loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)) return;
-        headPose_ = loc.pose;
-        headValid_ = true;
+        m_headPose = loc.pose;
+        m_headValid = true;
         float yaw, pitch, roll;
         quatToEulerDeg(loc.pose.orientation, yaw, pitch, roll);
-        gestures_.setHead(yaw, pitch, roll);
-        engine_.setHeadYaw(yaw);   // the binaural mode turns the field against the head
-        if (osc_.ok()) { const float args[3] = { yaw, pitch, roll }; osc_.send("/ambient/head", args, 3); }
+        m_gestures.setHead(yaw, pitch, roll);
+        m_engine.setHeadYaw(yaw);   // the binaural mode turns the field against the head
+        if (m_osc.ok()) { const float args[3] = { yaw, pitch, roll }; m_osc.send("/ambient/head", args, 3); }
     }
 
     /**
@@ -1300,12 +1300,12 @@ private:
     {
         // In front of the eyes, following yaw only (a panel that tilts with the head is tiring).
         Panel p;
-        const Vec3 fwd = rotate(headPose_.orientation, { 0.0f, 0.0f, -1.0f });
-        const float len = std::fmax(std::sqrt(fwd.x * fwd.x + fwd.z * fwd.z), 1e-3f);
-        const Vec3 f{ fwd.x / len, 0.0f, fwd.z / len };
-        p.right = { -f.z, 0.0f, f.x };
-        p.up = { 0.0f, 1.0f, 0.0f };
-        p.origin = { headPose_.position.x + f.x * 0.9f - p.right.x * 0.22f, headPose_.position.y + 0.12f, headPose_.position.z + f.z * 0.9f - p.right.z * 0.22f };
+        const Vec3 fwd = rotate(m_headPose.orientation, { 0.0f, 0.0f, -1.0f });
+        const float len = std::fmax(std::sqrt(fwd.m_x * fwd.m_x + fwd.m_z * fwd.m_z), 1e-3f);
+        const Vec3 f{ fwd.m_x / len, 0.0f, fwd.m_z / len };
+        p.m_right = { -f.m_z, 0.0f, f.m_x };
+        p.m_up = { 0.0f, 1.0f, 0.0f };
+        p.m_origin = { m_headPose.position.x + f.m_x * 0.9f - p.m_right.m_x * 0.22f, m_headPose.position.y + 0.12f, m_headPose.position.z + f.m_z * 0.9f - p.m_right.m_z * 0.22f };
         return p;
     }
 
@@ -1319,40 +1319,40 @@ private:
      */
     void addOverlay()
     {
-        if (!headValid_) return;
+        if (!m_headValid) return;
         const Panel p = headPanel();
         const float cell = 0.006f;
-        if (gestures_.calibrating()) {
-            scene_.addText(p, 0.0f, 0.0f, cell, "CALIBRATING", 1.0f, 0.8f, 0.3f, 1.0f);
-            scene_.addText(p, 0.0f, -0.06f, cell, "HANDS TOGETHER AND APART", 0.8f, 0.8f, 0.9f, 0.9f);
-            scene_.addText(p, 0.0f, -0.11f, cell, "LOW AND HIGH  NEAR AND FAR", 0.8f, 0.8f, 0.9f, 0.9f);
-            const int pct = static_cast<int>(gestures_.calibrationProgress() * 100.0f);
+        if (m_gestures.calibrating()) {
+            m_scene.addText(p, 0.0f, 0.0f, cell, "CALIBRATING", 1.0f, 0.8f, 0.3f, 1.0f);
+            m_scene.addText(p, 0.0f, -0.06f, cell, "HANDS TOGETHER AND APART", 0.8f, 0.8f, 0.9f, 0.9f);
+            m_scene.addText(p, 0.0f, -0.11f, cell, "LOW AND HIGH  NEAR AND FAR", 0.8f, 0.8f, 0.9f, 0.9f);
+            const int pct = static_cast<int>(m_gestures.calibrationProgress() * 100.0f);
             char line[32]; std::snprintf(line, sizeof(line), "%d", pct);
-            scene_.addText(p, 0.0f, -0.17f, cell, line, 1.0f, 0.8f, 0.3f, 1.0f);
+            m_scene.addText(p, 0.0f, -0.17f, cell, line, 1.0f, 0.8f, 0.3f, 1.0f);
             return;
         }
-        const float o = menu_.openness();
+        const float o = m_menu.openness();
         if (o < 0.02f) {
-            if (recorder_.recording()) {
-                char line[32]; const int s = static_cast<int>(recorder_.seconds());
+            if (m_recorder.recording()) {
+                char line[32]; const int s = static_cast<int>(m_recorder.seconds());
                 std::snprintf(line, sizeof(line), "REC %d:%02d", s / 60, s % 60);
-                scene_.addText(p, 0.0f, 0.0f, cell, line, 1.0f, 0.3f, 0.3f, 0.9f);
+                m_scene.addText(p, 0.0f, 0.0f, cell, line, 1.0f, 0.3f, 0.3f, 0.9f);
             }
             return;
         }
-        const int hi = menu_.highlighted();
-        for (int i = 0; i < kMenuItems; ++i) {
+        const int hi = m_menu.highlighted();
+        for (int i = 0; i < MenuItems; ++i) {
             const bool sel = (i == hi);
-            const MenuAction a = static_cast<MenuAction>(i);
+            const MenuActionE a = static_cast<MenuActionE>(i);
             std::string label = menuLabel(a);
-            if (a == MenuAction::ToggleMorph) label += engine_.getParam(ParamId::MorphActive) >= 0.5f ? "  ON" : "  OFF";
-            if (a == MenuAction::ToggleMap) label += engine_.getParam(ParamId::MapActive) >= 0.5f ? "  ON" : "  OFF";
-            if (a == MenuAction::ToggleRoute) label += engine_.getParam(ParamId::RouteActive) >= 0.5f ? "  PLAYING" : "  STOPPED";
-            if (a == MenuAction::ToggleRecord) label += recorder_.recording() ? "  STOP" : "  START";
-            scene_.addText(p, 0.0f, -static_cast<float>(i) * 0.05f, cell, label.c_str(), sel ? 1.0f : 0.5f, sel ? 0.9f : 0.55f, sel ? 0.6f : 0.7f, o * (sel ? 1.0f : 0.6f));
+            if (a == MenuActionE::TOGGLE_MORPH) label += m_engine.getParam(ParamIdE::MORPH_ACTIVE) >= 0.5f ? "  ON" : "  OFF";
+            if (a == MenuActionE::TOGGLE_MAP) label += m_engine.getParam(ParamIdE::MAP_ACTIVE) >= 0.5f ? "  ON" : "  OFF";
+            if (a == MenuActionE::TOGGLE_ROUTE) label += m_engine.getParam(ParamIdE::ROUTE_ACTIVE) >= 0.5f ? "  PLAYING" : "  STOPPED";
+            if (a == MenuActionE::TOGGLE_RECORD) label += m_recorder.recording() ? "  STOP" : "  START";
+            m_scene.addText(p, 0.0f, -static_cast<float>(i) * 0.05f, cell, label.c_str(), sel ? 1.0f : 0.5f, sel ? 0.9f : 0.55f, sel ? 0.6f : 0.7f, o * (sel ? 1.0f : 0.6f));
         }
-        std::string ab = "A:" + slotName_[0].substr(0, 18) + "  B:" + slotName_[1].substr(0, 18);
-        scene_.addText(p, 0.0f, 0.06f, cell * 0.8f, ab.c_str(), 0.9f, 0.6f, 0.9f, o);
+        std::string ab = "A:" + m_slotName[0].substr(0, 18) + "  B:" + m_slotName[1].substr(0, 18);
+        m_scene.addText(p, 0.0f, 0.06f, cell * 0.8f, ab.c_str(), 0.9f, 0.6f, 0.9f, o);
     }
 
     /**
@@ -1370,29 +1370,29 @@ private:
     {
         XrFrameWaitInfo wi{ XR_TYPE_FRAME_WAIT_INFO };
         XrFrameState fs{ XR_TYPE_FRAME_STATE };
-        if (XR_FAILED(xrWaitFrame(session_, &wi, &fs))) return;
+        if (XR_FAILED(xrWaitFrame(m_session, &wi, &fs))) return;
         XrFrameBeginInfo bi{ XR_TYPE_FRAME_BEGIN_INFO };
-        xrBeginFrame(session_, &bi);
+        xrBeginFrame(m_session, &bi);
 
-        const double dt = lastTime_ == 0 ? 1.0 / 72.0 : static_cast<double>(fs.predictedDisplayTime - lastTime_) * 1e-9;
-        lastTime_ = fs.predictedDisplayTime;
+        const double dt = m_lastTime == 0 ? 1.0 / 72.0 : static_cast<double>(fs.predictedDisplayTime - m_lastTime) * 1e-9;
+        m_lastTime = fs.predictedDisplayTime;
         updateHands(fs.predictedDisplayTime);
         updateHead(fs.predictedDisplayTime);
-        const bool wasCalibrating = gestures_.calibrating();
-        const MenuAction action = menu_.update(dt, gestures_);
-        if (action != MenuAction::None) applyMenu(action);
-        gestures_.update(dt, [this](ParamId id, float v) { engine_.setParam(id, v); });
+        const bool wasCalibrating = m_gestures.calibrating();
+        const MenuActionE action = m_menu.update(dt, m_gestures);
+        if (action != MenuActionE::NONE) applyMenu(action);
+        m_gestures.update(dt, [this](ParamIdE id, float v) { m_engine.setParam(id, v); });
         {
             float rx, ry, rr;
-            const bool routing = engine_.routeStep(dt, rx, ry, rr);
-            if (!routing && engine_.getParam(ParamId::MapActive) >= 0.5f && !menu_.isOpen() && !gestures_.calibrating() && !gestures_.resting()) {
+            const bool routing = m_engine.routeStep(dt, rx, ry, rr);
+            if (!routing && m_engine.getParam(ParamIdE::MAP_ACTIVE) >= 0.5f && !m_menu.isOpen() && !m_gestures.calibrating() && !m_gestures.resting()) {
                 // left hand: cursor (reach = x, height = y); right hand height: blend radius (sharp low, blurred high)
-                engine_.setParam(ParamId::MapX, clampv(gestures_.input(GestureInput::LeftForward), 0.0f, 1.0f));
-                engine_.setParam(ParamId::MapY, clampv(gestures_.input(GestureInput::LeftHeight), 0.0f, 1.0f));
-                engine_.setParam(ParamId::MapRadius, 0.02f + 0.38f * clampv(gestures_.input(GestureInput::RightHeight), 0.0f, 1.0f));
+                m_engine.setParam(ParamIdE::MAP_X, clampv(m_gestures.input(GestureInputE::LEFT_FORWARD), 0.0f, 1.0f));
+                m_engine.setParam(ParamIdE::MAP_Y, clampv(m_gestures.input(GestureInputE::LEFT_HEIGHT), 0.0f, 1.0f));
+                m_engine.setParam(ParamIdE::MAP_RADIUS, 0.02f + 0.38f * clampv(m_gestures.input(GestureInputE::RIGHT_HEIGHT), 0.0f, 1.0f));
             }
         }
-        if (wasCalibrating && !gestures_.calibrating()) saveCalibration();
+        if (wasCalibrating && !m_gestures.calibrating()) saveCalibration();
 
         std::vector<XrCompositionLayerProjectionView> projViews;
         XrCompositionLayerProjection layer{ XR_TYPE_COMPOSITION_LAYER_PROJECTION };
@@ -1403,43 +1403,43 @@ private:
             XrViewLocateInfo vli{ XR_TYPE_VIEW_LOCATE_INFO };
             vli.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
             vli.displayTime = fs.predictedDisplayTime;
-            vli.space = stageSpace_;
+            vli.space = m_stageSpace;
             XrViewState vs{ XR_TYPE_VIEW_STATE };
             uint32_t viewCount = 0;
-            xrLocateViews(session_, &vli, &vs, static_cast<uint32_t>(views_.size()), &viewCount, views_.data());
+            xrLocateViews(m_session, &vli, &vs, static_cast<uint32_t>(m_views.size()), &viewCount, m_views.data());
             if ((vs.viewStateFlags & XR_VIEW_STATE_POSITION_VALID_BIT) && (vs.viewStateFlags & XR_VIEW_STATE_ORIENTATION_VALID_BIT)) {
-                scene_.begin();
-                scene_.addWorld(engine_, palms_, palmValid_, pinch_);
+                m_scene.begin();
+                m_scene.addWorld(m_engine, m_palms, m_palmValid, m_pinch);
                 addOverlay();
-                scene_.upload();
+                m_scene.upload();
                 projViews.resize(viewCount, { XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW });
                 for (uint32_t v = 0; v < viewCount; ++v) {
-                    SwapchainTarget& t = targets_[v];
+                    SwapchainTarget& t = m_targets[v];
                     XrSwapchainImageAcquireInfo ai{ XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO };
                     uint32_t index = 0;
-                    xrAcquireSwapchainImage(t.swapchain, &ai, &index);
+                    xrAcquireSwapchainImage(t.m_swapchain, &ai, &index);
                     XrSwapchainImageWaitInfo wi2{ XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO };
                     wi2.timeout = XR_INFINITE_DURATION;
-                    xrWaitSwapchainImage(t.swapchain, &wi2);
+                    xrWaitSwapchainImage(t.m_swapchain, &wi2);
 
-                    glBindFramebuffer(GL_FRAMEBUFFER, t.fbo);
-                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.images[index].image, 0);
-                    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, t.depth);
-                    const Mat4 proj = projectionFromFov(views_[v].fov, 0.05f, 100.0f);
-                    const Mat4 view = viewFromPose(views_[v].pose);
-                    scene_.draw(multiply(proj, view), t.width, t.height);
+                    glBindFramebuffer(GL_FRAMEBUFFER, t.m_fbo);
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, t.m_images[index].image, 0);
+                    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, t.m_depth);
+                    const Mat4 proj = projectionFromFov(m_views[v].fov, 0.05f, 100.0f);
+                    const Mat4 view = viewFromPose(m_views[v].pose);
+                    m_scene.draw(multiply(proj, view), t.m_width, t.m_height);
                     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
                     XrSwapchainImageReleaseInfo ri{ XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO };
-                    xrReleaseSwapchainImage(t.swapchain, &ri);
+                    xrReleaseSwapchainImage(t.m_swapchain, &ri);
 
-                    projViews[v].pose = views_[v].pose;
-                    projViews[v].fov = views_[v].fov;
-                    projViews[v].subImage.swapchain = t.swapchain;
-                    projViews[v].subImage.imageRect = { { 0, 0 }, { t.width, t.height } };
+                    projViews[v].pose = m_views[v].pose;
+                    projViews[v].fov = m_views[v].fov;
+                    projViews[v].subImage.swapchain = t.m_swapchain;
+                    projViews[v].subImage.imageRect = { { 0, 0 }, { t.m_width, t.m_height } };
                     projViews[v].subImage.imageArrayIndex = 0;
                 }
-                layer.space = stageSpace_;
+                layer.space = m_stageSpace;
                 layer.viewCount = viewCount;
                 layer.views = projViews.data();
                 layerCount = 1;
@@ -1451,57 +1451,57 @@ private:
         ei.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
         ei.layerCount = layerCount;
         ei.layers = layers;
-        xrEndFrame(session_, &ei);
+        xrEndFrame(m_session, &ei);
     }
 
-    android_app* app_;                                                     ///< the NativeActivity glue: activity, window, looper, destroyRequested
-    std::string dataDir_;                                                  ///< the external data folder (config, calibration, samples, packs, recordings), or empty
-    std::vector<std::vector<float>> pendingIr_;                   ///< impulse A waiting for the engine to be prepared, one vector per channel
-                                    int pendingIrRate_ = 48000;   ///< its sample rate in Hz
-    std::vector<std::vector<float>> pendingIrB_;                   ///< impulse B waiting likewise, one vector per channel
-                                    int pendingIrBRate_ = 48000;   ///< its sample rate in Hz
-    bool clearIrB_ = false,       ///< the pending preset named a room and no B, so the engine's B impulse is to be cleared
-         audioStarted_ = false;   ///< the engine is prepared, impulses may go in at once
-    Config config_;                                                        ///< ambient.cfg as read at init()
-    Engine engine_;                                                        ///< the synthesizer; rendered by audio_, parameters written by gestures_ and the menu
-    GestureLayer gestures_;                                                ///< hands and head in, engine parameters out; holds the calibration
-    HandMenu menu_;                                                        ///< the left-pinch menu, updated once per frame
-    WavRecorder recorder_;                                                 ///< records the audio callback's output to rec-*.wav on a background thread
-    Audio audio_{ engine_, recorder_ };                                    ///< the Oboe stream; started at init() unless config_.audio is off
-    OscOut osc_;                                                           ///< the bridge to the desktop plugin; closed unless config_.oscHost is set
-    Scene scene_;                                                          ///< the point-cloud renderer
-    int presetA_ = 0,   ///< preset index in morph slot A, moved by the menu
-        presetB_ = 0;   ///< preset index in morph slot B
-    std::string slotName_[2] = { "INIT", "INIT" };                         ///< what the panel shows for A and B: a preset name, "NOW" after a capture, "INIT" at start
-    bool calibrated_ = false;                                              ///< a calibration was loaded or saved; false makes init() start one
+    android_app* m_app;                                                     ///< the NativeActivity glue: activity, window, looper, destroyRequested
+    std::string m_dataDir;                                                  ///< the external data folder (config, calibration, samples, packs, recordings), or empty
+    std::vector<std::vector<float>> m_pendingIr;                   ///< impulse A waiting for the engine to be prepared, one vector per channel
+                                    int m_pendingIrRate = 48000;   ///< its sample rate in Hz
+    std::vector<std::vector<float>> m_pendingIrB;                   ///< impulse B waiting likewise, one vector per channel
+                                    int m_pendingIrBRate = 48000;   ///< its sample rate in Hz
+    bool m_clearIrB = false,       ///< the pending preset named a room and no B, so the engine's B impulse is to be cleared
+         m_audioStarted = false;   ///< the engine is prepared, impulses may go in at once
+    Config m_config;                                                        ///< ambient.cfg as read at init()
+    Engine m_engine;                                                        ///< the synthesizer; rendered by m_audio, parameters written by m_gestures and the menu
+    GestureLayer m_gestures;                                                ///< hands and head in, engine parameters out; holds the calibration
+    HandMenu m_menu;                                                        ///< the left-pinch menu, updated once per frame
+    WavRecorder m_recorder;                                                 ///< records the audio callback's output to rec-*.wav on a background thread
+    Audio m_audio{ m_engine, m_recorder };                                    ///< the Oboe stream; started at init() unless m_config.audio is off
+    OscOut m_osc;                                                           ///< the bridge to the desktop plugin; closed unless m_config.oscHost is set
+    Scene m_scene;                                                          ///< the point-cloud renderer
+    int m_presetA = 0,   ///< preset index in morph slot A, moved by the menu
+        m_presetB = 0;   ///< preset index in morph slot B
+    std::string m_slotName[2] = { "INIT", "INIT" };                         ///< what the panel shows for A and B: a preset name, "NOW" after a capture, "INIT" at start
+    bool m_calibrated = false;                                              ///< a calibration was loaded or saved; false makes init() start one
 
-    XrInstance instance_ = XR_NULL_HANDLE;                                 ///< the OpenXR instance
-    XrSystemId system_ = XR_NULL_SYSTEM_ID;                                ///< the head-mounted display system
-    XrSession session_ = XR_NULL_HANDLE;                                   ///< the session on the EGL context
-    XrSpace stageSpace_ = XR_NULL_HANDLE,   ///< the space the scene lives in: stage, or local as fallback
-            viewSpace_ = XR_NULL_HANDLE;    ///< the head's space, located in the stage each frame
-    XrSessionState sessionState_ = XR_SESSION_STATE_UNKNOWN;               ///< the last state the runtime reported
-    bool sessionRunning_ = false,   ///< between xrBeginSession and xrEndSession: frames are rendered
-         quit_ = false,             ///< the runtime asked to leave; run() returns
-         handsSupported_ = false;   ///< the system reports hand tracking
-    std::vector<XrView> views_;                                            ///< the stereo views, located each frame
-    std::vector<SwapchainTarget> targets_;                                 ///< one render target per view
-    XrTime lastTime_ = 0;                                                  ///< the previous frame's predicted display time, for dt; 0 before the first frame
-    XrPosef headPose_{};                                                   ///< the head in stage space, from updateHead()
-    bool headValid_ = false;                                               ///< whether headPose_ was located this frame (the panel needs it)
+    XrInstance m_instance = XR_NULL_HANDLE;                                 ///< the OpenXR instance
+    XrSystemId m_system = XR_NULL_SYSTEM_ID;                                ///< the head-mounted display system
+    XrSession m_session = XR_NULL_HANDLE;                                   ///< the session on the EGL context
+    XrSpace m_stageSpace = XR_NULL_HANDLE,   ///< the space the scene lives in: stage, or local as fallback
+            m_viewSpace = XR_NULL_HANDLE;    ///< the head's space, located in the stage each frame
+    XrSessionState m_sessionState = XR_SESSION_STATE_UNKNOWN;               ///< the last state the runtime reported
+    bool m_sessionRunning = false,   ///< between xrBeginSession and xrEndSession: frames are rendered
+         m_quit = false,             ///< the runtime asked to leave; run() returns
+         m_handsSupported = false;   ///< the system reports hand tracking
+    std::vector<XrView> m_views;                                            ///< the stereo views, located each frame
+    std::vector<SwapchainTarget> m_targets;                                 ///< one render target per view
+    XrTime m_lastTime = 0;                                                  ///< the previous frame's predicted display time, for dt; 0 before the first frame
+    XrPosef m_headPose{};                                                   ///< the head in stage space, from updateHead()
+    bool m_headValid = false;                                               ///< whether m_headPose was located this frame (the panel needs it)
 
-    EGLDisplay display_ = EGL_NO_DISPLAY;                                  ///< the default EGL display
-    EGLConfig config_egl_ = nullptr;                                       ///< the RGBA8 GLES 3 config chosen at initEgl()
-    EGLSurface surface_ = EGL_NO_SURFACE;                                  ///< a 16x16 pbuffer, only so the context can be made current
-    EGLContext context_ = EGL_NO_CONTEXT;                                  ///< the GLES 3 context the session and the scene draw with
+    EGLDisplay m_display = EGL_NO_DISPLAY;                                  ///< the default EGL display
+    EGLConfig m_config_egl = nullptr;                                       ///< the RGBA8 GLES 3 config chosen at initEgl()
+    EGLSurface m_surface = EGL_NO_SURFACE;                                  ///< a 16x16 pbuffer, only so the context can be made current
+    EGLContext m_context = EGL_NO_CONTEXT;                                  ///< the GLES 3 context the session and the scene draw with
 
-    PFN_xrCreateHandTrackerEXT pfnCreateHandTracker_ = nullptr;            ///< XR_EXT_hand_tracking entry point, resolved by initHands()
-    PFN_xrLocateHandJointsEXT pfnLocateHandJoints_ = nullptr;              ///< XR_EXT_hand_tracking entry point, resolved by initHands()
-    PFN_xrDestroyHandTrackerEXT pfnDestroyHandTracker_ = nullptr;          ///< XR_EXT_hand_tracking entry point, resolved by initHands()
-    XrHandTrackerEXT handTracker_[2] = { XR_NULL_HANDLE, XR_NULL_HANDLE }; ///< the trackers, left then right; null when hands are unavailable
-    XrVector3f palms_[2] = {};                                             ///< this frame's palm positions in stage space, left then right
-    bool palmValid_[2] = { false, false };                                 ///< whether each palm was tracked this frame
-    float pinch_[2] = { 0.0f, 0.0f };                                      ///< each hand's pinch 0 .. 1 this frame (for the picture; the gesture layer has its own copy)
+    PFN_xrCreateHandTrackerEXT m_pfnCreateHandTracker = nullptr;            ///< XR_EXT_hand_tracking entry point, resolved by initHands()
+    PFN_xrLocateHandJointsEXT m_pfnLocateHandJoints = nullptr;              ///< XR_EXT_hand_tracking entry point, resolved by initHands()
+    PFN_xrDestroyHandTrackerEXT m_pfnDestroyHandTracker = nullptr;          ///< XR_EXT_hand_tracking entry point, resolved by initHands()
+    XrHandTrackerEXT m_handTracker[2] = { XR_NULL_HANDLE, XR_NULL_HANDLE }; ///< the trackers, left then right; null when hands are unavailable
+    XrVector3f m_palms[2] = {};                                             ///< this frame's palm positions in stage space, left then right
+    bool m_palmValid[2] = { false, false };                                 ///< whether each palm was tracked this frame
+    float m_pinch[2] = { 0.0f, 0.0f };                                      ///< each hand's pinch 0 .. 1 this frame (for the picture; the gesture layer has its own copy)
 };
 
 /**

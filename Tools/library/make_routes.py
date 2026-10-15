@@ -120,7 +120,7 @@ CORNERS = ("Wide Wander",
 
 def read_meta():
     text = open(META, encoding="utf-8", errors="replace").read()
-    fams = re.search(r"const char\* const kFamilies\[[^\]]*\]\s*=\s*\{(.*?)\};", text, re.S)
+    fams = re.search(r"const char\* const Families\[[^\]]*\]\s*=\s*\{(.*?)\};", text, re.S)
     families = re.findall(r'"([^"]*)"', fams.group(1)) if fams else []
     out = []
     for line in text.splitlines():
@@ -177,14 +177,14 @@ def build(presets):
 
 def write(routes):
     text = open(ROUTE, encoding="utf-8", errors="replace").read()
-    body = ["const RoutePreset kRoutes[] = {"]
+    body = ["const RoutePreset Routes[] = {"]
     for name, points in routes:
         body.append(f'    {{ "{name}",')
         body.append(f'      "{points}" }},')
     body.append("};")
-    new = re.sub(r"const RoutePreset kRoutes\[\] = \{.*?\n\};", "\n".join(body), text, count=1, flags=re.S)
+    new = re.sub(r"const RoutePreset Routes\[\] = \{.*?\n\};", "\n".join(body), text, count=1, flags=re.S)
     if new == text:
-        raise SystemExit("the kRoutes block was not found in Route.cpp")
+        raise SystemExit("the Routes block was not found in Route.cpp")
     open(ROUTE, "w", encoding="utf-8", newline="\n").write(new)
 
 

@@ -208,8 +208,8 @@ def wrap_literal(text, indent="      "):
 
 
 def apply_to_builtins(text):
-    """Every settings literal of Core/src/Presets.cpp's kPresets rows; returns (text, presets changed)."""
-    start = text.index("const Preset kPresets[] = {")
+    """Every settings literal of Core/src/Presets.cpp's Presets rows; returns (text, presets changed)."""
+    start = text.index("const Preset Presets[] = {")
     end = text.index("\n};", start)
     head, body, tail = text[:start], text[start:end], text[end:]
     changed = 0

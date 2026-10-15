@@ -49,7 +49,7 @@ public:
      * @param depth   Chorus: the sweep, 6 ms at 1. Microshift: the detune, 12 cents at 1. Velvet: how much of the 30 ms sequence is used, 0.1 .. 1
      * @param rateHz  Chorus: the LFO rate in Hz (each tap at its own multiple). Microshift: a very slow wander of the detune. Velvet: unused
      */
-    void set(float mix, float depth, float rateHz) { mix_ = mix; depth_ = depth; rate_ = rateHz; }
+    void set(float mix, float depth, float rateHz) { m_mix = mix; m_depth = depth; m_rate = rateHz; }
     /**
      * @brief Which of the three ways of widening runs.
      *
@@ -67,7 +67,7 @@ public:
      * decorrelated without being coloured, and nothing is modulated, so nothing warbles.
      * @param mode  0 Chorus, 1 Microshift, 2 Velvet
      */
-    void setMode(int mode) { mode_ = mode; }
+    void setMode(int mode) { m_mode = mode; }
     /**
      * @brief Runs a block in place through the current mode.
      * @param L  left channel, n samples, replaced by the mix
@@ -105,29 +105,29 @@ private:
      */
     void processVelvet(float* L, float* R, int n);
     /**
-     * @brief Draws the two velvet sequences: kVelvetTaps impulses over 30 ms, one per equal interval at a random position, signs at random.
+     * @brief Draws the two velvet sequences: VelvetTaps impulses over 30 ms, one per equal interval at a random position, signs at random.
      * @param seed  seeds the draw (a fixed constant, so the sequences are the same on every machine)
      */
     void buildVelvet(uint64_t seed);
-    static constexpr int kVelvetTaps = 96;      ///< impulses per channel
-    int   velvetPos_[2][kVelvetTaps] = {};      ///< where each impulse sits, in samples
-    float velvetSign_[2][kVelvetTaps] = {};     ///< +-1, with the 1/sqrt(N) gain folded in
-    int   velvetLen_ = 0;                       ///< the sequence's length in samples
-    std::vector<float> bufL_,   ///< the left delay line, a power-of-two ring
-                       bufR_;   ///< the right delay line
-    int    mask_ = 0,   ///< ring size - 1
-           w_ = 0;      ///< the write index, shared by both lines
-    double sr_ = 48000.0;   ///< sample rate in Hz
-    double ph_[3] = { 0.0, 0.33, 0.66 };   ///< the chorus LFOs' phases in cycles, one per tap, staggered
-    float  mix_ = 0.4f,     ///< wet against dry
-           depth_ = 0.4f,   ///< the Depth knob
-           rate_ = 0.2f;    ///< the Rate knob in Hz
-    int    mode_ = 0;   ///< 0 chorus, 1 microshift, 2 velvet
+    static constexpr int VelvetTaps = 96;      ///< impulses per channel
+    int   m_velvetPos[2][VelvetTaps] = {};      ///< where each impulse sits, in samples
+    float m_velvetSign[2][VelvetTaps] = {};     ///< +-1, with the 1/sqrt(N) gain folded in
+    int   m_velvetLen = 0;                       ///< the sequence's length in samples
+    std::vector<float> m_bufL,   ///< the left delay line, a power-of-two ring
+                       m_bufR;   ///< the right delay line
+    int    m_mask = 0,   ///< ring size - 1
+           m_w = 0;      ///< the write index, shared by both lines
+    double m_sr = 48000.0;   ///< sample rate in Hz
+    double m_ph[3] = { 0.0, 0.33, 0.66 };   ///< the chorus LFOs' phases in cycles, one per tap, staggered
+    float  m_mix = 0.4f,     ///< wet against dry
+           m_depth = 0.4f,   ///< the Depth knob
+           m_rate = 0.2f;    ///< the Rate knob in Hz
+    int    m_mode = 0;   ///< 0 chorus, 1 microshift, 2 velvet
     /**
      * @name Microshift state: the two shifters' window phases and the slow wander of the detune.
      * @{ */
-    double shPh_[2] = { 0.0, 0.5 };   ///< where each channel's read pointer is in its 200 ms ramp, 0 .. 1
-    double wanderPh_ = 0.0;   ///< the phase of the detune's wander, in cycles
+    double m_shPh[2] = { 0.0, 0.5 };   ///< where each channel's read pointer is in its 200 ms ramp, 0 .. 1
+    double m_wanderPh = 0.0;   ///< the phase of the detune's wander, in cycles
     /** @} */
 };
 
@@ -167,7 +167,7 @@ public:
      * one's tail. At 0 the loop behaves exactly as it did.
      * @param amount  0 .. 1; the duck is driven by the input's level over its own slow average, so a drone ducks nothing
      */
-    void setDuck(float amount) { duck_ = clampv(amount, 0.0f, 1.0f); }
+    void setDuck(float amount) { m_duck = clampv(amount, 0.0f, 1.0f); }
     /**
      * @brief Writes the wet signal only; the caller mixes it.
      * @param inL   left input, n samples
@@ -178,31 +178,31 @@ public:
      */
     void process(const float* inL, const float* inR, float* wetL, float* wetR, int n);
 private:
-    std::vector<float> bufL_,   ///< the left delay line, a power-of-two ring
-                       bufR_;   ///< the right delay line
-    int    mask_ = 0,   ///< ring size - 1
-           w_ = 0;      ///< the write index, shared by both lines
-    double sr_ = 48000.0;   ///< sample rate in Hz
-    float  tL_ = 0,      ///< the left delay asked for, in samples
-           tR_ = 0,      ///< the right delay asked for
-           tLcur_ = 0,   ///< the left delay as it glides (0 before the first set())
-           tRcur_ = 0;   ///< the right delay as it glides
-    float  fb_ = 0.5f,      ///< loop gain
-           cross_ = 0.3f,   ///< the cross-feed, 0 .. 1
-           lpc_ = 0.5f;     ///< the damping one-pole's coefficient, 1 - 0.9 damping
-    float  lpL_ = 0,   ///< the damping low pass's state, left
-           lpR_ = 0;   ///< and right
-    float  absorb_ = 0.0f,   ///< the Absorb knob
-           hpc_ = 0.0f,      ///< the absorption band's low-cut coefficient
-           lpc2_ = 1.0f;     ///< the absorption band, from feedback and absorb
-    float  loL_ = 0,   ///< the absorption low cut's state, left
-           loR_ = 0,   ///< and right
-           hiL_ = 0,   ///< the absorption high cut's state, left
-           hiR_ = 0;   ///< and right
-    float  duck_ = 0.0f,       ///< the Duck knob
-           duckEnv_ = 0.0f,    ///< the input's slow average, about 3.5 s
-           duckFast_ = 0.0f;   ///< how much, and the two envelopes driving it
-    double modPh_[2] = { 0.0, 0.5 };   ///< the phases of the two delays' slow wander (0.07 and 0.053 Hz), in cycles
+    std::vector<float> m_bufL,   ///< the left delay line, a power-of-two ring
+                       m_bufR;   ///< the right delay line
+    int    m_mask = 0,   ///< ring size - 1
+           m_w = 0;      ///< the write index, shared by both lines
+    double m_sr = 48000.0;   ///< sample rate in Hz
+    float  m_tL = 0,      ///< the left delay asked for, in samples
+           m_tR = 0,      ///< the right delay asked for
+           m_tLcur = 0,   ///< the left delay as it glides (0 before the first set())
+           m_tRcur = 0;   ///< the right delay as it glides
+    float  m_fb = 0.5f,      ///< loop gain
+           m_cross = 0.3f,   ///< the cross-feed, 0 .. 1
+           m_lpc = 0.5f;     ///< the damping one-pole's coefficient, 1 - 0.9 damping
+    float  m_lpL = 0,   ///< the damping low pass's state, left
+           m_lpR = 0;   ///< and right
+    float  m_absorb = 0.0f,   ///< the Absorb knob
+           m_hpc = 0.0f,      ///< the absorption band's low-cut coefficient
+           m_lpc2 = 1.0f;     ///< the absorption band, from feedback and absorb
+    float  m_loL = 0,   ///< the absorption low cut's state, left
+           m_loR = 0,   ///< and right
+           m_hiL = 0,   ///< the absorption high cut's state, left
+           m_hiR = 0;   ///< and right
+    float  m_duck = 0.0f,       ///< the Duck knob
+           m_duckEnv = 0.0f,    ///< the input's slow average, about 3.5 s
+           m_duckFast = 0.0f;   ///< how much, and the two envelopes driving it
+    double m_modPh[2] = { 0.0, 0.5 };   ///< the phases of the two delays' slow wander (0.07 and 0.053 Hz), in cycles
 };
 
 /**
@@ -274,7 +274,7 @@ public:
      * drifts from one moment to the next where the fixed network's stays put.
      * @param mode  0 Classic, 1 Scattering, 2 Colourless, 3 Rotating; the line lengths take effect at the next set()
      */
-    void setMode(int mode) { mode_ = mode; }
+    void setMode(int mode) { m_mode = mode; }
     /**
      * @brief The high-pass in front of the input (Send Low Cut, 25.09.2026): nothing under it is
      *        thrown into the tail.
@@ -296,65 +296,65 @@ public:
      */
     void process(float* L, float* R, int n);
 private:
-    static constexpr int kLines = 8;   ///< delay lines in the network
-    static constexpr int kRotations = 8;   ///< Givens rotations of the turning matrix: four on neighbouring pairs, four across
-    float  rot_ = 0.0f;                                ///< 0 fixed matrix .. 1 turning, glided
-    float  rotC_[kRotations] = {},   ///< the cosines of the rotation angles
-           rotS_[kRotations] = {};   ///< the angles, as cos and sin
-    float  rotDc_[kRotations] = {},   ///< cos of each angle's per-sample step
-           rotDs_[kRotations] = {};   ///< their per-sample advance
-    int    rotNorm_ = 0;   ///< samples since the rotation pairs were last pulled back onto the unit circle (every 4096)
-    static constexpr int kAllpasses = 4;   ///< stages of input diffusion per channel
-    std::vector<float> line_[kLines];   ///< the eight delay lines, power-of-two rings
-    std::vector<float> ap_[kAllpasses],    ///< the left channel's input diffusion
-                       apR_[kAllpasses];   ///< the input diffusion, a chain per channel
-    std::vector<float> pre_,    ///< the left pre-delay ring
-                       preR_,   ///< the right pre-delay ring
-                       outR_;   ///< the pre-delay, a ring per channel
-    int    mask_ = 0,      ///< ring size - 1 for the lines, diffusers and pre-delays
-           w_ = 0,         ///< the write index, shared
-           outMask_ = 0;   ///< outR_ size - 1
-    double sr_ = 48000.0;   ///< sample rate in Hz
+    static constexpr int Lines = 8;   ///< delay lines in the network
+    static constexpr int Rotations = 8;   ///< Givens rotations of the turning matrix: four on neighbouring pairs, four across
+    float  m_rot = 0.0f;                                ///< 0 fixed matrix .. 1 turning, glided
+    float  m_rotC[Rotations] = {},   ///< the cosines of the rotation angles
+           m_rotS[Rotations] = {};   ///< the angles, as cos and sin
+    float  m_rotDc[Rotations] = {},   ///< cos of each angle's per-sample step
+           m_rotDs[Rotations] = {};   ///< their per-sample advance
+    int    m_rotNorm = 0;   ///< samples since the rotation pairs were last pulled back onto the unit circle (every 4096)
+    static constexpr int Allpasses = 4;   ///< stages of input diffusion per channel
+    std::vector<float> m_line[Lines];   ///< the eight delay lines, power-of-two rings
+    std::vector<float> m_ap[Allpasses],    ///< the left channel's input diffusion
+                       m_apR[Allpasses];   ///< the input diffusion, a chain per channel
+    std::vector<float> m_pre,    ///< the left pre-delay ring
+                       m_preR,   ///< the right pre-delay ring
+                       m_outR;   ///< the pre-delay, a ring per channel
+    int    m_mask = 0,      ///< ring size - 1 for the lines, diffusers and pre-delays
+           m_w = 0,         ///< the write index, shared
+           m_outMask = 0;   ///< m_outR size - 1
+    double m_sr = 48000.0;   ///< sample rate in Hz
     /**
      * A one-pole DC blocker on the input, 5 Hz. A network whose loop gain is a hair under one
      * -- a forty-second tail -- passes an offset with a gain of hundreds: measured, a texture
      * with -0.1 of offset stood at -2.1 on the far bus after thirty seconds, the Patina's
      * clipper railed on it and the output DC blocker turned the rail into silence.
      */
-    float  dcInX_[2] = {},   ///< the blocker's last input per channel
-           dcInY_[2] = {},   ///< its last output per channel
-           dcR_ = 0.999f;    ///< its pole, 5 Hz at the rate
-    float  lenTarget_[kLines] = {},   ///< each line's length asked for, in samples
-           lenCur_[kLines] = {};      ///< each line's length as it glides
-    float  gain_[kLines] = {};   ///< each line's loop gain, from its length and the decay; 1 when frozen
-    float  lp_[kLines] = {};   ///< the damping one-pole's state per line
-    double modPh_[kLines] = {};   ///< the phase of each line's length wobble, in cycles
-    float  modRate_[kLines] = {};   ///< each wobble's rate in Hz, 0.11 .. 0.37
-    int    apLen_[kAllpasses] = {};   ///< the input diffusers' lengths in samples (5.1 .. 13.7 ms)
-    float  preTarget_ = 0.0f,   ///< the pre-delay asked for, in samples
-           preCur_ = 0.0f;      ///< the pre-delay as it glides
-    float  outDelayTarget_ = 0.0f,   ///< the right output's delay asked for, in samples
-           outDelayCur_ = 0.0f;      ///< that delay as it glides
-    float  damp_ = 0.4f,     ///< the Damping knob
-           mix_ = 0.45f,     ///< wet against dry
-           decay_ = 12.0f,   ///< time to -60 dB in seconds
-           size_ = 1.6f,     ///< the Size knob
-           asym_ = 0.0f;     ///< the asymmetry, 0 .. 1
-    float  hcCoef_ = 1.0f,   ///< the tail high cut's one-pole coefficient; 1 is off
-           hcL_ = 0.0f,      ///< the high cut's state, left
-           hcR_ = 0.0f;      ///< and right
-    float  lcCoef_ = 0.0f;                                        ///< 0 = off
-    float  lcL1_ = 0.0f,   ///< the tail low cut's first one-pole, left
-           lcR1_ = 0.0f,   ///< first one-pole, right
-           lcL2_ = 0.0f,   ///< second one-pole, left
-           lcR2_ = 0.0f;   ///< second one-pole, right
-    bool   freeze_ = false;   ///< whether the loop is held lossless with the input shut
-    Svf    sendHpL_,   ///< @brief the input high-pass (Send Low Cut), left
-           sendHpR_;   ///< the input high-pass, right
-    bool   sendHpOn_ = false;   ///< whether the input high-pass runs (Send Low Cut above 20 Hz)
-    int    mode_ = 0;   ///< 0 classic, 1 scattering, 2 colourless, 3 rotating
-    std::vector<float> sc_[kLines];   ///< the scattering all-passes, one per line
-    int    scLen_[kLines] = {};   ///< their lengths in samples (1.9 .. 7.1 ms, mutually prime)
+    float  m_dcInX[2] = {},   ///< the blocker's last input per channel
+           m_dcInY[2] = {},   ///< its last output per channel
+           m_dcR = 0.999f;    ///< its pole, 5 Hz at the rate
+    float  m_lenTarget[Lines] = {},   ///< each line's length asked for, in samples
+           m_lenCur[Lines] = {};      ///< each line's length as it glides
+    float  m_gain[Lines] = {};   ///< each line's loop gain, from its length and the decay; 1 when frozen
+    float  m_lp[Lines] = {};   ///< the damping one-pole's state per line
+    double m_modPh[Lines] = {};   ///< the phase of each line's length wobble, in cycles
+    float  m_modRate[Lines] = {};   ///< each wobble's rate in Hz, 0.11 .. 0.37
+    int    m_apLen[Allpasses] = {};   ///< the input diffusers' lengths in samples (5.1 .. 13.7 ms)
+    float  m_preTarget = 0.0f,   ///< the pre-delay asked for, in samples
+           m_preCur = 0.0f;      ///< the pre-delay as it glides
+    float  m_outDelayTarget = 0.0f,   ///< the right output's delay asked for, in samples
+           m_outDelayCur = 0.0f;      ///< that delay as it glides
+    float  m_damp = 0.4f,     ///< the Damping knob
+           m_mix = 0.45f,     ///< wet against dry
+           m_decay = 12.0f,   ///< time to -60 dB in seconds
+           m_size = 1.6f,     ///< the Size knob
+           m_asym = 0.0f;     ///< the asymmetry, 0 .. 1
+    float  m_hcCoef = 1.0f,   ///< the tail high cut's one-pole coefficient; 1 is off
+           m_hcL = 0.0f,      ///< the high cut's state, left
+           m_hcR = 0.0f;      ///< and right
+    float  m_lcCoef = 0.0f;                                        ///< 0 = off
+    float  m_lcL1 = 0.0f,   ///< the tail low cut's first one-pole, left
+           m_lcR1 = 0.0f,   ///< first one-pole, right
+           m_lcL2 = 0.0f,   ///< second one-pole, left
+           m_lcR2 = 0.0f;   ///< second one-pole, right
+    bool   m_freeze = false;   ///< whether the loop is held lossless with the input shut
+    Svf    m_sendHpL,   ///< @brief the input high-pass (Send Low Cut), left
+           m_sendHpR;   ///< the input high-pass, right
+    bool   m_sendHpOn = false;   ///< whether the input high-pass runs (Send Low Cut above 20 Hz)
+    int    m_mode = 0;   ///< 0 classic, 1 scattering, 2 colourless, 3 rotating
+    std::vector<float> m_sc[Lines];   ///< the scattering all-passes, one per line
+    int    m_scLen[Lines] = {};   ///< their lengths in samples (1.9 .. 7.1 ms, mutually prime)
 };
 
 /**
@@ -374,7 +374,7 @@ private:
  */
 class Unmask {
 public:
-    static constexpr int kBands = 7;   ///< bands of the split: under 150 Hz, five octaves to 4.8 kHz, above
+    static constexpr int Bands = 7;   ///< bands of the split: under 150 Hz, five octaves to 4.8 kHz, above
     /**
      * @brief Sets the crossovers, the duck (20 ms) and return times for the rate, and resets.
      * @param sampleRate  the engine's rate in Hz
@@ -408,23 +408,23 @@ public:
     void reset();
 private:
     /**
-     * @brief Splits one sample into the kBands bands: a second-order low-pass at every crossover,
+     * @brief Splits one sample into the Bands bands: a second-order low-pass at every crossover,
      *        each band the difference of two neighbours, so the bands add back to the input exactly.
-     * @param lp    the crossovers' filters, kBands - 1 of them, advanced here
+     * @param lp    the crossovers' filters, Bands - 1 of them, advanced here
      * @param x     the input sample
      * @param band  receives the bands, lowest first; they sum to x
      */
     static void split(Svf* lp, float x, float* band);
-    Svf    xNear_[kBands - 1];      ///< the near bus's crossovers (the near bus is summed to mono)
-    Svf    xBg_[2][kBands - 1];     ///< the background's crossovers, per channel
-    float  env_[kBands] = {};          ///< the near bus's band envelopes
-    float  gain_[kBands] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };   ///< what the background is multiplied by, smoothed
-    float  aCoef_ = 0.01f,     ///< the attack coefficient of the envelopes and gains: the duck, 20 ms
-           rCoef_ = 0.0005f;   ///< the release coefficient: the return, returnSec_
-    float  amount_ = 0.0f,      ///< the Unmask knob, 0 .. 1
-           spread_ = 0.0f,      ///< the Spread knob, 0 .. 1
-           returnSec_ = 0.5f;   ///< the return time in seconds
-    double sr_ = 48000.0;   ///< sample rate in Hz
+    Svf    m_xNear[Bands - 1];      ///< the near bus's crossovers (the near bus is summed to mono)
+    Svf    m_xBg[2][Bands - 1];     ///< the background's crossovers, per channel
+    float  m_env[Bands] = {};          ///< the near bus's band envelopes
+    float  m_gain[Bands] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };   ///< what the background is multiplied by, smoothed
+    float  m_aCoef = 0.01f,     ///< the attack coefficient of the envelopes and gains: the duck, 20 ms
+           m_rCoef = 0.0005f;   ///< the release coefficient: the return, m_returnSec
+    float  m_amount = 0.0f,      ///< the Unmask knob, 0 .. 1
+           m_spread = 0.0f,      ///< the Spread knob, 0 .. 1
+           m_returnSec = 0.5f;   ///< the return time in seconds
+    double m_sr = 48000.0;   ///< sample rate in Hz
 };
 
 /**
@@ -463,26 +463,26 @@ public:
      * @brief Whether the patina does anything.
      * @return  true when amount is above 0 -- off at 0, and then not computed at all
      */
-    bool active() const { return amount_ > 0.0f; }
+    bool active() const { return m_amount > 0.0f; }
 private:
-    std::vector<float> bufL_,   ///< the left wow delay ring, 4096 samples
-                       bufR_;   ///< the right wow delay ring
-    int     mask_ = 0,   ///< ring size - 1
-            w_ = 0;      ///< the write index, kept inside the ring
-    double  sr_ = 48000.0;   ///< sample rate in Hz
-    float   amount_ = 0.0f,   ///< the Amount knob
-            wow_ = 0.3f,      ///< the Wow knob
-            hiss_ = 0.2f,     ///< the Hiss knob
-            age_ = 0.3f;      ///< the Age knob
-    float   lpC_ = 1.0f,   ///< the age high cut's one-pole coefficient; 1 is off
-            lpL_ = 0.0f,   ///< its state, left
-            lpR_ = 0.0f;   ///< its state, right
-    float   env_ = 0.0f;   ///< the signal's level, fast up and slow down, which raises the hiss (modulation noise)
-    Drifter wowDrift_;   ///< the slow, irregular wow
-    double  flutterPh_ = 0.0;   ///< the phase of the steady 6 Hz flutter, in cycles
-    Rng     rng_;   ///< the patina's own generator: the hiss and the wow's knots
-    Oversampler4 osL_,   ///< @brief the saturation at four times the rate, left
-                 osR_;   ///< and right
+    std::vector<float> m_bufL,   ///< the left wow delay ring, 4096 samples
+                       m_bufR;   ///< the right wow delay ring
+    int     m_mask = 0,   ///< ring size - 1
+            m_w = 0;      ///< the write index, kept inside the ring
+    double  m_sr = 48000.0;   ///< sample rate in Hz
+    float   m_amount = 0.0f,   ///< the Amount knob
+            m_wow = 0.3f,      ///< the Wow knob
+            m_hiss = 0.2f,     ///< the Hiss knob
+            m_age = 0.3f;      ///< the Age knob
+    float   m_lpC = 1.0f,   ///< the age high cut's one-pole coefficient; 1 is off
+            m_lpL = 0.0f,   ///< its state, left
+            m_lpR = 0.0f;   ///< its state, right
+    float   m_env = 0.0f;   ///< the signal's level, fast up and slow down, which raises the hiss (modulation noise)
+    Drifter m_wowDrift;   ///< the slow, irregular wow
+    double  m_flutterPh = 0.0;   ///< the phase of the steady 6 Hz flutter, in cycles
+    Rng     m_rng;   ///< the patina's own generator: the hiss and the wow's knots
+    Oversampler4 m_osL,   ///< @brief the saturation at four times the rate, left
+                 m_osR;   ///< and right
 };
 
 /**
@@ -532,28 +532,28 @@ public:
      * dominates: a slow, small correction that a listener cannot hear and a mono sum can.
      * @param on  false puts the trim back to 1 and leaves the width alone
      */
-    void setMonoGuard(bool on) { guardOn_ = on; }
+    void setMonoGuard(bool on) { m_guardOn = on; }
     /**
      * @brief The guard's current trim on the width.
      * @return  1 = untouched, for the meter; down to 0.75 when the side has been dominating
      */
-    float widthTrim() const { return guard_; }   // 1 = untouched, for the meter
+    float widthTrim() const { return m_guard; }   // 1 = untouched, for the meter
 
 private:
-    Svf    hp_,    ///< the side's high pass at the bass-mono frequency
-           air_;   ///< the side's 3 kHz bell (its band pass, added)
-    float  airGain_ = 0.0f,   ///< the bell's gain as a linear amount added, 10^(dB / 20) - 1
-           width_ = 1.0f;     ///< the side's gain
-    float  midPow_ = 0.0f,    ///< the mid's power on a slow average (about 1.5 s)
-           sidePow_ = 0.0f,   ///< the side's power before the trim, likewise
-           guard_ = 1.0f;     ///< the guard's trim on the width, 0.75 .. 1
-    bool   guardOn_ = true;   ///< whether the guard measures and trims
-    float  tiltLo_ = 1.0f,       ///< the tilt's gain below the pivot
-           tiltHi_ = 1.0f,       ///< its gain above
-           tiltC_ = 0.1f,        ///< the pivot one-pole's coefficient
-           tiltState_[2] = {};   ///< the pivot one-pole's state per channel
-    bool   tiltOn_ = false;   ///< whether the tilt is more than 0.05 dB from flat
-    double sr_ = 48000.0;   ///< sample rate in Hz
+    Svf    m_hp,    ///< the side's high pass at the bass-mono frequency
+           m_air;   ///< the side's 3 kHz bell (its band pass, added)
+    float  m_airGain = 0.0f,   ///< the bell's gain as a linear amount added, 10^(dB / 20) - 1
+           m_width = 1.0f;     ///< the side's gain
+    float  m_midPow = 0.0f,    ///< the mid's power on a slow average (about 1.5 s)
+           m_sidePow = 0.0f,   ///< the side's power before the trim, likewise
+           m_guard = 1.0f;     ///< the guard's trim on the width, 0.75 .. 1
+    bool   m_guardOn = true;   ///< whether the guard measures and trims
+    float  m_tiltLo = 1.0f,       ///< the tilt's gain below the pivot
+           m_tiltHi = 1.0f,       ///< its gain above
+           m_tiltC = 0.1f,        ///< the pivot one-pole's coefficient
+           m_tiltState[2] = {};   ///< the pivot one-pole's state per channel
+    bool   m_tiltOn = false;   ///< whether the tilt is more than 0.05 dB from flat
+    double m_sr = 48000.0;   ///< sample rate in Hz
 };
 
 /**
@@ -585,14 +585,14 @@ public:
     /** @brief Clears the rings. */
     void reset();
 private:
-    static constexpr int kStages = 4;   ///< all-passes in the chain
-    std::vector<float> buf_[2][kStages];   ///< one ring per channel per stage
-    int    len_[kStages] = {};   ///< the stages' nominal delays in samples
-    int    mask_ = 0,   ///< ring size - 1
-           w_ = 0;      ///< the write index, shared
-    double modPh_[kStages] = { 0.0, 0.3, 0.6, 0.85 };   ///< the phase of each stage's read-point modulation, in cycles (the right channel takes the opposite side)
-    float  amount_ = 0.0f;   ///< the Diffusion knob
-    double sr_ = 48000.0;   ///< sample rate in Hz
+    static constexpr int Stages = 4;   ///< all-passes in the chain
+    std::vector<float> m_buf[2][Stages];   ///< one ring per channel per stage
+    int    m_len[Stages] = {};   ///< the stages' nominal delays in samples
+    int    m_mask = 0,   ///< ring size - 1
+           m_w = 0;      ///< the write index, shared
+    double m_modPh[Stages] = { 0.0, 0.3, 0.6, 0.85 };   ///< the phase of each stage's read-point modulation, in cycles (the right channel takes the opposite side)
+    float  m_amount = 0.0f;   ///< the Diffusion knob
+    double m_sr = 48000.0;   ///< sample rate in Hz
 };
 
 /**
@@ -630,22 +630,22 @@ public:
      */
     void prepare(double sampleRate)
     {
-        sr_ = sampleRate;
-        int size = 1; while (size < static_cast<int>(0.05 * sr_) + 8) size <<= 1;
-        bufL_.assign(static_cast<size_t>(size), 0.0f);
-        mask_ = size - 1; w_ = 0;
-        smDelay_ = timeMs_ * static_cast<float>(sr_ / 1000.0) + 1.0f;
+        m_sr = sampleRate;
+        int size = 1; while (size < static_cast<int>(0.05 * m_sr) + 8) size <<= 1;
+        m_bufL.assign(static_cast<size_t>(size), 0.0f);
+        m_mask = size - 1; m_w = 0;
+        m_smDelay = m_timeMs * static_cast<float>(m_sr / 1000.0) + 1.0f;
         // Two poles at the ends of the band: a high-pass at 1.2 kHz and a low-pass at 4 kHz, which
         // between them is the band the paper isolates.
-        hp_[0].setQ(1200.0f, 0.7f, static_cast<float>(sr_));
-        lp_[0].setQ(4000.0f, 0.7f, static_cast<float>(sr_));
+        m_hp[0].setQ(1200.0f, 0.7f, static_cast<float>(m_sr));
+        m_lp[0].setQ(4000.0f, 0.7f, static_cast<float>(m_sr));
     }
     /**
      * @brief The amount and the delay, once a block; both glide inside process().
      * @param amount  0 .. 1; the delayed band enters the side channel at -6 dB at 1
      * @param timeMs  the delay, 1 .. 45 ms
      */
-    void set(float amount, float timeMs) { amount_ = clampv(amount, 0.0f, 1.0f); timeMs_ = clampv(timeMs, 1.0f, 45.0f); }
+    void set(float amount, float timeMs) { m_amount = clampv(amount, 0.0f, 1.0f); m_timeMs = clampv(timeMs, 1.0f, 45.0f); }
     /**
      * @brief Runs a block in place: the mid's band, delayed, added on the left and taken off on the right.
      * @param L  left channel, n samples
@@ -654,43 +654,43 @@ public:
      */
     void process(float* L, float* R, int n)
     {
-        if (amount_ <= 0.0f && smAmount_ <= 1.0e-5f) { w_ = (w_ + n) & 0x3FFFFFFF; return; }
+        if (m_amount <= 0.0f && m_smAmount <= 1.0e-5f) { m_w = (m_w + n) & 0x3FFFFFFF; return; }
         // The delay follows the knob at the same pace as the amount: read straight from the knob
         // it would jump the read pointer, which is a click, not a change of width.
-        const float delayTarget = timeMs_ * static_cast<float>(sr_ / 1000.0) + 1.0f;
-        const float c = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(sr_)));   // 50 ms
-        float* bl = bufL_.data();
+        const float delayTarget = m_timeMs * static_cast<float>(m_sr / 1000.0) + 1.0f;
+        const float c = 1.0f - std::exp(-1.0f / (0.05f * static_cast<float>(m_sr)));   // 50 ms
+        float* bl = m_bufL.data();
         for (int i = 0; i < n; ++i) {
-            smAmount_ += c * (amount_ - smAmount_);
-            smDelay_ += c * (delayTarget - smDelay_);
-            const float delay = smDelay_;
+            m_smAmount += c * (m_amount - m_smAmount);
+            m_smDelay += c * (delayTarget - m_smDelay);
+            const float delay = m_smDelay;
             // The band of what is in the middle -- the part of the picture that has no width yet.
             float lp, bp, hp;
             const float mid = 0.5f * (L[i] + R[i]);
-            hp_[0].tick(mid, lp, bp, hp); float band = hp;
-            lp_[0].tick(band, lp, bp, hp); band = lp;
-            bl[w_ & mask_] = band;
+            m_hp[0].tick(mid, lp, bp, hp); float band = hp;
+            m_lp[0].tick(band, lp, bp, hp); band = lp;
+            bl[m_w & m_mask] = band;
             // Into the side channel: added on the left, taken off on the right. That is what "hard
             // to the opposite side" comes to once it is made symmetrical, and it is the only form
             // of it that is exactly mono-safe -- summed to mono the two cancel to the sample, so
             // the centre of the mix is the same picture it was before the widening.
-            const float d = smAmount_ * 0.5f * ringRead(bl, mask_, w_, delay);   // -6 dB at full amount
+            const float d = m_smAmount * 0.5f * ringRead(bl, m_mask, m_w, delay);   // -6 dB at full amount
             L[i] += d;
             R[i] -= d;
-            ++w_;
+            ++m_w;
         }
     }
 private:
-    std::vector<float> bufL_;                       ///< one band, one line: it goes to the sides
-    int    mask_ = 0,   ///< ring size - 1
-           w_ = 0;      ///< the write index
-    double sr_ = 48000.0;   ///< sample rate in Hz
-    Svf    hp_[1],   ///< the band's high pass at 1.2 kHz
-           lp_[1];   ///< the band's low pass at 4 kHz
-    float  amount_ = 0.0f,     ///< the Haas knob
-           smAmount_ = 0.0f,   ///< the amount as it glides (50 ms)
-           timeMs_ = 15.0f,    ///< the delay asked for, in ms
-           smDelay_ = 0.0f;    ///< the delay as it glides, in samples plus one
+    std::vector<float> m_bufL;                       ///< one band, one line: it goes to the sides
+    int    m_mask = 0,   ///< ring size - 1
+           m_w = 0;      ///< the write index
+    double m_sr = 48000.0;   ///< sample rate in Hz
+    Svf    m_hp[1],   ///< the band's high pass at 1.2 kHz
+           m_lp[1];   ///< the band's low pass at 4 kHz
+    float  m_amount = 0.0f,     ///< the Haas knob
+           m_smAmount = 0.0f,   ///< the amount as it glides (50 ms)
+           m_timeMs = 15.0f,    ///< the delay asked for, in ms
+           m_smDelay = 0.0f;    ///< the delay as it glides, in samples plus one
 };
 
 
@@ -721,7 +721,7 @@ private:
  */
 class EarlyRoom {
 public:
-    static constexpr int kWalls = 6;   ///< the shoebox's surfaces: left, right, front, back, ceiling, floor
+    static constexpr int Walls = 6;   ///< the shoebox's surfaces: left, right, front, back, ceiling, floor
 
     /**
      * @brief Allocates the lines for the largest room, sets a default room and source, and snaps every delay to its target.
@@ -729,24 +729,24 @@ public:
      */
     void prepare(double sampleRate)
     {
-        sr_ = sampleRate;
+        m_sr = sampleRate;
         // Long enough for the longest path in the largest room: forty metres across is a hundred
         // and seventeen milliseconds, and every delay in here is shorter than that.
         int size = 1;
-        while (size < static_cast<int>(0.14 * sr_) + 8) size <<= 1;
-        inL_.assign(static_cast<size_t>(size), 0.0f);
-        inR_.assign(static_cast<size_t>(size), 0.0f);
-        for (auto& v : press_) v.assign(static_cast<size_t>(size), 0.0f);
-        for (auto& row : pair_) for (auto& v : row) v.assign(static_cast<size_t>(size), 0.0f);
-        mask_ = size - 1;
-        w_ = 0;
-        for (int k = 0; k < kWalls; ++k) { lp_[k] = 0.0f; dSrc_[k] = 1.0f; gSrc_[k] = 0.0f; }
+        while (size < static_cast<int>(0.14 * m_sr) + 8) size <<= 1;
+        m_inL.assign(static_cast<size_t>(size), 0.0f);
+        m_inR.assign(static_cast<size_t>(size), 0.0f);
+        for (auto& v : m_press) v.assign(static_cast<size_t>(size), 0.0f);
+        for (auto& row : m_pair) for (auto& v : row) v.assign(static_cast<size_t>(size), 0.0f);
+        m_mask = size - 1;
+        m_w = 0;
+        for (int k = 0; k < Walls; ++k) { m_lp[k] = 0.0f; m_dSrc[k] = 1.0f; m_gSrc[k] = 0.0f; }
         setRoom(8.0f, 0.35f, 1.0f);
         setSource(0.0f, 0.4f);
-        for (int k = 0; k < kWalls; ++k) {
-            dSrc_[k] = dSrcT_[k]; gSrc_[k] = gSrcT_[k];
-            dEar_[k] = dEarT_[k];
-            for (int m = 0; m < kWalls; ++m) dPair_[k][m] = dPairT_[k][m];
+        for (int k = 0; k < Walls; ++k) {
+            m_dSrc[k] = m_dSrcT[k]; m_gSrc[k] = m_gSrcT[k];
+            m_dEar[k] = m_dEarT[k];
+            for (int m = 0; m < Walls; ++m) m_dPair[k][m] = m_dPairT[k][m];
         }
     }
 
@@ -762,21 +762,21 @@ public:
      */
     void setRoom(float sizeMetres, float absorb, float width)
     {
-        room_ = clampv(sizeMetres, 2.0f, 40.0f);
-        absorb_ = clampv(absorb, 0.0f, 1.0f);
-        width_ = clampv(width, 0.0f, 1.5f);
-        const float d = room_, w = room_ * 0.8f, h = room_ * 0.45f;
-        half_[0] = w * 0.5f; half_[1] = w * 0.5f;    // left, right
-        half_[2] = d * 0.5f; half_[3] = d * 0.5f;    // front, back
-        half_[4] = h * 0.5f; half_[5] = h * 0.5f;    // ceiling, floor
+        m_room = clampv(sizeMetres, 2.0f, 40.0f);
+        m_absorb = clampv(absorb, 0.0f, 1.0f);
+        m_width = clampv(width, 0.0f, 1.5f);
+        const float d = m_room, w = m_room * 0.8f, h = m_room * 0.45f;
+        m_half[0] = w * 0.5f; m_half[1] = w * 0.5f;    // left, right
+        m_half[2] = d * 0.5f; m_half[3] = d * 0.5f;    // front, back
+        m_half[4] = h * 0.5f; m_half[5] = h * 0.5f;    // ceiling, floor
         // Each wall's node sits at the centre of that wall; the listener is at the origin.
-        for (int k = 0; k < kWalls; ++k) {
-            for (int a = 0; a < 3; ++a) node_[k][a] = 0.0f;
-            node_[k][k / 2] = (k & 1) ? half_[k] : -half_[k];
+        for (int k = 0; k < Walls; ++k) {
+            for (int a = 0; a < 3; ++a) m_node[k][a] = 0.0f;
+            m_node[k][k / 2] = (k & 1) ? m_half[k] : -m_half[k];
         }
         // How dark a reflection comes back: a one-pole whose corner falls with the absorption.
-        const float fc = 16000.0f * std::pow(2.0f, -5.0f * absorb_);
-        lpCoef_ = 1.0f - std::exp(-kTwoPi * fc / static_cast<float>(sr_));
+        const float fc = 16000.0f * std::pow(2.0f, -5.0f * m_absorb);
+        m_lpCoef = 1.0f - std::exp(-TwoPi * fc / static_cast<float>(m_sr));
         roomGeometry();
         sourceGeometry();
     }
@@ -792,9 +792,9 @@ public:
     void setSource(float pan, float distance)
     {
         const float p = clampv(pan, -1.0f, 1.0f), d = clampv(distance, 0.0f, 1.0f);
-        src_[0] = p * (half_[0] - 0.5f);
-        src_[1] = 0.8f + d * (half_[2] - 1.0f);   // in front of the listener
-        src_[2] = 0.0f;
+        m_src[0] = p * (m_half[0] - 0.5f);
+        m_src[1] = 0.8f + d * (m_half[2] - 1.0f);   // in front of the listener
+        m_src[2] = 0.0f;
         sourceGeometry();
     }
 
@@ -802,12 +802,12 @@ public:
      * @brief The level of the reflections added to the output.
      * @param level  0 .. 1, glided across the block inside process(); 0 lets the room fall silent and then skip
      */
-    void setLevel(float level) { level_ = clampv(level, 0.0f, 1.0f); }
+    void setLevel(float level) { m_level = clampv(level, 0.0f, 1.0f); }
     /**
      * @brief Whether process() has anything to do.
      * @return  true while the level asked for or the glided level is above nothing
      */
-    bool active() const { return level_ > 0.0f || smLevel_ > 1.0e-5f; }
+    bool active() const { return m_level > 0.0f || m_smLevel > 1.0e-5f; }
 
     /**
      * @brief Runs a block: the near bus into the walls, the walls into each other and into the ears.
@@ -827,61 +827,61 @@ public:
      */
     void process(const float* inL, const float* inR, float* L, float* R, int n)
     {
-        if (!active()) { w_ = (w_ + n) & 0x3FFFFFFF; return; }
+        if (!active()) { m_w = (m_w + n) & 0x3FFFFFFF; return; }
         const float lvlStep = 1.0f / static_cast<float>(std::max(1, n));
         // Every reflection loses this much on top of what the wall filter takes: the matrix below
         // conserves energy exactly, so this factor alone decides how long the early field runs.
-        const float g = (1.0f - absorb_) * 0.8f;
+        const float g = (1.0f - m_absorb) * 0.8f;
         for (int i = 0; i < n; ++i) {
-            smLevel_ += (level_ - smLevel_) * lvlStep;
-            inL_[static_cast<size_t>(w_ & mask_)] = inL[i];
-            inR_[static_cast<size_t>(w_ & mask_)] = inR[i];
+            m_smLevel += (m_level - m_smLevel) * lvlStep;
+            m_inL[static_cast<size_t>(m_w & m_mask)] = inL[i];
+            m_inR[static_cast<size_t>(m_w & m_mask)] = inR[i];
             // The source's own path glides rather than jumps: a delay that steps is a click, and
             // the near bus's centre of gravity moves whenever a voice starts or stops.
-            float inc[kWalls][kWalls];
-            float sum[kWalls], inject[kWalls];
-            for (int k = 0; k < kWalls; ++k) {
-                dSrc_[k] += 0.0005f * (dSrcT_[k] - dSrc_[k]);
-                gSrc_[k] += 0.0005f * (gSrcT_[k] - gSrc_[k]);
+            float inc[Walls][Walls];
+            float sum[Walls], inject[Walls];
+            for (int k = 0; k < Walls; ++k) {
+                m_dSrc[k] += 0.0005f * (m_dSrcT[k] - m_dSrc[k]);
+                m_gSrc[k] += 0.0005f * (m_gSrcT[k] - m_gSrc[k]);
                 // The walls' distances glide too. setRoom() runs every block from the parameters,
                 // and while the source's distance already glided, the ear and wall-pair delays
                 // were set outright: automating Early Size moved six read heads by hundreds of
                 // samples at once, a click per block.
-                dEar_[k] += 0.0005f * (dEarT_[k] - dEar_[k]);
-                inject[k] = (kFromLeft[k] * ringRead(inL_.data(), mask_, w_, dSrc_[k])
-                           + kFromRight[k] * ringRead(inR_.data(), mask_, w_, dSrc_[k])) * gSrc_[k];
+                m_dEar[k] += 0.0005f * (m_dEarT[k] - m_dEar[k]);
+                inject[k] = (FromLeft[k] * ringRead(m_inL.data(), m_mask, m_w, m_dSrc[k])
+                           + FromRight[k] * ringRead(m_inR.data(), m_mask, m_w, m_dSrc[k])) * m_gSrc[k];
                 float s = inject[k];
-                for (int j = 0; j < kWalls; ++j) {
+                for (int j = 0; j < Walls; ++j) {
                     if (j == k) { inc[j][k] = 0.0f; continue; }
-                    dPair_[j][k] += 0.0005f * (dPairT_[j][k] - dPair_[j][k]);
-                    inc[j][k] = ringRead(pair_[j][k].data(), mask_, w_, dPair_[j][k]);
+                    m_dPair[j][k] += 0.0005f * (m_dPairT[j][k] - m_dPair[j][k]);
+                    inc[j][k] = ringRead(m_pair[j][k].data(), m_mask, m_w, m_dPair[j][k]);
                     s += inc[j][k];
                 }
                 sum[k] = s;
             }
             float wetL = 0.0f, wetR = 0.0f;
-            for (int k = 0; k < kWalls; ++k) {
+            for (int k = 0; k < Walls; ++k) {
                 // The wall takes its bite out of everything that reaches it.
-                lp_[k] += lpCoef_ * (sum[k] - lp_[k]);
+                m_lp[k] += m_lpCoef * (sum[k] - m_lp[k]);
                 // Isotropic scattering: what leaves towards one neighbour is the average of
                 // everything that arrived, less what that neighbour itself sent. Written out over
                 // five incoming waves the factor is two fifths, and the matrix it forms is its own
                 // inverse -- it moves energy between the walls without creating or losing any.
-                const float c = 0.4f * lp_[k];
-                for (int m = 0; m < kWalls; ++m) {
+                const float c = 0.4f * m_lp[k];
+                for (int m = 0; m < Walls; ++m) {
                     if (m == k) continue;
-                    pair_[k][m][static_cast<size_t>(w_ & mask_)] = g * (c - inc[m][k]);
+                    m_pair[k][m][static_cast<size_t>(m_w & m_mask)] = g * (c - inc[m][k]);
                 }
                 // What the listener hears of this wall, delayed by its own distance and placed by
                 // its direction.
-                press_[k][static_cast<size_t>(w_ & mask_)] = c;
-                const float toEar = ringRead(press_[k].data(), mask_, w_, dEar_[k]) * gEar_[k];
-                wetL += toEar * panL_[k];
-                wetR += toEar * panR_[k];
+                m_press[k][static_cast<size_t>(m_w & m_mask)] = c;
+                const float toEar = ringRead(m_press[k].data(), m_mask, m_w, m_dEar[k]) * m_gEar[k];
+                wetL += toEar * m_panL[k];
+                wetR += toEar * m_panR[k];
             }
-            L[i] += wetL * smLevel_;
-            R[i] += wetR * smLevel_;
-            ++w_;
+            L[i] += wetL * m_smLevel;
+            R[i] += wetR * m_smLevel;
+            ++m_w;
         }
     }
 
@@ -896,25 +896,25 @@ private:
     void roomGeometry()
     {
         const float c = 343.0f;
-        const float maxD = static_cast<float>(mask_ - 8);
-        for (int k = 0; k < kWalls; ++k) {
+        const float maxD = static_cast<float>(m_mask - 8);
+        for (int k = 0; k < Walls; ++k) {
             float dnl = 0.0f;
-            for (int a = 0; a < 3; ++a) dnl += node_[k][a] * node_[k][a];
+            for (int a = 0; a < 3; ++a) dnl += m_node[k][a] * m_node[k][a];
             dnl = std::sqrt(dnl);
-            dEarT_[k] = std::min(maxD, dnl / c * static_cast<float>(sr_) + 1.0f);
-            if (dEar_[k] <= 0.0f) dEar_[k] = dEarT_[k];   // first time: nothing to glide from
-            gEar_[k] = (1.0f - absorb_) / (1.0f + dnl);
+            m_dEarT[k] = std::min(maxD, dnl / c * static_cast<float>(m_sr) + 1.0f);
+            if (m_dEar[k] <= 0.0f) m_dEar[k] = m_dEarT[k];   // first time: nothing to glide from
+            m_gEar[k] = (1.0f - m_absorb) / (1.0f + dnl);
             // Direction: the wall's own axis, widened or narrowed by Width.
-            const float x = node_[k][0] / std::max(0.001f, dnl);
-            const float pan = clampv(x * width_, -1.0f, 1.0f);
-            panL_[k] = std::sqrt(0.5f * (1.0f - pan));
-            panR_[k] = std::sqrt(0.5f * (1.0f + pan));
-            for (int m = 0; m < kWalls; ++m) {
-                if (m == k) { dPairT_[k][m] = 1.0f; dPair_[k][m] = 1.0f; continue; }
+            const float x = m_node[k][0] / std::max(0.001f, dnl);
+            const float pan = clampv(x * m_width, -1.0f, 1.0f);
+            m_panL[k] = std::sqrt(0.5f * (1.0f - pan));
+            m_panR[k] = std::sqrt(0.5f * (1.0f + pan));
+            for (int m = 0; m < Walls; ++m) {
+                if (m == k) { m_dPairT[k][m] = 1.0f; m_dPair[k][m] = 1.0f; continue; }
                 float d2 = 0.0f;
-                for (int a = 0; a < 3; ++a) { const float u = node_[m][a] - node_[k][a]; d2 += u * u; }
-                dPairT_[k][m] = std::min(maxD, std::sqrt(d2) / c * static_cast<float>(sr_) + 1.0f);
-                if (dPair_[k][m] <= 0.0f) dPair_[k][m] = dPairT_[k][m];
+                for (int a = 0; a < 3; ++a) { const float u = m_node[m][a] - m_node[k][a]; d2 += u * u; }
+                m_dPairT[k][m] = std::min(maxD, std::sqrt(d2) / c * static_cast<float>(m_sr) + 1.0f);
+                if (m_dPair[k][m] <= 0.0f) m_dPair[k][m] = m_dPairT[k][m];
             }
         }
     }
@@ -923,50 +923,50 @@ private:
     void sourceGeometry()
     {
         const float c = 343.0f;
-        const float maxD = static_cast<float>(mask_ - 8);
-        for (int k = 0; k < kWalls; ++k) {
+        const float maxD = static_cast<float>(m_mask - 8);
+        for (int k = 0; k < Walls; ++k) {
             float dsn = 0.0f;
-            for (int a = 0; a < 3; ++a) { const float u = node_[k][a] - src_[a]; dsn += u * u; }
+            for (int a = 0; a < 3; ++a) { const float u = m_node[k][a] - m_src[a]; dsn += u * u; }
             dsn = std::sqrt(dsn);
-            dSrcT_[k] = std::min(maxD, dsn / c * static_cast<float>(sr_) + 1.0f);
-            gSrcT_[k] = 1.0f / (1.0f + dsn);          // spherical spreading over the first leg
+            m_dSrcT[k] = std::min(maxD, dsn / c * static_cast<float>(m_sr) + 1.0f);
+            m_gSrcT[k] = 1.0f / (1.0f + dsn);          // spherical spreading over the first leg
         }
     }
 
     /**
      * @name Which channel of the near bus each wall hears (left, right, front, back, ceiling, floor).
      * @{ */
-    static constexpr float kFromLeft[kWalls]  = { 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f };   ///< 1 where the wall hears the left channel: left, front, ceiling
-    static constexpr float kFromRight[kWalls] = { 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f };   ///< 1 where the wall hears the right channel: right, back, floor
+    static constexpr float FromLeft[Walls]  = { 1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f };   ///< 1 where the wall hears the left channel: left, front, ceiling
+    static constexpr float FromRight[Walls] = { 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f };   ///< 1 where the wall hears the right channel: right, back, floor
     /** @} */
-    std::vector<float> inL_,   ///< the near bus's left channel, a ring the source paths read
-                       inR_;   ///< the near bus's right channel
-    std::vector<float> press_[kWalls];   ///< what leaves each wall, a ring per wall, read by the ear path
-    std::vector<float> pair_[kWalls][kWalls];   ///< what wall k sends towards wall m, a ring per pair
-    int    mask_ = 0,   ///< ring size - 1
-           w_ = 0;      ///< the write index, shared by every ring
-    double sr_ = 48000.0;   ///< sample rate in Hz
-    float  node_[kWalls][3] = {},   ///< each wall's node in metres, the listener at the origin
-           half_[kWalls] = {};      ///< half the room's extent along each wall's axis, in metres
-    float  src_[3] = { 0.0f, 2.0f, 0.0f };   ///< the source's position in metres
-    float  dPair_[kWalls][kWalls] = {},    ///< wall-to-wall delays in samples as they glide
-           dPairT_[kWalls][kWalls] = {};   ///< the delays the geometry asks for
-    float  dSrc_[kWalls] = {},    ///< source-to-wall delays as they glide
-           dSrcT_[kWalls] = {},   ///< the delays the source position asks for
-           gSrc_[kWalls] = {},    ///< source-to-wall gains as they glide
-           gSrcT_[kWalls] = {};   ///< the gains the source position asks for, 1 / (1 + distance)
-    float  dEar_[kWalls] = {},    ///< wall-to-ear delays as they glide
-           dEarT_[kWalls] = {},   ///< the delays the room asks for
-           gEar_[kWalls] = {};    ///< wall-to-ear gains, (1 - absorb) / (1 + distance)
-    float  panL_[kWalls] = {},   ///< each wall's gain into the left output
-           panR_[kWalls] = {};   ///< and into the right, equal power from its direction and the width
-    float  lp_[kWalls] = {};   ///< each wall's absorption one-pole state
-    float  lpCoef_ = 1.0f;   ///< the absorption one-pole's coefficient, from absorb_
-    float  room_ = 8.0f,      ///< the room's longest dimension in metres
-           absorb_ = 0.35f,   ///< the Absorb knob
-           width_ = 1.0f,     ///< the Width knob
-           level_ = 0.0f,     ///< the level asked for
-           smLevel_ = 0.0f;   ///< the level as it glides across the block
+    std::vector<float> m_inL,   ///< the near bus's left channel, a ring the source paths read
+                       m_inR;   ///< the near bus's right channel
+    std::vector<float> m_press[Walls];   ///< what leaves each wall, a ring per wall, read by the ear path
+    std::vector<float> m_pair[Walls][Walls];   ///< what wall k sends towards wall m, a ring per pair
+    int    m_mask = 0,   ///< ring size - 1
+           m_w = 0;      ///< the write index, shared by every ring
+    double m_sr = 48000.0;   ///< sample rate in Hz
+    float  m_node[Walls][3] = {},   ///< each wall's node in metres, the listener at the origin
+           m_half[Walls] = {};      ///< half the room's extent along each wall's axis, in metres
+    float  m_src[3] = { 0.0f, 2.0f, 0.0f };   ///< the source's position in metres
+    float  m_dPair[Walls][Walls] = {},    ///< wall-to-wall delays in samples as they glide
+           m_dPairT[Walls][Walls] = {};   ///< the delays the geometry asks for
+    float  m_dSrc[Walls] = {},    ///< source-to-wall delays as they glide
+           m_dSrcT[Walls] = {},   ///< the delays the source position asks for
+           m_gSrc[Walls] = {},    ///< source-to-wall gains as they glide
+           m_gSrcT[Walls] = {};   ///< the gains the source position asks for, 1 / (1 + distance)
+    float  m_dEar[Walls] = {},    ///< wall-to-ear delays as they glide
+           m_dEarT[Walls] = {},   ///< the delays the room asks for
+           m_gEar[Walls] = {};    ///< wall-to-ear gains, (1 - absorb) / (1 + distance)
+    float  m_panL[Walls] = {},   ///< each wall's gain into the left output
+           m_panR[Walls] = {};   ///< and into the right, equal power from its direction and the width
+    float  m_lp[Walls] = {};   ///< each wall's absorption one-pole state
+    float  m_lpCoef = 1.0f;   ///< the absorption one-pole's coefficient, from m_absorb
+    float  m_room = 8.0f,      ///< the room's longest dimension in metres
+           m_absorb = 0.35f,   ///< the Absorb knob
+           m_width = 1.0f,     ///< the Width knob
+           m_level = 0.0f,     ///< the level asked for
+           m_smLevel = 0.0f;   ///< the level as it glides across the block
 };
 
 } // namespace ambient

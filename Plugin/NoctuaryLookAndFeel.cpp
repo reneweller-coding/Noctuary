@@ -25,28 +25,28 @@ const frame::Skin& skin()
 {
     static const frame::Skin s = [] {
         frame::Skin k;
-        k.name = "Noctuary";
-        k.bg = bg0;
-        k.panel = card.withAlpha(0.92f);
-        k.group = group;
-        k.raised = card.brighter(0.15f);
-        k.edge = cardEdge;
-        k.ink = text;
-        k.dim = dim;
-        k.faint = faint;
-        k.accent = accent;
-        k.onset = live;
-        k.good = foreCol;
-        k.bad = juce::Colour(0xffe05050);
-        k.families[0] = voiceCol;    // Source
-        k.families[1] = accent;      // Filter
-        k.families[2] = morphCol;    // Envelope
-        k.families[3] = live;        // Motion
-        k.families[4] = backCol;     // Space
-        k.decks[0] = voiceCol;
-        k.decks[1] = foreCol;
-        k.decks[2] = backCol;
-        k.radius = 5.0f;
+        k.m_name = "Noctuary";
+        k.m_bg = Bg0;
+        k.m_panel = CardColour.withAlpha(0.92f);
+        k.m_group = GroupColour;
+        k.m_raised = CardColour.brighter(0.15f);
+        k.m_edge = CardEdge;
+        k.m_ink = Text;
+        k.m_dim = Dim;
+        k.m_faint = Faint;
+        k.m_accent = Accent;
+        k.m_onset = Live;
+        k.m_good = ForeCol;
+        k.m_bad = juce::Colour(0xffe05050);
+        k.m_families[0] = VoiceCol;    // Source
+        k.m_families[1] = Accent;      // Filter
+        k.m_families[2] = MorphCol;    // Envelope
+        k.m_families[3] = Live;        // Motion
+        k.m_families[4] = BackCol;     // Space
+        k.m_decks[0] = VoiceCol;
+        k.m_decks[1] = ForeCol;
+        k.m_decks[2] = BackCol;
+        k.m_radius = 5.0f;
         return k;
     }();
     return s;
@@ -97,39 +97,39 @@ juce::String valueText(juce::Slider& s)
 
 NoctuaryLookAndFeel::NoctuaryLookAndFeel()
 {
-    setColour(juce::ResizableWindow::backgroundColourId, ui::bg0);
-    setColour(juce::Label::textColourId, ui::text);
+    setColour(juce::ResizableWindow::backgroundColourId, ui::Bg0);
+    setColour(juce::Label::textColourId, ui::Text);
     setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
-    setColour(juce::Slider::rotarySliderFillColourId, ui::accent);
-    setColour(juce::Slider::rotarySliderOutlineColourId, ui::track);
-    setColour(juce::Slider::thumbColourId, ui::text);
-    setColour(juce::Slider::textBoxTextColourId, ui::text);
+    setColour(juce::Slider::rotarySliderFillColourId, ui::Accent);
+    setColour(juce::Slider::rotarySliderOutlineColourId, ui::Track);
+    setColour(juce::Slider::thumbColourId, ui::Text);
+    setColour(juce::Slider::textBoxTextColourId, ui::Text);
     setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    setColour(juce::ComboBox::backgroundColourId, ui::card.brighter(0.10f));
-    setColour(juce::ComboBox::textColourId, ui::text);
-    setColour(juce::ComboBox::outlineColourId, ui::cardEdge);
-    setColour(juce::ComboBox::arrowColourId, ui::dim);
-    setColour(juce::PopupMenu::backgroundColourId, ui::card.brighter(0.04f));
-    setColour(juce::PopupMenu::textColourId, ui::text);
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, ui::accent.withAlpha(0.22f));
+    setColour(juce::ComboBox::backgroundColourId, ui::CardColour.brighter(0.10f));
+    setColour(juce::ComboBox::textColourId, ui::Text);
+    setColour(juce::ComboBox::outlineColourId, ui::CardEdge);
+    setColour(juce::ComboBox::arrowColourId, ui::Dim);
+    setColour(juce::PopupMenu::backgroundColourId, ui::CardColour.brighter(0.04f));
+    setColour(juce::PopupMenu::textColourId, ui::Text);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, ui::Accent.withAlpha(0.22f));
     setColour(juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
-    setColour(juce::TextButton::buttonColourId, ui::card.brighter(0.10f));
-    setColour(juce::TextButton::buttonOnColourId, ui::accent.withAlpha(0.30f));
-    setColour(juce::TextButton::textColourOffId, ui::text);
+    setColour(juce::TextButton::buttonColourId, ui::CardColour.brighter(0.10f));
+    setColour(juce::TextButton::buttonOnColourId, ui::Accent.withAlpha(0.30f));
+    setColour(juce::TextButton::textColourOffId, ui::Text);
     setColour(juce::TextButton::textColourOnId, juce::Colours::white);
-    setColour(juce::ToggleButton::textColourId, ui::text);
-    setColour(juce::ToggleButton::tickColourId, ui::accent);
-    setColour(juce::TextEditor::backgroundColourId, ui::bg0);
-    setColour(juce::TextEditor::textColourId, ui::text);
-    setColour(juce::TextEditor::outlineColourId, ui::cardEdge);
-    setColour(juce::TextEditor::focusedOutlineColourId, ui::accent.withAlpha(0.6f));
-    setColour(juce::TextEditor::highlightColourId, ui::accent.withAlpha(0.3f));
+    setColour(juce::ToggleButton::textColourId, ui::Text);
+    setColour(juce::ToggleButton::tickColourId, ui::Accent);
+    setColour(juce::TextEditor::backgroundColourId, ui::Bg0);
+    setColour(juce::TextEditor::textColourId, ui::Text);
+    setColour(juce::TextEditor::outlineColourId, ui::CardEdge);
+    setColour(juce::TextEditor::focusedOutlineColourId, ui::Accent.withAlpha(0.6f));
+    setColour(juce::TextEditor::highlightColourId, ui::Accent.withAlpha(0.3f));
     setColour(juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
-    setColour(juce::ScrollBar::thumbColourId, ui::faint);
-    setColour(juce::AlertWindow::backgroundColourId, ui::card);
-    setColour(juce::AlertWindow::textColourId, ui::text);
-    setColour(juce::AlertWindow::outlineColourId, ui::cardEdge);
+    setColour(juce::ScrollBar::thumbColourId, ui::Faint);
+    setColour(juce::AlertWindow::backgroundColourId, ui::CardColour);
+    setColour(juce::AlertWindow::textColourId, ui::Text);
+    setColour(juce::AlertWindow::outlineColourId, ui::CardEdge);
 }
 
 // ---------------------------------------------------------------- rotary
@@ -154,14 +154,14 @@ void NoctuaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
 
     // Inner disc first, so the arc sits on top of its edge.
     {
-        juce::ColourGradient grad(ui::card.brighter(hot ? 0.16f : 0.09f), c.x, c.y - r,
-                                  ui::bg0.brighter(0.02f), c.x, c.y + r, false);
+        juce::ColourGradient grad(ui::CardColour.brighter(hot ? 0.16f : 0.09f), c.x, c.y - r,
+                                  ui::Bg0.brighter(0.02f), c.x, c.y + r, false);
         g.setGradientFill(grad);
         g.fillEllipse(c.x - (ringR - thick - 1.5f), c.y - (ringR - thick - 1.5f),
                       2.0f * (ringR - thick - 1.5f), 2.0f * (ringR - thick - 1.5f));
     }
 
-    arc(g, c, ringR, startAngle, endAngle, thick, ui::track, false);
+    arc(g, c, ringR, startAngle, endAngle, thick, ui::Track, false);
     const bool bipolar = static_cast<bool>(s.getProperties().getWithDefault("bipolar", false));
     const float from = bipolar ? 0.5f * (startAngle + endAngle) : startAngle;
     arc(g, c, ringR, from, angle, thick, fill, hot);
@@ -184,7 +184,7 @@ void NoctuaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
     if (s.getProperties().contains("liveOffset")) {
         const float off = static_cast<float>(s.getProperties().getWithDefault("liveOffset", 0.0));
         const float to = juce::jlimit(startAngle, endAngle, angle + off * (endAngle - startAngle));
-        if (std::abs(to - angle) > 1.0e-3f) arc(g, c, ringR, angle, to, thick * 0.6f, ui::live.withAlpha(0.85f), true);
+        if (std::abs(to - angle) > 1.0e-3f) arc(g, c, ringR, angle, to, thick * 0.6f, ui::Live.withAlpha(0.85f), true);
     }
     // A slow process's own state -- where the arc or the tide stands in its swing -- as a dot on
     // the outer ring, from one end of the knob's travel (-1) to the other (+1).
@@ -194,28 +194,28 @@ void NoctuaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
         // the arc that follows the clock.
         const float outer = ringR + thick * 0.5f + 2.0f;
         const float hour = static_cast<float>(s.getProperties().getWithDefault("clockHour", 0.0));
-        g.setColour(ui::track.withAlpha(0.8f));
+        g.setColour(ui::Track.withAlpha(0.8f));
         g.drawEllipse(c.x - outer, c.y - outer, 2.0f * outer, 2.0f * outer, 1.0f);
         for (float h : { 4.0f, 10.0f, 16.0f, 22.0f }) {
             const float a = juce::MathConstants<float>::twoPi * h / 24.0f;
             const juce::Point<float> p0(c.x + (outer - 2.5f) * std::sin(a), c.y - (outer - 2.5f) * std::cos(a));
             const juce::Point<float> p1(c.x + (outer + 2.5f) * std::sin(a), c.y - (outer + 2.5f) * std::cos(a));
-            g.setColour(ui::live.withAlpha(h == 4.0f || h == 16.0f ? 0.8f : 0.4f));
+            g.setColour(ui::Live.withAlpha(h == 4.0f || h == 16.0f ? 0.8f : 0.4f));
             g.drawLine(p0.x, p0.y, p1.x, p1.y, 1.2f);
         }
         const float a = juce::MathConstants<float>::twoPi * hour / 24.0f;
         const juce::Point<float> p(c.x + outer * std::sin(a), c.y - outer * std::cos(a));
-        g.setColour(ui::live.withAlpha(0.35f)); g.fillEllipse(p.x - 4.0f, p.y - 4.0f, 8.0f, 8.0f);
-        g.setColour(ui::live); g.fillEllipse(p.x - 2.0f, p.y - 2.0f, 4.0f, 4.0f);
+        g.setColour(ui::Live.withAlpha(0.35f)); g.fillEllipse(p.x - 4.0f, p.y - 4.0f, 8.0f, 8.0f);
+        g.setColour(ui::Live); g.fillEllipse(p.x - 2.0f, p.y - 2.0f, 4.0f, 4.0f);
     }
     if (s.getProperties().contains("halo")) {
         const float h = juce::jlimit(-1.0f, 1.0f, static_cast<float>(s.getProperties().getWithDefault("halo", 0.0)));
         const float a = startAngle + (0.5f + 0.5f * h) * (endAngle - startAngle);
         const float outer = ringR + thick * 0.5f + 2.0f;
         const juce::Point<float> p(c.x + outer * std::sin(a), c.y - outer * std::cos(a));
-        g.setColour(ui::live.withAlpha(0.35f));
+        g.setColour(ui::Live.withAlpha(0.35f));
         g.fillEllipse(p.x - 4.0f, p.y - 4.0f, 8.0f, 8.0f);
-        g.setColour(ui::live);
+        g.setColour(ui::Live);
         g.fillEllipse(p.x - 2.0f, p.y - 2.0f, 4.0f, 4.0f);
     }
 
@@ -223,7 +223,7 @@ void NoctuaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
     {
         juce::Path p;
         p.addLineSegment({ 0.0f, -(ringR - thick - 2.0f), 0.0f, -(ringR - thick * 0.5f - 4.5f) }, 1.0f);
-        g.setColour(enabled ? ui::text.withAlpha(hot ? 1.0f : 0.75f) : ui::faint);
+        g.setColour(enabled ? ui::Text.withAlpha(hot ? 1.0f : 0.75f) : ui::Faint);
         g.strokePath(p, juce::PathStrokeType(1.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded),
                      juce::AffineTransform::rotation(angle).translated(c.x, c.y));
     }
@@ -233,7 +233,7 @@ void NoctuaryLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int 
     if (r >= 18.0f) {
         const juce::String txt = valueText(s);
         if (txt.isNotEmpty()) {
-            g.setColour(enabled ? (hot ? ui::text : ui::text.withAlpha(0.82f)) : ui::faint);
+            g.setColour(enabled ? (hot ? ui::Text : ui::Text.withAlpha(0.82f)) : ui::Faint);
             // A fixed-width face for the figures, so a value that moves does not shiver in width.
             g.setFont(juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), juce::jlimit(9.0f, 13.0f, r * 0.62f), juce::Font::plain)));
             g.drawFittedText(txt, area.reduced(r * 0.30f).toNearestInt(), juce::Justification::centred, 1, 0.7f);   // the fixed-width figures are wider: shrink rather than cut ("40 mi")
@@ -264,19 +264,19 @@ void NoctuaryLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int 
     const juce::Colour fill = s.findColour(juce::Slider::rotarySliderFillColourId);
     if (style == juce::Slider::LinearHorizontal || style == juce::Slider::LinearBar) {
         const float cy = y + height * 0.5f;
-        g.setColour(ui::track);
+        g.setColour(ui::Track);
         g.fillRoundedRectangle(static_cast<float>(x), cy - 2.0f, static_cast<float>(width), 4.0f, 2.0f);
         g.setColour(fill);
         g.fillRoundedRectangle(static_cast<float>(x), cy - 2.0f, pos - x, 4.0f, 2.0f);
-        g.setColour(ui::text);
+        g.setColour(ui::Text);
         g.fillEllipse(pos - 5.0f, cy - 5.0f, 10.0f, 10.0f);
     } else {
         const float cx = x + width * 0.5f;
-        g.setColour(ui::track);
+        g.setColour(ui::Track);
         g.fillRoundedRectangle(cx - 2.0f, static_cast<float>(y), 4.0f, static_cast<float>(height), 2.0f);
         g.setColour(fill);
         g.fillRoundedRectangle(cx - 2.0f, pos, 4.0f, static_cast<float>(y + height) - pos, 2.0f);
-        g.setColour(ui::text);
+        g.setColour(ui::Text);
         g.fillEllipse(cx - 5.0f, pos - 5.0f, 10.0f, 10.0f);
     }
 }
@@ -290,7 +290,7 @@ void NoctuaryLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
     const bool hot = box.isMouseOver() || box.isPopupActive();
     g.setColour(box.findColour(juce::ComboBox::backgroundColourId).brighter(hot ? 0.08f : 0.0f));
     g.fillRoundedRectangle(r.reduced(0.5f), 5.0f);
-    g.setColour(hot ? ui::accent.withAlpha(0.5f) : box.findColour(juce::ComboBox::outlineColourId));
+    g.setColour(hot ? ui::Accent.withAlpha(0.5f) : box.findColour(juce::ComboBox::outlineColourId));
     g.drawRoundedRectangle(r.reduced(0.5f), 5.0f, 1.0f);
 
     juce::Path chevron;                       // a chevron, not a filled triangle
@@ -298,7 +298,7 @@ void NoctuaryLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
     chevron.startNewSubPath(cx - 4.0f, cy - 2.0f);
     chevron.lineTo(cx, cy + 2.5f);
     chevron.lineTo(cx + 4.0f, cy - 2.0f);
-    g.setColour(box.isEnabled() ? ui::dim : ui::faint);
+    g.setColour(box.isEnabled() ? ui::Dim : ui::Faint);
     g.strokePath(chevron, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 
@@ -306,7 +306,7 @@ void NoctuaryLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label&
 {
     label.setBounds(9, 0, box.getWidth() - 26, box.getHeight());
     label.setFont(getComboBoxFont(box));
-    label.setColour(juce::Label::textColourId, box.isEnabled() ? ui::text : ui::faint);
+    label.setColour(juce::Label::textColourId, box.isEnabled() ? ui::Text : ui::Faint);
 }
 
 juce::Font NoctuaryLookAndFeel::getComboBoxFont(juce::ComboBox& box)
@@ -324,17 +324,17 @@ void NoctuaryLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
     const juce::Rectangle<float> pill(r.getCentreX() - w * 0.5f, r.getCentreY() - h * 0.5f, w, h);
     const bool on = b.getToggleState();
     const juce::Colour accent = b.findColour(juce::ToggleButton::tickColourId);
-    g.setColour(on ? accent.withAlpha(b.isEnabled() ? 0.85f : 0.3f) : ui::track);
+    g.setColour(on ? accent.withAlpha(b.isEnabled() ? 0.85f : 0.3f) : ui::Track);
     g.fillRoundedRectangle(pill, h * 0.5f);
-    if (highlighted) { g.setColour(ui::text.withAlpha(0.15f)); g.drawRoundedRectangle(pill.reduced(0.5f), h * 0.5f, 1.0f); }
+    if (highlighted) { g.setColour(ui::Text.withAlpha(0.15f)); g.drawRoundedRectangle(pill.reduced(0.5f), h * 0.5f, 1.0f); }
     const float kr = h - 6.0f;
     const float kx = on ? pill.getRight() - kr - 3.0f : pill.getX() + 3.0f;
-    g.setColour(on ? juce::Colours::white.withAlpha(0.92f) : ui::dim);
+    g.setColour(on ? juce::Colours::white.withAlpha(0.92f) : ui::Dim);
     g.fillEllipse(kx, pill.getCentreY() - kr * 0.5f, kr, kr);
 
     const juce::String t = b.getButtonText();
     if (t.isNotEmpty() && r.getWidth() > w + 16.0f) {
-        g.setColour(b.isEnabled() ? ui::text : ui::faint);
+        g.setColour(b.isEnabled() ? ui::Text : ui::Faint);
         g.setFont(ui::body(12.0f));
         g.drawText(t, static_cast<int>(pill.getRight()) + 8, 0, b.getWidth() - static_cast<int>(pill.getRight()) - 8,
                    b.getHeight(), juce::Justification::centredLeft);
@@ -352,7 +352,7 @@ void NoctuaryLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
     else if (highlighted) base = base.brighter(0.09f);
     g.setColour(base);
     g.fillRoundedRectangle(r, 5.0f);
-    g.setColour(on ? ui::accent.withAlpha(0.55f) : (highlighted ? ui::accent.withAlpha(0.35f) : ui::cardEdge));
+    g.setColour(on ? ui::Accent.withAlpha(0.55f) : (highlighted ? ui::Accent.withAlpha(0.35f) : ui::CardEdge));
     g.drawRoundedRectangle(r, 5.0f, 1.0f);
 }
 
@@ -373,9 +373,9 @@ juce::Font NoctuaryLookAndFeel::getTextButtonFont(juce::TextButton&, int buttonH
 void NoctuaryLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
 {
     const juce::Rectangle<float> r(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-    g.setColour(ui::card.brighter(0.05f));
+    g.setColour(ui::CardColour.brighter(0.05f));
     g.fillRoundedRectangle(r.reduced(0.5f), 6.0f);
-    g.setColour(ui::cardEdge);
+    g.setColour(ui::CardEdge);
     g.drawRoundedRectangle(r.reduced(0.5f), 6.0f, 1.0f);
 }
 
@@ -398,6 +398,6 @@ void NoctuaryLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar&, int
     juce::Rectangle<float> thumb = vertical
         ? juce::Rectangle<float>(x + width * 0.35f, static_cast<float>(thumbPos), width * 0.3f, static_cast<float>(thumbSize))
         : juce::Rectangle<float>(static_cast<float>(thumbPos), y + height * 0.35f, static_cast<float>(thumbSize), height * 0.3f);
-    g.setColour(ui::faint.withAlpha(down ? 0.95f : (mouseOver ? 0.75f : 0.5f)));
+    g.setColour(ui::Faint.withAlpha(down ? 0.95f : (mouseOver ? 0.75f : 0.5f)));
     g.fillRoundedRectangle(thumb, juce::jmin(thumb.getWidth(), thumb.getHeight()) * 0.5f);
 }

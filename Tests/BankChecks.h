@@ -34,7 +34,7 @@
 /** @brief The partial bank's and the grain ring's checks: a bank in a known state, the reference step, and the two check functions. */
 namespace bankchecks {
 
-constexpr int kMax = 64;   ///< partials a test bank holds: room for the longest length in the lists below (33) and to spare
+constexpr int Max = 64;   ///< partials a test bank holds: room for the longest length in the lists below (33) and to spare
 
 /**
  * @brief A bank in a known state: phasors on the unit circle at spread angles, rotations of a few
@@ -44,47 +44,47 @@ constexpr int kMax = 64;   ///< partials a test bank holds: room for the longest
  * rest to the bank functions as their read-only inputs.
  */
 struct Bank {
-    float pc[kMax], ps[kMax], rc[kMax], rs[kMax], amp[kMax], step[kMax], wL[kMax], wR[kMax], hf[kMax];   ///< hf: the harmonic numbers the FM bank scales its modulation by
-    /** @var Bank::pc
+    float m_pc[Max], m_ps[Max], m_rc[Max], m_rs[Max], m_amp[Max], m_step[Max], m_wL[Max], m_wR[Max], m_hf[Max];   ///< hf: the harmonic numbers the FM bank scales its modulation by
+    /** @var Bank::m_pc
      *  the phasors' cosines: where each partial stands on the unit circle
      */
-    /** @var Bank::ps
+    /** @var Bank::m_ps
      *  the phasors' sines
      */
-    /** @var Bank::rc
+    /** @var Bank::m_rc
      *  cosine of each partial's rotation per sample
      */
-    /** @var Bank::rs
+    /** @var Bank::m_rs
      *  sine of each partial's rotation per sample
      */
-    /** @var Bank::amp
+    /** @var Bank::m_amp
      *  the amplitudes, falling with the partial
      */
-    /** @var Bank::step
+    /** @var Bank::m_step
      *  the amplitude ramp per sample, small and of both signs
      */
-    /** @var Bank::wL
+    /** @var Bank::m_wL
      *  the stereo bank's left weights
      */
-    /** @var Bank::wR
+    /** @var Bank::m_wR
      *  the stereo bank's right weights
      */
     /** @brief Fills every array with the known state described above; deterministic, no randomness. */
     Bank()
     {
-        for (int h = 0; h < kMax; ++h) {
+        for (int h = 0; h < Max; ++h) {
             const double a0 = 0.31 * h + 0.11;              // where the phasor starts
-            pc[h] = static_cast<float>(std::cos(a0));
-            ps[h] = static_cast<float>(std::sin(a0));
+            m_pc[h] = static_cast<float>(std::cos(a0));
+            m_ps[h] = static_cast<float>(std::sin(a0));
             const double w = 0.013 * (h + 1);               // its rotation per sample
-            rc[h] = static_cast<float>(std::cos(w));
-            rs[h] = static_cast<float>(std::sin(w));
-            amp[h] = static_cast<float>(0.9 / (h + 1));
-            step[h] = static_cast<float>(((h % 3) - 1) * 1.0e-4);
+            m_rc[h] = static_cast<float>(std::cos(w));
+            m_rs[h] = static_cast<float>(std::sin(w));
+            m_amp[h] = static_cast<float>(0.9 / (h + 1));
+            m_step[h] = static_cast<float>(((h % 3) - 1) * 1.0e-4);
             const double pan = 0.25 * 3.14159265358979 * (1.0 + 0.7 * std::sin(0.7 * h));
-            wL[h] = static_cast<float>(std::cos(pan));
-            wR[h] = static_cast<float>(std::sin(pan));
-            hf[h] = static_cast<float>(h + 1);
+            m_wL[h] = static_cast<float>(std::cos(pan));
+            m_wR[h] = static_cast<float>(std::sin(pan));
+            m_hf[h] = static_cast<float>(h + 1);
         }
     }
 };
@@ -96,8 +96,8 @@ struct Bank {
  * 0 plain, 1 stereo, 2 FM. Writes what the state should become into pcOut/psOut/ampOut.
  */
 struct RefStep {
-    double sumL = 0.0, sumR = 0.0;   ///< sumR: the right side of the stereo sum (unused in modes 0 and 2)
-    /** @var RefStep::sumL
+    double m_sumL = 0.0, m_sumR = 0.0;   ///< sumR: the right side of the stereo sum (unused in modes 0 and 2)
+    /** @var RefStep::m_sumL
      *  what the sample sums to: the mono sum, or the left side in stereo mode
      */
     /**
@@ -107,15 +107,15 @@ struct RefStep {
      * partials cancel has a sum near zero and an error that is not small against it -- measuring
      * against the sum itself made the FM checks fail on both vector paths for no fault of theirs.
      */
-    double magL = 0.0, magR = 0.0;
-    /** @var RefStep::magR
+    double m_magL = 0.0, m_magR = 0.0;
+    /** @var RefStep::m_magR
      *  the same bound for the right side of the stereo sum
      */
-    double pc[kMax] = {}, ps[kMax] = {}, amp[kMax] = {};   ///< amp: the amplitudes the implementation should hold after the step
-    /** @var RefStep::pc
+    double m_pc[Max] = {}, m_ps[Max] = {}, m_amp[Max] = {};   ///< amp: the amplitudes the implementation should hold after the step
+    /** @var RefStep::m_pc
      *  the phasor cosines the implementation should hold after the step
      */
-    /** @var RefStep::ps
+    /** @var RefStep::m_ps
      *  the phasor sines the implementation should hold after the step
      */
     /**
@@ -132,28 +132,28 @@ struct RefStep {
     void run(const Bank& b, const float* pcIn, const float* psIn, const float* ampIn,
              int n, int mode, double theta, double maxStep)
     {
-        sumL = sumR = magL = magR = 0.0;
+        m_sumL = m_sumR = m_magL = m_magR = 0.0;
         for (int h = 0; h < n; ++h) {
             const double c = pcIn[h], s = psIn[h], a = ampIn[h];
             const double v = a * s;
             if (mode == 1) {
-                sumL += v * b.wL[h]; sumR += v * b.wR[h];
-                magL += std::fabs(v * b.wL[h]); magR += std::fabs(v * b.wR[h]);
-            } else { sumL += v; magL += std::fabs(v); }
-            const double nc = c * b.rc[h] - s * b.rs[h];
-            const double ns = s * b.rc[h] + c * b.rs[h];
+                m_sumL += v * b.m_wL[h]; m_sumR += v * b.m_wR[h];
+                m_magL += std::fabs(v * b.m_wL[h]); m_magR += std::fabs(v * b.m_wR[h]);
+            } else { m_sumL += v; m_magL += std::fabs(v); }
+            const double nc = c * b.m_rc[h] - s * b.m_rs[h];
+            const double ns = s * b.m_rc[h] + c * b.m_rs[h];
             if (mode == 2) {
-                double t = theta * b.hf[h];
+                double t = theta * b.m_hf[h];
                 t = t < -maxStep ? -maxStep : (t > maxStep ? maxStep : t);
                 const double c2 = nc - ns * t, s2 = ns + nc * t;
                 const double r2 = c2 * c2 + s2 * s2;
                 double fix = 1.5 - 0.5 * r2;
                 fix *= 1.5 - 0.5 * r2 * fix * fix;
-                pc[h] = c2 * fix; ps[h] = s2 * fix;
+                m_pc[h] = c2 * fix; m_ps[h] = s2 * fix;
             } else {
-                pc[h] = nc; ps[h] = ns;
+                m_pc[h] = nc; m_ps[h] = ns;
             }
-            amp[h] = a + b.step[h];
+            m_amp[h] = a + b.m_step[h];
         }
     }
 };
@@ -181,18 +181,18 @@ inline void bankChecks()
 
     Bank b;
     for (int n : lengths) {
-        float pc[kMax], ps[kMax], amp[kMax];
+        float pc[Max], ps[Max], amp[Max];
         RefStep r;
 
         {   // the plain bank
-            for (int h = 0; h < kMax; ++h) { pc[h] = b.pc[h]; ps[h] = b.ps[h]; amp[h] = b.amp[h]; }
+            for (int h = 0; h < Max; ++h) { pc[h] = b.m_pc[h]; ps[h] = b.m_ps[h]; amp[h] = b.m_amp[h]; }
             double worstSum = 0.0, worstState = 0.0, drift = 0.0;
             for (int i = 0; i < samples; ++i) {
                 r.run(b, pc, ps, amp, n, 0, 0.0, 0.0);
-                const float got = ambient::phasorBankStep(pc, ps, b.rc, b.rs, amp, b.step, n);
-                if (!sumOk(got, r.sumL, r.magL)) worstSum = std::max(worstSum, std::fabs(got - r.sumL) / (r.magL + 1.0e-6));
+                const float got = ambient::phasorBankStep(pc, ps, b.m_rc, b.m_rs, amp, b.m_step, n);
+                if (!sumOk(got, r.m_sumL, r.m_magL)) worstSum = std::max(worstSum, std::fabs(got - r.m_sumL) / (r.m_magL + 1.0e-6));
                 for (int h = 0; h < n; ++h) {
-                    worstState = std::max(worstState, std::fabs(pc[h] - r.pc[h]) + std::fabs(ps[h] - r.ps[h]));
+                    worstState = std::max(worstState, std::fabs(pc[h] - r.m_pc[h]) + std::fabs(ps[h] - r.m_ps[h]));
                     drift = std::max(drift, std::fabs(std::sqrt(static_cast<double>(pc[h]) * pc[h]
                                                               + static_cast<double>(ps[h]) * ps[h]) - 1.0));
                 }
@@ -202,28 +202,28 @@ inline void bankChecks()
             CHECK(n == 0 || drift < 1.0e-3, "and its phasors stay on the unit circle");
         }
         {   // the stereo bank: two sums, one weight pair per partial
-            for (int h = 0; h < kMax; ++h) { pc[h] = b.pc[h]; ps[h] = b.ps[h]; amp[h] = b.amp[h]; }
+            for (int h = 0; h < Max; ++h) { pc[h] = b.m_pc[h]; ps[h] = b.m_ps[h]; amp[h] = b.m_amp[h]; }
             double worst = 0.0;
             for (int i = 0; i < samples; ++i) {
                 r.run(b, pc, ps, amp, n, 1, 0.0, 0.0);
                 float gotL = 0.0f, gotR = 0.0f;
-                ambient::phasorBankStepStereo(pc, ps, b.rc, b.rs, amp, b.step, n, b.wL, b.wR, gotL, gotR);
-                if (!sumOk(gotL, r.sumL, r.magL)) worst = std::max(worst, std::fabs(gotL - r.sumL) / (r.magL + 1.0e-6));
-                if (!sumOk(gotR, r.sumR, r.magR)) worst = std::max(worst, std::fabs(gotR - r.sumR) / (r.magR + 1.0e-6));
+                ambient::phasorBankStepStereo(pc, ps, b.m_rc, b.m_rs, amp, b.m_step, n, b.m_wL, b.m_wR, gotL, gotR);
+                if (!sumOk(gotL, r.m_sumL, r.m_magL)) worst = std::max(worst, std::fabs(gotL - r.m_sumL) / (r.m_magL + 1.0e-6));
+                if (!sumOk(gotR, r.m_sumR, r.m_magR)) worst = std::max(worst, std::fabs(gotR - r.m_sumR) / (r.m_magR + 1.0e-6));
             }
             CHECK(worst == 0.0, "the stereo partial bank sums both sides as the definition says");
         }
         {   // the FM bank: no modulation, a little, and enough to reach the clamp on the high partials
             for (double theta : { 0.0, 0.004, 0.05 }) {
-                for (int h = 0; h < kMax; ++h) { pc[h] = b.pc[h]; ps[h] = b.ps[h]; amp[h] = b.amp[h]; }
+                for (int h = 0; h < Max; ++h) { pc[h] = b.m_pc[h]; ps[h] = b.m_ps[h]; amp[h] = b.m_amp[h]; }
                 double worst = 0.0, drift = 0.0, worstState = 0.0;
                 for (int i = 0; i < samples; ++i) {
                     r.run(b, pc, ps, amp, n, 2, theta, 0.4);
-                    const float got = ambient::phasorBankStepFm(pc, ps, b.rc, b.rs, amp, b.step, n, b.hf,
+                    const float got = ambient::phasorBankStepFm(pc, ps, b.m_rc, b.m_rs, amp, b.m_step, n, b.m_hf,
                                                                 static_cast<float>(theta), 0.4f);
-                    if (!sumOk(got, r.sumL, r.magL)) worst = std::max(worst, std::fabs(got - r.sumL) / (r.magL + 1.0e-6));
+                    if (!sumOk(got, r.m_sumL, r.m_magL)) worst = std::max(worst, std::fabs(got - r.m_sumL) / (r.m_magL + 1.0e-6));
                     for (int h = 0; h < n; ++h) {
-                        worstState = std::max(worstState, std::fabs(pc[h] - r.pc[h]) + std::fabs(ps[h] - r.ps[h]));
+                        worstState = std::max(worstState, std::fabs(pc[h] - r.m_pc[h]) + std::fabs(ps[h] - r.m_ps[h]));
                         drift = std::max(drift, std::fabs(std::sqrt(static_cast<double>(pc[h]) * pc[h]
                                                                   + static_cast<double>(ps[h]) * ps[h]) - 1.0));
                     }
@@ -240,19 +240,19 @@ inline void bankChecks()
         // side from one state, which is fair here because all three are single precision.
         const int n = 19;
         Bank one;
-        for (int h = 0; h < kMax; ++h) { one.wL[h] = 1.0f; one.wR[h] = 1.0f; }
-        float pcA[kMax], psA[kMax], ampA[kMax], pcB[kMax], psB[kMax], ampB[kMax], pcC[kMax], psC[kMax], ampC[kMax];
-        for (int h = 0; h < kMax; ++h) {
-            pcA[h] = pcB[h] = pcC[h] = one.pc[h];
-            psA[h] = psB[h] = psC[h] = one.ps[h];
-            ampA[h] = ampB[h] = ampC[h] = one.amp[h];
+        for (int h = 0; h < Max; ++h) { one.m_wL[h] = 1.0f; one.m_wR[h] = 1.0f; }
+        float pcA[Max], psA[Max], ampA[Max], pcB[Max], psB[Max], ampB[Max], pcC[Max], psC[Max], ampC[Max];
+        for (int h = 0; h < Max; ++h) {
+            pcA[h] = pcB[h] = pcC[h] = one.m_pc[h];
+            psA[h] = psB[h] = psC[h] = one.m_ps[h];
+            ampA[h] = ampB[h] = ampC[h] = one.m_amp[h];
         }
         double worstStereo = 0.0, worstFm = 0.0;
         for (int i = 0; i < 32; ++i) {
-            const float mono = ambient::phasorBankStep(pcA, psA, one.rc, one.rs, ampA, one.step, n);
+            const float mono = ambient::phasorBankStep(pcA, psA, one.m_rc, one.m_rs, ampA, one.m_step, n);
             float l = 0.0f, rr = 0.0f;
-            ambient::phasorBankStepStereo(pcB, psB, one.rc, one.rs, ampB, one.step, n, one.wL, one.wR, l, rr);
-            const float fm = ambient::phasorBankStepFm(pcC, psC, one.rc, one.rs, ampC, one.step, n, one.hf, 0.0f, 0.4f);
+            ambient::phasorBankStepStereo(pcB, psB, one.m_rc, one.m_rs, ampB, one.m_step, n, one.m_wL, one.m_wR, l, rr);
+            const float fm = ambient::phasorBankStepFm(pcC, psC, one.m_rc, one.m_rs, ampC, one.m_step, n, one.m_hf, 0.0f, 0.4f);
             const double scale = std::fabs(mono) + 1.0e-3;
             worstStereo = std::max(worstStereo, (std::fabs(l - mono) + std::fabs(rr - mono)) / scale);
             worstFm = std::max(worstFm, std::fabs(fm - mono) / scale);
@@ -283,8 +283,8 @@ inline void grainRingChecks()
         ambient::Rng r; r.seed(11);
         for (auto& v : ring) v = r.bipolar();
         ambient::RingGrain a;
-        a.pos = cap - 700.25; a.rate = 1.37; a.len = len; a.gl = 0.8f; a.gr = 0.6f;
-        ambient::phasorFrom(1.0 / len, a.rc, a.rs);
+        a.m_pos = cap - 700.25; a.m_rate = 1.37; a.m_len = len; a.m_gl = 0.8f; a.m_gr = 0.6f;
+        ambient::phasorFrom(1.0 / len, a.m_rc, a.m_rs);
         ambient::RingGrain b = a;
         std::vector<float> aL(len, 0.0f), aR(len, 0.0f), bL(len, 0.0f), bR(len, 0.0f);
         // Block sizes that leave a tail on four lanes and on eight, so both bodies and both tails run.
@@ -302,7 +302,7 @@ inline void grainRingChecks()
             sig += static_cast<double>(aL[i]) * aL[i] + static_cast<double>(aR[i]) * aR[i];
         }
         CHECK(sig > 0.0 && err < 1.0e-10 * sig, "ring grain: the vector path and the scalar one agree, across the ring's seam");
-        CHECK(std::fabs(a.pos - b.pos) < 1.0e-9 && a.pos < cap, "ring grain: both end at the same place, folded back into the ring");
+        CHECK(std::fabs(a.m_pos - b.m_pos) < 1.0e-9 && a.m_pos < cap, "ring grain: both end at the same place, folded back into the ring");
     }
 }
 

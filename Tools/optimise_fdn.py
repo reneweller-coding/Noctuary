@@ -116,7 +116,7 @@ def main():
         print("nothing beat the classic set")
         return 0
     print("\nbest: %.3f dB against %.3f dB" % (bestScore, base))
-    print("static const float kFlatMs[kLines] = { %s };" % ", ".join("%.1ff" % m for m in best))
+    print("static const float FlatMs[Lines] = { %s };" % ", ".join("%.1ff" % m for m in best))
     return 0
 
 

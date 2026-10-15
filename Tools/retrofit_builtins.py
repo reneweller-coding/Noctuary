@@ -64,7 +64,7 @@ def parse_table():
     with open(PRESETS, encoding="utf-8") as f:
         raw = f.read()
     text = strip_line_comments(raw)
-    start = text.index("const Preset kPresets[]")
+    start = text.index("const Preset Presets[]")
     end = text.index("int numCosmosPresets")
     out = []
     depth, i, entry_start = 0, start, None

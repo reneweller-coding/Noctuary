@@ -31,13 +31,13 @@
   #endif
   #include <winsock2.h>
   #include <ws2tcpip.h>
-  using SocketHandle = SOCKET;                                  ///< Winsock's socket handle, an unsigned integer type
-  static const SocketHandle kInvalidSocket = INVALID_SOCKET;    ///< what socket() hands back when it fails
+  using SocketHandleT = SOCKET;                                  ///< Winsock's socket handle, an unsigned integer type
+  static const SocketHandleT InvalidSocket = INVALID_SOCKET;    ///< what socket() hands back when it fails
   /**
    * @brief Closes a socket the Winsock way.
    * @param s  the handle to close; not used again afterwards
    */
-  static void closeSocket(SocketHandle s) { closesocket(s); }
+  static void closeSocket(SocketHandleT s) { closesocket(s); }
 #else
   #include <sys/socket.h>
   #include <netinet/in.h>
@@ -45,13 +45,13 @@
   #include <unistd.h>
   #include <sys/select.h>
   #include <sys/time.h>
-  using SocketHandle = int;                                     ///< a BSD socket is a file descriptor
-  static const SocketHandle kInvalidSocket = -1;                ///< what socket() hands back when it fails
+  using SocketHandleT = int;                                     ///< a BSD socket is a file descriptor
+  static const SocketHandleT InvalidSocket = -1;                ///< what socket() hands back when it fails
   /**
    * @brief Closes a socket the POSIX way, as any other file descriptor.
    * @param s  the descriptor to close; not used again afterwards
    */
-  static void closeSocket(SocketHandle s) { ::close(s); }
+  static void closeSocket(SocketHandleT s) { ::close(s); }
 #endif
 
 namespace ambient {
@@ -78,13 +78,13 @@ bool startsWith(const char* s, const char* prefix) { return std::strncmp(s, pref
  */
 int presetIndexFromArg(const OscMessage& m, bool cosmos)
 {
-    if (m.numArgs < 1) return -1;
+    if (m.m_numArgs < 1) return -1;
     const int count = cosmos ? numCosmosPresets() : numPresets();
-    if (m.types[0] == 's') {
-        for (int i = 0; i < count; ++i) if (std::strcmp(m.strings[0], (cosmos ? cosmosPreset(i) : preset(i)).name) == 0) return i;
+    if (m.m_types[0] == 's') {
+        for (int i = 0; i < count; ++i) if (std::strcmp(m.m_strings[0], (cosmos ? cosmosPreset(i) : preset(i)).m_name) == 0) return i;
         return -1;
     }
-    const int i = static_cast<int>(std::lround(m.floats[0]));
+    const int i = static_cast<int>(std::lround(m.m_floats[0]));
     return (i >= 0 && i < count) ? i : -1;
 }
 
@@ -92,60 +92,60 @@ int presetIndexFromArg(const OscMessage& m, bool cosmos)
 
 bool dispatchOsc(const OscMessage& m, OscSink& sink, GestureLayer& gestures)
 {
-    const char* a = m.address;
+    const char* a = m.m_address;
     if (!startsWith(a, "/ambient/")) return false;
     a += 9;
     if (startsWith(a, "param/") || startsWith(a, "paramn/")) {
         const bool normalised = a[5] == 'n';
         const char* key = a + (normalised ? 7 : 6);
         const ParamDesc* d = findParam(key);
-        if (d == nullptr || m.numArgs < 1) return false;
-        if (m.types[0] == 's') { sink.setParam(d->id, paramValueFromText(*d, m.strings[0])); return true; }
-        if (normalised) sink.setParamNormalised(d->id, clampv(m.floats[0], 0.0f, 1.0f));
-        else sink.setParam(d->id, clampv(m.floats[0], d->min, d->max));
+        if (d == nullptr || m.m_numArgs < 1) return false;
+        if (m.m_types[0] == 's') { sink.setParam(d->m_id, paramValueFromText(*d, m.m_strings[0])); return true; }
+        if (normalised) sink.setParamNormalised(d->m_id, clampv(m.m_floats[0], 0.0f, 1.0f));
+        else sink.setParam(d->m_id, clampv(m.m_floats[0], d->m_min, d->m_max));
         return true;
     }
     if (startsWith(a, "gesture/")) {
-        GestureInput in;
-        if (!gestureInputFromName(a + 8, in) || in == GestureInput::Count || m.numArgs < 1) return false;
-        gestures.setInput(in, m.floats[0]);
+        GestureInputE in;
+        if (!gestureInputFromName(a + 8, in) || in == GestureInputE::COUNT || m.m_numArgs < 1) return false;
+        gestures.setInput(in, m.m_floats[0]);
         return true;
     }
     if (startsWith(a, "hand/")) {
         const char h = a[5];
-        if ((h != 'L' && h != 'R') || m.numArgs < 3) return false;
-        gestures.setHand(h == 'L' ? 0 : 1, m.floats[0], m.floats[1], m.floats[2],
-                         m.numArgs > 3 ? m.floats[3] : 0.0f, m.numArgs > 4 ? m.floats[4] : 0.0f);
+        if ((h != 'L' && h != 'R') || m.m_numArgs < 3) return false;
+        gestures.setHand(h == 'L' ? 0 : 1, m.m_floats[0], m.m_floats[1], m.m_floats[2],
+                         m.m_numArgs > 3 ? m.m_floats[3] : 0.0f, m.m_numArgs > 4 ? m.m_floats[4] : 0.0f);
         return true;
     }
     if (std::strcmp(a, "head") == 0) {
-        if (m.numArgs < 1) return false;
-        gestures.setHead(m.floats[0], m.numArgs > 1 ? m.floats[1] : 0.0f, m.numArgs > 2 ? m.floats[2] : 0.0f);
-        sink.setHeadYaw(m.floats[0]);
+        if (m.m_numArgs < 1) return false;
+        gestures.setHead(m.m_floats[0], m.m_numArgs > 1 ? m.m_floats[1] : 0.0f, m.m_numArgs > 2 ? m.m_floats[2] : 0.0f);
+        sink.setHeadYaw(m.m_floats[0]);
         return true;
     }
     if (std::strcmp(a, "calibrate") == 0) {
-        gestures.startCalibration(m.numArgs >= 1 ? m.floats[0] : 6.0f);
+        gestures.startCalibration(m.m_numArgs >= 1 ? m.m_floats[0] : 6.0f);
         return true;
     }
     if (std::strcmp(a, "morph") == 0) {
-        if (m.numArgs < 1) return false;
-        sink.setParam(ParamId::MorphPos, clampv(m.floats[0], 0.0f, 1.0f));
+        if (m.m_numArgs < 1) return false;
+        sink.setParam(ParamIdE::MORPH_POS, clampv(m.m_floats[0], 0.0f, 1.0f));
         return true;
     }
     if (std::strcmp(a, "note") == 0) {
-        if (m.numArgs < 1) return false;
-        const int note = static_cast<int>(std::lround(m.floats[0]));
-        const float vel = m.numArgs > 1 ? m.floats[1] : 1.0f;
+        if (m.m_numArgs < 1) return false;
+        const int note = static_cast<int>(std::lround(m.m_floats[0]));
+        const float vel = m.m_numArgs > 1 ? m.m_floats[1] : 1.0f;
         const float v = vel > 1.0f ? vel / 127.0f : vel;
-        sink.event(ControlEvent{ v > 0.0f ? ControlEvent::Type::NoteOn : ControlEvent::Type::NoteOff, note, v });
+        sink.event(ControlEvent{ v > 0.0f ? ControlEvent::TypeE::NOTE_ON : ControlEvent::TypeE::NOTE_OFF, note, v });
         return true;
     }
     if (std::strcmp(a, "preset") == 0 || std::strcmp(a, "sound") == 0 || std::strcmp(a, "cosmos") == 0) {
         const bool cosmos = a[0] == 'c';
         const int idx = presetIndexFromArg(m, cosmos);
         if (idx < 0) return false;
-        const ControlEvent::Type t = cosmos ? ControlEvent::Type::CosmosPreset : (a[0] == 's' ? ControlEvent::Type::SoundPreset : ControlEvent::Type::Preset);
+        const ControlEvent::TypeE t = cosmos ? ControlEvent::TypeE::COSMOS_PRESET : (a[0] == 's' ? ControlEvent::TypeE::SOUND_PRESET : ControlEvent::TypeE::PRESET);
         sink.event(ControlEvent{ t, idx, 0.0f });
         return true;
     }
@@ -157,16 +157,16 @@ bool dispatchOsc(const OscMessage& m, OscSink& sink, GestureLayer& gestures)
 bool OscServer::start(int port, OscSink& sink, GestureLayer& gestures)
 {
     stop();
-    sink_ = &sink;
-    gestures_ = &gestures;
-    port_ = port;
-    error_[0] = 0;
+    m_sink = &sink;
+    m_gestures = &gestures;
+    m_port = port;
+    m_error[0] = 0;
 #if defined(_WIN32)
     WSADATA wsa;
-    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) { std::snprintf(error_, sizeof(error_), "WSAStartup failed"); return false; }
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) { std::snprintf(m_error, sizeof(m_error), "WSAStartup failed"); return false; }
 #endif
-    SocketHandle s = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (s == kInvalidSocket) { std::snprintf(error_, sizeof(error_), "socket() failed"); return false; }
+    SocketHandleT s = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (s == InvalidSocket) { std::snprintf(m_error, sizeof(m_error), "socket() failed"); return false; }
     int reuse = 1;
     ::setsockopt(s, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&reuse), sizeof(reuse));
     sockaddr_in addr{};
@@ -174,24 +174,24 @@ bool OscServer::start(int port, OscSink& sink, GestureLayer& gestures)
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
     addr.sin_port = htons(static_cast<unsigned short>(port));
     if (::bind(s, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
-        std::snprintf(error_, sizeof(error_), "port %d is in use", port);
+        std::snprintf(m_error, sizeof(m_error), "port %d is in use", port);
         closeSocket(s);
         return false;
     }
-    socket_ = static_cast<long long>(s);
-    stopRequested_.store(false);
-    running_.store(true);
-    thread_ = std::thread([this] { run(); });
+    m_socket = static_cast<long long>(s);
+    m_stopRequested.store(false);
+    m_running.store(true);
+    m_thread = std::thread([this] { run(); });
     return true;
 }
 
 void OscServer::stop()
 {
-    if (!running_.load()) return;
-    stopRequested_.store(true);
-    if (thread_.joinable()) thread_.join();
-    if (socket_ >= 0) { closeSocket(static_cast<SocketHandle>(socket_)); socket_ = -1; }
-    running_.store(false);
+    if (!m_running.load()) return;
+    m_stopRequested.store(true);
+    if (m_thread.joinable()) m_thread.join();
+    if (m_socket >= 0) { closeSocket(static_cast<SocketHandleT>(m_socket)); m_socket = -1; }
+    m_running.store(false);
 #if defined(_WIN32)
     WSACleanup();
 #endif
@@ -200,8 +200,8 @@ void OscServer::stop()
 void OscServer::run()
 {
     char buffer[4096];
-    const SocketHandle s = static_cast<SocketHandle>(socket_);
-    while (!stopRequested_.load(std::memory_order_relaxed)) {
+    const SocketHandleT s = static_cast<SocketHandleT>(m_socket);
+    while (!m_stopRequested.load(std::memory_order_relaxed)) {
         fd_set set;
         FD_ZERO(&set);
         FD_SET(s, &set);
@@ -217,7 +217,7 @@ void OscServer::run()
         const int n = static_cast<int>(::recvfrom(s, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&from), &fromLen));
         if (n <= 0) continue;
         const int count = parseOscPacket(buffer, static_cast<size_t>(n), [this](const OscMessage& m) {
-            if (dispatchOsc(m, *sink_, *gestures_)) received_.fetch_add(1, std::memory_order_relaxed);
+            if (dispatchOsc(m, *m_sink, *m_gestures)) m_received.fetch_add(1, std::memory_order_relaxed);
         });
         (void)count;
     }

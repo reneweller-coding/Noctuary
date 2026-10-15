@@ -21,9 +21,9 @@ using namespace ambient;
 namespace edt {
 
 namespace {
-constexpr int kRowH = 26,    ///< height of a route row, px
-              kHeadH = 18,   ///< height of the column heads
-              kGap = 4;      ///< gap between two columns
+constexpr int RowH = 26,    ///< height of a route row, px
+              HeadH = 18,   ///< height of the column heads
+              Gap = 4;      ///< gap between two columns
 
 /**
  * @brief The combo-box item id that stands for a modulation source: combo ids start at 1, so it is
@@ -31,14 +31,14 @@ constexpr int kRowH = 26,    ///< height of a route row, px
  * @param s  the source
  * @return   its item id in the source and via combos (ModSource::None is 1)
  */
-int sourceItemId(ModSource s) { return static_cast<int>(s) + 1; }
+int sourceItemId(ModSourceE s) { return static_cast<int>(s) + 1; }
 /**
  * @brief The modulation source a combo's selected item stands for: the inverse of sourceItemId().
  * @param id  the selected item id, 0 when nothing is selected
- * @return    the source, clamped into 0 .. kNumModSources - 1 so a stray id reads as None or as the
+ * @return    the source, clamped into 0 .. NumModSources - 1 so a stray id reads as None or as the
  *            last source rather than as garbage
  */
-ModSource sourceFromItem(int id) { return static_cast<ModSource>(juce::jlimit(0, kNumModSources - 1, id - 1)); }
+ModSourceE sourceFromItem(int id) { return static_cast<ModSourceE>(juce::jlimit(0, NumModSources - 1, id - 1)); }
 }
 
 /**
@@ -56,40 +56,40 @@ struct RouteTable::Row : juce::Component {
      * @param t      the table this row reports to
      * @param index  the row's position, which is the route's index in the engine's matrix
      */
-    Row(RouteTable& t, int index) : table(t), idx(index)
+    Row(RouteTable& t, int index) : m_table(t), m_idx(index)
     {
-        for (int s = 1; s < kNumModSources; ++s) source.addItem(modSourceName(static_cast<ModSource>(s)), sourceItemId(static_cast<ModSource>(s)));
-        via.addItem("-", sourceItemId(ModSource::None));
-        for (int s = 1; s < kNumModSources; ++s) via.addItem(modSourceName(static_cast<ModSource>(s)), sourceItemId(static_cast<ModSource>(s)));
+        for (int s = 1; s < NumModSources; ++s) m_source.addItem(modSourceName(static_cast<ModSourceE>(s)), sourceItemId(static_cast<ModSourceE>(s)));
+        m_via.addItem("-", sourceItemId(ModSourceE::NONE));
+        for (int s = 1; s < NumModSources; ++s) m_via.addItem(modSourceName(static_cast<ModSourceE>(s)), sourceItemId(static_cast<ModSourceE>(s)));
         // Targets grouped by section, in the table's order; the performance parameters are
         // not modulation targets and stay out.
         juce::String section;
-        for (int i = 0; i < kNumParams; ++i) {
+        for (int i = 0; i < NumParams; ++i) {
             const ParamDesc& d = paramTable()[static_cast<size_t>(i)];
-            if (isPerformanceParam(static_cast<ParamId>(i))) continue;
-            if (juce::String(d.section) != section) { section = d.section; target.addSectionHeading(section); }
-            target.addItem(juce::String(d.section) + ": " + d.name, i + 1);
+            if (isPerformanceParam(static_cast<ParamIdE>(i))) continue;
+            if (juce::String(d.m_section) != section) { section = d.m_section; m_target.addSectionHeading(section); }
+            m_target.addItem(juce::String(d.m_section) + ": " + d.m_name, i + 1);
         }
-        depth.setRange(-1.0, 1.0, 0.001);
+        m_depth.setRange(-1.0, 1.0, 0.001);
         // A plain horizontal slider with the number beside it: the bar style hid the value.
-        depth.setSliderStyle(juce::Slider::LinearHorizontal);
-        depth.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 52, 20);
-        depth.setNumDecimalPlacesToDisplay(2);
-        depth.setDoubleClickReturnValue(true, 0.25);
-        uni.setButtonText("0..1");
-        uni.setTooltip("Read the source as 0..1 instead of -1..1: an LFO then only adds, never subtracts");
-        remove.setButtonText("x");
-        remove.setTooltip("Remove this route");
-        for (juce::Component* c : { static_cast<juce::Component*>(&source), static_cast<juce::Component*>(&target),
-                                    static_cast<juce::Component*>(&depth), static_cast<juce::Component*>(&via),
-                                    static_cast<juce::Component*>(&uni), static_cast<juce::Component*>(&remove) })
+        m_depth.setSliderStyle(juce::Slider::LinearHorizontal);
+        m_depth.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 52, 20);
+        m_depth.setNumDecimalPlacesToDisplay(2);
+        m_depth.setDoubleClickReturnValue(true, 0.25);
+        m_uni.setButtonText("0..1");
+        m_uni.setTooltip("Read the source as 0..1 instead of -1..1: an LFO then only adds, never subtracts");
+        m_remove.setButtonText("x");
+        m_remove.setTooltip("Remove this route");
+        for (juce::Component* c : { static_cast<juce::Component*>(&m_source), static_cast<juce::Component*>(&m_target),
+                                    static_cast<juce::Component*>(&m_depth), static_cast<juce::Component*>(&m_via),
+                                    static_cast<juce::Component*>(&m_uni), static_cast<juce::Component*>(&m_remove) })
             addAndMakeVisible(*c);
-        source.onChange = [this] { table.changed(); };
-        target.onChange = [this] { table.changed(); };
-        via.onChange    = [this] { table.changed(); };
-        uni.onClick     = [this] { table.changed(); };
-        depth.onValueChange = [this] { table.changed(); };
-        remove.onClick  = [this] { table.removeRow(idx); };
+        m_source.onChange = [this] { m_table.changed(); };
+        m_target.onChange = [this] { m_table.changed(); };
+        m_via.onChange    = [this] { m_table.changed(); };
+        m_uni.onClick     = [this] { m_table.changed(); };
+        m_depth.onValueChange = [this] { m_table.changed(); };
+        m_remove.onClick  = [this] { m_table.removeRow(m_idx); };
     }
     /**
      * @brief Shows a route in the controls, without firing their callbacks.
@@ -97,11 +97,11 @@ struct RouteTable::Row : juce::Component {
      */
     void set(const ModRoute& r)
     {
-        source.setSelectedId(sourceItemId(r.source), juce::dontSendNotification);
-        target.setSelectedId(static_cast<int>(r.target) + 1, juce::dontSendNotification);
-        depth.setValue(r.depth, juce::dontSendNotification);
-        via.setSelectedId(sourceItemId(r.via), juce::dontSendNotification);
-        uni.setToggleState(r.unipolar, juce::dontSendNotification);
+        m_source.setSelectedId(sourceItemId(r.m_source), juce::dontSendNotification);
+        m_target.setSelectedId(static_cast<int>(r.m_target) + 1, juce::dontSendNotification);
+        m_depth.setValue(r.m_depth, juce::dontSendNotification);
+        m_via.setSelectedId(sourceItemId(r.m_via), juce::dontSendNotification);
+        m_uni.setToggleState(r.m_unipolar, juce::dontSendNotification);
     }
     /**
      * @brief Reads the controls back as a route.
@@ -111,11 +111,11 @@ struct RouteTable::Row : juce::Component {
     ModRoute get() const
     {
         ModRoute r;
-        r.source = sourceFromItem(source.getSelectedId());
-        r.target = static_cast<ParamId>(juce::jlimit(0, kNumParams - 1, target.getSelectedId() - 1));
-        r.depth = static_cast<float>(depth.getValue());
-        r.via = sourceFromItem(via.getSelectedId());
-        r.unipolar = uni.getToggleState();
+        r.m_source = sourceFromItem(m_source.getSelectedId());
+        r.m_target = static_cast<ParamIdE>(juce::jlimit(0, NumParams - 1, m_target.getSelectedId() - 1));
+        r.m_depth = static_cast<float>(m_depth.getValue());
+        r.m_via = sourceFromItem(m_via.getSelectedId());
+        r.m_unipolar = m_uni.getToggleState();
         return r;
     }
     /**
@@ -126,46 +126,46 @@ struct RouteTable::Row : juce::Component {
     void resized() override
     {
         auto a = getLocalBounds().reduced(2, 2);
-        source.setBounds(a.removeFromLeft(96));  a.removeFromLeft(kGap);
-        target.setBounds(a.removeFromLeft(210)); a.removeFromLeft(kGap);
-        remove.setBounds(a.removeFromRight(24)); a.removeFromRight(kGap);
-        uni.setBounds(a.removeFromRight(56));    a.removeFromRight(kGap);
-        via.setBounds(a.removeFromRight(96));    a.removeFromRight(kGap);
-        depth.setBounds(a);
+        m_source.setBounds(a.removeFromLeft(96));  a.removeFromLeft(Gap);
+        m_target.setBounds(a.removeFromLeft(210)); a.removeFromLeft(Gap);
+        m_remove.setBounds(a.removeFromRight(24)); a.removeFromRight(Gap);
+        m_uni.setBounds(a.removeFromRight(56));    a.removeFromRight(Gap);
+        m_via.setBounds(a.removeFromRight(96));    a.removeFromRight(Gap);
+        m_depth.setBounds(a);
     }
-    RouteTable& table;   ///< the table that owns this row and takes its changes
-    int idx;             ///< the route's index in the matrix, kept in step by RouteTable::pull()
-    juce::ComboBox source,   ///< the route's source, any but None
-                   target,   ///< the target parameter
-                   via;      ///< the second source that scales the depth, "-" for none
-    juce::Slider depth;        ///< -1 .. 1 of the target's range; double-click returns it to 0.25
-    juce::ToggleButton uni;    ///< "0..1": read the source unipolar, so an LFO only adds
-    juce::TextButton remove;   ///< "x": takes this row out of the matrix
+    RouteTable& m_table;   ///< the table that owns this row and takes its changes
+    int m_idx;             ///< the route's index in the matrix, kept in step by RouteTable::pull()
+    juce::ComboBox m_source,   ///< the route's source, any but None
+                   m_target,   ///< the target parameter
+                   m_via;      ///< the second source that scales the depth, "-" for none
+    juce::Slider m_depth;        ///< -1 .. 1 of the target's range; double-click returns it to 0.25
+    juce::ToggleButton m_uni;    ///< "0..1": read the source unipolar, so an LFO only adds
+    juce::TextButton m_remove;   ///< "x": takes this row out of the matrix
 };
 
 RouteTable::RouteTable(NoctuaryProcessor& p, std::function<void()> onChanged)
-    : proc(p), changedCallback(std::move(onChanged))
+    : m_proc(p), m_changedCallback(std::move(onChanged))
 {
-    port.setViewedComponent(&content, false);
-    port.setScrollBarsShown(true, false);
-    addAndMakeVisible(port);
-    add.setButtonText("+ route");
-    add.setTooltip("A new route, LFO 1 to the cutoff at a quarter: change it to what you mean");
-    add.onClick = [this] { addRow(); };
-    addAndMakeVisible(add);
-    clear.setButtonText("Clear");
-    clear.onClick = [this] { rows.clear(); content.removeAllChildren(); push(); };
-    addAndMakeVisible(clear);
+    m_port.setViewedComponent(&m_content, false);
+    m_port.setScrollBarsShown(true, false);
+    addAndMakeVisible(m_port);
+    m_add.setButtonText("+ route");
+    m_add.setTooltip("A new route, LFO 1 to the cutoff at a quarter: change it to what you mean");
+    m_add.onClick = [this] { addRow(); };
+    addAndMakeVisible(m_add);
+    m_clear.setButtonText("Clear");
+    m_clear.onClick = [this] { m_rows.clear(); m_content.removeAllChildren(); push(); };
+    addAndMakeVisible(m_clear);
     // Column heads placed with the rows' own geometry (see resized), not spaced with blanks: a
     // string of spaces lines up with nothing once the strip is any other width.
-    struct { juce::Label* l; const char* t; } heads[] = {
-        { &headSource, "source" }, { &headTarget, "target" }, { &headDepth, "depth  (-1 .. 1 of the target's range)" },
-        { &headVia, "via" }, { &headUni, "0..1" } };
+    struct { juce::Label* m_l; const char* m_t; } heads[] = {
+        { &m_headSource, "source" }, { &m_headTarget, "target" }, { &m_headDepth, "depth  (-1 .. 1 of the target's range)" },
+        { &m_headVia, "via" }, { &m_headUni, "0..1" } };
     for (auto& h : heads) {
-        h.l->setFont(ui::body(10.0f));
-        h.l->setColour(juce::Label::textColourId, ui::dim);
-        h.l->setText(h.t, juce::dontSendNotification);
-        addAndMakeVisible(*h.l);
+        h.m_l->setFont(ui::body(10.0f));
+        h.m_l->setColour(juce::Label::textColourId, ui::Dim);
+        h.m_l->setText(h.m_t, juce::dontSendNotification);
+        addAndMakeVisible(*h.m_l);
     }
 }
 
@@ -173,13 +173,13 @@ RouteTable::~RouteTable() = default;
 
 void RouteTable::pull()
 {
-    const ModMatrix& m = proc.engine().modMatrix();
-    while (static_cast<int>(rows.size()) > m.count()) { content.removeChildComponent(rows.back().get()); rows.pop_back(); }
-    while (static_cast<int>(rows.size()) < m.count()) {
-        rows.push_back(std::make_unique<Row>(*this, static_cast<int>(rows.size())));
-        content.addAndMakeVisible(*rows.back());
+    const ModMatrix& m = m_proc.engine().modMatrix();
+    while (static_cast<int>(m_rows.size()) > m.count()) { m_content.removeChildComponent(m_rows.back().get()); m_rows.pop_back(); }
+    while (static_cast<int>(m_rows.size()) < m.count()) {
+        m_rows.push_back(std::make_unique<Row>(*this, static_cast<int>(m_rows.size())));
+        m_content.addAndMakeVisible(*m_rows.back());
     }
-    for (int i = 0; i < m.count(); ++i) { rows[static_cast<size_t>(i)]->idx = i; rows[static_cast<size_t>(i)]->set(m.route(i)); }
+    for (int i = 0; i < m.count(); ++i) { m_rows[static_cast<size_t>(i)]->m_idx = i; m_rows[static_cast<size_t>(i)]->set(m.route(i)); }
     resized();
 }
 
@@ -188,61 +188,61 @@ void RouteTable::push()
     // The whole matrix back to the engine as text -- the one door every route goes through, so
     // the parser, the presets and the drag-and-drop never see a second format.
     juce::String t;
-    for (auto& r : rows) {
+    for (auto& r : m_rows) {
         const ModRoute m = r->get();
-        if (m.source == ModSource::None) continue;
+        if (m.m_source == ModSourceE::NONE) continue;
         if (t.isNotEmpty()) t += ";";
-        t += juce::String(modSourceName(m.source)) + ">" + paramDesc(m.target).key + ":" + juce::String(m.depth, 3);
-        if (m.via != ModSource::None) t += juce::String(":") + modSourceName(m.via);
-        if (m.unipolar) t += ":u";
+        t += juce::String(modSourceName(m.m_source)) + ">" + paramDesc(m.m_target).m_key + ":" + juce::String(m.m_depth, 3);
+        if (m.m_via != ModSourceE::NONE) t += juce::String(":") + modSourceName(m.m_via);
+        if (m.m_unipolar) t += ":u";
     }
-    proc.engine().setModMatrixText(t.toRawUTF8());
+    m_proc.engine().setModMatrixText(t.toRawUTF8());
     pull();
-    if (changedCallback) changedCallback();
+    if (m_changedCallback) m_changedCallback();
 }
 
 void RouteTable::changed() { push(); }
 
 void RouteTable::addRow()
 {
-    if (static_cast<int>(rows.size()) >= kMaxModRoutes) return;
-    rows.push_back(std::make_unique<Row>(*this, static_cast<int>(rows.size())));
-    content.addAndMakeVisible(*rows.back());
-    ModRoute r; r.source = ModSource::Lfo1; r.target = ParamId::Cutoff; r.depth = 0.25f;
-    rows.back()->set(r);
+    if (static_cast<int>(m_rows.size()) >= MaxModRoutes) return;
+    m_rows.push_back(std::make_unique<Row>(*this, static_cast<int>(m_rows.size())));
+    m_content.addAndMakeVisible(*m_rows.back());
+    ModRoute r; r.m_source = ModSourceE::LFO1; r.m_target = ParamIdE::CUTOFF; r.m_depth = 0.25f;
+    m_rows.back()->set(r);
     push();
-    port.setViewPosition(0, juce::jmax(0, content.getHeight() - port.getHeight()));
+    m_port.setViewPosition(0, juce::jmax(0, m_content.getHeight() - m_port.getHeight()));
 }
 
 void RouteTable::removeRow(int index)
 {
-    if (index < 0 || index >= static_cast<int>(rows.size())) return;
-    content.removeChildComponent(rows[static_cast<size_t>(index)].get());
-    rows.erase(rows.begin() + index);
+    if (index < 0 || index >= static_cast<int>(m_rows.size())) return;
+    m_content.removeChildComponent(m_rows[static_cast<size_t>(index)].get());
+    m_rows.erase(m_rows.begin() + index);
     push();
 }
 
-int RouteTable::count() const { return static_cast<int>(rows.size()); }
+int RouteTable::count() const { return static_cast<int>(m_rows.size()); }
 
 void RouteTable::resized()
 {
     auto a = getLocalBounds();
     auto bottom = a.removeFromBottom(24);
-    add.setBounds(bottom.removeFromLeft(80)); bottom.removeFromLeft(6);
-    clear.setBounds(bottom.removeFromLeft(60));
+    m_add.setBounds(bottom.removeFromLeft(80)); bottom.removeFromLeft(6);
+    m_clear.setBounds(bottom.removeFromLeft(60));
     {   // the heads over their columns, the same cuts Row::resized makes
-        auto h = a.removeFromTop(kHeadH).reduced(2, 0);
-        headSource.setBounds(h.removeFromLeft(96));  h.removeFromLeft(kGap);
-        headTarget.setBounds(h.removeFromLeft(210)); h.removeFromLeft(kGap);
-        h.removeFromRight(24 + kGap);                                   // the remove button's column
-        headUni.setBounds(h.removeFromRight(56));    h.removeFromRight(kGap);
-        headVia.setBounds(h.removeFromRight(96));    h.removeFromRight(kGap);
-        headDepth.setBounds(h);
+        auto h = a.removeFromTop(HeadH).reduced(2, 0);
+        m_headSource.setBounds(h.removeFromLeft(96));  h.removeFromLeft(Gap);
+        m_headTarget.setBounds(h.removeFromLeft(210)); h.removeFromLeft(Gap);
+        h.removeFromRight(24 + Gap);                                   // the remove button's column
+        m_headUni.setBounds(h.removeFromRight(56));    h.removeFromRight(Gap);
+        m_headVia.setBounds(h.removeFromRight(96));    h.removeFromRight(Gap);
+        m_headDepth.setBounds(h);
     }
-    port.setBounds(a);
+    m_port.setBounds(a);
     const int w = juce::jmax(200, a.getWidth() - 14);
-    content.setSize(w, juce::jmax(1, static_cast<int>(rows.size())) * kRowH);
-    for (size_t i = 0; i < rows.size(); ++i) rows[i]->setBounds(0, static_cast<int>(i) * kRowH, w, kRowH);
+    m_content.setSize(w, juce::jmax(1, static_cast<int>(m_rows.size())) * RowH);
+    for (size_t i = 0; i < m_rows.size(); ++i) m_rows[i]->setBounds(0, static_cast<int>(i) * RowH, w, RowH);
 }
 
 }   // namespace edt

@@ -69,7 +69,7 @@ def _z_shapes():
     header means the list can never fall behind again."""
     inc = os.path.join(ROOT, "Core", "src", "ZPlaneBank.inc")
     text = open(inc, encoding="utf-8").read()
-    body = text[text.index("kZShapeNames[kZShapes] = {"):]
+    body = text[text.index("ZShapeNames[ZShapes] = {"):]
     body = body[:body.index("};")]
     return re.findall(r'"([^"]+)"', body)
 

@@ -13,7 +13,7 @@
  * "Improved phase vocoder time-scale modification of audio", IEEE TSAP 1999). A steady partial comes
  * out as a steady partial -- no crossfade, no modulation -- and so does its hundredth pass.
  *
- * kN samples late, which a loop that circles for seconds does not notice. Buffers are allocated in
+ * N samples late, which a loop that circles for seconds does not notice. Buffers are allocated in
  * prepare() only; process() may run in place.
  */
 #pragma once
@@ -24,7 +24,7 @@
 namespace ambient {
 
 /**
- * @brief The phase-vocoder shifter: two channels, a kN-point frame every kHop samples.
+ * @brief The phase-vocoder shifter: two channels, a N-point frame every Hop samples.
  *
  * Used by the Cosmos shimmer (Shimmer Mode = Spectral) and by the cloud's loop (Cloud Shift).
  * Hann analysis and synthesis at a quarter-frame hop; the overlap gain is folded in so a shift of
@@ -32,8 +32,8 @@ namespace ambient {
  */
 class SpectralShifter {
 public:
-    static constexpr int kN = 4096,     ///< @brief frame length in samples (85 ms at 48 kHz), and the latency
-                         kHop = 1024;   ///< hop in samples: a quarter frame, so four frames overlap
+    static constexpr int N = 4096,     ///< @brief frame length in samples (85 ms at 48 kHz), and the latency
+                         Hop = 1024;   ///< hop in samples: a quarter frame, so four frames overlap
     /**
      * @brief Allocates the rings, spectra and window and clears the state.
      * @param sampleRate  unused: the frame is fixed in samples, so the shift is exact at every rate
@@ -43,13 +43,13 @@ public:
     void reset();
     /**
      * @brief The shift in semitones, from the next frame on.
-     * @param semitones  -36 .. +36 (clamped); 0 passes the signal through, kN samples late
+     * @param semitones  -36 .. +36 (clamped); 0 passes the signal through, N samples late
      */
     void setSemitones(float semitones);
     /**
-     * @brief Shifts a block, stereo, kN samples late.
+     * @brief Shifts a block, stereo, N samples late.
      *
-     * Every sample is pushed into the input ring and pulled from the overlap-add ring; every kHop
+     * Every sample is pushed into the input ring and pulled from the overlap-add ring; every Hop
      * samples one frame per channel is analysed and resynthesised (frame()). In place is allowed:
      * each input sample is read before its output is written.
      *
@@ -60,42 +60,42 @@ public:
      * @param n     samples
      */
     void process(const float* inL, const float* inR, float* outL, float* outR, int n);
-    /** @return the delay through the shifter in samples, always kN */
-    int  latency() const { return kN; }
+    /** @return the delay through the shifter in samples, always N */
+    int  latency() const { return N; }
 private:
     /** @brief One channel's rings and spectra. */
     struct Channel {
-        std::vector<float> in,    ///< @brief the input ring (kN)
-                           out;   ///< the input ring (kN) and the overlap-add (2 kN)
-        std::vector<float> re,   ///< @brief real part of the frame being worked on (kN)
-                           im;   ///< the frame being worked on (kN): its imaginary part
-        std::vector<float> power;                      ///< |X|^2 of the analysis, kN / 2 + 1
-        std::vector<float> prevRe,   ///< @brief real part of the previous frame's analysis spectrum
-                           prevIm;   ///< the previous frame's analysis spectrum, imaginary part
-        std::vector<float> accRe,   ///< @brief real part of this frame's shifted spectrum
-                           accIm;   ///< this frame's shifted spectrum, imaginary part
-        std::vector<float> prevOutRe,   ///< @brief real part of the previous frame's shifted spectrum
-                           prevOutIm;   ///< and the previous frame's, imaginary part
-        int inPos = 0,    ///< @brief write position in the input ring
-            outPos = 0;   ///< read position in the overlap-add ring
+        std::vector<float> m_in,    ///< @brief the input ring (N)
+                           m_out;   ///< the input ring (N) and the overlap-add (2 N)
+        std::vector<float> m_re,   ///< @brief real part of the frame being worked on (N)
+                           m_im;   ///< the frame being worked on (N): its imaginary part
+        std::vector<float> m_power;                      ///< |X|^2 of the analysis, N / 2 + 1
+        std::vector<float> m_prevRe,   ///< @brief real part of the previous frame's analysis spectrum
+                           m_prevIm;   ///< the previous frame's analysis spectrum, imaginary part
+        std::vector<float> m_accRe,   ///< @brief real part of this frame's shifted spectrum
+                           m_accIm;   ///< this frame's shifted spectrum, imaginary part
+        std::vector<float> m_prevOutRe,   ///< @brief real part of the previous frame's shifted spectrum
+                           m_prevOutIm;   ///< and the previous frame's, imaginary part
+        int m_inPos = 0,    ///< @brief write position in the input ring
+            m_outPos = 0;   ///< read position in the overlap-add ring
     };
     /**
      * @brief One frame of one channel: window, transform, move every peak's region to its shifted
      *        bin with the phase that continues its own frequency there, transform back, overlap-add.
      *
      * Peaks are local maxima over two bins either side and no more than 70 dB under the loudest;
-     * a peak's region runs to the trough before the next peak. Called from process() every kHop
+     * a peak's region runs to the trough before the next peak. Called from process() every Hop
      * samples.
      *
      * @param c  the channel
      */
     void frame(Channel& c);
-    Channel ch_[2];               ///< left and right
-    RealFft fft_{ kN };           ///< the shared kN-point real transform
-    std::vector<float> window_;   ///< the Hann window, kN samples, for analysis and synthesis alike
-    std::vector<int>   peaks_;    ///< scratch: the bins of this frame's peaks, kN / 2 entries
-    double  ratio_ = 2.0;         ///< the frequency ratio of the current shift, 2^(semitones / 12)
-    int     hopCounter_ = 0;      ///< samples since the last frame; a frame is due at kHop
+    Channel m_ch[2];               ///< left and right
+    RealFft m_fft{ N };           ///< the shared N-point real transform
+    std::vector<float> m_window;   ///< the Hann window, N samples, for analysis and synthesis alike
+    std::vector<int>   m_peaks;    ///< scratch: the bins of this frame's peaks, N / 2 entries
+    double  m_ratio = 2.0;         ///< the frequency ratio of the current shift, 2^(semitones / 12)
+    int     m_hopCounter = 0;      ///< samples since the last frame; a frame is due at Hop
 };
 
 } // namespace ambient

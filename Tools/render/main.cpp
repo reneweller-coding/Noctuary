@@ -77,10 +77,10 @@ bool loadNearClips(Engine& engine, const std::string& path)
         }
         std::sort(files.begin(), files.end());
         // More than the pool holds: every k-th of them, the whole folder represented (as the plugin does).
-        const size_t kMax = 48;
-        if (files.size() > kMax) {
+        const size_t Max = 48;
+        if (files.size() > Max) {
             std::vector<std::string> some;
-            for (size_t i = 0; i < kMax; ++i) some.push_back(files[static_cast<size_t>(std::lround(i * (files.size() - 1.0) / (kMax - 1.0)))]);
+            for (size_t i = 0; i < Max; ++i) some.push_back(files[static_cast<size_t>(std::lround(i * (files.size() - 1.0) / (Max - 1.0)))]);
             files.swap(some);
         }
         std::vector<Texture> pool;
@@ -210,7 +210,7 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
                        const double* stemE = nullptr)
 {
     const size_t n = L.size();
-    static const double kOctEdge[11] = { 22.4, 44.7, 89.1, 178.0, 355.0, 708.0, 1413.0, 2818.0, 5623.0, 11220.0, 22390.0 };
+    static const double OctEdge[11] = { 22.4, 44.7, 89.1, 178.0, 355.0, 708.0, 1413.0, 2818.0, 5623.0, 11220.0, 22390.0 };
     double octave[10] = {};
     if (n < 4096) { std::printf("measure: rms=-120 centroid=0 flatness=0 flux=0 bass=0 width=0 voices=%.2f peak=0 jump=0 dc=0 monoloss=0\n", voices); return; }
     const size_t half = n / 2;
@@ -249,7 +249,7 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
                     const double p = 0.5 * (static_cast<double>(bre[static_cast<size_t>(k)]) * bre[static_cast<size_t>(k)]
                                           + static_cast<double>(bim[static_cast<size_t>(k)]) * bim[static_cast<size_t>(k)]);
                     for (int b = 0; b < 10; ++b)
-                        if (f >= kOctEdge[b] && f < kOctEdge[b + 1]) { octave[b] += p; break; }
+                        if (f >= OctEdge[b] && f < OctEdge[b + 1]) { octave[b] += p; break; }
                 }
             }
         if (frames > 0) {
@@ -369,18 +369,18 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
     // their energy, a discrete cosine transform of that, and the first sixteen coefficients kept
     // with their spread over the render. Thirty-two numbers that carry the shape of the spectrum
     // rather than its averages, computed from the frames the descriptors already cost.
-    constexpr int kMel = 40, kCeps = 16;
-    double mfccMean[kCeps] = {}, mfccVar[kCeps] = {};
+    constexpr int Mel = 40, Ceps = 16;
+    double mfccMean[Ceps] = {}, mfccVar[Ceps] = {};
     {
         auto hzToMel = [](double f) { return 2595.0 * std::log10(1.0 + f / 700.0); };
         auto melToHz = [](double m) { return 700.0 * (std::pow(10.0, m / 2595.0) - 1.0); };
         const double melLo = hzToMel(30.0), melHi = hzToMel(std::min(16000.0, sr * 0.45));
-        int centre[kMel + 2];
-        for (int b = 0; b < kMel + 2; ++b) {
-            const double hz = melToHz(melLo + (melHi - melLo) * b / (kMel + 1));
+        int centre[Mel + 2];
+        for (int b = 0; b < Mel + 2; ++b) {
+            const double hz = melToHz(melLo + (melHi - melLo) * b / (Mel + 1));
             centre[b] = std::max(1, std::min(win / 2, static_cast<int>(hz * win / sr + 0.5)));
         }
-        std::vector<double> ceps(static_cast<size_t>(kCeps), 0.0);
+        std::vector<double> ceps(static_cast<size_t>(Ceps), 0.0);
         std::vector<float> fre(static_cast<size_t>(win)), fim(static_cast<size_t>(win));
         int used = 0;
         for (size_t start = half; start + static_cast<size_t>(win) < n; start += static_cast<size_t>(hop) * 2) {
@@ -389,8 +389,8 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
                 fim[static_cast<size_t>(i)] = 0.0f;
             }
             fft(fre, fim);
-            double band[kMel];
-            for (int b = 0; b < kMel; ++b) {
+            double band[Mel];
+            for (int b = 0; b < Mel; ++b) {
                 double e = 0.0;
                 for (int k = centre[b]; k <= centre[b + 2]; ++k) {
                     const double m = std::sqrt(static_cast<double>(fre[static_cast<size_t>(k)]) * fre[static_cast<size_t>(k)]
@@ -401,18 +401,18 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
                 }
                 band[b] = std::log(e + 1e-12);
             }
-            for (int c = 0; c < kCeps; ++c) {
+            for (int c = 0; c < Ceps; ++c) {
                 double s2 = 0.0;
-                for (int b = 0; b < kMel; ++b)
-                    s2 += band[b] * std::cos(3.14159265358979323846 * (c + 1) * (b + 0.5) / kMel);
-                ceps[static_cast<size_t>(c)] = s2 / kMel;
+                for (int b = 0; b < Mel; ++b)
+                    s2 += band[b] * std::cos(3.14159265358979323846 * (c + 1) * (b + 0.5) / Mel);
+                ceps[static_cast<size_t>(c)] = s2 / Mel;
                 mfccMean[c] += ceps[static_cast<size_t>(c)];
                 mfccVar[c] += ceps[static_cast<size_t>(c)] * ceps[static_cast<size_t>(c)];
             }
             ++used;
         }
         const double inv2 = 1.0 / std::max(used, 1);
-        for (int c = 0; c < kCeps; ++c) {
+        for (int c = 0; c < Ceps; ++c) {
             mfccMean[c] *= inv2;
             mfccVar[c] = std::sqrt(std::max(0.0, mfccVar[c] * inv2 - mfccMean[c] * mfccMean[c]));
         }
@@ -432,8 +432,8 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
     // The fingerprint on its own line, so nothing that parses the measure line has to learn a
     // new field: 16 cepstral means, then their 16 spreads.
     std::printf("timbre:");
-    for (int c = 0; c < kCeps; ++c) std::printf(" %.4f", mfccMean[c]);
-    for (int c = 0; c < kCeps; ++c) std::printf(" %.4f", mfccVar[c]);
+    for (int c = 0; c < Ceps; ++c) std::printf(" %.4f", mfccMean[c]);
+    for (int c = 0; c < Ceps; ++c) std::printf(" %.4f", mfccVar[c]);
     std::printf("\n");
     if (g_printBands) {
         std::printf("bands:");
@@ -467,14 +467,14 @@ void printMeasurements(const std::vector<float>& L, const std::vector<float>& R,
  * octave up would leave a register-folded bass exactly where it was and look like a preset that
  * does not follow, which is how the first version of this measurement fooled its author.
  */
-struct TonalProbe { double staticShare = 0.0, bassDb = 0.0, rms = -120.0; };
-/** @var TonalProbe::staticShare
+struct TonalProbe { double m_staticShare = 0.0, m_bassDb = 0.0, m_rms = -120.0; };
+/** @var TonalProbe::m_staticShare
  *  the overlap of the two normalised spectra in percent: 0 everything followed the note, 100 nothing did
  */
-/** @var TonalProbe::bassDb
+/** @var TonalProbe::m_bassDb
  *  energy in 20 .. 130 Hz against 150 .. 5000 Hz over both passes, in dB: positive means the bass sits on top
  */
-/** @var TonalProbe::rms
+/** @var TonalProbe::m_rms
  *  mean power of the settled parts of both passes (mono sum), in dBFS; -120 when nothing was measured
  */
 
@@ -493,7 +493,7 @@ struct TonalProbe { double staticShare = 0.0, bassDb = 0.0, rms = -120.0; };
  */
 TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
 {
-    constexpr int kFft = 1 << 15;
+    constexpr int FftSize = 1 << 15;
     const int block = 256;
     const long total = static_cast<long>(seconds * sr);
     const long from = total / 3;              // the settled part, as every other measurement here
@@ -523,18 +523,18 @@ TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
         }
         // Welch: half-overlapping Hann windows, averaged. One number per bin, so the two passes
         // can be compared bin by bin.
-        spec[pass].assign(kFft / 2 + 1, 0.0);
-        Fft fft(kFft);
-        std::vector<float> re(static_cast<size_t>(kFft)), im(static_cast<size_t>(kFft));
+        spec[pass].assign(FftSize / 2 + 1, 0.0);
+        Fft fft(FftSize);
+        std::vector<float> re(static_cast<size_t>(FftSize)), im(static_cast<size_t>(FftSize));
         int windows = 0;
-        for (size_t s = 0; s + kFft <= mono.size(); s += kFft / 2) {
-            for (int i = 0; i < kFft; ++i) {
-                const float w = 0.5f - 0.5f * std::cos(kTwoPi * i / static_cast<float>(kFft));
+        for (size_t s = 0; s + FftSize <= mono.size(); s += FftSize / 2) {
+            for (int i = 0; i < FftSize; ++i) {
+                const float w = 0.5f - 0.5f * std::cos(TwoPi * i / static_cast<float>(FftSize));
                 re[static_cast<size_t>(i)] = mono[s + static_cast<size_t>(i)] * w;
                 im[static_cast<size_t>(i)] = 0.0f;
             }
             fft.transform(re.data(), im.data(), false);
-            for (int k = 0; k <= kFft / 2; ++k)
+            for (int k = 0; k <= FftSize / 2; ++k)
                 spec[pass][static_cast<size_t>(k)] += static_cast<double>(re[static_cast<size_t>(k)]) * re[static_cast<size_t>(k)]
                                                     + static_cast<double>(im[static_cast<size_t>(k)]) * im[static_cast<size_t>(k)];
             ++windows;
@@ -547,7 +547,7 @@ TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
     for (int p = 0; p < 2; ++p) for (double v : spec[p]) sum[p] += v;
     if (sum[0] <= 0.0 || sum[1] <= 0.0) return {};
     double overlap = 0.0, lo = 0.0, hi = 0.0;
-    const double binHz = static_cast<double>(sr) / kFft;
+    const double binHz = static_cast<double>(sr) / FftSize;
     for (size_t k = 0; k < spec[0].size(); ++k) {
         overlap += std::min(spec[0][k] / sum[0], spec[1][k] / sum[1]);
         const double f = k * binHz;
@@ -555,9 +555,9 @@ TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
         if (f >= 20.0 && f < 130.0) lo += e;
         else if (f >= 150.0 && f <= 5000.0) hi += e;
     }
-    out.staticShare = 100.0 * overlap;
-    out.bassDb = 10.0 * std::log10((lo + 1e-30) / (hi + 1e-30));
-    out.rms = 10.0 * std::log10(energy / std::max<long>(counted, 1) + 1e-20);
+    out.m_staticShare = 100.0 * overlap;
+    out.m_bassDb = 10.0 * std::log10((lo + 1e-30) / (hi + 1e-30));
+    out.m_rms = 10.0 * std::log10(energy / std::max<long>(counted, 1) + 1e-20);
     return out;
 }
 
@@ -674,10 +674,10 @@ static int runOnce(int argc, char** argv)
         else if (a == "--route") {   // walk a route preset (by name) or a route text over the map
             const std::string spec = next();
             int found = -1;
-            for (int r = 0; r < numRoutePresets(); ++r) if (spec == routePreset(r).name) found = r;
-            routeText = found >= 0 ? routePreset(found).points : spec;
+            for (int r = 0; r < numRoutePresets(); ++r) if (spec == routePreset(r).m_name) found = r;
+            routeText = found >= 0 ? routePreset(found).m_points : spec;
             if (i + 1 < argc && std::atof(argv[i + 1]) > 0.0) routeSpeed = std::atof(argv[++i]);
-            std::printf("route: %s (speed %g)\n", found >= 0 ? routePreset(found).name : "custom", routeSpeed);
+            std::printf("route: %s (speed %g)\n", found >= 0 ? routePreset(found).m_name : "custom", routeSpeed);
         }
         else if (a == "--packs") { const std::string dir = next(); std::printf("packs: %d loaded from %s\n", loadPresetPacksIn(dir.c_str()), dir.c_str()); }
         else if (a == "--list-packs") {
@@ -752,11 +752,11 @@ static int runOnce(int argc, char** argv)
         else if (a == "--preset") {
             const std::string name = next();
             int found = -1;
-            for (int p = 0; p < numPresets(); ++p) if (name == preset(p).name) found = p;
+            for (int p = 0; p < numPresets(); ++p) if (name == preset(p).m_name) found = p;
             if (found < 0) { std::fprintf(stderr, "unknown preset '%s' (see --list-presets)\n", name.c_str()); return 2; }
             engine.applyPreset(found);
             presetIndex = found;
-            std::printf("preset: %s\n", preset(found).name);
+            std::printf("preset: %s\n", preset(found).m_name);
         }
         else if (a == "--set") {
             std::string kv = next();
@@ -764,21 +764,21 @@ static int runOnce(int argc, char** argv)
             if (eq == std::string::npos) { std::fprintf(stderr, "bad --set %s\n", kv.c_str()); return 2; }
             const ParamDesc* d = findParam(kv.substr(0, eq).c_str());
             if (!d) { std::fprintf(stderr, "unknown parameter '%s'\n", kv.substr(0, eq).c_str()); return 2; }
-            engine.setParam(d->id, paramValueFromText(*d, kv.substr(eq + 1).c_str()));
+            engine.setParam(d->m_id, paramValueFromText(*d, kv.substr(eq + 1).c_str()));
         }
         else if (a == "--list-choices") {
             // Every choice parameter with its value names, so a tool never has to keep its own copy.
             for (const auto& d : paramTable()) {
-                if (d.kind != ParamKind::Choice) continue;
-                std::printf("%s:", d.key);
-                for (int c = 0; c < d.numChoices; ++c) std::printf("%s%s", c ? "|" : "", d.choices[c]);
+                if (d.m_kind != ParamKindE::CHOICE) continue;
+                std::printf("%s:", d.m_key);
+                for (int c = 0; c < d.m_numChoices; ++c) std::printf("%s%s", c ? "|" : "", d.m_choices[c]);
                 std::printf("\n");
             }
             return 0;
         }
         else if (a == "--list") {
             for (const auto& d : paramTable())
-                std::printf("%-18s %-14s [%g .. %g] default %g %s\n", d.key, d.section, d.min, d.max, d.def, d.unit);
+                std::printf("%-18s %-14s [%g .. %g] default %g %s\n", d.m_key, d.m_section, d.m_min, d.m_max, d.m_def, d.m_unit);
             return 0;
         }
         else if (a == "--sound-preset" || a == "--cosmos-preset") {
@@ -786,7 +786,7 @@ static int runOnce(int argc, char** argv)
             const std::string name = next();
             const int count = cosmos ? numCosmosPresets() : numPresets();
             int found = -1;
-            for (int p = 0; p < count; ++p) if (name == (cosmos ? cosmosPreset(p) : preset(p)).name) found = p;
+            for (int p = 0; p < count; ++p) if (name == (cosmos ? cosmosPreset(p) : preset(p)).m_name) found = p;
             if (found < 0) { std::fprintf(stderr, "unknown %s preset '%s'\n", cosmos ? "cosmos" : "sound", name.c_str()); return 2; }
             if (cosmos) engine.applyCosmosPreset(found); else engine.applySoundPreset(found);
             std::printf("%s preset: %s\n", cosmos ? "cosmos" : "sound", name.c_str());
@@ -794,34 +794,34 @@ static int runOnce(int argc, char** argv)
         else if (a == "--describe") {   // the browser's line of prose for a preset, or for all of them
             const std::string want = next();
             for (int p = 0; p < numPresets(); ++p)
-                if (want == "all" || want == preset(p).name)
-                    std::printf("%-30s %s\n", preset(p).name, presetDescription(p).c_str());
+                if (want == "all" || want == preset(p).m_name)
+                    std::printf("%-30s %s\n", preset(p).m_name, presetDescription(p).c_str());
             return 0;
         }
         else if (a == "--list-presets") {
-            for (int p = 0; p < numPresets(); ++p) std::printf("%s\n", preset(p).name);
+            for (int p = 0; p < numPresets(); ++p) std::printf("%s\n", preset(p).m_name);
             return 0;
         }
         else if (a == "--list-routes") {
-            for (int r = 0; r < numRoutePresets(); ++r) std::printf("%-22s %s\n", routePreset(r).name, routePreset(r).points);
+            for (int r = 0; r < numRoutePresets(); ++r) std::printf("%-22s %s\n", routePreset(r).m_name, routePreset(r).m_points);
             return 0;
         }
         else if (a == "--list-cosmos-presets") {
-            for (int p = 0; p < numCosmosPresets(); ++p) std::printf("%s\n", cosmosPreset(p).name);
+            for (int p = 0; p < numCosmosPresets(); ++p) std::printf("%s\n", cosmosPreset(p).m_name);
             return 0;
         }
         else if (a == "--near-preset") {   // the near layer's bank, on top of whatever sound is loaded
             const std::string name = next();
             int found = -1;
-            for (int p = 0; p < numNearPresets(); ++p) if (name == nearPreset(p).name) found = p;
+            for (int p = 0; p < numNearPresets(); ++p) if (name == nearPreset(p).m_name) found = p;
             if (found < 0) { std::fprintf(stderr, "unknown near preset '%s'\n", name.c_str()); return 2; }
             engine.applyNearPreset(found);
             std::printf("near preset: %s\n", name.c_str());
             // Its clip, if it names one, from the library's archive -- a file, or a folder of them.
             const Preset& np = nearPreset(found);
-            if (np.texture != nullptr && *np.texture != 0) {
-                const std::string got = resolveLibraryFile(np.texture);
-                if (got.empty() || !loadNearClips(engine, got)) std::fprintf(stderr, "near preset's clip not found: %s\n", np.texture);
+            if (np.m_texture != nullptr && *np.m_texture != 0) {
+                const std::string got = resolveLibraryFile(np.m_texture);
+                if (got.empty() || !loadNearClips(engine, got)) std::fprintf(stderr, "near preset's clip not found: %s\n", np.m_texture);
             }
         }
         else if (a == "--near-clip") {   // a clip for the near source: a file, or a folder of them (one per event, at random)
@@ -829,16 +829,16 @@ static int runOnce(int argc, char** argv)
             if (!loadNearClips(engine, file)) { std::fprintf(stderr, "cannot read %s\n", file.c_str()); return 2; }
         }
         else if (a == "--list-near-presets") {
-            for (int p = 0; p < numNearPresets(); ++p) std::printf("%-28s %s\n", nearPreset(p).name, nearPresetFamily(nearPresetCategory(p)));
+            for (int p = 0; p < numNearPresets(); ++p) std::printf("%-28s %s\n", nearPreset(p).m_name, nearPresetFamily(nearPresetCategory(p)));
             return 0;
         }
         else if (a == "--near-auto") nearAuto = true;   // the foreground the pack preset brings (off by default: the library is measured without one)
         else if (a == "--journey") {   // presets in a row with dwell and fade ranges (Journey.h); the tool cuts where the plugin crossfades
             const std::string path = next();
-            if (!journey.load(path.c_str()) || journey.steps.empty()) { std::fprintf(stderr, "cannot read the journey %s\n", path.c_str()); return 2; }
+            if (!journey.load(path.c_str()) || journey.m_steps.empty()) { std::fprintf(stderr, "cannot read the journey %s\n", path.c_str()); return 2; }
             haveJourney = true;
-            std::printf("journey: %s (%d steps, %s a pass, %s)\n", journey.name.c_str(), static_cast<int>(journey.steps.size()),
-                        Journey::timeText(journey.meanLength()).c_str(), journey.cyclic ? "cyclic" : "once");
+            std::printf("journey: %s (%d steps, %s a pass, %s)\n", journey.m_name.c_str(), static_cast<int>(journey.m_steps.size()),
+                        Journey::timeText(journey.meanLength()).c_str(), journey.m_cyclic ? "cyclic" : "once");
         }
         else if (a == "--journey-seed") journeySeed = static_cast<uint64_t>(std::strtoull(next().c_str(), nullptr, 10)) | 1ull;
         else if (a == "--bench") {
@@ -850,7 +850,7 @@ static int runOnce(int argc, char** argv)
             for (int p = 0; p < numPresets(); ++p) {
                 Engine e;
                 e.applyPreset(p);
-                e.setParam(ParamId::BrainRate, 3.0f);
+                e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
                 e.prepare(sr, block);
                 e.noteOn(48, 0.8f); e.noteOn(55, 0.8f); e.noteOn(64, 0.8f);
                 std::vector<float> bl(static_cast<size_t>(block)), br(static_cast<size_t>(block));
@@ -862,8 +862,8 @@ static int runOnce(int argc, char** argv)
                 }
                 const double wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
                 const double rt = secs / std::max(wall, 1e-6);
-                if (rt < worst) { worst = rt; worstName = preset(p).name; }
-                std::printf("%-24s %8.1f %8.1f\n", preset(p).name, 10.0 * std::log10(sq / std::max<long>(cnt, 1) + 1e-20), rt);
+                if (rt < worst) { worst = rt; worstName = preset(p).m_name; }
+                std::printf("%-24s %8.1f %8.1f\n", preset(p).m_name, 10.0 * std::log10(sq / std::max<long>(cnt, 1) + 1e-20), rt);
             }
             std::printf("slowest: %s at %.1f x realtime\n", worstName, worst);
             return 0;
@@ -877,28 +877,28 @@ static int runOnce(int argc, char** argv)
         FixedScale s;
         if (!parseScala(ss.str().c_str(), s)) { std::fprintf(stderr, "cannot parse %s\n", sclPath.c_str()); return 2; }
         engine.setUserScale(s);
-        engine.setParam(ParamId::Scale, static_cast<float>(kNumScaleChoices - 1));
-        std::printf("scale: %s (%d degrees, period %.4f)\n", s.name, s.count, s.period);
+        engine.setParam(ParamIdE::SCALE, static_cast<float>(NumScaleChoices - 1));
+        std::printf("scale: %s (%d degrees, period %.4f)\n", s.m_name, s.m_count, s.m_period);
     }
 
     if (useMap) {
-        engine.setParam(ParamId::MapActive, 1.0f);
-        engine.setParam(ParamId::MapX, static_cast<float>(mapX));
-        engine.setParam(ParamId::MapY, static_cast<float>(mapY));
-        engine.setParam(ParamId::MapRadius, static_cast<float>(mapRadius));
-        engine.setParam(ParamId::MorphGlide, 0.1f);   // arrive at the blend right away
+        engine.setParam(ParamIdE::MAP_ACTIVE, 1.0f);
+        engine.setParam(ParamIdE::MAP_X, static_cast<float>(mapX));
+        engine.setParam(ParamIdE::MAP_Y, static_cast<float>(mapY));
+        engine.setParam(ParamIdE::MAP_RADIUS, static_cast<float>(mapRadius));
+        engine.setParam(ParamIdE::MORPH_GLIDE, 0.1f);   // arrive at the blend right away
         PresetMap::warmup();
         const PresetMap::Blend b = PresetMap::neighbours(static_cast<float>(mapX), static_cast<float>(mapY), static_cast<float>(mapRadius));
         std::printf("map %.3f %.3f (radius %.3f):", mapX, mapY, mapRadius);
-        for (int k = 0; k < b.count; ++k) std::printf(" %s %.2f;", preset(b.index[k]).name, b.weight[k]);
+        for (int k = 0; k < b.m_count; ++k) std::printf(" %s %.2f;", preset(b.m_index[k]).m_name, b.m_weight[k]);
         std::printf("\n");
     }
     if (dump) {   // every parameter as key = value (choices by name), for tools that analyse presets
         for (const ParamDesc& d : paramTable()) {
-            const float v = engine.getParam(d.id);
-            if (d.kind == ParamKind::Choice) std::printf("param %s = %s\n", d.key, d.choices[clampv(static_cast<int>(std::lround(v)), 0, d.numChoices - 1)]);
-            else if (d.kind == ParamKind::Bool) std::printf("param %s = %s\n", d.key, v >= 0.5f ? "on" : "off");
-            else std::printf("param %s = %g\n", d.key, v);
+            const float v = engine.getParam(d.m_id);
+            if (d.m_kind == ParamKindE::CHOICE) std::printf("param %s = %s\n", d.m_key, d.m_choices[clampv(static_cast<int>(std::lround(v)), 0, d.m_numChoices - 1)]);
+            else if (d.m_kind == ParamKindE::BOOL) std::printf("param %s = %s\n", d.m_key, v >= 0.5f ? "on" : "off");
+            else std::printf("param %s = %g\n", d.m_key, v);
         }
     }
 
@@ -916,7 +916,7 @@ static int runOnce(int argc, char** argv)
             const std::string all(tex);
             const bool perSlot = all.find(';') != std::string::npos;
             size_t start = 0;
-            for (int slot = 0; slot < ambient::kSlots; ++slot) {
+            for (int slot = 0; slot < ambient::Slots; ++slot) {
                 const size_t semi = all.find(';', start);
                 std::string one = all.substr(start, semi == std::string::npos ? std::string::npos : semi - start);
                 while (!one.empty() && one.front() == ' ') one.erase(one.begin());
@@ -971,10 +971,10 @@ static int runOnce(int argc, char** argv)
         JourneyStep st; double fade = 0.0;
         if (journeyPlayer.advance(0.0, st, fade)) {
             int idx = -1;
-            for (int p = 0; p < numPresets(); ++p) if (st.preset == preset(p).name) { idx = p; break; }
-            if (idx < 0) { std::fprintf(stderr, "the journey's first preset is not in the library: %s\n", st.preset.c_str()); return 2; }
+            for (int p = 0; p < numPresets(); ++p) if (st.m_preset == preset(p).m_name) { idx = p; break; }
+            if (idx < 0) { std::fprintf(stderr, "the journey's first preset is not in the library: %s\n", st.m_preset.c_str()); return 2; }
             engine.applyPreset(idx); presetIndex = idx; loadPresetMedia(engine, idx, false);
-            std::printf("journey step 1: %s (%s)\n", st.preset.c_str(), Journey::timeText(journeyPlayer.remaining()).c_str());
+            std::printf("journey step 1: %s (%s)\n", st.m_preset.c_str(), Journey::timeText(journeyPlayer.remaining()).c_str());
         }
         if (!secondsGiven) seconds = std::min(journey.meanLength(), 4.0 * 3600.0);
     }
@@ -985,7 +985,7 @@ static int runOnce(int argc, char** argv)
         // by that name, so the two rules have to be the same one.
         std::string slug;
         bool lastWasSep = false;
-        for (const char* c = preset(presetIndex).name; *c && slug.size() < 80; ++c) {
+        for (const char* c = preset(presetIndex).m_name; *c && slug.size() < 80; ++c) {
             if (std::isalnum(static_cast<unsigned char>(*c))) { slug += *c; lastWasSep = false; }
             else if (!lastWasSep) { slug += '_'; lastWasSep = true; }
         }
@@ -1001,13 +1001,13 @@ static int runOnce(int argc, char** argv)
         if (!nearAuto || idx < 0) return;
         const int pack = presetPack(idx);
         float factor = 1.0f;
-        const int pick = pack >= 0 ? nearAutoPick(presetPackName(pack), preset(idx).name, factor) : -1;
+        const int pick = pack >= 0 ? nearAutoPick(presetPackName(pack), preset(idx).m_name, factor) : -1;
         if (pick > 0) {
             e.applyNearPreset(pick);
             const Preset& np = nearPreset(pick);
-            if (np.texture != nullptr && *np.texture != 0) { const std::string got = resolveLibraryFile(np.texture); if (!got.empty()) loadNearClips(e, got); }
-            e.setParam(ParamId::ForeRate, clampv(e.getParam(ParamId::ForeRate) * factor, 10.0f, 900.0f));
-            if (announce) std::printf("near auto: %s (Every x%.2f)\n", np.name, factor);
+            if (np.m_texture != nullptr && *np.m_texture != 0) { const std::string got = resolveLibraryFile(np.m_texture); if (!got.empty()) loadNearClips(e, got); }
+            e.setParam(ParamIdE::FORE_RATE, clampv(e.getParam(ParamIdE::FORE_RATE) * factor, 10.0f, 900.0f));
+            if (announce) std::printf("near auto: %s (Every x%.2f)\n", np.m_name, factor);
         } else if (announce) std::printf("near auto: none for this preset\n");
     };
     applyNearAutoTo(engine, presetIndex, true);
@@ -1023,12 +1023,12 @@ static int runOnce(int argc, char** argv)
     for (int n : notes) engine.noteOn(n, 0.8f);
     if (!routeText.empty()) {
         if (!engine.setRouteText(routeText.c_str())) { std::fprintf(stderr, "bad route text (unknown preset name or malformed point)\n"); return 2; }
-        engine.setParam(ParamId::RouteSpeed, static_cast<float>(routeSpeed));
-        engine.setParam(ParamId::RouteLoop, 1.0f);
-        engine.setParam(ParamId::RouteActive, 1.0f);
+        engine.setParam(ParamIdE::ROUTE_SPEED, static_cast<float>(routeSpeed));
+        engine.setParam(ParamIdE::ROUTE_LOOP, 1.0f);
+        engine.setParam(ParamIdE::ROUTE_ACTIVE, 1.0f);
         const Waypoint& w0 = engine.routeEdit().point(0);
-        engine.setParam(ParamId::MapX, w0.x); engine.setParam(ParamId::MapY, w0.y); engine.setParam(ParamId::MapRadius, w0.radius);   // start on the first point
-        engine.setParam(ParamId::MorphGlide, 20.0f);
+        engine.setParam(ParamIdE::MAP_X, w0.m_x); engine.setParam(ParamIdE::MAP_Y, w0.m_y); engine.setParam(ParamIdE::MAP_RADIUS, w0.m_radius);   // start on the first point
+        engine.setParam(ParamIdE::MORPH_GLIDE, 20.0f);
     }
 
     if (haveSet) { if (!secondsGiven) seconds = setFile.length() + 20.0; setFile.seek(0.0); }
@@ -1041,15 +1041,15 @@ static int runOnce(int argc, char** argv)
     std::vector<float> L(static_cast<size_t>(block)), R(static_cast<size_t>(block));
     std::vector<float> wav; wav.reserve(static_cast<size_t>(total) * 2);
     // Stems: four stereo pairs written alongside the mix, so a piece can be balanced afterwards.
-    std::vector<std::vector<float>> stemOut(static_cast<size_t>(Engine::kNumStems) * 2);
-    std::vector<float> stemChunk(static_cast<size_t>(Engine::kNumStems) * 2 * static_cast<size_t>(block), 0.0f);
-    float* stemPtr[Engine::kNumStems * 2] = {};
+    std::vector<std::vector<float>> stemOut(static_cast<size_t>(Engine::NumStems) * 2);
+    std::vector<float> stemChunk(static_cast<size_t>(Engine::NumStems) * 2 * static_cast<size_t>(block), 0.0f);
+    float* stemPtr[Engine::NumStems * 2] = {};
     // The measurement wants them too, though it writes no files: the near / far / room / cosmos
     // energies are how wet a preset stands, which is the spatial model's own axis on the map.
-    double stemE[Engine::kNumStems] = {};
+    double stemE[Engine::NumStems] = {};
     const bool wantStems = !stemPrefix.empty() || measure;
     if (wantStems) {
-        for (int c = 0; c < Engine::kNumStems * 2; ++c)
+        for (int c = 0; c < Engine::NumStems * 2; ++c)
             stemPtr[c] = stemChunk.data() + static_cast<size_t>(c) * static_cast<size_t>(block);
         engine.setStemBuffers(stemPtr);
     }
@@ -1072,7 +1072,7 @@ static int runOnce(int argc, char** argv)
         // Everything the instrument stands at now, and the preset's own on top of it: a parameter
         // the new preset does not name keeps the value it has, which is what applying a preset to
         // the engine that is playing did, and is how --set survives a step.
-        for (int i = 0; i < kNumParams; ++i) in.setParam(static_cast<ParamId>(i), out.getParam(static_cast<ParamId>(i)));
+        for (int i = 0; i < NumParams; ++i) in.setParam(static_cast<ParamIdE>(i), out.getParam(static_cast<ParamIdE>(i)));
         in.applyPreset(idx);
         applyNearAutoTo(in, idx, false);
         in.setClockHourOverride(clockHour);
@@ -1087,7 +1087,7 @@ static int runOnce(int argc, char** argv)
         // The conductor takes the chord over from the one it is replacing: a crossfade is meant to
         // change the instrument and not the music. With nothing to inherit it fills instead.
         {
-            int cn[ClusterBrain::kSlots]; float cv[ClusterBrain::kSlots];
+            int cn[ClusterBrain::Slots]; float cv[ClusterBrain::Slots];
             for (int which = 0; which < 2; ++which) {
                 const bool second = which == 1;
                 const int n = out.soundingCluster(cn, cv, second);
@@ -1133,7 +1133,7 @@ static int runOnce(int argc, char** argv)
     int nearLogCount = 0;
     if (tonal) {
         const TonalProbe t = tonalProbe(engine, sr, tonalSeconds);
-        std::printf("tonal: static=%.1f bass_db=%+.1f rms=%.1f\n", t.staticShare, t.bassDb, t.rms);
+        std::printf("tonal: static=%.1f bass_db=%+.1f rms=%.1f\n", t.m_staticShare, t.m_bassDb, t.m_rms);
         return 0;
     }
     if (stats) std::printf("sec, rmsL_dB, rmsR_dB, peak, voices, root, arc\n");
@@ -1145,22 +1145,22 @@ static int runOnce(int argc, char** argv)
         if (haveSet) {
             const double t0 = static_cast<double>(done) / sr, t1 = static_cast<double>(done + n) / sr;
             setFile.step(t0, t1, [&](const TimelineEvent& e) {
-                switch (e.type) {
-                case TimelineEvent::Type::Param:   live().setParam(static_cast<ParamId>(e.a), e.v); break;
-                case TimelineEvent::Type::NoteOn:  live().noteOn(e.a, e.v); break;
-                case TimelineEvent::Type::NoteOff: live().noteOff(e.a); break;
+                switch (e.m_type) {
+                case TimelineEvent::TypeE::PARAM:   live().setParam(static_cast<ParamIdE>(e.m_a), e.m_v); break;
+                case TimelineEvent::TypeE::NOTE_ON:  live().noteOn(e.m_a, e.m_v); break;
+                case TimelineEvent::TypeE::NOTE_OFF: live().noteOff(e.m_a); break;
                 }
             });
         }
         if (haveScore)
             score.step(static_cast<double>(n) / sr,
-                       [&](ParamId id) { return live().getParam(id); },
-                       [&](ParamId id, float v) { live().setParam(id, v); });
+                       [&](ParamIdE id) { return live().getParam(id); },
+                       [&](ParamIdE id, float v) { live().setParam(id, v); });
         if (haveJourney) {   // the next step, when its time has come, crossfaded in as in the plugin
             JourneyStep st; double fade = 0.0;
             if (journeyPlayer.advance(static_cast<double>(n) / sr, st, fade)) {
                 int idx = -1;
-                for (int p = 0; p < numPresets(); ++p) if (st.preset == preset(p).name) { idx = p; break; }
+                for (int p = 0; p < numPresets(); ++p) if (st.m_preset == preset(p).m_name) { idx = p; break; }
                 if (idx >= 0) {
                     // Never longer than what is left to render: a two-minute fade at the end of a
                     // ten-minute render would leave the file on the crossfade rather than on the
@@ -1168,8 +1168,8 @@ static int runOnce(int argc, char** argv)
                     const double left = static_cast<double>(total - done) / sr;
                     beginJourneyStep(idx, std::min(fade, std::max(0.0, left - 1.0)));
                     std::printf("journey step %d at %s: %s (fade %s, %s)\n", journeyPlayer.step() + 1, Journey::timeText(static_cast<double>(done) / sr).c_str(),
-                                st.preset.c_str(), Journey::timeText(fade).c_str(), Journey::timeText(journeyPlayer.remaining()).c_str());
-                } else std::fprintf(stderr, "journey: preset not in the library, kept the last: %s\n", st.preset.c_str());
+                                st.m_preset.c_str(), Journey::timeText(fade).c_str(), Journey::timeText(journeyPlayer.remaining()).c_str());
+                } else std::fprintf(stderr, "journey: preset not in the library, kept the last: %s\n", st.m_preset.c_str());
             }
         }
         live().process(L.data(), R.data(), n);
@@ -1207,16 +1207,16 @@ static int runOnce(int argc, char** argv)
             for (; nearLogCount < ev; ++nearLogCount)
                 std::printf("near event %d at %s (%.1f s): level %.2f, every %.0f s, type %d, length %.1f s, distance %.2f, dry %.2f\n",
                             nearLogCount + 1, Journey::timeText(static_cast<double>(done) / sr).c_str(), static_cast<double>(done) / sr,
-                            le->effectiveParam(ParamId::ForeLevel), le->effectiveParam(ParamId::ForeRate),
-                            static_cast<int>(le->effectiveParam(ParamId::ForeType)), le->effectiveParam(ParamId::ForeLength),
-                            le->effectiveParam(ParamId::ForeDistance), le->effectiveParam(ParamId::ForeDry));
+                            le->effectiveParam(ParamIdE::FORE_LEVEL), le->effectiveParam(ParamIdE::FORE_RATE),
+                            static_cast<int>(le->effectiveParam(ParamIdE::FORE_TYPE)), le->effectiveParam(ParamIdE::FORE_LENGTH),
+                            le->effectiveParam(ParamIdE::FORE_DISTANCE), le->effectiveParam(ParamIdE::FORE_DRY));
         }
         if (done >= total / 2) { voiceSum += live().activeVoices(); ++voiceBlocks; }
         if (!stemPrefix.empty())
-            for (int c = 0; c < Engine::kNumStems * 2; ++c)
+            for (int c = 0; c < Engine::NumStems * 2; ++c)
                 stemOut[static_cast<size_t>(c)].insert(stemOut[static_cast<size_t>(c)].end(), stemPtr[c], stemPtr[c] + n);
         if (measure && done >= total / 2)   // the settled half, as every other descriptor
-            for (int st = 0; st < Engine::kNumStems; ++st)
+            for (int st = 0; st < Engine::NumStems; ++st)
                 for (int i = 0; i < n; ++i)
                     stemE[st] += static_cast<double>(stemPtr[st * 2][i]) * stemPtr[st * 2][i]
                                + static_cast<double>(stemPtr[st * 2 + 1][i]) * stemPtr[st * 2 + 1][i];
@@ -1251,8 +1251,8 @@ static int runOnce(int argc, char** argv)
         // guide wants the master's mean between 0.3 and 0.7.
         std::printf("loudness: lufs_i=%.2f lufs_s=%.2f lufs_m=%.2f lra=%.2f truepeak=%.2f crest=%.2f"
                     " sone=%.2f sone_n5=%.2f sone_max=%.2f seconds=%.1f corr=%.3f\n",
-                    ld.integrated, ld.shortTerm, ld.momentary, ld.range, ld.truePeak, ld.crest,
-                    ld.sones, ld.sonesN5, ld.sonesMax, ld.seconds, ld.correlationMean);
+                    ld.m_integrated, ld.m_shortTerm, ld.m_momentary, ld.m_range, ld.m_truePeak, ld.m_crest,
+                    ld.m_sones, ld.m_sonesN5, ld.m_sonesMax, ld.m_seconds, ld.m_correlationMean);
     }
     if (!tapPath.empty()) {
         // The last twelve seconds, mono, decimated to about 22 kHz by averaging -- a plain box
@@ -1278,7 +1278,7 @@ static int runOnce(int argc, char** argv)
     }
     if (!writeWav(out, wav, 2, sr)) { std::fprintf(stderr, "cannot write %s\n", out.c_str()); return 1; }
     if (!stemPrefix.empty()) {
-        for (int st = 0; st < Engine::kNumStems; ++st) {
+        for (int st = 0; st < Engine::NumStems; ++st) {
             std::vector<float> inter;
             inter.reserve(stemOut[static_cast<size_t>(st) * 2].size() * 2);
             for (size_t k = 0; k < stemOut[static_cast<size_t>(st) * 2].size(); ++k) {

@@ -17,8 +17,8 @@
 typedef float float32_t;   ///< the ACLE's name for one 32-bit float lane
 
 /** @brief A NEON Q register of four float lanes, as a plain array: lane 0 is the one a load reads first. */
-struct float32x4_t { float32_t lane[4]; };
-/** @var float32x4_t::lane
+struct float32x4_t { float32_t m_lane[4]; };
+/** @var float32x4_t::m_lane
  *  the four lanes in memory order, lane[0] at the lowest address
  */
 
@@ -28,7 +28,7 @@ struct float32x4_t { float32_t lane[4]; };
  * @return   lane i = p[i]
  */
 inline float32x4_t vld1q_f32(const float32_t* p)
-{ float32x4_t r; for (int i = 0; i < 4; ++i) r.lane[i] = p[i]; return r; }
+{ float32x4_t r; for (int i = 0; i < 4; ++i) r.m_lane[i] = p[i]; return r; }
 
 /**
  * @brief Stores the four lanes to four consecutive floats.
@@ -36,7 +36,7 @@ inline float32x4_t vld1q_f32(const float32_t* p)
  * @param a  the register to store
  */
 inline void vst1q_f32(float32_t* p, float32x4_t a)
-{ for (int i = 0; i < 4; ++i) p[i] = a.lane[i]; }
+{ for (int i = 0; i < 4; ++i) p[i] = a.m_lane[i]; }
 
 /**
  * @brief Broadcasts one value into every lane.
@@ -44,7 +44,7 @@ inline void vst1q_f32(float32_t* p, float32x4_t a)
  * @return   a register with x in all four lanes
  */
 inline float32x4_t vdupq_n_f32(float32_t x)
-{ float32x4_t r; for (int i = 0; i < 4; ++i) r.lane[i] = x; return r; }
+{ float32x4_t r; for (int i = 0; i < 4; ++i) r.m_lane[i] = x; return r; }
 
 /**
  * @brief Lane-wise a + b, one IEEE addition per lane.
@@ -53,7 +53,7 @@ inline float32x4_t vdupq_n_f32(float32_t x)
  * @return   a + b per lane
  */
 inline float32x4_t vaddq_f32(float32x4_t a, float32x4_t b)
-{ for (int i = 0; i < 4; ++i) a.lane[i] += b.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] += b.m_lane[i]; return a; }
 
 /**
  * @brief Lane-wise a - b, one IEEE subtraction per lane.
@@ -62,7 +62,7 @@ inline float32x4_t vaddq_f32(float32x4_t a, float32x4_t b)
  * @return   a - b per lane
  */
 inline float32x4_t vsubq_f32(float32x4_t a, float32x4_t b)
-{ for (int i = 0; i < 4; ++i) a.lane[i] -= b.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] -= b.m_lane[i]; return a; }
 
 /**
  * @brief Lane-wise a * b, one IEEE multiplication per lane.
@@ -71,7 +71,7 @@ inline float32x4_t vsubq_f32(float32x4_t a, float32x4_t b)
  * @return   a * b per lane
  */
 inline float32x4_t vmulq_f32(float32x4_t a, float32x4_t b)
-{ for (int i = 0; i < 4; ++i) a.lane[i] *= b.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] *= b.m_lane[i]; return a; }
 
 /**
  * @brief a + b c, fused
@@ -83,7 +83,7 @@ inline float32x4_t vmulq_f32(float32x4_t a, float32x4_t b)
  * @return   fma(b, c, a) per lane
  */
 inline float32x4_t vfmaq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
-{ for (int i = 0; i < 4; ++i) a.lane[i] = std::fma(b.lane[i], c.lane[i], a.lane[i]); return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] = std::fma(b.m_lane[i], c.m_lane[i], a.m_lane[i]); return a; }
 
 /**
  * @brief a - b c, fused
@@ -95,7 +95,7 @@ inline float32x4_t vfmaq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
  * @return   fma(-b, c, a) per lane
  */
 inline float32x4_t vfmsq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
-{ for (int i = 0; i < 4; ++i) a.lane[i] = std::fma(-b.lane[i], c.lane[i], a.lane[i]); return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] = std::fma(-b.m_lane[i], c.m_lane[i], a.m_lane[i]); return a; }
 
 /**
  * @brief a + b c and a - b c, not fused (32-bit ARM without FMA)
@@ -108,7 +108,7 @@ inline float32x4_t vfmsq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
  * @return   a + (b * c) per lane, rounded twice
  */
 inline float32x4_t vmlaq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
-{ for (int i = 0; i < 4; ++i) a.lane[i] += b.lane[i] * c.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] += b.m_lane[i] * c.m_lane[i]; return a; }
 
 /**
  * @brief a - b c, not fused: the other half of vmlaq_f32 (32-bit ARM without FMA).
@@ -118,7 +118,7 @@ inline float32x4_t vmlaq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
  * @return   a - (b * c) per lane, rounded twice
  */
 inline float32x4_t vmlsq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
-{ for (int i = 0; i < 4; ++i) a.lane[i] -= b.lane[i] * c.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] -= b.m_lane[i] * c.m_lane[i]; return a; }
 
 /**
  * @brief Lane-wise minimum and maximum, for the clamp in the FM bank (Simd.h).
@@ -132,7 +132,7 @@ inline float32x4_t vmlsq_f32(float32x4_t a, float32x4_t b, float32x4_t c)
  * @return   per lane a if a < b, else b
  */
 inline float32x4_t vminq_f32(float32x4_t a, float32x4_t b)
-{ for (int i = 0; i < 4; ++i) a.lane[i] = a.lane[i] < b.lane[i] ? a.lane[i] : b.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] = a.m_lane[i] < b.m_lane[i] ? a.m_lane[i] : b.m_lane[i]; return a; }
 
 /**
  * @brief Lane-wise maximum, the other half of vminq_f32: the plain comparison the hardware does.
@@ -141,7 +141,7 @@ inline float32x4_t vminq_f32(float32x4_t a, float32x4_t b)
  * @return   per lane a if a > b, else b
  */
 inline float32x4_t vmaxq_f32(float32x4_t a, float32x4_t b)
-{ for (int i = 0; i < 4; ++i) a.lane[i] = a.lane[i] > b.lane[i] ? a.lane[i] : b.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] = a.m_lane[i] > b.m_lane[i] ? a.m_lane[i] : b.m_lane[i]; return a; }
 
 /**
  * @brief Lane-wise a / b, one IEEE division per lane: the circuit filters' Newton steps
@@ -151,7 +151,7 @@ inline float32x4_t vmaxq_f32(float32x4_t a, float32x4_t b)
  * @return   a / b per lane
  */
 inline float32x4_t vdivq_f32(float32x4_t a, float32x4_t b)
-{ for (int i = 0; i < 4; ++i) a.lane[i] /= b.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] /= b.m_lane[i]; return a; }
 
 /**
  * @brief Lane-wise negation, for the circuit filters' residuals.
@@ -159,4 +159,4 @@ inline float32x4_t vdivq_f32(float32x4_t a, float32x4_t b)
  * @return   -a per lane
  */
 inline float32x4_t vnegq_f32(float32x4_t a)
-{ for (int i = 0; i < 4; ++i) a.lane[i] = -a.lane[i]; return a; }
+{ for (int i = 0; i < 4; ++i) a.m_lane[i] = -a.m_lane[i]; return a; }

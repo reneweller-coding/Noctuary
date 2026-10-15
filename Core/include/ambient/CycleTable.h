@@ -38,15 +38,15 @@ namespace ambient {
  *
  * Built once (build() from samples, buildFromHarmonics() from spectra) on the message thread or at
  * prepare; read on the audio thread with sample(), which never allocates. Every frame is stored at
- * every level, one stored cycle being levelLength(level) samples plus kGuard guard samples, and all
+ * every level, one stored cycle being levelLength(level) samples plus Guard guard samples, and all
  * of them lie in `data` in level-major order, the levels starting at `offset`.
  */
 struct CycleTable {
-    static constexpr int kLen       = 2048;   ///< samples per cycle in the common file layout
-    static constexpr int kStoreLen  = 4096;   ///< samples per stored cycle at the finest level
-    static constexpr int kMaxFrames = 256;    ///< the most frames a table keeps; a longer file is thinned to this
-    static constexpr int kLevels    = 10;     ///< 4096 .. 32 samples, 512 .. 1 harmonics
-    static constexpr int kGuard     = 3;      ///< one sample stored before each cycle, two after it
+    static constexpr int Len       = 2048;   ///< samples per cycle in the common file layout
+    static constexpr int StoreLen  = 4096;   ///< samples per stored cycle at the finest level
+    static constexpr int MaxFrames = 256;    ///< the most frames a table keeps; a longer file is thinned to this
+    static constexpr int Levels    = 10;     ///< 4096 .. 32 samples, 512 .. 1 harmonics
+    static constexpr int Guard     = 3;      ///< one sample stored before each cycle, two after it
     /**
      * @brief The RMS the loudest frame of a table is scaled to.
      *
@@ -54,40 +54,40 @@ struct CycleTable {
      * frame (its bank is normalised to half amplitude per unit of spectrum energy), so one file
      * played by either type enters the mix at the same level.
      */
-    static constexpr float kTargetRms = 0.35355339f;
+    static constexpr float TargetRms = 0.35355339f;
 
-    int frames = 0;   ///< how many frames the table holds; 0 for an empty table
-    int offset[kLevels] = {};   ///< where each level's cycles begin in `data`
-    std::vector<float> data;   ///< every frame at every level, guards included, level-major
+    int m_frames = 0;   ///< how many frames the table holds; 0 for an empty table
+    int m_offset[Levels] = {};   ///< where each level's cycles begin in `data`
+    std::vector<float> m_data;   ///< every frame at every level, guards included, level-major
 
     /**
      * @brief Samples per stored cycle at a level: 4096 halved per level, never under 32.
-     * @param level  0 (finest) .. kLevels - 1
+     * @param level  0 (finest) .. Levels - 1
      * @return       the cycle length in samples, a power of two
      */
-    static int levelLength(int level)    { const int n = kStoreLen >> level; return n < 32 ? 32 : n; }
+    static int levelLength(int level)    { const int n = StoreLen >> level; return n < 32 ? 32 : n; }
     /**
      * @brief Highest harmonic a level keeps: 512 halved per level, never under 1 -- an eighth of the level's length.
-     * @param level  0 (finest) .. kLevels - 1
+     * @param level  0 (finest) .. Levels - 1
      * @return       the harmonic count
      */
-    static int levelHarmonics(int level) { const int h = (kStoreLen / 8) >> level; return h < 1 ? 1 : h; }
+    static int levelHarmonics(int level) { const int h = (StoreLen / 8) >> level; return h < 1 ? 1 : h; }
 
     /**
      * @brief Whether there is nothing to play.
      * @return  true when no frame was built
      */
-    bool empty() const { return frames <= 0; }
+    bool empty() const { return m_frames <= 0; }
     /**
      * @brief The stored cycle of frame f at a level; readable from index -1 to levelLength(level) + 1.
-     * @param level  0 .. kLevels - 1
+     * @param level  0 .. Levels - 1
      * @param f      the frame, 0 .. frames - 1
      * @return       a pointer at the cycle's sample 0, with the guards either side of it
      */
     const float* cycle(int level, int f) const
     {
-        return data.data() + static_cast<size_t>(offset[level])
-             + static_cast<size_t>(f) * static_cast<size_t>(levelLength(level) + kGuard) + 1;
+        return m_data.data() + static_cast<size_t>(m_offset[level])
+             + static_cast<size_t>(f) * static_cast<size_t>(levelLength(level) + Guard) + 1;
     }
     /**
      * @brief One sample of frame f at a level, at `phase` in [0, 1): Catmull-Rom through four samples.
@@ -119,7 +119,7 @@ struct CycleTable {
      *
      * Frames of `cycleLen` samples laid end to end. 2048 is the layout of Serum, Vital and Hive, but
      * any length from 8 samples is read (600 is an Adventure Kid single cycle, 256 a WaveEdit bank).
-     * More than kMaxFrames frames are thinned evenly. False if there is not one whole frame, or if
+     * More than MaxFrames frames are thinned evenly. False if there is not one whole frame, or if
      * there is nothing in the frames but silence.
      *
      * Each cycle is analysed into its harmonics (an FFT for a power-of-two length, the plain sum
@@ -136,15 +136,15 @@ struct CycleTable {
      * From Fourier coefficients, one vector per frame: element h-1 is harmonic h as the complex
      * amplitude of a cosine (|c| cos(2 pi h t + arg c)). What the built-in tables are written in.
      *
-     * The loudest frame (by Parseval) is brought to kTargetRms and every frame scaled by the same
+     * The loudest frame (by Parseval) is brought to TargetRms and every frame scaled by the same
      * gain; each level's copy is synthesised by an inverse FFT of the harmonics it keeps. At most
-     * kMaxFrames frames are taken. Not for the audio thread.
+     * MaxFrames frames are taken. Not for the audio thread.
      * @param frameCoefficients  one vector per frame; harmonics beyond the 512th are ignored
      * @return                   true when a table was built; false for no frames or all-silent ones, the table then empty
      */
     bool buildFromHarmonics(const std::vector<std::vector<std::complex<double>>>& frameCoefficients);
     /** @brief Empties the table and frees its memory. */
-    void clear() { frames = 0; data.clear(); }
+    void clear() { m_frames = 0; m_data.clear(); }
 };
 
 /**
@@ -156,7 +156,7 @@ struct CycleTable {
  * @param hz          the cycle's frequency in Hz
  * @param sampleRate  the engine's rate in Hz
  * @param current     the level the voice read last time, or a negative number for none
- * @return            0 .. CycleTable::kLevels - 1
+ * @return            0 .. CycleTable::Levels - 1
  */
 int cycleLevelFor(double hz, double sampleRate, int current);
 

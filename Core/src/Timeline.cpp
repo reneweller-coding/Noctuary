@@ -29,16 +29,16 @@ void SetTimeline::add(const TimelineEvent& e)
 {
     // Room was taken in advance (reserve): past it the event is dropped rather than the
     // vector grown, because this is called from the audio thread while a set is recorded.
-    if (capacity_ > 0 && events_.size() >= capacity_) return;
-    if (events_.empty() || events_.back().t <= e.t) { events_.push_back(e); return; }
-    auto it = std::upper_bound(events_.begin(), events_.end(), e, [](const TimelineEvent& a, const TimelineEvent& b) { return a.t < b.t; });
-    events_.insert(it, e);
+    if (m_capacity > 0 && m_events.size() >= m_capacity) return;
+    if (m_events.empty() || m_events.back().m_t <= e.m_t) { m_events.push_back(e); return; }
+    auto it = std::upper_bound(m_events.begin(), m_events.end(), e, [](const TimelineEvent& a, const TimelineEvent& b) { return a.m_t < b.m_t; });
+    m_events.insert(it, e);
 }
 
 void SetTimeline::seek(double t)
 {
-    cursor_ = 0;
-    while (cursor_ < events_.size() && events_[cursor_].t < t) ++cursor_;
+    m_cursor = 0;
+    while (m_cursor < m_events.size() && m_events[m_cursor].m_t < t) ++m_cursor;
 }
 
 bool SetTimeline::parse(const char* text)
@@ -56,10 +56,10 @@ bool SetTimeline::parse(const char* text)
         if (!*p || *p == '#') continue;
         char* endp = nullptr;
         TimelineEvent ev;
-        ev.t = std::strtod(p, &endp);
+        ev.m_t = std::strtod(p, &endp);
         // A NaN time compares false with everything: add() would break the ordering and step()
         // would stop on it for good, so everything after it would never play.
-        if (endp == p || !std::isfinite(ev.t)) return false;
+        if (endp == p || !std::isfinite(ev.m_t)) return false;
         p = endp; while (*p == ' ') ++p;
         char kind[16] = {}; int k = 0;
         while (*p && *p != ' ' && k < 15) kind[k++] = *p++;
@@ -69,12 +69,12 @@ bool SetTimeline::parse(const char* text)
             while (*p && *p != ' ' && j < 63) key[j++] = *p++;
             const ParamDesc* d = findParam(key);
             if (d == nullptr) return false;
-            ev.type = TimelineEvent::Type::Param; ev.a = static_cast<int>(d->id); ev.v = std::strtof(p, nullptr);
-            if (!std::isfinite(ev.v)) return false;
+            ev.m_type = TimelineEvent::TypeE::PARAM; ev.m_a = static_cast<int>(d->m_id); ev.m_v = std::strtof(p, nullptr);
+            if (!std::isfinite(ev.m_v)) return false;
         } else if (std::strcmp(kind, "on") == 0) {
-            ev.type = TimelineEvent::Type::NoteOn; ev.a = static_cast<int>(std::strtol(p, &endp, 10)); ev.v = std::strtof(endp, nullptr);
+            ev.m_type = TimelineEvent::TypeE::NOTE_ON; ev.m_a = static_cast<int>(std::strtol(p, &endp, 10)); ev.m_v = std::strtof(endp, nullptr);
         } else if (std::strcmp(kind, "off") == 0) {
-            ev.type = TimelineEvent::Type::NoteOff; ev.a = static_cast<int>(std::strtol(p, nullptr, 10));
+            ev.m_type = TimelineEvent::TypeE::NOTE_OFF; ev.m_a = static_cast<int>(std::strtol(p, nullptr, 10));
         } else return false;
         add(ev);
     }
@@ -87,12 +87,12 @@ std::vector<char> SetTimeline::write() const
     const char* head = "# Noctuary set: seconds, event, arguments\n";
     out.insert(out.end(), head, head + std::strlen(head));
     char line[160];
-    for (const TimelineEvent& e : events_) {
+    for (const TimelineEvent& e : m_events) {
         int len = 0;
-        switch (e.type) {
-        case TimelineEvent::Type::Param:   len = std::snprintf(line, sizeof(line), "%.3f param %s %g\n", e.t, paramDesc(static_cast<ParamId>(e.a)).key, e.v); break;
-        case TimelineEvent::Type::NoteOn:  len = std::snprintf(line, sizeof(line), "%.3f on %d %.3f\n", e.t, e.a, e.v); break;
-        case TimelineEvent::Type::NoteOff: len = std::snprintf(line, sizeof(line), "%.3f off %d\n", e.t, e.a); break;
+        switch (e.m_type) {
+        case TimelineEvent::TypeE::PARAM:   len = std::snprintf(line, sizeof(line), "%.3f param %s %g\n", e.m_t, paramDesc(static_cast<ParamIdE>(e.m_a)).m_key, e.m_v); break;
+        case TimelineEvent::TypeE::NOTE_ON:  len = std::snprintf(line, sizeof(line), "%.3f on %d %.3f\n", e.m_t, e.m_a, e.m_v); break;
+        case TimelineEvent::TypeE::NOTE_OFF: len = std::snprintf(line, sizeof(line), "%.3f off %d\n", e.m_t, e.m_a); break;
         }
         // snprintf returns the length the line WOULD have had; a huge time makes that longer
         // than the buffer, and copying that many bytes reads past it.

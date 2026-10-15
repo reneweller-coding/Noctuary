@@ -54,7 +54,7 @@ public:
      */
     void stop();
     /** @return whether a recording is in progress (true between start() and stop()) */
-    bool recording() const { return recording_.load(std::memory_order_relaxed); }
+    bool recording() const { return m_recording.load(std::memory_order_relaxed); }
     /**
      * @brief Audio thread: interleaves L/R into the ring. Frames that do not fit are dropped and counted.
      *
@@ -67,11 +67,11 @@ public:
      */
     void write(const float* L, const float* R, int n);
     /** @return frames the writer thread has put into the file so far */
-    uint64_t framesWritten() const { return framesWritten_.load(std::memory_order_relaxed); }
+    uint64_t framesWritten() const { return m_framesWritten.load(std::memory_order_relaxed); }
     /** @return frames write() had to drop because the ring was full (the disk fell behind) */
-    uint64_t framesDropped() const { return framesDropped_.load(std::memory_order_relaxed); }
+    uint64_t framesDropped() const { return m_framesDropped.load(std::memory_order_relaxed); }
     /** @return the length of the recording written so far, in seconds (0 before start()) */
-    double seconds() const { return sampleRate_ > 0 ? static_cast<double>(framesWritten()) / sampleRate_ : 0.0; }
+    double seconds() const { return m_sampleRate > 0 ? static_cast<double>(framesWritten()) / m_sampleRate : 0.0; }
 private:
     /** @brief The writer thread's loop: drains the ring to the file in chunks until stop() asks and the ring is empty. */
     void run();
@@ -80,18 +80,18 @@ private:
      * @param dataBytes  length of the data chunk to write into the header; 0 while recording
      */
     void writeHeader(uint32_t dataBytes);
-    std::vector<float> ring_;                         ///< the lock-free ring, a power of two of floats
-    std::atomic<uint32_t> head_{ 0 },   ///< @brief write position, in floats, advanced by the audio thread
-                          tail_{ 0 };   ///< in floats (frames * channels): the read position, advanced by the writer thread
-    std::atomic<bool> recording_{ false },       ///< @brief gates write(): true between start() and stop()
-                      stopRequested_{ false };   ///< tells run() to drain what is left and leave
-    std::atomic<uint64_t> framesWritten_{ 0 },   ///< @brief frames the writer put into the file (framesWritten())
-                          framesDropped_{ 0 };   ///< frames write() dropped for lack of room (framesDropped())
-    std::thread thread_;                              ///< the writer thread, joined in stop()
-    FILE* file_ = nullptr;                            ///< the open file, nullptr when idle
-    int sampleRate_ = 0,   ///< @brief the rate start() was told, for the header and seconds()
-        channels_ = 2;     ///< the channel count start() was told, for the header
-    uint32_t mask_ = 0;                               ///< ring size minus one, for wrapping indices
+    std::vector<float> m_ring;                         ///< the lock-free ring, a power of two of floats
+    std::atomic<uint32_t> m_head{ 0 },   ///< @brief write position, in floats, advanced by the audio thread
+                          m_tail{ 0 };   ///< in floats (frames * channels): the read position, advanced by the writer thread
+    std::atomic<bool> m_recording{ false },       ///< @brief gates write(): true between start() and stop()
+                      m_stopRequested{ false };   ///< tells run() to drain what is left and leave
+    std::atomic<uint64_t> m_framesWritten{ 0 },   ///< @brief frames the writer put into the file (framesWritten())
+                          m_framesDropped{ 0 };   ///< frames write() dropped for lack of room (framesDropped())
+    std::thread m_thread;                              ///< the writer thread, joined in stop()
+    FILE* m_file = nullptr;                            ///< the open file, nullptr when idle
+    int m_sampleRate = 0,   ///< @brief the rate start() was told, for the header and seconds()
+        m_channels = 2;     ///< the channel count start() was told, for the header
+    uint32_t m_mask = 0;                               ///< ring size minus one, for wrapping indices
 };
 
 } // namespace ambient

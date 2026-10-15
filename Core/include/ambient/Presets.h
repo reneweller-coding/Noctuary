@@ -27,32 +27,32 @@ namespace ambient {
 
 /** @brief One preset: its name, its settings text and the files and data blobs it may carry. */
 struct Preset {
-    const char* name;                 ///< the name shown in lists and stored by routes and OSC
-    const char* settings;             ///< "key=value;key=value", choice values may be given by name
-    const char* texture = nullptr;    ///< file the host should load into the Texture slots (pack presets)
-    const char* wavetable = nullptr;  ///< file the host should load into the User wavetable
-    const char* impulse = nullptr;    ///< file the host should load into the convolution Room
+    const char* m_name;                 ///< the name shown in lists and stored by routes and OSC
+    const char* m_settings;             ///< "key=value;key=value", choice values may be given by name
+    const char* m_texture = nullptr;    ///< file the host should load into the Texture slots (pack presets)
+    const char* m_wavetable = nullptr;  ///< file the host should load into the User wavetable
+    const char* m_impulse = nullptr;    ///< file the host should load into the convolution Room
     /// Modulation is data, not parameters (see Modulation.h): the matrix rows, and the envelope
     /// shapes separated by '~' -- the six modulation envelopes, then the four sources' own (for a
     /// slot whose Env is Own). Empty, or a list that stops early, means "the defaults" for the rest.
-    const char* mod = nullptr;        ///< the modulation matrix rows, in Modulation.h's text form
-    const char* envs = nullptr;       ///< the envelope shapes, '~' between them: Env 1..6, then Source 1..4's own
+    const char* m_mod = nullptr;        ///< the modulation matrix rows, in Modulation.h's text form
+    const char* m_envs = nullptr;       ///< the envelope shapes, '~' between them: Env 1..6, then Source 1..4's own
     /// The impulse Room Morph goes to, for a preset that morphs its room. Appended, so every preset
     /// written before it -- and every aggregate that stops at envs -- means "no B".
-    const char* impulseB = nullptr;   ///< the second impulse, or nullptr for no B
+    const char* m_impulseB = nullptr;   ///< the second impulse, or nullptr for no B
 };
 
 /**
  * @brief A preset can be the whole instrument or one section of it. The section scopes are layers: a
  *        bank that lands on top of whatever sound is loaded, resetting only its own section first.
  */
-enum class PresetScope {
-    Full,     ///< @brief every parameter that is not performance state
-    Sound,    ///< @brief everything a sound preset owns: all but the Cosmos and the near layer
-    Cosmos,   ///< @brief the Cosmos section only
-    ZPlane,   ///< @brief the Z-plane filter section only
-    Strike,   ///< @brief the Strike section only
-    Near      ///< @brief the Near Source and Near Events sections, Auto excepted
+enum class PresetScopeE {
+    FULL,     ///< @brief every parameter that is not performance state
+    SOUND,    ///< @brief everything a sound preset owns: all but the Cosmos and the near layer
+    COSMOS,   ///< @brief the Cosmos section only
+    Z_PLANE,   ///< @brief the Z-plane filter section only
+    STRIKE,   ///< @brief the Strike section only
+    NEAR_LAYER      ///< @brief the Near Source and Near Events sections, Auto excepted
 };
 
 /**
@@ -206,19 +206,19 @@ const char* nearPresetFamily(int family);
  * @param id  the parameter
  * @return    true for the Cosmos layer's parameters
  */
-inline bool isCosmosParam(ParamId id) { return sectionOf(id) == ParamSection::Cosmos; }
+inline bool isCosmosParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::COSMOS; }
 /**
  * @brief Whether a parameter belongs to the Z-plane section.
  * @param id  the parameter
  * @return    true for the Z-plane layer's parameters
  */
-inline bool isZPlaneParam(ParamId id) { return sectionOf(id) == ParamSection::ZPlane; }
+inline bool isZPlaneParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::Z_PLANE; }
 /**
  * @brief Whether a parameter belongs to the Strike section.
  * @param id  the parameter
  * @return    true for the Strike layer's parameters
  */
-inline bool isStrikeParam(ParamId id) { return sectionOf(id) == ParamSection::Strike; }
+inline bool isStrikeParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::STRIKE; }
 /**
  * @brief What a near PRESET carries: the Near Source and Near Events sections, Auto excepted.
  *
@@ -228,7 +228,7 @@ inline bool isStrikeParam(ParamId id) { return sectionOf(id) == ParamSection::St
  * @param id  the parameter
  * @return    true for the near layer's parameters other than ForeAuto
  */
-inline bool isNearParam(ParamId id)   { const ParamSection s = sectionOf(id); return (s == ParamSection::NearSource || s == ParamSection::NearEvents) && id != ParamId::ForeAuto; }
+inline bool isNearParam(ParamIdE id)   { const ParamSectionE s = sectionOf(id); return (s == ParamSectionE::NEAR_SOURCE || s == ParamSectionE::NEAR_EVENTS) && id != ParamIdE::FORE_AUTO; }
 /**
  * @brief The layer as a whole, Auto included.
  *
@@ -239,43 +239,43 @@ inline bool isNearParam(ParamId id)   { const ParamSection s = sectionOf(id); re
  * @param id  the parameter
  * @return    true for every Near Source and Near Events parameter
  */
-inline bool isNearLayerParam(ParamId id) { const ParamSection s = sectionOf(id); return s == ParamSection::NearSource || s == ParamSection::NearEvents; }
+inline bool isNearLayerParam(ParamIdE id) { const ParamSectionE s = sectionOf(id); return s == ParamSectionE::NEAR_SOURCE || s == ParamSectionE::NEAR_EVENTS; }
 /**
  * @brief Whether a parameter is one of the morph controls (performance state).
  * @param id  the parameter
  * @return    true for the Morph section
  */
-inline bool isMorphParam(ParamId id)  { return sectionOf(id) == ParamSection::Morph; }
+inline bool isMorphParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::MORPH; }
 /**
  * @brief Whether a parameter is one of the eight macros (performance state).
  * @param id  the parameter
  * @return    true for the Macros section
  */
-inline bool isMacroParam(ParamId id)  { return sectionOf(id) == ParamSection::Macros; }
+inline bool isMacroParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::MACROS; }
 /**
  * @brief Whether a parameter is the map cursor or its switch (performance state).
  * @param id  the parameter
  * @return    true for the Map section
  */
-inline bool isMapParam(ParamId id)    { return sectionOf(id) == ParamSection::Map; }
+inline bool isMapParam(ParamIdE id)    { return sectionOf(id) == ParamSectionE::MAP; }
 /**
  * @brief Whether a parameter is one of the route controls (performance state).
  * @param id  the parameter
  * @return    true for the Route section
  */
-inline bool isRouteParam(ParamId id)  { return sectionOf(id) == ParamSection::Route; }
+inline bool isRouteParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::ROUTE; }
 /**
  * @brief Whether a parameter is one of the clock controls (performance state).
  * @param id  the parameter
  * @return    true for the Clock section
  */
-inline bool isClockParam(ParamId id)  { return sectionOf(id) == ParamSection::Clock; }
+inline bool isClockParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::CLOCK; }
 /**
  * @brief Morph controls, macros, the map cursor, the route and the clock are performance state, never part of any preset.
  * @param id  the parameter
  * @return    true when no preset, of any scope, may set or clear it
  */
-inline bool isPerformanceParam(ParamId id) { return isMorphParam(id) || isMacroParam(id) || isMapParam(id) || isRouteParam(id) || isClockParam(id); }
+inline bool isPerformanceParam(ParamIdE id) { return isMorphParam(id) || isMacroParam(id) || isMapParam(id) || isRouteParam(id) || isClockParam(id); }
 /**
  * @brief Whether a preset of the given scope may SET a parameter.
  *
@@ -286,16 +286,16 @@ inline bool isPerformanceParam(ParamId id) { return isMorphParam(id) || isMacroP
  * @param scope  the preset's scope
  * @return       true when a key naming @p id in a preset of that scope is applied
  */
-inline bool inScope(ParamId id, PresetScope scope)
+inline bool inScope(ParamIdE id, PresetScopeE scope)
 {
     if (isPerformanceParam(id)) return false;
     switch (scope) {
-        case PresetScope::Cosmos: return isCosmosParam(id);
-        case PresetScope::ZPlane: return isZPlaneParam(id);
-        case PresetScope::Strike: return isStrikeParam(id);
-        case PresetScope::Near:   return isNearParam(id);
-        case PresetScope::Sound:  return !isCosmosParam(id) && !isNearParam(id);   // everything a sound preset owns
-        case PresetScope::Full:   break;
+        case PresetScopeE::COSMOS: return isCosmosParam(id);
+        case PresetScopeE::Z_PLANE: return isZPlaneParam(id);
+        case PresetScopeE::STRIKE: return isStrikeParam(id);
+        case PresetScopeE::NEAR_LAYER:   return isNearParam(id);
+        case PresetScopeE::SOUND:  return !isCosmosParam(id) && !isNearParam(id);   // everything a sound preset owns
+        case PresetScopeE::FULL:   break;
     }
     return true;
 }
@@ -319,9 +319,9 @@ inline bool inScope(ParamId id, PresetScope scope)
  * @param scope  the preset's scope
  * @return       true when applying a preset of that scope first resets @p id to its default
  */
-inline bool clearedBy(ParamId id, PresetScope scope)
+inline bool clearedBy(ParamIdE id, PresetScopeE scope)
 {
-    if (scope == PresetScope::Full && isNearLayerParam(id)) return false;
+    if (scope == PresetScopeE::FULL && isNearLayerParam(id)) return false;
     return inScope(id, scope);
 }
 
@@ -413,7 +413,7 @@ int  nearAutoPick(const char* packName, const char* presetName, float& rateFacto
  * @return     ';'-separated into buf; returns how many roots were written
  */
 int  libraryRoots(char* buf, int cap);
-constexpr int kPresetFiles = 4;   ///< how many files a pack preset may name: texture, wavetable, impulse, impulse B
+constexpr int PresetFiles = 4;   ///< how many files a pack preset may name: texture, wavetable, impulse, impulse B
 /**
  * @brief Absolute path of the file a pack preset names, or an empty string.
  *
@@ -423,7 +423,7 @@ constexpr int kPresetFiles = 4;   ///< how many files a pack preset may name: te
  * four ';'-separated files, one per slot, and the separators are kept.
  *
  * @param presetIndex  0 .. numPresets()-1; a built-in has no files
- * @param which        0 .. kPresetFiles-1
+ * @param which        0 .. PresetFiles-1
  * @return             the path, or "" for a built-in, an unnamed file or an index out of range
  */
 const char* presetFilePath(int presetIndex, int which);
@@ -470,12 +470,12 @@ float paramValueFromText(const ParamDesc& d, const char* text);
  * @param scope   which layer this apply is
  * @return        true when every key was known and every item well formed
  */
-template <class SetFn>
-bool applyPreset(const Preset& p, SetFn&& set, PresetScope scope = PresetScope::Full)
+template <class SetFnT>
+bool applyPreset(const Preset& p, SetFnT&& set, PresetScopeE scope = PresetScopeE::FULL)
 {
-    for (const ParamDesc& d : paramTable()) if (clearedBy(d.id, scope)) set(d.id, d.def);
+    for (const ParamDesc& d : paramTable()) if (clearedBy(d.m_id, scope)) set(d.m_id, d.m_def);
     bool ok = true;
-    const char* s = p.settings;
+    const char* s = p.m_settings;
     while (s && *s) {
         const char* eq = s;
         while (*eq && *eq != '=' && *eq != ';') ++eq;
@@ -493,7 +493,7 @@ bool applyPreset(const Preset& p, SetFn&& set, PresetScope scope = PresetScope::
         if (vlen >= 64) { ok = false; break; }
         for (int i = 0; i < vlen; ++i) val[i] = vs[i];
         val[vlen] = 0;
-        if (const ParamDesc* d = findParam(key)) { if (inScope(d->id, scope)) set(d->id, paramValueFromText(*d, val)); }
+        if (const ParamDesc* d = findParam(key)) { if (inScope(d->m_id, scope)) set(d->m_id, paramValueFromText(*d, val)); }
         else ok = false;
         s = (*ve == ';') ? ve + 1 : ve;
     }

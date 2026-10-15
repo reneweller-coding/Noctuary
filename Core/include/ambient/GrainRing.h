@@ -26,24 +26,24 @@ namespace ambient {
  * turned by (rc, rs) = (cos, sin)(2 pi / len) on every sample.
  */
 struct RingGrain {
-    double pos = 0.0;                                     ///< read position in frames, in [0, cap)
-    double rate = 1.0;                                    ///< frames read per sample, > 0
-    /** @var float wc
+    double m_pos = 0.0;                                     ///< read position in frames, in [0, cap)
+    double m_rate = 1.0;                                    ///< frames read per sample, > 0
+    /** @var float m_wc
      *  @brief cosine of the window's phasor: the Hann window is 0.5 - 0.5 wc */
-    /** @var float ws
+    /** @var float m_ws
      *  @brief sine of the window's phasor, carried so the phasor can be turned */
-    /** @var float rc
+    /** @var float m_rc
      *  @brief cosine of the phasor's step per sample, cos(2 pi / len) */
-    float  wc = 1.0f, ws = 0.0f, rc = 1.0f, rs = 0.0f;    ///< the window's phasor and its step (rs: the step's sine)
-    /** @var float gl
+    float  m_wc = 1.0f, m_ws = 0.0f, m_rc = 1.0f, m_rs = 0.0f;    ///< the window's phasor and its step (rs: the step's sine)
+    /** @var float m_gl
      *  @brief gain into the left output, from the grain's pan */
-    float  gl = 0.0f, gr = 0.0f;                          ///< gains into the left and the right output
-    /** @var int len
+    float  m_gl = 0.0f, m_gr = 0.0f;                          ///< gains into the left and the right output
+    /** @var int m_len
      *  @brief window length in samples: the grain is done when age reaches it */
-    int    len = 0, age = 0;                              ///< window length and samples played so far
-    int    start = 0;                                     ///< first sample of the current block it plays in
-    int    bus = 0;                                       ///< which output it plays into (the cloud's resonators)
-    int    ring = 0;                                      ///< which ring it reads (the memory's lines)
+    int    m_len = 0, m_age = 0;                              ///< window length and samples played so far
+    int    m_start = 0;                                     ///< first sample of the current block it plays in
+    int    m_bus = 0;                                       ///< which output it plays into (the cloud's resonators)
+    int    m_ring = 0;                                      ///< which ring it reads (the memory's lines)
 };
 
 /** @brief The shared body behind renderRingGrain() and renderRingGrainScalar(); not for callers. */
@@ -74,9 +74,9 @@ namespace detail {
 template <int CH, bool VEC>
 inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, float* oR, int count)
 {
-    const double base = g.pos, rate = g.rate;
-    const float gl = g.gl, gr = g.gr, rc = g.rc, rs = g.rs;
-    float wc = g.wc, ws = g.ws;
+    const double base = g.m_pos, rate = g.m_rate;
+    const float gl = g.m_gl, gr = g.m_gr, rc = g.m_rc, rs = g.m_rs;
+    float wc = g.m_wc, ws = g.m_ws;
     int i = 0;
 #if AMBIENT_HAS_AVX && defined(__AVX2__)
     if (VEC && count >= 8) {
@@ -98,15 +98,15 @@ inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, f
         const __m256 vgl = _mm256_set1_ps(gl), vgr = _mm256_set1_ps(gr);
         const __m256 vhalf = _mm256_set1_ps(0.5f);
         const __m256d vrate = _mm256_set1_pd(rate);
-        const __m256d kLo = _mm256_setr_pd(0.0, 1.0, 2.0, 3.0);
-        const __m256d kHi = _mm256_setr_pd(4.0, 5.0, 6.0, 7.0);
+        const __m256d Lo = _mm256_setr_pd(0.0, 1.0, 2.0, 3.0);
+        const __m256d Hi = _mm256_setr_pd(4.0, 5.0, 6.0, 7.0);
         const __m256i vcap = _mm256_set1_epi32(cap);
         const __m256i vlast = _mm256_set1_epi32(cap - 1);
         const __m256i vone = _mm256_set1_epi32(1);
         for (; i + 8 <= count; i += 8) {
             const __m256d b  = _mm256_set1_pd(base + rate * i);
-            const __m256d pa = _mm256_add_pd(b, _mm256_mul_pd(vrate, kLo));
-            const __m256d pb = _mm256_add_pd(b, _mm256_mul_pd(vrate, kHi));
+            const __m256d pa = _mm256_add_pd(b, _mm256_mul_pd(vrate, Lo));
+            const __m256d pb = _mm256_add_pd(b, _mm256_mul_pd(vrate, Hi));
             const __m128i ia = _mm256_cvttpd_epi32(pa);
             const __m128i ib = _mm256_cvttpd_epi32(pb);
             __m256i i0 = _mm256_insertf128_si256(_mm256_castsi128_si256(ia), ib, 1);
@@ -222,8 +222,8 @@ inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, f
     }
     double np = base + rate * count;
     if (np >= cap) np -= cap;
-    g.pos = np;
-    g.wc = wc; g.ws = ws;
+    g.m_pos = np;
+    g.m_wc = wc; g.m_ws = ws;
 }
 
 } // namespace detail

@@ -24,7 +24,7 @@ namespace ambient {
  * @param id  the parameter whose text is wanted
  * @return    one or two sentences from the table in Help.cpp, "" when it has no entry
  */
-const char* paramHelp(ParamId id);
+const char* paramHelp(ParamIdE id);
 
 /**
  * @name The manual, by topic

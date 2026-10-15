@@ -24,14 +24,14 @@
 namespace ambient {
 
 /** @brief Where the tempo and the beat position come from (the Clock Source setting, see the file comment). */
-enum class ClockSource : int {
-    Internal = 0,   ///< the Tempo parameter, running whenever Run is on
-    Host,           ///< the DAW's play head; Internal without a host
-    Midi,           ///< MIDI clock at the input
-    Count           ///< the number of sources
+enum class ClockSourceE : int {
+    INTERNAL = 0,   ///< the Tempo parameter, running whenever Run is on
+    HOST,           ///< the DAW's play head; Internal without a host
+    MIDI,           ///< MIDI clock at the input
+    COUNT           ///< the number of sources
 };
-constexpr int kNumClockSources = static_cast<int>(ClockSource::Count);   ///< entries of kClockSourceNames
-extern const char* const kClockSourceNames[kNumClockSources];   ///< display names in ClockSource order ("Internal", "Host", "MIDI"), defined in Clock.cpp
+constexpr int NumClockSources = static_cast<int>(ClockSourceE::COUNT);   ///< entries of ClockSourceNames
+extern const char* const ClockSourceNames[NumClockSources];   ///< display names in ClockSource order ("Internal", "Host", "MIDI"), defined in Clock.cpp
 
 /**
  * @brief Note divisions, in quarter-note beats (4/4).
@@ -39,55 +39,55 @@ extern const char* const kClockSourceNames[kNumClockSources];   ///< display nam
  * The long ones exist for the slow parameters: an
  * arc over 64 bars is a quarter of an hour at 90 bpm.
  *
- * The value is a parameter's Sync choice. kSyncBeats gives each division its length in beats (0
- * for Free), kSyncDivNames its display name; D is dotted (one and a half times), T triplet (two
+ * The value is a parameter's Sync choice. SyncBeats gives each division its length in beats (0
+ * for Free), SyncDivNames its display name; D is dotted (one and a half times), T triplet (two
  * thirds). Free is 0 so that "any nonzero value" means "synced" (syncOn()).
  */
-enum class SyncDiv : int {
-    Free = 0,   ///< the knob's own time; the tempo is ignored
-    Bars64,     ///< 256 beats
-    Bars32,     ///< 128 beats
-    Bars16,     ///< 64 beats
-    Bars8,      ///< 32 beats
-    Bars4,      ///< 16 beats
-    Bars2,      ///< 8 beats
-    Bar1,       ///< 4 beats
-    Half,           ///< 2 beats
-    HalfT,          ///< 4/3 beats, a half-note triplet
-    Quarter,        ///< 1 beat
-    QuarterD,       ///< 1.5 beats, a dotted quarter
-    QuarterT,       ///< 2/3 beat, a quarter triplet
-    Eighth,         ///< 1/2 beat
-    EighthD,        ///< 3/4 beat, a dotted eighth
-    EighthT,        ///< 1/3 beat, an eighth triplet
-    Sixteenth,      ///< 1/4 beat
-    SixteenthT,     ///< 1/6 beat, a sixteenth triplet
-    ThirtySecond,   ///< 1/8 beat
-    Count   ///< the number of divisions
+enum class SyncDivE : int {
+    FREE = 0,   ///< the knob's own time; the tempo is ignored
+    BARS64,     ///< 256 beats
+    BARS32,     ///< 128 beats
+    BARS16,     ///< 64 beats
+    BARS8,      ///< 32 beats
+    BARS4,      ///< 16 beats
+    BARS2,      ///< 8 beats
+    BAR1,       ///< 4 beats
+    HALF,           ///< 2 beats
+    HALF_T,          ///< 4/3 beats, a half-note triplet
+    QUARTER,        ///< 1 beat
+    QUARTER_D,       ///< 1.5 beats, a dotted quarter
+    QUARTER_T,       ///< 2/3 beat, a quarter triplet
+    EIGHTH,         ///< 1/2 beat
+    EIGHTH_D,        ///< 3/4 beat, a dotted eighth
+    EIGHTH_T,        ///< 1/3 beat, an eighth triplet
+    SIXTEENTH,      ///< 1/4 beat
+    SIXTEENTH_T,     ///< 1/6 beat, a sixteenth triplet
+    THIRTY_SECOND,   ///< 1/8 beat
+    COUNT   ///< the number of divisions
 };
-constexpr int kNumSyncDivs = static_cast<int>(SyncDiv::Count);   ///< entries of kSyncDivNames and kSyncBeats
-extern const char* const kSyncDivNames[kNumSyncDivs];   ///< display names in SyncDiv order ("Free", "64 bars", ... "1/32"), defined in Clock.cpp
-extern const double      kSyncBeats[kNumSyncDivs];   ///< length of each division in quarter-note beats; 0 for Free
+constexpr int NumSyncDivs = static_cast<int>(SyncDivE::COUNT);   ///< entries of SyncDivNames and SyncBeats
+extern const char* const SyncDivNames[NumSyncDivs];   ///< display names in SyncDiv order ("Free", "64 bars", ... "1/32"), defined in Clock.cpp
+extern const double      SyncBeats[NumSyncDivs];   ///< length of each division in quarter-note beats; 0 for Free
 
 /**
  * @brief Whether a Sync choice means "take the time from the tempo".
  * @param div  a parameter's Sync value, as an int (SyncDiv)
  * @return     true for every division but Free; false for Free and for anything out of range
  */
-inline bool   syncOn(int div) { return div > 0 && div < kNumSyncDivs; }
+inline bool   syncOn(int div) { return div > 0 && div < NumSyncDivs; }
 /**
  * @brief Length of a division in quarter-note beats.
  * @param div  a SyncDiv as an int
- * @return     kSyncBeats of the division; 0 for Free or out of range
+ * @return     SyncBeats of the division; 0 for Free or out of range
  */
-inline double syncBeats(int div) { return syncOn(div) ? kSyncBeats[div] : 0.0; }
+inline double syncBeats(int div) { return syncOn(div) ? SyncBeats[div] : 0.0; }
 /**
  * @brief Seconds of one division at a tempo; 0 for Free.
  * @param div  a SyncDiv as an int
  * @param bpm  the tempo in quarter notes per minute; anything under 1 counts as 1
  * @return     beats x 60 / bpm, or 0 when the division is Free
  */
-inline double syncSeconds(int div, double bpm) { return syncOn(div) ? kSyncBeats[div] * 60.0 / (bpm > 1.0 ? bpm : 1.0) : 0.0; }
+inline double syncSeconds(int div, double bpm) { return syncOn(div) ? SyncBeats[div] * 60.0 / (bpm > 1.0 ? bpm : 1.0) : 0.0; }
 /**
  * @brief A rate in Hz for one cycle per division; 0 for Free.
  * @param div  a SyncDiv as an int

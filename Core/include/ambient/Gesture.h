@@ -28,30 +28,30 @@ namespace ambient {
  * them (GestureLayer::setDefaultMappings()). Count doubles as "no input": a mapping whose clutch
  * is Count is always engaged, and gestureInputFromName() reads "none" and "-" as Count.
  */
-enum class GestureInput : int {
-    HandDistance,     ///< distance between the hands, 0.1 .. 0.8 m
-    LeftHeight, RightHeight,     ///< hand height, 0.9 .. 1.7 m
-    LeftForward, RightForward,   ///< hand reach in front of the head, 0.2 .. 0.7 m
-    LeftTilt, RightTilt,         ///< palm roll, -1 .. 1
-    LeftPinch, RightPinch,       ///< pinch strength 0 .. 1
-    HeadYaw, HeadPitch, HeadRoll,   ///< -1 .. 1 (= -90 .. 90 degrees)
-    Custom0, Custom1, Custom2, Custom3, Custom4, Custom5, Custom6, Custom7,   ///< eight free inputs, 0 .. 1, for whatever the host sends (Macro A..H by default)
-    Count   ///< how many inputs; as a mapping's clutch it means "always engaged"
+enum class GestureInputE : int {
+    HAND_DISTANCE,     ///< distance between the hands, 0.1 .. 0.8 m
+    LEFT_HEIGHT, RIGHT_HEIGHT,     ///< hand height, 0.9 .. 1.7 m
+    LEFT_FORWARD, RIGHT_FORWARD,   ///< hand reach in front of the head, 0.2 .. 0.7 m
+    LEFT_TILT, RIGHT_TILT,         ///< palm roll, -1 .. 1
+    LEFT_PINCH, RIGHT_PINCH,       ///< pinch strength 0 .. 1
+    HEAD_YAW, HEAD_PITCH, HEAD_ROLL,   ///< -1 .. 1 (= -90 .. 90 degrees)
+    CUSTOM0, CUSTOM1, CUSTOM2, CUSTOM3, CUSTOM4, CUSTOM5, CUSTOM6, CUSTOM7,   ///< eight free inputs, 0 .. 1, for whatever the host sends (Macro A..H by default)
+    COUNT   ///< how many inputs; as a mapping's clutch it means "always engaged"
 };
-constexpr int kNumGestureInputs = static_cast<int>(GestureInput::Count);   ///< size of the input table
+constexpr int NumGestureInputs = static_cast<int>(GestureInputE::COUNT);   ///< size of the input table
 /**
  * @brief The name of an input as the mapping text spells it ("HandDistance", "LeftPinch", ...).
  * @param in  the input; Count and anything out of range read as "none"
  * @return    a static string, never null
  */
-const char* gestureInputName(GestureInput);
+const char* gestureInputName(GestureInputE);
 /**
  * @brief The inverse of gestureInputName(): an input from its name.
  * @param name  the spelling, case-sensitive; "none" and "-" mean Count (no input, always engaged)
  * @param out   receives the input on success and is left alone otherwise
  * @return      false for a null pointer or a name that is not in the table
  */
-bool gestureInputFromName(const char* name, GestureInput& out);
+bool gestureInputFromName(const char* name, GestureInputE& out);
 
 /**
  * @brief One row of the vocabulary: an input, the parameter it drives and how.
@@ -62,15 +62,15 @@ bool gestureInputFromName(const char* name, GestureInput& out);
  * is one, stands above 0.5. The text form is one line per mapping (GestureLayer::parseMappings()).
  */
 struct GestureMapping {
-    GestureInput input = GestureInput::HandDistance;   ///< the input that drives the parameter
-    ParamId      param = ParamId::MorphPos;            ///< the parameter driven, by id (the text form uses its key)
-    /** @var float min
+    GestureInputE m_input = GestureInputE::HAND_DISTANCE;   ///< the input that drives the parameter
+    ParamIdE      m_param = ParamIdE::MORPH_POS;            ///< the parameter driven, by id (the text form uses its key)
+    /** @var float m_min
      *  @brief parameter value at input 0 (at input 1 when inverted) */
-    float        min = 0.0f, max = 1.0f;      ///< parameter value at input 0 and 1
-    float        smoothSeconds = 0.3f;        ///< one-pole glide of the parameter
-    float        deadzone = 0.01f;            ///< ignore input changes smaller than this
-    GestureInput clutch = GestureInput::Count; ///< Count = always engaged; else engaged while clutch > 0.5
-    bool         invert = false;              ///< read the input as 1 - x, so a rising hand lowers the parameter
+    float        m_min = 0.0f, m_max = 1.0f;      ///< parameter value at input 0 and 1
+    float        m_smoothSeconds = 0.3f;        ///< one-pole glide of the parameter
+    float        m_deadzone = 0.01f;            ///< ignore input changes smaller than this
+    GestureInputE m_clutch = GestureInputE::COUNT; ///< Count = always engaged; else engaged while clutch > 0.5
+    bool         m_invert = false;              ///< read the input as 1 - x, so a rising hand lowers the parameter
 };
 
 /**
@@ -84,7 +84,7 @@ struct GestureMapping {
  */
 class GestureLayer {
 public:
-    static constexpr int kMaxMappings = 32;   ///< rows the mapping table holds; addMapping() refuses the thirty-third
+    static constexpr int MaxMappings = 32;   ///< rows the mapping table holds; addMapping() refuses the thirty-third
 
     /** @brief Every input at 0 and the default vocabulary (setDefaultMappings()) in place. */
     GestureLayer();
@@ -97,13 +97,13 @@ public:
      * @param in          the input; anything out of range is ignored
      * @param normalised  its value, clamped to 0 .. 1
      */
-    void setInput(GestureInput in, float normalised);
+    void setInput(GestureInputE in, float normalised);
     /**
      * @brief The current value of an input.
      * @param in  the input; a real one, not Count
      * @return    its last value, 0 .. 1
      */
-    float input(GestureInput in) const { return inputs_[static_cast<int>(in)].load(std::memory_order_relaxed); }
+    float input(GestureInputE in) const { return m_inputs[static_cast<int>(in)].load(std::memory_order_relaxed); }
     /** @} */
     /**
      * @brief Raw poses in metres (OpenXR convention: x right, y up, z back), relative to the stage.
@@ -154,14 +154,14 @@ public:
      */
     void  startCalibration(float seconds);
     /** @brief Whether a calibration is running. @return true until its time is up */
-    bool  calibrating() const { return calibRemaining_ > 0.0f; }
+    bool  calibrating() const { return m_calibRemaining > 0.0f; }
     /**
      * @brief Whether real hand data (setHand: the Quest app, or its bridge over OSC) arrived in the last @p seconds
      *        (01.10.2026: the panel shows the headset's controls only while a headset sends, or when asked to). Any thread.
      */
     bool handsRecently(double seconds) const;
     /** @brief How far the running calibration has come. @return 0..1; 1 when none is running */
-    float calibrationProgress() const { return calibTotal_ > 0.0f ? 1.0f - calibRemaining_ / calibTotal_ : 1.0f; }
+    float calibrationProgress() const { return m_calibTotal > 0.0f ? 1.0f - m_calibRemaining / m_calibTotal : 1.0f; }
     /**
      * @brief "hLow hHigh rNear rFar dNear dFar" for persistence.
      *
@@ -189,7 +189,7 @@ public:
      * @brief The calibrated hand height that reads as 1.
      * @return metres
      */
-    float heightLow() const { return hLow_; }  float heightHigh() const { return hHigh_; }
+    float heightLow() const { return m_hLow; }  float heightHigh() const { return m_hHigh; }
     /**
      * @fn float GestureLayer::distNear() const
      * @brief The hand distance that reads as 0.
@@ -200,7 +200,7 @@ public:
      * @brief The hand distance that reads as 1.
      * @return metres
      */
-    float distNear() const { return dNear_; }  float distFar() const { return dFar_; }
+    float distNear() const { return m_dNear; }  float distFar() const { return m_dFar; }
 
     /**
      * @brief While suspended (a menu is open), clutched mappings hold their values.
@@ -208,32 +208,32 @@ public:
      * Unclutched mappings (the macros, the head) keep moving. Any thread.
      * @param s  true to suspend
      */
-    void setSuspended(bool s) { suspended_.store(s, std::memory_order_relaxed); }
+    void setSuspended(bool s) { m_suspended.store(s, std::memory_order_relaxed); }
     /** @brief Whether the clutched mappings are held. @return the flag setSuspended() set */
-    bool suspended() const { return suspended_.load(std::memory_order_relaxed); }
+    bool suspended() const { return m_suspended.load(std::memory_order_relaxed); }
     /**
      * @brief Rest zone: share of the calibrated height below which both hands count as resting (0 = off).
      * @param share  0 .. 1 of the height range; 0 switches the rest zone off
      */
-    void  setRestZone(float share) { restZone_ = share; }
+    void  setRestZone(float share) { m_restZone = share; }
     /** @brief The rest-zone share. @return what setRestZone() set; 0.08 by default */
-    float restZone() const { return restZone_; }
+    float restZone() const { return m_restZone; }
     /** @brief Whether both hands hung below the rest zone at the last update(); nothing is written while they do. @return true while resting */
-    bool  resting() const { return resting_; }
+    bool  resting() const { return m_resting; }
 
     /**
      * @name Mappings, message thread (the audio thread reads them; keep changes rare).
      * @{ */
-    /** @brief How many rows are in force. @return 0 .. kMaxMappings */
-    int  numMappings() const { return numMappings_.load(std::memory_order_acquire); }
+    /** @brief How many rows are in force. @return 0 .. MaxMappings */
+    int  numMappings() const { return m_numMappings.load(std::memory_order_acquire); }
     /**
      * @brief One row.
      * @param i  0 .. numMappings() - 1
      * @return   the row
      */
-    const GestureMapping& mapping(int i) const { return maps_[i]; }
+    const GestureMapping& mapping(int i) const { return m_maps[i]; }
     /** @brief Zero FIRST, so the audio thread stops reading before the table underneath it is rewritten. */
-    void clearMappings() { numMappings_.store(0, std::memory_order_release); }
+    void clearMappings() { m_numMappings.store(0, std::memory_order_release); }
     /**
      * @brief Appends a row with a fresh running state and publishes the new count once it is written.
      * @param m  the row
@@ -262,7 +262,7 @@ public:
      *
      * @param text  the lines
      * @return      false for a null pointer, an unknown input or parameter key, a line with fewer
-     *              than four fields, or more rows than kMaxMappings
+     *              than four fields, or more rows than MaxMappings
      */
     bool parseMappings(const char* text);
     /**
@@ -293,40 +293,40 @@ public:
      * @param sink   receives (parameter, new value) for every row that moved
      * @return       how many rows called the sink
      */
-    template <class Sink>
-    int update(double dt, Sink&& sink)
+    template <class SinkT>
+    int update(double dt, SinkT&& sink)
     {
-        if (calibRemaining_ > 0.0f) {
-            calibRemaining_ -= static_cast<float>(dt);
-            if (calibRemaining_ <= 0.0f) { calibRemaining_ = 0.0f; finishCalibration(); }
+        if (m_calibRemaining > 0.0f) {
+            m_calibRemaining -= static_cast<float>(dt);
+            if (m_calibRemaining <= 0.0f) { m_calibRemaining = 0.0f; finishCalibration(); }
             return 0;   // nothing moves while calibrating
         }
-        // Rest zone: both hands hanging low (below restZone_ of the calibrated height) means
+        // Rest zone: both hands hanging low (below m_restZone of the calibrated height) means
         // "I am not playing" -- nothing is written, so the arms can drop without touching the sound.
-        resting_ = restZone_ > 0.0f && handsSeen_ && input(GestureInput::LeftHeight) < restZone_ && input(GestureInput::RightHeight) < restZone_;
-        if (resting_) return 0;
+        m_resting = m_restZone > 0.0f && m_handsSeen && input(GestureInputE::LEFT_HEIGHT) < m_restZone && input(GestureInputE::RIGHT_HEIGHT) < m_restZone;
+        if (m_resting) return 0;
         const bool susp = suspended();
         int written = 0;
-        const int count = numMappings_.load(std::memory_order_acquire);
+        const int count = m_numMappings.load(std::memory_order_acquire);
         for (int i = 0; i < count; ++i) {
-            const GestureMapping& m = maps_[i];
-            State& s = state_[i];
-            float x = input(m.input);
-            const bool engaged = !(susp && m.clutch != GestureInput::Count) && ((m.clutch == GestureInput::Count) || input(m.clutch) > 0.5f);
-            if (!s.seen) {   // a mapping only acts once its input has moved; the glide starts from the rest position
-                s.seen = true; s.lastInput = x;
-                s.value = m.min + (m.max - m.min) * (m.invert ? 1.0f - x : x); s.primed = true;
+            const GestureMapping& m = m_maps[i];
+            State& s = m_state[i];
+            float x = input(m.m_input);
+            const bool engaged = !(susp && m.m_clutch != GestureInputE::COUNT) && ((m.m_clutch == GestureInputE::COUNT) || input(m.m_clutch) > 0.5f);
+            if (!s.m_seen) {   // a mapping only acts once its input has moved; the glide starts from the rest position
+                s.m_seen = true; s.m_lastInput = x;
+                s.m_value = m.m_min + (m.m_max - m.m_min) * (m.m_invert ? 1.0f - x : x); s.m_primed = true;
             }
-            if (engaged && std::fabs(x - s.lastInput) >= m.deadzone) { s.lastInput = x; s.hasTarget = true; }
-            if (!s.hasTarget) continue;
-            float u = s.lastInput;
-            if (m.invert) u = 1.0f - u;
-            const float target = m.min + (m.max - m.min) * u;
-            const float coef = m.smoothSeconds <= 1e-4 ? 1.0f : 1.0f - static_cast<float>(std::exp(-dt / m.smoothSeconds));
-            const float next = s.value + (target - s.value) * coef;
-            if (std::fabs(next - s.value) > 1e-6f || !s.sent) {
-                s.value = next; s.sent = true;
-                sink(m.param, next);
+            if (engaged && std::fabs(x - s.m_lastInput) >= m.m_deadzone) { s.m_lastInput = x; s.m_hasTarget = true; }
+            if (!s.m_hasTarget) continue;
+            float u = s.m_lastInput;
+            if (m.m_invert) u = 1.0f - u;
+            const float target = m.m_min + (m.m_max - m.m_min) * u;
+            const float coef = m.m_smoothSeconds <= 1e-4 ? 1.0f : 1.0f - static_cast<float>(std::exp(-dt / m.m_smoothSeconds));
+            const float next = s.m_value + (target - s.m_value) * coef;
+            if (std::fabs(next - s.m_value) > 1e-6f || !s.m_sent) {
+                s.m_value = next; s.m_sent = true;
+                sink(m.m_param, next);
                 ++written;
             }
         }
@@ -334,27 +334,27 @@ public:
     }
 
     /** @brief How many times setInput() has been called, for a display that shows the controller is alive. @return a running count */
-    uint64_t inputUpdates() const { return updates_.load(std::memory_order_relaxed); }
+    uint64_t inputUpdates() const { return m_updates.load(std::memory_order_relaxed); }
 
 private:
-    /** @var float State::lastInput
+    /** @var float State::m_lastInput
      *  @brief the input value last taken as a target; the deadzone is measured from it */
-    /** @var float State::value
+    /** @var float State::m_value
      *  @brief the parameter value as glided so far, what the sink last received */
-    /** @var bool State::seen
+    /** @var bool State::m_seen
      *  @brief the row has read its input once and primed value from it */
-    /** @var bool State::hasTarget
+    /** @var bool State::m_hasTarget
      *  @brief an input change has been taken since the row was made; nothing is sent before */
-    /** @var bool State::primed
+    /** @var bool State::m_primed
      *  @brief set with seen when value was placed at the input's position; update() does not read it back */
-    /** @var bool State::sent
+    /** @var bool State::m_sent
      *  @brief the sink has received this row at least once (the first send happens even without a move) */
     /** @brief Per-row running state of update(): what was last taken, where the glide stands, and the flags of its life. */
-    struct State { float lastInput = 0.0f, value = 0.0f; bool seen = false, hasTarget = false, primed = false, sent = false; };
-    std::atomic<float> inputs_[kNumGestureInputs];   ///< the input table, 0 .. 1 each, written from any thread
-    std::atomic<uint64_t> updates_{ 0 };             ///< setInput() calls so far
-    GestureMapping maps_[kMaxMappings];              ///< the rows; only the first numMappings_ are in force
-    State state_[kMaxMappings];                      ///< one running state per row
+    struct State { float m_lastInput = 0.0f, m_value = 0.0f; bool m_seen = false, m_hasTarget = false, m_primed = false, m_sent = false; };
+    std::atomic<float> m_inputs[NumGestureInputs];   ///< the input table, 0 .. 1 each, written from any thread
+    std::atomic<uint64_t> m_updates{ 0 };             ///< setInput() calls so far
+    GestureMapping m_maps[MaxMappings];              ///< the rows; only the first m_numMappings are in force
+    State m_state[MaxMappings];                      ///< one running state per row
     /**
      * @brief Written by the message thread when the mapping text is edited, read by the audio thread
      *        every block.
@@ -362,44 +362,44 @@ private:
      * Published after the entry it counts has been written, so a half-written
      * mapping is never acted on.
      */
-    std::atomic<int> numMappings_ { 0 };
+    std::atomic<int> m_numMappings { 0 };
     /** @brief Takes the extremes a calibration gathered over into the six bounds, where a range wide enough was explored (see startCalibration()). */
     void finishCalibration();
-    /** @var float handX_[2]
+    /** @var float m_handX[2]
      *  @brief the last raw x of each hand in metres (0 left, 1 right) */
-    /** @var float handY_[2]
+    /** @var float m_handY[2]
      *  @brief the last raw y (height) of each hand */
-    float handX_[2] = {}, handY_[2] = {}, handZ_[2] = {};   ///< handZ_: the last raw z of each hand; the hand distance is taken across all three
-    /** @var float hLow_
+    float m_handX[2] = {}, m_handY[2] = {}, m_handZ[2] = {};   ///< m_handZ: the last raw z of each hand; the hand distance is taken across all three
+    /** @var float m_hLow
      *  @brief hand height that reads as 0, metres (the calibration; see setCalibration()) */
-    /** @var float hHigh_
+    /** @var float m_hHigh
      *  @brief hand height that reads as 1, metres */
-    /** @var float rNear_
+    /** @var float m_rNear
      *  @brief reach (-z) that reads as 0, metres */
-    /** @var float rFar_
+    /** @var float m_rFar
      *  @brief reach that reads as 1, metres */
-    /** @var float dNear_
+    /** @var float m_dNear
      *  @brief hand distance that reads as 0, metres */
-    float hLow_ = 0.9f, hHigh_ = 1.7f, rNear_ = 0.2f, rFar_ = 0.7f, dNear_ = 0.1f, dFar_ = 0.8f;   ///< dFar_: hand distance that reads as 1, metres
-    std::atomic<bool> suspended_{ false };   ///< a menu is open: clutched rows hold
-    float restZone_ = 0.08f;                 ///< share of the height range under which both hands count as resting; 0 = off
-    bool  resting_ = false;                  ///< both hands were in the rest zone at the last update()
-    bool  handsSeen_ = false;   ///< set once real hand data arrived (setHand); knobs and OSC gestures alone never "rest"
-    std::atomic<int64_t> handStampMs_{ 0 };   ///< when setHand was last called (steady clock, ms; 0 never)
-    /** @var float calibRemaining_
+    float m_hLow = 0.9f, m_hHigh = 1.7f, m_rNear = 0.2f, m_rFar = 0.7f, m_dNear = 0.1f, m_dFar = 0.8f;   ///< m_dFar: hand distance that reads as 1, metres
+    std::atomic<bool> m_suspended{ false };   ///< a menu is open: clutched rows hold
+    float m_restZone = 0.08f;                 ///< share of the height range under which both hands count as resting; 0 = off
+    bool  m_resting = false;                  ///< both hands were in the rest zone at the last update()
+    bool  m_handsSeen = false;   ///< set once real hand data arrived (setHand); knobs and OSC gestures alone never "rest"
+    std::atomic<int64_t> m_handStampMs{ 0 };   ///< when setHand was last called (steady clock, ms; 0 never)
+    /** @var float m_calibRemaining
      *  @brief seconds of the running calibration left; 0 when none runs */
-    float calibRemaining_ = 0.0f, calibTotal_ = 0.0f;   ///< calibTotal_: its full length, for the progress
-    /** @var float calMinY_
+    float m_calibRemaining = 0.0f, m_calibTotal = 0.0f;   ///< m_calibTotal: its full length, for the progress
+    /** @var float m_calMinY
      *  @brief lowest hand height seen during the calibration (the six extremes are reset by startCalibration()) */
-    /** @var float calMaxY_
+    /** @var float m_calMaxY
      *  @brief highest hand height seen */
-    /** @var float calMinD_
+    /** @var float m_calMinD
      *  @brief smallest hand distance seen */
-    /** @var float calMaxD_
+    /** @var float m_calMaxD
      *  @brief largest hand distance seen */
-    /** @var float calMinR_
+    /** @var float m_calMinR
      *  @brief shortest reach seen */
-    float calMinY_ = 1e9f, calMaxY_ = -1e9f, calMinD_ = 1e9f, calMaxD_ = -1e9f, calMinR_ = 1e9f, calMaxR_ = -1e9f;   ///< calMaxR_: the longest reach seen
+    float m_calMinY = 1e9f, m_calMaxY = -1e9f, m_calMinD = 1e9f, m_calMaxD = -1e9f, m_calMinR = 1e9f, m_calMaxR = -1e9f;   ///< m_calMaxR: the longest reach seen
 };
 
 } // namespace ambient

@@ -53,15 +53,15 @@ namespace ambient {
  * The engine owns one. prepare() allocates eight seconds of stereo history and the resonators'
  * rings; the set*() calls take the parameters once a block; setHarmony() tells it the scale and
  * the root the scatter and the resonators follow; process() runs on the audio thread in
- * sub-blocks of kSub samples -- the loop hands its output back one sub-block late, and the
+ * sub-blocks of Sub samples -- the loop hands its output back one sub-block late, and the
  * resonators run per sub-block on the buses the grains were rendered into. quiet() lets the
  * engine skip process() when there is nothing to hear.
  */
 class GrainCloud {
 public:
-    static constexpr int kMaxGrains = 64;   ///< grains that may sound at once; a spawn beyond this is dropped
-    static constexpr int kMaxRes = 12;      ///< resonators at most, and buses for the grains to be routed into
-    static constexpr int kSub = 64;          ///< the loop's delay and the resonators' block, in samples
+    static constexpr int MaxGrains = 64;   ///< grains that may sound at once; a spawn beyond this is dropped
+    static constexpr int MaxRes = 12;      ///< resonators at most, and buses for the grains to be routed into
+    static constexpr int Sub = 64;          ///< the loop's delay and the resonators' block, in samples
 
     /**
      * @brief Allocates the history and the rings, seeds the generator and clears everything.
@@ -137,7 +137,7 @@ public:
      * history into its left gain and the right into its right, so a wide field keeps its sides in
      * the cloud; identical channels give exactly the cloud the mono sum would.
      *
-     * Audio thread, any n; the work runs in sub-blocks of kSub samples.
+     * Audio thread, any n; the work runs in sub-blocks of Sub samples.
      * @param inL   left input, n samples (the far bus)
      * @param inR   right input
      * @param outL  left output; the cloud is added to what is there
@@ -147,45 +147,45 @@ public:
     void process(const float* inL, const float* inR, float* outL, float* outR, int n);
     /**
      * @brief No grain sounding and nothing left ringing: the engine may stop calling process().
-     * @return  true when live_ is 0 and the quarter-second tail after the last sound has run out
+     * @return  true when m_live is 0 and the quarter-second tail after the last sound has run out
      */
-    bool quiet() const { return live_ == 0 && tail_ <= 0; }
+    bool quiet() const { return m_live == 0 && m_tail <= 0; }
 
     /**
      * @name For the self test.
      * @{ */
     /**
      * @brief How many scatter intervals the current harmony gives.
-     * @return  the length of the interval list, at most kMaxIv
+     * @return  the length of the interval list, at most MaxIv
      */
-    int       intervalCount() const { return numIv_; }
+    int       intervalCount() const { return m_numIv; }
     /**
      * @brief One scatter interval, most consonant first.
      * @param k  0 .. intervalCount() - 1
      * @return   the interval as a frequency ratio, within an octave either way
      */
-    float     interval(int k) const { return iv_[k]; }
+    float     interval(int k) const { return m_iv[k]; }
     /**
      * @brief How many resonators the current harmony and notes setting give.
-     * @return  0 .. kMaxRes
+     * @return  0 .. MaxRes
      */
-    int       resonatorCount() const { return numRes_; }
+    int       resonatorCount() const { return m_numRes; }
     /**
      * @brief One resonator's note.
      * @param k  0 .. resonatorCount() - 1
      * @return   its frequency in Hz
      */
-    float     resonatorHz(int k) const { return resHz_[k]; }
+    float     resonatorHz(int k) const { return m_resHz[k]; }
     /**
      * @brief How many grains have been started since prepare().
      * @return  the count, for checking the onset statistics
      */
-    long long grainsStarted() const { return started_; }
+    long long grainsStarted() const { return m_started; }
     /** @} */
 private:
-    static constexpr int kMaxIv = 3 * FixedScale::kMax;   ///< the most scatter intervals: every degree in three octaves
-    static constexpr int kFbLen = 256;       ///< the loop's ring: a power of two, at least two sub-blocks
-    static constexpr int kCombLen = 1024;    ///< a comb resonator's ring (down to 47 Hz)
+    static constexpr int MaxIv = 3 * FixedScale::Max;   ///< the most scatter intervals: every degree in three octaves
+    static constexpr int FbLen = 256;       ///< the loop's ring: a power of two, at least two sub-blocks
+    static constexpr int CombLen = 1024;    ///< a comb resonator's ring (down to 47 Hz)
     /**
      * @brief Draws the onsets of one sub-block and spawns a grain at each.
      *
@@ -201,7 +201,7 @@ private:
      *
      * The grain starts far enough behind the write head that it is still behind it when it ends,
      * read faster than the head moves; where the history is too short for that the grain is
-     * shortened, and dropped if that leaves under 32 samples. Nothing happens at kMaxGrains.
+     * shortened, and dropped if that leaves under 32 samples. Nothing happens at MaxGrains.
      * @param w0      the history's write frame at the start of the sub-block
      * @param offset  the sample within the sub-block the grain begins at
      */
@@ -260,96 +260,96 @@ private:
      */
     void   buildResonators();
 
-    std::vector<float> hist_;                ///< the history, left and right interleaved, cap_ frames
-    int       cap_ = 0,   ///< frames in the history: eight seconds and slack
-              w_ = 0;     ///< the write frame
-    long long t_ = 0;                        ///< samples processed: the loop's ring is indexed by it
-    RingGrain grains_[kMaxGrains];   ///< the grains; the first live_ of them are sounding
-    int       live_ = 0;   ///< how many grains are sounding
-    long long started_ = 0;   ///< grains started since prepare(), for the self test
-    Rng       rng_;   ///< the cloud's own generator
-    double    sr_ = 48000.0;   ///< sample rate in Hz
-    float     density_ = 12.0f,   ///< mean grains per second
-              size_ = 250.0f,     ///< mean grain length in ms
-              pitch_ = 0.3f,      ///< chance of a fixed transposition
-              spray_ = 0.8f,      ///< how far back a grain may start, in seconds
-              level_ = 0.7f;      ///< the output gain the knob asks for
-    float     levelCur_ = 0.7f;   ///< the output gain as it glides towards level_
-    int       tail_ = 0;   ///< samples of ring-out left after the last audible sub-block (a quarter of a second)
-    bool      routing_ = false;              ///< grains go to their resonators' buses this sub-block
+    std::vector<float> m_hist;                ///< the history, left and right interleaved, m_cap frames
+    int       m_cap = 0,   ///< frames in the history: eight seconds and slack
+              m_w = 0;     ///< the write frame
+    long long m_t = 0;                        ///< samples processed: the loop's ring is indexed by it
+    RingGrain m_grains[MaxGrains];   ///< the grains; the first m_live of them are sounding
+    int       m_live = 0;   ///< how many grains are sounding
+    long long m_started = 0;   ///< grains started since prepare(), for the self test
+    Rng       m_rng;   ///< the cloud's own generator
+    double    m_sr = 48000.0;   ///< sample rate in Hz
+    float     m_density = 12.0f,   ///< mean grains per second
+              m_size = 250.0f,     ///< mean grain length in ms
+              m_pitch = 0.3f,      ///< chance of a fixed transposition
+              m_spray = 0.8f,      ///< how far back a grain may start, in seconds
+              m_level = 0.7f;      ///< the output gain the knob asks for
+    float     m_levelCur = 0.7f;   ///< the output gain as it glides towards m_level
+    int       m_tail = 0;   ///< samples of ring-out left after the last audible sub-block (a quarter of a second)
+    bool      m_routing = false;              ///< grains go to their resonators' buses this sub-block
     /**
      * @name onsets
      * @{ */
-    float     swarm_ = 0.0f;   ///< the Swarm knob, 0 .. 1
-    double    hazard_ = 0.0,        ///< the intensity integrated since the last onset
-              nextHazard_ = 0.0,    ///< the exponential draw the hazard is compared against
-              excite_ = 0.0,        ///< the Hawkes excitation every onset raises
-              exciteDecay_ = 1.0;   ///< the excitation's per-sample decay, a quarter of a second
+    float     m_swarm = 0.0f;   ///< the Swarm knob, 0 .. 1
+    double    m_hazard = 0.0,        ///< the intensity integrated since the last onset
+              m_nextHazard = 0.0,    ///< the exponential draw the hazard is compared against
+              m_excite = 0.0,        ///< the Hawkes excitation every onset raises
+              m_exciteDecay = 1.0;   ///< the excitation's per-sample decay, a quarter of a second
     /** @} */
     /**
      * @name the loop
      * @{ */
-    float     feedback_ = 0.0f,    ///< the Feedback knob, 0 .. 1
-              toneHz_ = 5000.0f,   ///< the loop's low-pass frequency in Hz
-              toneC_ = 0.5f,       ///< its one-pole coefficient
-              fbCur_ = 0.0f;       ///< the loop gain (feedback x the loop gain constant) as it glides
-    float     fbRingL_[kFbLen] = {},   ///< the loop's output, left, indexed by t_; read a sub-block later into the history
-              fbRingR_[kFbLen] = {};   ///< the loop's output, right
-    float     toneL_ = 0.0f,   ///< the loop low pass's state, left
-              toneR_ = 0.0f;   ///< and right
-    float     dcxL_ = 0.0f,    ///< the DC blocker's last input, left
-              dcxR_ = 0.0f,    ///< and right
-              dcyL_ = 0.0f,    ///< the DC blocker's last output, left
-              dcyR_ = 0.0f,    ///< and right
-              dcR_ = 0.997f;   ///< the blocker's pole, 20 Hz at the rate
-    TanhAdaa  satL_,   ///< the loop's antialiased saturation, left
-              satR_;   ///< and right
-    float     loopEnv_ = 0.0f,   ///< the loop's mean level, which throttles the feedback towards the ceiling
-              envC_ = 0.0002f;   ///< the envelope's one-pole coefficient, 100 ms
-    SpectralShifter shift_;   ///< the transposition on every pass, when shiftSemis_ is not 0
-    float     shiftSemis_ = 0.0f;   ///< the Shift knob in semitones; 0 bypasses shift_
+    float     m_feedback = 0.0f,    ///< the Feedback knob, 0 .. 1
+              m_toneHz = 5000.0f,   ///< the loop's low-pass frequency in Hz
+              m_toneC = 0.5f,       ///< its one-pole coefficient
+              m_fbCur = 0.0f;       ///< the loop gain (feedback x the loop gain constant) as it glides
+    float     m_fbRingL[FbLen] = {},   ///< the loop's output, left, indexed by m_t; read a sub-block later into the history
+              m_fbRingR[FbLen] = {};   ///< the loop's output, right
+    float     m_toneL = 0.0f,   ///< the loop low pass's state, left
+              m_toneR = 0.0f;   ///< and right
+    float     m_dcxL = 0.0f,    ///< the DC blocker's last input, left
+              m_dcxR = 0.0f,    ///< and right
+              m_dcyL = 0.0f,    ///< the DC blocker's last output, left
+              m_dcyR = 0.0f,    ///< and right
+              m_dcR = 0.997f;   ///< the blocker's pole, 20 Hz at the rate
+    TanhAdaa  m_satL,   ///< the loop's antialiased saturation, left
+              m_satR;   ///< and right
+    float     m_loopEnv = 0.0f,   ///< the loop's mean level, which throttles the feedback towards the ceiling
+              m_envC = 0.0002f;   ///< the envelope's one-pole coefficient, 100 ms
+    SpectralShifter m_shift;   ///< the transposition on every pass, when m_shiftSemis is not 0
+    float     m_shiftSemis = 0.0f;   ///< the Shift knob in semitones; 0 bypasses m_shift
     /** @} */
     /**
      * @name the scatter
      * @{ */
-    double    transposeRatio_ = 1.0;   ///< the Transpose knob as a ratio, 2^(semitones / 12)
-    float     scatter_ = 0.0f;   ///< the Scatter knob, 0 .. 1
-    float     iv_[kMaxIv] = {};   ///< the scale's intervals as ratios, most consonant first (buildIntervals)
-    int       numIv_ = 0;   ///< how many of iv_ are filled
+    double    m_transposeRatio = 1.0;   ///< the Transpose knob as a ratio, 2^(semitones / 12)
+    float     m_scatter = 0.0f;   ///< the Scatter knob, 0 .. 1
+    float     m_iv[MaxIv] = {};   ///< the scale's intervals as ratios, most consonant first (buildIntervals)
+    int       m_numIv = 0;   ///< how many of m_iv are filled
     /** @} */
     /**
      * @name the resonators
      * @{ */
-    float     resAmount_ = 0.0f,   ///< the resonator mix the knob asks for
-              resCur_ = 0.0f,      ///< the mix as it glides
-              resDecay_ = 2.5f;    ///< ring time to -60 dB in seconds
-    int       resMode_ = 0,    ///< 0 band, 1 comb
-              resNotes_ = 1,   ///< 0 scale, 1 chord, 2 fifths, 3 octaves
-              numRes_ = 0;     ///< how many resonators are built
-    float     resHz_[kMaxRes] = {},            ///< each resonator's note in Hz
-              resTheta_[kMaxRes] = {},         ///< its angle per sample as it glides
-              resThetaTarget_[kMaxRes] = {};   ///< the angle its note asks for
-    float     bandU_[kMaxRes][2] = {},   ///< the phasor filter's real part per resonator and channel
-              bandV_[kMaxRes][2] = {};   ///< its imaginary part, which is the output
-    float     combLp_[kMaxRes][2] = {};   ///< the comb loops' one-pole state per resonator and channel
-    std::vector<float> comb_;                ///< kMaxRes x 2 x kCombLen
-    int       combW_ = 0;   ///< the combs' write index, shared
-    float     combA_ = 0.5f,     ///< the comb loops' one-pole coefficient, 6 kHz
-              combLag_ = 1.0f;   ///< that one-pole's delay at low frequencies in samples, taken off the comb's delay
-    float     busL_[kMaxRes][kSub] = {},   ///< the grains of one sub-block, left, per resonator (bus 0 alone when not routing)
-              busR_[kMaxRes][kSub] = {};   ///< and right
+    float     m_resAmount = 0.0f,   ///< the resonator mix the knob asks for
+              m_resCur = 0.0f,      ///< the mix as it glides
+              m_resDecay = 2.5f;    ///< ring time to -60 dB in seconds
+    int       m_resMode = 0,    ///< 0 band, 1 comb
+              m_resNotes = 1,   ///< 0 scale, 1 chord, 2 fifths, 3 octaves
+              m_numRes = 0;     ///< how many resonators are built
+    float     m_resHz[MaxRes] = {},            ///< each resonator's note in Hz
+              m_resTheta[MaxRes] = {},         ///< its angle per sample as it glides
+              m_resThetaTarget[MaxRes] = {};   ///< the angle its note asks for
+    float     m_bandU[MaxRes][2] = {},   ///< the phasor filter's real part per resonator and channel
+              m_bandV[MaxRes][2] = {};   ///< its imaginary part, which is the output
+    float     m_combLp[MaxRes][2] = {};   ///< the comb loops' one-pole state per resonator and channel
+    std::vector<float> m_comb;                ///< MaxRes x 2 x CombLen
+    int       m_combW = 0;   ///< the combs' write index, shared
+    float     m_combA = 0.5f,     ///< the comb loops' one-pole coefficient, 6 kHz
+              m_combLag = 1.0f;   ///< that one-pole's delay at low frequencies in samples, taken off the comb's delay
+    float     m_busL[MaxRes][Sub] = {},   ///< the grains of one sub-block, left, per resonator (bus 0 alone when not routing)
+              m_busR[MaxRes][Sub] = {};   ///< and right
     /** @} */
     /**
      * @name the harmony
      * @{ */
-    bool      haveHarmony_ = false;   ///< whether setHarmony() has been given a scale yet
-    double    scaleSig_ = -1.0,   ///< a signature of the scale's degrees, so a repeat call is recognised
-              tonicHz_ = 0.0,     ///< the tonic in Hz
-              rootHz_ = 0.0,      ///< the conductor's root in Hz
-              period_ = 2.0;      ///< the scale's repeating interval as a ratio (2 for an octave)
-    int       count_ = 12;   ///< degrees in the scale
-    double    ratios_[FixedScale::kMax] = {};   ///< the degrees as ratios over the tonic, a zero degree taken as 1
-    double    rot_[FixedScale::kMax] = {};   ///< the scale's intervals above the conductor's root
+    bool      m_haveHarmony = false;   ///< whether setHarmony() has been given a scale yet
+    double    m_scaleSig = -1.0,   ///< a signature of the scale's degrees, so a repeat call is recognised
+              m_tonicHz = 0.0,     ///< the tonic in Hz
+              m_rootHz = 0.0,      ///< the conductor's root in Hz
+              m_period = 2.0;      ///< the scale's repeating interval as a ratio (2 for an octave)
+    int       m_count = 12;   ///< degrees in the scale
+    double    m_ratios[FixedScale::Max] = {};   ///< the degrees as ratios over the tonic, a zero degree taken as 1
+    double    m_rot[FixedScale::Max] = {};   ///< the scale's intervals above the conductor's root
     /** @} */
 };
 

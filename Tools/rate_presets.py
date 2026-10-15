@@ -84,7 +84,7 @@ def preset_names(with_packs):
     p = os.path.join(ROOT, "Core", "src", "Presets.cpp")
     with open(p, encoding="utf-8") as f:
         text = strip_line_comments(f.read())
-    body = text[text.index("const Preset kPresets[]"):text.index("int numCosmosPresets")]
+    body = text[text.index("const Preset Presets[]"):text.index("int numCosmosPresets")]
     # A preset is { "name", "settings" } with the settings possibly split over several lines,
     # and since Tools/enrich_presets.py ran, most of them carry four more fields:
     # { "name", "settings", nullptr, nullptr, nullptr, "matrix" }. Without the tail this pattern

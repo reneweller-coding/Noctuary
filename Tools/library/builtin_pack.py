@@ -29,9 +29,9 @@ LIT = re.compile(r'"((?:[^"\\]|\\.)*)"')
 
 
 def rows(text):
-    """Every row of kPresets: (start, end, fields) with fields a list of strings or None (nullptr),
+    """Every row of Presets: (start, end, fields) with fields a list of strings or None (nullptr),
     the name first. Offsets are into `text`."""
-    start = text.index("const Preset kPresets[] = {")
+    start = text.index("const Preset Presets[] = {")
     end = text.index("\n};", start)
     i = text.index("{", start) + 1
     out = []
@@ -117,7 +117,7 @@ def import_(pack):
         text = f.read()
     crlf = "\r\n" in text
     text = text.replace("\r\n", "\n")
-    head_end = text.index("const Preset kPresets[] = {")
+    head_end = text.index("const Preset Presets[] = {")
     body_end = text.index("\n};", head_end)
     head, body, tail = text[:head_end], text[head_end:body_end], text[body_end:]
     changed = 0

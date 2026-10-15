@@ -45,7 +45,7 @@ std::vector<float> makeImpulse(uint64_t seed, int n, float sr, float rt60)
     Rng rng; rng.seed(seed);
     std::vector<float> h(static_cast<size_t>(n));
     float lp1 = 0.0f, lp2 = 0.0f;
-    const float a1 = 1.0f - std::exp(-kTwoPi * 300.0f / sr), a2 = 1.0f - std::exp(-kTwoPi * 3000.0f / sr);
+    const float a1 = 1.0f - std::exp(-TwoPi * 300.0f / sr), a2 = 1.0f - std::exp(-TwoPi * 3000.0f / sr);
     for (int i = 0; i < n; ++i) {
         const float w = rng.bipolar();
         lp1 += a1 * (w - lp1);
@@ -59,14 +59,14 @@ std::vector<float> makeImpulse(uint64_t seed, int n, float sr, float rt60)
 }
 
 /** @brief What one case measured: the three numbers of one row of the table. */
-struct Result { double cpuPercent, worstMs, p999Ms; };
-/** @var Result::cpuPercent
+struct Result { double m_cpuPercent, m_worstMs, m_p999Ms; };
+/** @var Result::m_cpuPercent
  *  CPU time spent in the callbacks as a percentage of the audio time they rendered
  */
-/** @var Result::worstMs
+/** @var Result::m_worstMs
  *  the slowest single callback, in milliseconds
  */
-/** @var Result::p999Ms
+/** @var Result::m_p999Ms
  *  the 99.9th-percentile callback, in milliseconds
  */
 
@@ -116,11 +116,11 @@ Result run(int kind, float len, float maxSeconds, int block, double seconds, flo
         total += d;
     }
     Result r;
-    r.cpuPercent = 100.0 * (total / 1000.0) / (calls * block / static_cast<double>(sr));
-    r.worstMs = *std::max_element(ms.begin(), ms.end());
+    r.m_cpuPercent = 100.0 * (total / 1000.0) / (calls * block / static_cast<double>(sr));
+    r.m_worstMs = *std::max_element(ms.begin(), ms.end());
     const size_t at = std::min(ms.size() - 1, static_cast<size_t>(0.999 * ms.size()));
     std::nth_element(ms.begin(), ms.begin() + static_cast<long>(at), ms.end());
-    r.p999Ms = ms[at];
+    r.m_p999Ms = ms[at];
     return r;
 }
 
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
         if (len > longest) break;
         for (int kind = 0; kind < 3; ++kind) {
             const Result r = run(kind, len, longest, block, seconds, sr);
-            std::printf("%6.0f s  %-14s %8.2f %10.3f %10.3f\n", len, names[kind], r.cpuPercent, r.worstMs, r.p999Ms);
+            std::printf("%6.0f s  %-14s %8.2f %10.3f %10.3f\n", len, names[kind], r.m_cpuPercent, r.m_worstMs, r.m_p999Ms);
             std::fflush(stdout);
         }
     }

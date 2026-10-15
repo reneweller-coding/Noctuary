@@ -10,10 +10,10 @@
  * message thread, resamples a file to the engine rate with a Kaiser-windowed sinc, shrinks one that
  * is longer than the cap instead of cutting it, normalises its energy and trims the silence at the
  * end, and analyse() cuts it into each stage's partitions and keeps of every partition only the bins
- * that carry more than its share of kDropBudget. makeDefaultImpulse() is the built-in hall, a
+ * that carry more than its share of DropBudget. makeDefaultImpulse() is the built-in hall, a
  * statistical late field synthesised in the short-time Fourier domain from the octave design tables.
  * The audio-thread side is process(), which moves samples between the input history and the output
- * ring and calls step() once every head_ samples; step() begins a stage's block when one is complete
+ * ring and calls step() once every m_head samples; step() begins a stage's block when one is complete
  * and hands every stage in flight its share of the work left before its answer is due, which
  * advance() spends phase by phase -- the input transform, the push into the delay line, the sum over
  * the partitions, the inverse, the delivery -- through the resumable StepFft, so no step ever pays
@@ -33,25 +33,25 @@ namespace ambient {
 
 namespace {
 
-constexpr double kPiD = 3.14159265358979323846;   ///< pi in double: the twiddles, the windows, the sinc
+constexpr double PiD = 3.14159265358979323846;   ///< pi in double: the twiddles, the windows, the sinc
 /**
  * @brief All that the band limits and the trimmed end may leave out of an impulse, together: -100 dB of
  *        its energy.
  *
  * A fifth goes to the silence at the end, the rest is shared by the partitions.
  */
-constexpr double kDropBudget = 1.0e-10;
-constexpr long long kUnlimited = std::numeric_limits<long long>::max() / 4;   ///< a budget no transform can spend: the offline callers, and the last step before a block is due
+constexpr double DropBudget = 1.0e-10;
+constexpr long long Unlimited = std::numeric_limits<long long>::max() / 4;   ///< a budget no transform can spend: the offline callers, and the last step before a block is due
 /**
  * @brief Where a stage's block in progress stands (Stage::phase), in the order advance() runs them.
  *
- * kIdle: nothing in flight; the stage waits for its next block to complete. kFftIn: the forward
- * transform of the input block, one channel after the other. kPush: the transform goes into the
- * frequency-domain delay line and the accumulators are cleared. kSum: the products over the
- * partitions, resumable at any bin. kInvert: the inverse transform of the sum, channel by channel.
- * kDeliver: the result, scaled by 1/N, is added into the output ring where the block is due.
+ * IDLE: nothing in flight; the stage waits for its next block to complete. FFT_IN: the forward
+ * transform of the input block, one channel after the other. PUSH: the transform goes into the
+ * frequency-domain delay line and the accumulators are cleared. SUM: the products over the
+ * partitions, resumable at any bin. INVERT: the inverse transform of the sum, channel by channel.
+ * DELIVER: the result, scaled by 1/N, is added into the output ring where the block is due.
  */
-enum Phase { kIdle = 0, kFftIn, kPush, kSum, kInvert, kDeliver };
+enum PhaseE { IDLE = 0, FFT_IN, PUSH, SUM, INVERT, DELIVER };
 
 /**
  * @brief @p v rounded up to a multiple of eight: the bin counts, so the vector paths cover every bin.
@@ -359,21 +359,21 @@ double besselI0(double x)
 std::vector<float> resample(const float* x, int n, double ratio, long limit)
 {
     if (std::fabs(ratio - 1.0) < 1.0e-9) return std::vector<float>(x, x + std::min<long>(n, limit));
-    constexpr int kHalf = 16, kTable = 512;
-    constexpr double kBeta = 7.0;
+    constexpr int Half = 16, Table = 512;
+    constexpr double Beta = 7.0;
     const double a = std::min(1.0, ratio) * 0.95;   // kernel a * sinc(a u): cutoff 0.475 of the lower rate
-    const double i0b = besselI0(kBeta);
-    std::vector<float> table(static_cast<size_t>(kHalf * kTable + 2), 0.0f);
-    for (int j = 0; j <= kHalf * kTable; ++j) {
-        const double v = static_cast<double>(j) / kTable;   // in zero crossings
-        const double z = v / kHalf;
-        const double sinc = j == 0 ? 1.0 : std::sin(kPiD * v) / (kPiD * v);
-        table[static_cast<size_t>(j)] = static_cast<float>(sinc * besselI0(kBeta * std::sqrt(std::max(0.0, 1.0 - z * z))) / i0b);
+    const double i0b = besselI0(Beta);
+    std::vector<float> table(static_cast<size_t>(Half * Table + 2), 0.0f);
+    for (int j = 0; j <= Half * Table; ++j) {
+        const double v = static_cast<double>(j) / Table;   // in zero crossings
+        const double z = v / Half;
+        const double sinc = j == 0 ? 1.0 : std::sin(PiD * v) / (PiD * v);
+        table[static_cast<size_t>(j)] = static_cast<float>(sinc * besselI0(Beta * std::sqrt(std::max(0.0, 1.0 - z * z))) / i0b);
     }
     const long outN = std::min(limit, static_cast<long>(std::floor(static_cast<double>(n) * ratio)));
     std::vector<float> y(static_cast<size_t>(std::max(0L, outN)), 0.0f);
-    const double reach = kHalf / a;      // in input samples
-    const double toTable = a * kTable;
+    const double reach = Half / a;      // in input samples
+    const double toTable = a * Table;
     for (long i = 0; i < outN; ++i) {
         const double t = static_cast<double>(i) / ratio;
         const int j0 = std::max(0, static_cast<int>(std::ceil(t - reach)));
@@ -382,7 +382,7 @@ std::vector<float> resample(const float* x, int n, double ratio, long limit)
         for (int j = j0; j <= j1; ++j) {
             const double v = std::fabs(t - j) * toTable;
             const int iv = static_cast<int>(v);
-            if (iv >= kHalf * kTable) continue;
+            if (iv >= Half * Table) continue;
             const double f = v - iv;
             acc += x[j] * (table[static_cast<size_t>(iv)] + f * (table[static_cast<size_t>(iv) + 1] - table[static_cast<size_t>(iv)]));
         }
@@ -432,7 +432,7 @@ void shrinkToCap(std::vector<float>* ch, int channels, double sr)
     for (size_t i = 0; i < len; ++i) {
         double g = w;
         if (i >= len - k) {
-            const double c = std::cos(0.5 * kPiD * static_cast<double>(i - (len - k)) / static_cast<double>(k));
+            const double c = std::cos(0.5 * PiD * static_cast<double>(i - (len - k)) / static_cast<double>(k));
             g *= c * c;
         }
         for (int c = 0; c < channels; ++c) ch[c][i] = static_cast<float>(ch[c][i] * g);
@@ -445,10 +445,10 @@ void shrinkToCap(std::vector<float>* ch, int channels, double sr)
  * The built-in hall's design, solved offline by the generator that makes the library's rooms
  * (Tools/ImpulseGen/roomgen.py): the initial spectrum in dB and T60 in seconds at the octaves.
  * @{ */
-constexpr int kOct = 9;   ///< the octave bands, 63 Hz .. 16 kHz
-constexpr double kOctHz[kOct]  = { 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0 };   ///< the bands' centres in Hz
-constexpr double kOctB[kOct]   = { -3.7, -3.5, -2.5, -1.1, -1.4, -3.9, -7.5, -11.9, -17.9 };   ///< the initial spectrum at each band, in dB
-constexpr double kOctT60[kOct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85, 0.37 };   ///< the decay to -60 dB at each band, in seconds
+constexpr int Oct = 9;   ///< the octave bands, 63 Hz .. 16 kHz
+constexpr double OctHz[Oct]  = { 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0 };   ///< the bands' centres in Hz
+constexpr double OctB[Oct]   = { -3.7, -3.5, -2.5, -1.1, -1.4, -3.9, -7.5, -11.9, -17.9 };   ///< the initial spectrum at each band, in dB
+constexpr double OctT60[Oct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85, 0.37 };   ///< the decay to -60 dB at each band, in seconds
 /** @} */
 
 /**
@@ -463,23 +463,23 @@ void octaveDesign(double f, double& bDb, double& t60)
 {
     f = std::max(f, 1.0);
     const double lf = std::log2(f);
-    if (f <= kOctHz[0]) {
-        bDb = kOctB[0] - 10.0 * std::log10(1.0 + std::pow(40.0 / f, 4.0)) + 10.0 * std::log10(1.0 + std::pow(40.0 / kOctHz[0], 4.0));
-        t60 = kOctT60[0];
+    if (f <= OctHz[0]) {
+        bDb = OctB[0] - 10.0 * std::log10(1.0 + std::pow(40.0 / f, 4.0)) + 10.0 * std::log10(1.0 + std::pow(40.0 / OctHz[0], 4.0));
+        t60 = OctT60[0];
         return;
     }
-    if (f >= kOctHz[kOct - 1]) {
-        const double top = kOctHz[kOct - 1] / 14000.0, here = f / 14000.0;
-        bDb = kOctB[kOct - 1] - 10.0 * std::log10(1.0 + here * here) + 10.0 * std::log10(1.0 + top * top);
-        t60 = kOctT60[kOct - 1];
+    if (f >= OctHz[Oct - 1]) {
+        const double top = OctHz[Oct - 1] / 14000.0, here = f / 14000.0;
+        bDb = OctB[Oct - 1] - 10.0 * std::log10(1.0 + here * here) + 10.0 * std::log10(1.0 + top * top);
+        t60 = OctT60[Oct - 1];
         return;
     }
     int i = 0;
-    while (i + 2 < kOct && f >= kOctHz[i + 1]) ++i;
-    const double a = std::log2(kOctHz[i]), b = std::log2(kOctHz[i + 1]);
+    while (i + 2 < Oct && f >= OctHz[i + 1]) ++i;
+    const double a = std::log2(OctHz[i]), b = std::log2(OctHz[i + 1]);
     const double u = (lf - a) / (b - a);
-    bDb = kOctB[i] + u * (kOctB[i + 1] - kOctB[i]);
-    t60 = std::exp(std::log(kOctT60[i]) + u * (std::log(kOctT60[i + 1]) - std::log(kOctT60[i])));
+    bDb = OctB[i] + u * (OctB[i + 1] - OctB[i]);
+    t60 = std::exp(std::log(OctT60[i]) + u * (std::log(OctT60[i + 1]) - std::log(OctT60[i])));
 }
 
 // ---------------------------------------------------------------- rings
@@ -524,26 +524,26 @@ void ringTake(std::vector<float>& ring, int at, float* dst, int m)
 
 void Convolver::StepFft::init(int size)
 {
-    n = size;
+    m_n = size;
     int bits = 0;
-    while ((1 << bits) < n) ++bits;
-    rev.assign(static_cast<size_t>(n), 0);
-    for (int i = 0; i < n; ++i) {
+    while ((1 << bits) < m_n) ++bits;
+    m_rev.assign(static_cast<size_t>(m_n), 0);
+    for (int i = 0; i < m_n; ++i) {
         int r = 0;
         for (int b = 0; b < bits; ++b) if (i & (1 << b)) r |= 1 << (bits - 1 - b);
-        rev[static_cast<size_t>(i)] = r;
+        m_rev[static_cast<size_t>(i)] = r;
     }
-    cs.assign(static_cast<size_t>(n), 0.0f);
-    snF.assign(static_cast<size_t>(n), 0.0f);
-    snI.assign(static_cast<size_t>(n), 0.0f);
-    for (int h = 1; h < n; h <<= 1)
+    m_cs.assign(static_cast<size_t>(m_n), 0.0f);
+    m_snF.assign(static_cast<size_t>(m_n), 0.0f);
+    m_snI.assign(static_cast<size_t>(m_n), 0.0f);
+    for (int h = 1; h < m_n; h <<= 1)
         for (int k = 0; k < h; ++k) {
-            const double ang = kPiD * k / h;
-            cs[static_cast<size_t>(h + k)]  = static_cast<float>(std::cos(ang));
-            snI[static_cast<size_t>(h + k)] = static_cast<float>(std::sin(ang));
-            snF[static_cast<size_t>(h + k)] = -snI[static_cast<size_t>(h + k)];
+            const double ang = PiD * k / h;
+            m_cs[static_cast<size_t>(h + k)]  = static_cast<float>(std::cos(ang));
+            m_snI[static_cast<size_t>(h + k)] = static_cast<float>(std::sin(ang));
+            m_snF[static_cast<size_t>(h + k)] = -m_snI[static_cast<size_t>(h + k)];
         }
-    work = static_cast<long long>(n) / 4 + static_cast<long long>(n) * bits / 2;
+    m_work = static_cast<long long>(m_n) / 4 + static_cast<long long>(m_n) * bits / 2;
 }
 
 /**
@@ -555,29 +555,29 @@ void Convolver::StepFft::init(int size)
  */
 bool Convolver::runFft(const StepFft& f, FftRun& r, float* re, float* im, bool inverse, long long& budget)
 {
-    const int n = f.n;
-    if (r.half == 0) {
-        while (r.pos < n) {
+    const int n = f.m_n;
+    if (r.m_half == 0) {
+        while (r.m_pos < n) {
             if (budget <= 0) return false;
-            const int end = std::min(n, r.pos + 4096);
-            for (int i = r.pos; i < end; ++i) {
-                const int j = f.rev[static_cast<size_t>(i)];
+            const int end = std::min(n, r.m_pos + 4096);
+            for (int i = r.m_pos; i < end; ++i) {
+                const int j = f.m_rev[static_cast<size_t>(i)];
                 if (j > i) { std::swap(re[i], re[j]); std::swap(im[i], im[j]); }
             }
-            budget -= (end - r.pos) / 4 + 1;
-            r.pos = end;
+            budget -= (end - r.m_pos) / 4 + 1;
+            r.m_pos = end;
         }
-        r.half = 1; r.pos = 0;
+        r.m_half = 1; r.m_pos = 0;
     }
-    const float* sn = inverse ? f.snI.data() : f.snF.data();
-    while (r.half < n) {
-        const int h = r.half;
-        const float* c = f.cs.data() + h;
+    const float* sn = inverse ? f.m_snI.data() : f.m_snF.data();
+    while (r.m_half < n) {
+        const int h = r.m_half;
+        const float* c = f.m_cs.data() + h;
         const float* s = sn + h;
-        while (r.pos < n) {
+        while (r.m_pos < n) {
             if (budget <= 0) return false;
-            const int end = std::min(n, r.pos + std::max(2 * h, 1024));
-            for (int start = r.pos; start < end; start += 2 * h) {
+            const int end = std::min(n, r.m_pos + std::max(2 * h, 1024));
+            for (int start = r.m_pos; start < end; start += 2 * h) {
                 float* ra = re + start; float* ia = im + start;
                 float* rb = ra + h;     float* ib = ia + h;
                 int k = 0;
@@ -613,10 +613,10 @@ bool Convolver::runFft(const StepFft& f, FftRun& r, float* re, float* im, bool i
                     ra[k] += tr;        ia[k] += ti;
                 }
             }
-            budget -= (end - r.pos) / 2;
-            r.pos = end;
+            budget -= (end - r.m_pos) / 2;
+            r.m_pos = end;
         }
-        r.half <<= 1; r.pos = 0;
+        r.m_half <<= 1; r.m_pos = 0;
     }
     return true;
 }
@@ -625,54 +625,54 @@ bool Convolver::runFft(const StepFft& f, FftRun& r, float* re, float* im, bool i
 
 Convolver::Convolver()
 {
-    active_[0].store(-1, std::memory_order_relaxed);
-    active_[1].store(-1, std::memory_order_relaxed);
+    m_active[0].store(-1, std::memory_order_relaxed);
+    m_active[1].store(-1, std::memory_order_relaxed);
 }
 
 void Convolver::prepare(double sampleRate, float maxSeconds)
 {
-    sr_ = sampleRate;
+    m_sr = sampleRate;
     const int scale = sampleRate < 64000.0 ? 1 : (sampleRate < 128000.0 ? 2 : 4);
-    head_ = 256 * scale;
-    capSamples_ = std::max<long>(head_, static_cast<long>(std::ceil(maxSeconds * sr_)));
+    m_head = 256 * scale;
+    m_capSamples = std::max<long>(m_head, static_cast<long>(std::ceil(maxSeconds * m_sr)));
     // Partition sizes and where their stretches begin. Every stage keeps start >= 2 block - 2 head,
     // so its answer is never due before its next block: see the header.
-    const int  blocks[kStages] = { 256 * scale, 2048 * scale, 16384 * scale };
-    const long starts[kStages] = { 0L, 4096L * scale, 32768L * scale };
-    stages_ = 0;
+    const int  blocks[Stages] = { 256 * scale, 2048 * scale, 16384 * scale };
+    const long starts[Stages] = { 0L, 4096L * scale, 32768L * scale };
+    m_stages = 0;
     long ringNeed = 0;
     int histNeed = 0;
-    for (int g = 0; g < kStages; ++g) {
-        if (capSamples_ <= starts[g]) break;
-        const long end = g + 1 < kStages ? std::min(starts[g + 1], capSamples_) : capSamples_;
-        Stage& s = stage_[g];
+    for (int g = 0; g < Stages; ++g) {
+        if (m_capSamples <= starts[g]) break;
+        const long end = g + 1 < Stages ? std::min(starts[g + 1], m_capSamples) : m_capSamples;
+        Stage& s = m_stage[g];
         s = Stage{};
-        s.block = blocks[g];
-        s.start = static_cast<int>(starts[g]);
-        s.capParts = static_cast<int>((end - starts[g] + s.block - 1) / s.block);
-        s.slot = s.block + 8;
-        s.fft.init(2 * s.block);
+        s.m_block = blocks[g];
+        s.m_start = static_cast<int>(starts[g]);
+        s.m_capParts = static_cast<int>((end - starts[g] + s.m_block - 1) / s.m_block);
+        s.m_slot = s.m_block + 8;
+        s.m_fft.init(2 * s.m_block);
         for (int c = 0; c < 2; ++c) {
-            s.fdlRe[c].assign(static_cast<size_t>(s.capParts) * static_cast<size_t>(s.slot), 0.0f);
-            s.fdlIm[c].assign(static_cast<size_t>(s.capParts) * static_cast<size_t>(s.slot), 0.0f);
-            s.re[c].assign(static_cast<size_t>(2 * s.block), 0.0f);
-            s.im[c].assign(static_cast<size_t>(2 * s.block), 0.0f);
+            s.m_fdlRe[c].assign(static_cast<size_t>(s.m_capParts) * static_cast<size_t>(s.m_slot), 0.0f);
+            s.m_fdlIm[c].assign(static_cast<size_t>(s.m_capParts) * static_cast<size_t>(s.m_slot), 0.0f);
+            s.m_re[c].assign(static_cast<size_t>(2 * s.m_block), 0.0f);
+            s.m_im[c].assign(static_cast<size_t>(2 * s.m_block), 0.0f);
         }
-        ringNeed = std::max(ringNeed, starts[g] + 2L * s.block + 2L * head_);
-        histNeed = std::max(histNeed, s.block);
-        stages_ = g + 1;
+        ringNeed = std::max(ringNeed, starts[g] + 2L * s.m_block + 2L * m_head);
+        histNeed = std::max(histNeed, s.m_block);
+        m_stages = g + 1;
     }
     int ring = 1; while (ring < ringNeed) ring <<= 1;
-    int hist = 1; while (hist < histNeed + head_) hist <<= 1;
+    int hist = 1; while (hist < histNeed + m_head) hist <<= 1;
     for (int c = 0; c < 2; ++c) {
-        ring_[c].assign(static_cast<size_t>(ring), 0.0f);
-        hist_[c].assign(static_cast<size_t>(hist), 0.0f);
+        m_ring[c].assign(static_cast<size_t>(ring), 0.0f);
+        m_hist[c].assign(static_cast<size_t>(hist), 0.0f);
     }
-    ringMask_ = ring - 1;
-    histMask_ = hist - 1;
-    for (auto& pair : imp_) for (auto& im : pair) im = Impulse{};
-    active_[0].store(-1, std::memory_order_release);
-    active_[1].store(-1, std::memory_order_release);
+    m_ringMask = ring - 1;
+    m_histMask = hist - 1;
+    for (auto& pair : m_imp) for (auto& im : pair) im = Impulse{};
+    m_active[0].store(-1, std::memory_order_release);
+    m_active[1].store(-1, std::memory_order_release);
     reset();
 }
 
@@ -684,61 +684,61 @@ void Convolver::prepare(double sampleRate, float maxSeconds)
  */
 void Convolver::reset()
 {
-    for (int g = 0; g < stages_; ++g) {
-        Stage& s = stage_[g];
-        s.fdlHead = 0; s.fdlFilled = 0;
-        s.phase = kIdle; s.ch = 0; s.part = 0; s.bin = 0; s.parts = 0;
-        s.run = FftRun{};
+    for (int g = 0; g < m_stages; ++g) {
+        Stage& s = m_stage[g];
+        s.m_fdlHead = 0; s.m_fdlFilled = 0;
+        s.m_phase = IDLE; s.m_ch = 0; s.m_part = 0; s.m_bin = 0; s.m_parts = 0;
+        s.m_run = FftRun{};
     }
     for (int c = 0; c < 2; ++c) {
-        std::fill(ring_[c].begin(), ring_[c].end(), 0.0f);
-        std::fill(hist_[c].begin(), hist_[c].end(), 0.0f);
+        std::fill(m_ring[c].begin(), m_ring[c].end(), 0.0f);
+        std::fill(m_hist[c].begin(), m_hist[c].end(), 0.0f);
     }
-    t_ = 0;
+    m_t = 0;
 }
 
 float Convolver::impulseSeconds() const
 {
-    const int a = active_[0].load(std::memory_order_acquire);
-    return a < 0 ? 0.0f : static_cast<float>(imp_[0][a].seconds);
+    const int a = m_active[0].load(std::memory_order_acquire);
+    return a < 0 ? 0.0f : static_cast<float>(m_imp[0][a].m_seconds);
 }
 
 long Convolver::tailSamples() const
 {
     long longest = 0;
     for (int w = 0; w < 2; ++w) {
-        const int a = active_[w].load(std::memory_order_acquire);
-        if (a >= 0) longest = std::max(longest, imp_[w][a].samples);
+        const int a = m_active[w].load(std::memory_order_acquire);
+        if (a >= 0) longest = std::max(longest, m_imp[w][a].m_samples);
     }
-    return longest + head_ + (stages_ > 0 ? 2L * stage_[stages_ - 1].block : 0L);
+    return longest + m_head + (m_stages > 0 ? 2L * m_stage[m_stages - 1].m_block : 0L);
 }
 
 long long Convolver::keptBins() const
 {
-    const int a = active_[0].load(std::memory_order_acquire);
-    return a < 0 ? 0 : imp_[0][a].kept;
+    const int a = m_active[0].load(std::memory_order_acquire);
+    return a < 0 ? 0 : m_imp[0][a].m_kept;
 }
 
 long long Convolver::fullBins() const
 {
-    const int a = active_[0].load(std::memory_order_acquire);
-    return a < 0 ? 0 : imp_[0][a].full;
+    const int a = m_active[0].load(std::memory_order_acquire);
+    return a < 0 ? 0 : m_imp[0][a].m_full;
 }
 
 // ---------------------------------------------------------------- loading
 
 void Convolver::load(int which, const float* L, const float* R, int n, double rate)
 {
-    if (L == nullptr || n <= 0 || stages_ == 0) return;
-    const double ratio = rate > 0.0 ? sr_ / rate : 1.0;
+    if (L == nullptr || n <= 0 || m_stages == 0) return;
+    const double ratio = rate > 0.0 ? m_sr / rate : 1.0;
     const bool stereo = R != nullptr;
     std::vector<float> ch[2];
-    ch[0] = resample(L, n, ratio, capSamples_);
-    if (stereo) ch[1] = resample(R, n, ratio, capSamples_);
+    ch[0] = resample(L, n, ratio, m_capSamples);
+    if (stereo) ch[1] = resample(R, n, ratio, m_capSamples);
     int len = static_cast<int>(ch[0].size());
     if (len <= 0) return;
-    if (static_cast<double>(n) * ratio >= static_cast<double>(capSamples_) + 1.0)   // longer than the Room keeps
-        shrinkToCap(ch, stereo ? 2 : 1, sr_);
+    if (static_cast<double>(n) * ratio >= static_cast<double>(m_capSamples) + 1.0)   // longer than the Room keeps
+        shrinkToCap(ch, stereo ? 2 : 1, m_sr);
     // Energy normalised to 1, so a room never changes the level of what it reverberates.
     auto energyAt = [&](int i) {
         const double l = ch[0][static_cast<size_t>(i)];
@@ -753,70 +753,70 @@ void Convolver::load(int which, const float* L, const float* R, int n, double ra
         for (int c = 0; c < (stereo ? 2 : 1); ++c) for (int i = 0; i < len; ++i) ch[c][static_cast<size_t>(i)] *= g;
         // The silence at the end costs as much as the sound; it goes, as far as a fifth of the budget reaches.
         double tail = 0.0;
-        while (len > 1 && tail + energyAt(len - 1) <= 0.2 * kDropBudget) { tail += energyAt(len - 1); --len; }
+        while (len > 1 && tail + energyAt(len - 1) <= 0.2 * DropBudget) { tail += energyAt(len - 1); --len; }
     }
-    const int activeNow = active_[which].load(std::memory_order_acquire);
+    const int activeNow = m_active[which].load(std::memory_order_acquire);
     const int target = activeNow < 0 ? 0 : 1 - activeNow;
     // The other copy is written only once every step that had begun has ended: the same reasoning
     // as Engine::setTexture. A step that began before this call chose its copy back then.
     waitForQuiet();
-    analyse(imp_[which][target], ch, stereo, len);
-    active_[which].store(target, std::memory_order_release);
+    analyse(m_imp[which][target], ch, stereo, len);
+    m_active[which].store(target, std::memory_order_release);
     // The copy that was playing is read by nothing once the steps that began before the swap have
     // ended; its memory goes back now instead of when the next impulse overwrites it.
     if (activeNow >= 0) {
         waitForQuiet();
-        imp_[which][activeNow] = Impulse{};
+        m_imp[which][activeNow] = Impulse{};
     }
 }
 
 void Convolver::clearImpulseB()
 {
-    if (active_[1].load(std::memory_order_acquire) < 0) return;
-    active_[1].store(-1, std::memory_order_release);
+    if (m_active[1].load(std::memory_order_acquire) < 0) return;
+    m_active[1].store(-1, std::memory_order_release);
     // A step that began while B was playing chose it back then; its memory goes once those have ended.
     waitForQuiet();
-    imp_[1][0] = Impulse{};
-    imp_[1][1] = Impulse{};
+    m_imp[1][0] = Impulse{};
+    m_imp[1][1] = Impulse{};
 }
 
 void Convolver::analyse(Impulse& imp, const std::vector<float>* ch, bool stereo, int len)
 {
     imp = Impulse{};
-    imp.stereo = stereo;
-    imp.samples = len;
-    imp.seconds = static_cast<double>(len) / sr_;
+    imp.m_stereo = stereo;
+    imp.m_samples = len;
+    imp.m_seconds = static_cast<double>(len) / m_sr;
     const int channels = stereo ? 2 : 1;
     int totalParts = 0;
-    for (int g = 0; g < stages_; ++g) {
-        const Stage& s = stage_[g];
-        const long end = g + 1 < stages_ ? static_cast<long>(stage_[g + 1].start) : capSamples_;
+    for (int g = 0; g < m_stages; ++g) {
+        const Stage& s = m_stage[g];
+        const long end = g + 1 < m_stages ? static_cast<long>(m_stage[g + 1].m_start) : m_capSamples;
         const long stop = std::min<long>(end, len);
-        imp.st[g].parts = stop > s.start ? std::min(s.capParts, static_cast<int>((stop - s.start + s.block - 1) / s.block)) : 0;
-        totalParts += imp.st[g].parts;
+        imp.m_st[g].m_parts = stop > s.m_start ? std::min(s.m_capParts, static_cast<int>((stop - s.m_start + s.m_block - 1) / s.m_block)) : 0;
+        totalParts += imp.m_st[g].m_parts;
     }
-    const double partBudget = 0.8 * kDropBudget / std::max(1, totalParts);
-    for (int g = 0; g < stages_; ++g) {
-        const Stage& s = stage_[g];
-        Spectra& sp = imp.st[g];
-        const int b = s.block, N = 2 * b;
+    const double partBudget = 0.8 * DropBudget / std::max(1, totalParts);
+    for (int g = 0; g < m_stages; ++g) {
+        const Stage& s = m_stage[g];
+        Spectra& sp = imp.m_st[g];
+        const int b = s.m_block, N = 2 * b;
         std::vector<float> re[2], im[2];
         std::vector<double> power(static_cast<size_t>(b + 1));
-        sp.off.assign(static_cast<size_t>(sp.parts), 0);
-        sp.cnt.assign(static_cast<size_t>(sp.parts), 0);
+        sp.m_off.assign(static_cast<size_t>(sp.m_parts), 0);
+        sp.m_cnt.assign(static_cast<size_t>(sp.m_parts), 0);
         for (int c = 0; c < channels; ++c) {
-            sp.re[c].reserve(static_cast<size_t>(sp.parts) * static_cast<size_t>(s.slot));
-            sp.im[c].reserve(static_cast<size_t>(sp.parts) * static_cast<size_t>(s.slot));
+            sp.m_re[c].reserve(static_cast<size_t>(sp.m_parts) * static_cast<size_t>(s.m_slot));
+            sp.m_im[c].reserve(static_cast<size_t>(sp.m_parts) * static_cast<size_t>(s.m_slot));
         }
-        for (int p = 0; p < sp.parts; ++p) {
-            const long from = s.start + static_cast<long>(p) * b;
+        for (int p = 0; p < sp.m_parts; ++p) {
+            const long from = s.m_start + static_cast<long>(p) * b;
             for (int c = 0; c < channels; ++c) {
                 re[c].assign(static_cast<size_t>(N), 0.0f);
                 im[c].assign(static_cast<size_t>(N), 0.0f);
                 for (int i = 0; i < b && from + i < len; ++i) re[c][static_cast<size_t>(i)] = ch[c][static_cast<size_t>(from + i)];
                 FftRun run;
-                long long budget = kUnlimited;
-                runFft(s.fft, run, re[c].data(), im[c].data(), false, budget);
+                long long budget = Unlimited;
+                runFft(s.m_fft, run, re[c].data(), im[c].data(), false, budget);
             }
             for (int k = 0; k <= b; ++k) {
                 double pk = 0.0;
@@ -836,28 +836,28 @@ void Convolver::analyse(Impulse& imp, const std::vector<float>* ch, bool stereo,
                 if (dropped + v > partBudget) { top = k; break; }
                 dropped += v;
             }
-            const int count = top < 0 ? 0 : std::min(roundUp8(top + 1), s.slot);
-            sp.off[static_cast<size_t>(p)] = static_cast<int>(sp.re[0].size());
-            sp.cnt[static_cast<size_t>(p)] = count;
+            const int count = top < 0 ? 0 : std::min(roundUp8(top + 1), s.m_slot);
+            sp.m_off[static_cast<size_t>(p)] = static_cast<int>(sp.m_re[0].size());
+            sp.m_cnt[static_cast<size_t>(p)] = count;
             const int real = std::min(count, b + 1);   // bins past b are the mirror half: padding is zeros
             for (int c = 0; c < channels; ++c) {
-                sp.re[c].insert(sp.re[c].end(), re[c].begin(), re[c].begin() + real);
-                sp.im[c].insert(sp.im[c].end(), im[c].begin(), im[c].begin() + real);
-                sp.re[c].insert(sp.re[c].end(), static_cast<size_t>(count - real), 0.0f);
-                sp.im[c].insert(sp.im[c].end(), static_cast<size_t>(count - real), 0.0f);
+                sp.m_re[c].insert(sp.m_re[c].end(), re[c].begin(), re[c].begin() + real);
+                sp.m_im[c].insert(sp.m_im[c].end(), im[c].begin(), im[c].begin() + real);
+                sp.m_re[c].insert(sp.m_re[c].end(), static_cast<size_t>(count - real), 0.0f);
+                sp.m_im[c].insert(sp.m_im[c].end(), static_cast<size_t>(count - real), 0.0f);
             }
-            imp.kept += count;
-            imp.full += b + 1;
+            imp.m_kept += count;
+            imp.m_full += b + 1;
         }
-        for (int c = 0; c < channels; ++c) { sp.re[c].shrink_to_fit(); sp.im[c].shrink_to_fit(); }
+        for (int c = 0; c < channels; ++c) { sp.m_re[c].shrink_to_fit(); sp.m_im[c].shrink_to_fit(); }
     }
 }
 
 void Convolver::generateDefault(uint64_t seed, float seconds)
 {
     std::vector<float> L, R;
-    makeDefaultImpulse(sr_, seed, seconds, L, R);
-    setImpulse(L.data(), R.data(), static_cast<int>(L.size()), sr_);
+    makeDefaultImpulse(m_sr, seed, seconds, L, R);
+    setImpulse(L.data(), R.data(), static_cast<int>(L.size()), m_sr);
 }
 
 /**
@@ -882,7 +882,7 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
     const int scale = sampleRate < 64000.0 ? 1 : (sampleRate < 128000.0 ? 2 : 4);
     const int N = 2048 * scale, hop = N / 4, half = N / 2;
     const int n = std::max(1, static_cast<int>(std::lround(static_cast<double>(seconds) * sampleRate)));
-    constexpr double kLn1e6 = 13.815510557964274;                   // energy down 60 dB at this exponent
+    constexpr double Ln1e6 = 13.815510557964274;                   // energy down 60 dB at this exponent
     std::vector<double> amp(static_cast<size_t>(half + 1)), rate(static_cast<size_t>(half + 1));
     std::vector<float> rotC(static_cast<size_t>(half + 1)), rotS(static_cast<size_t>(half + 1));
     for (int k = 0; k <= half; ++k) {
@@ -890,7 +890,7 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
         double bDb = 0.0, t60 = 1.0;
         octaveDesign(f, bDb, t60);
         amp[static_cast<size_t>(k)] = std::pow(10.0, bDb / 20.0);
-        rate[static_cast<size_t>(k)] = 0.5 * kLn1e6 / t60;        // of the amplitude, per second
+        rate[static_cast<size_t>(k)] = 0.5 * Ln1e6 / t60;        // of the amplitude, per second
         const double rho = 0.05 + (0.5 - 0.05) / (1.0 + (f / 300.0) * (f / 300.0));
         const double th = 0.5 * std::asin(rho);
         rotC[static_cast<size_t>(k)] = static_cast<float>(std::cos(th));
@@ -906,12 +906,12 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
         for (int i = 0; i < total; ++i) {                          // Box-Muller: the late field is Gaussian
             const double u1 = std::max(1.0e-12, static_cast<double>(rng.uniform()));
             const double u2 = rng.uniform();
-            noise[c][static_cast<size_t>(i)] = static_cast<float>(std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * kPiD * u2));
+            noise[c][static_cast<size_t>(i)] = static_cast<float>(std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * PiD * u2));
         }
         out[c].assign(static_cast<size_t>(total), 0.0f);
     }
     std::vector<float> win(static_cast<size_t>(N));
-    for (int i = 0; i < N; ++i) win[static_cast<size_t>(i)] = static_cast<float>(0.5 - 0.5 * std::cos(2.0 * kPiD * i / N));
+    for (int i = 0; i < N; ++i) win[static_cast<size_t>(i)] = static_cast<float>(0.5 - 0.5 * std::cos(2.0 * PiD * i / N));
     StepFft fft;
     fft.init(N);
     std::vector<float> re0(static_cast<size_t>(N)), im0(static_cast<size_t>(N)), re1(static_cast<size_t>(N)), im1(static_cast<size_t>(N));
@@ -926,7 +926,7 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
             im0[static_cast<size_t>(i)] = im1[static_cast<size_t>(i)] = 0.0f;
         }
         FftRun r0, r1, r2, r3;
-        long long b0 = kUnlimited, b1 = kUnlimited, b2 = kUnlimited, b3 = kUnlimited;
+        long long b0 = Unlimited, b1 = Unlimited, b2 = Unlimited, b3 = Unlimited;
         runFft(fft, r0, re0.data(), im0.data(), false, b0);
         runFft(fft, r1, re1.data(), im1.data(), false, b1);
         const double t = std::min(static_cast<double>(seconds), std::max(0.0, (static_cast<double>(a) + 0.5 * N - pad) / sampleRate));
@@ -952,8 +952,8 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
     const int fadeN = std::max(1, std::min(n / 10, static_cast<int>(0.1 * sampleRate)));
     for (int i = 0; i < n; ++i) {
         double w = 1.0;
-        if (i < onset) { const double s = std::sin(0.5 * kPiD * i / onset); w = s * s; }
-        if (i >= n - fadeN) { const double c = std::cos(0.5 * kPiD * (i - (n - fadeN)) / fadeN); w *= c * c; }
+        if (i < onset) { const double s = std::sin(0.5 * PiD * i / onset); w = s * s; }
+        if (i >= n - fadeN) { const double c = std::cos(0.5 * PiD * (i - (n - fadeN)) / fadeN); w *= c * c; }
         L[static_cast<size_t>(i)] *= static_cast<float>(w);
         R[static_cast<size_t>(i)] *= static_cast<float>(w);
     }
@@ -962,9 +962,9 @@ void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float secon
 /** @brief Message thread: see Engine::waitForQuiet. */
 void Convolver::waitForQuiet()
 {
-    const unsigned long long begun = stepsBegun_.load(std::memory_order_acquire);
+    const unsigned long long begun = m_stepsBegun.load(std::memory_order_acquire);
     for (int spin = 0; spin < 8000; ++spin) {
-        if (stepsDone_.load(std::memory_order_acquire) >= begun) return;
+        if (m_stepsDone.load(std::memory_order_acquire) >= begun) return;
         std::this_thread::sleep_for(std::chrono::microseconds(50));
     }
 }
@@ -973,90 +973,90 @@ void Convolver::waitForQuiet()
 
 void Convolver::begin(Stage& s)
 {
-    const int b = s.block;
-    const int size = histMask_ + 1;
-    const int from = static_cast<int>((t_ - b) & histMask_);
+    const int b = s.m_block;
+    const int size = m_histMask + 1;
+    const int from = static_cast<int>((m_t - b) & m_histMask);
     const int first = std::min(b, size - from);
     for (int c = 0; c < 2; ++c) {
-        float* re = s.re[c].data();
-        std::memcpy(re, hist_[c].data() + from, sizeof(float) * static_cast<size_t>(first));
-        if (first < b) std::memcpy(re + first, hist_[c].data(), sizeof(float) * static_cast<size_t>(b - first));
+        float* re = s.m_re[c].data();
+        std::memcpy(re, m_hist[c].data() + from, sizeof(float) * static_cast<size_t>(first));
+        if (first < b) std::memcpy(re + first, m_hist[c].data(), sizeof(float) * static_cast<size_t>(b - first));
         std::memset(re + b, 0, sizeof(float) * static_cast<size_t>(b));
-        std::memset(s.im[c].data(), 0, sizeof(float) * static_cast<size_t>(2 * b));
+        std::memset(s.m_im[c].data(), 0, sizeof(float) * static_cast<size_t>(2 * b));
     }
-    s.phase = kFftIn; s.ch = 0; s.run = FftRun{};
+    s.m_phase = FFT_IN; s.m_ch = 0; s.m_run = FftRun{};
     // The answer begins where this block meets the stretch's first partition, one latency on. It
     // is due then -- and by the step before this stage's next block at the latest, so a stage
     // never holds two blocks at once.
-    s.write = t_ - b + s.start + head_;
-    s.due = std::min(s.write, t_ + b - head_) / head_;
-    const float m = std::min(1.0f, std::max(0.0f, morph_));
-    s.wa = 1.0f - m;
-    s.wb = m;
-    const int parts = std::min(s.fdlFilled + 1, s.capParts);
-    s.work = 4 * s.fft.work + 4LL * b + static_cast<long long>(parts) * 2LL * (b + 1) + 2LL * b;
+    s.m_write = m_t - b + s.m_start + m_head;
+    s.m_due = std::min(s.m_write, m_t + b - m_head) / m_head;
+    const float m = std::min(1.0f, std::max(0.0f, m_morph));
+    s.m_wa = 1.0f - m;
+    s.m_wb = m;
+    const int parts = std::min(s.m_fdlFilled + 1, s.m_capParts);
+    s.m_work = 4 * s.m_fft.m_work + 4LL * b + static_cast<long long>(parts) * 2LL * (b + 1) + 2LL * b;
 }
 
 long long Convolver::advance(Stage& s, int g, long long quota, const Impulse* A, const Impulse* B)
 {
     const long long given = quota;
-    const int b = s.block, N = 2 * b;
-    while (s.phase != kIdle && quota > 0) {
-        switch (s.phase) {
-        case kFftIn:
-            if (runFft(s.fft, s.run, s.re[s.ch].data(), s.im[s.ch].data(), false, quota)) {
-                s.run = FftRun{};
-                if (++s.ch == 2) s.phase = kPush;
+    const int b = s.m_block, N = 2 * b;
+    while (s.m_phase != IDLE && quota > 0) {
+        switch (s.m_phase) {
+        case FFT_IN:
+            if (runFft(s.m_fft, s.m_run, s.m_re[s.m_ch].data(), s.m_im[s.m_ch].data(), false, quota)) {
+                s.m_run = FftRun{};
+                if (++s.m_ch == 2) s.m_phase = PUSH;
             }
             break;
-        case kPush:
+        case PUSH:
             for (int c = 0; c < 2; ++c) {
-                const size_t at = static_cast<size_t>(s.fdlHead) * static_cast<size_t>(s.slot);
-                float* dr = s.fdlRe[c].data() + at;
-                float* di = s.fdlIm[c].data() + at;
-                std::memcpy(dr, s.re[c].data(), sizeof(float) * static_cast<size_t>(b + 1));
-                std::memcpy(di, s.im[c].data(), sizeof(float) * static_cast<size_t>(b + 1));
-                std::memset(dr + b + 1, 0, sizeof(float) * static_cast<size_t>(s.slot - b - 1));
-                std::memset(di + b + 1, 0, sizeof(float) * static_cast<size_t>(s.slot - b - 1));
+                const size_t at = static_cast<size_t>(s.m_fdlHead) * static_cast<size_t>(s.m_slot);
+                float* dr = s.m_fdlRe[c].data() + at;
+                float* di = s.m_fdlIm[c].data() + at;
+                std::memcpy(dr, s.m_re[c].data(), sizeof(float) * static_cast<size_t>(b + 1));
+                std::memcpy(di, s.m_im[c].data(), sizeof(float) * static_cast<size_t>(b + 1));
+                std::memset(dr + b + 1, 0, sizeof(float) * static_cast<size_t>(s.m_slot - b - 1));
+                std::memset(di + b + 1, 0, sizeof(float) * static_cast<size_t>(s.m_slot - b - 1));
                 // the sum starts from nothing; the mirror half is written whole before the inverse
-                std::memset(s.re[c].data(), 0, sizeof(float) * static_cast<size_t>(s.slot));
-                std::memset(s.im[c].data(), 0, sizeof(float) * static_cast<size_t>(s.slot));
+                std::memset(s.m_re[c].data(), 0, sizeof(float) * static_cast<size_t>(s.m_slot));
+                std::memset(s.m_im[c].data(), 0, sizeof(float) * static_cast<size_t>(s.m_slot));
             }
-            s.fdlHead = (s.fdlHead + 1) % s.capParts;
-            s.fdlFilled = std::min(s.fdlFilled + 1, s.capParts);
-            s.parts = s.fdlFilled; s.part = 0; s.bin = 0;
-            s.phase = kSum;
+            s.m_fdlHead = (s.m_fdlHead + 1) % s.m_capParts;
+            s.m_fdlFilled = std::min(s.m_fdlFilled + 1, s.m_capParts);
+            s.m_parts = s.m_fdlFilled; s.m_part = 0; s.m_bin = 0;
+            s.m_phase = SUM;
             quota -= 2LL * b;
             break;
-        case kSum:
+        case SUM:
             sum(s, g, A, B, quota);
             break;
-        case kInvert:
-            if (runFft(s.fft, s.run, s.re[s.ch].data(), s.im[s.ch].data(), true, quota)) {
-                s.run = FftRun{};
-                if (++s.ch == 2) s.phase = kDeliver;
+        case INVERT:
+            if (runFft(s.m_fft, s.m_run, s.m_re[s.m_ch].data(), s.m_im[s.m_ch].data(), true, quota)) {
+                s.m_run = FftRun{};
+                if (++s.m_ch == 2) s.m_phase = DELIVER;
             }
             break;
-        case kDeliver: {
+        case DELIVER: {
             const float inv = 1.0f / static_cast<float>(N);
-            const int size = ringMask_ + 1;
+            const int size = m_ringMask + 1;
             for (int c = 0; c < 2; ++c) {
-                const float* src = s.re[c].data();
-                float* dst = ring_[c].data();
-                int at = static_cast<int>(s.write & ringMask_);
+                const float* src = s.m_re[c].data();
+                float* dst = m_ring[c].data();
+                int at = static_cast<int>(s.m_write & m_ringMask);
                 for (int i = 0; i < N - 1;) {
                     const int m = std::min(N - 1 - i, size - at);
                     for (int j = 0; j < m; ++j) dst[at + j] += inv * src[i + j];
                     i += m;
-                    at = (at + m) & ringMask_;
+                    at = (at + m) & m_ringMask;
                 }
             }
-            s.phase = kIdle;
+            s.m_phase = IDLE;
             quota -= 2LL * b;
             break;
         }
         default:
-            s.phase = kIdle;
+            s.m_phase = IDLE;
             break;
         }
     }
@@ -1065,37 +1065,37 @@ long long Convolver::advance(Stage& s, int g, long long quota, const Impulse* A,
 
 void Convolver::sum(Stage& s, int g, const Impulse* A, const Impulse* B, long long& quota)
 {
-    const Spectra* sa = (A != nullptr && s.wa > 0.0f) ? &A->st[g] : nullptr;
-    const Spectra* sb = (B != nullptr && s.wb > 0.0f) ? &B->st[g] : nullptr;
-    float* a0r = s.re[0].data(); float* a0i = s.im[0].data();
-    float* a1r = s.re[1].data(); float* a1i = s.im[1].data();
-    while (s.part < s.parts) {
+    const Spectra* sa = (A != nullptr && s.m_wa > 0.0f) ? &A->m_st[g] : nullptr;
+    const Spectra* sb = (B != nullptr && s.m_wb > 0.0f) ? &B->m_st[g] : nullptr;
+    float* a0r = s.m_re[0].data(); float* a0i = s.m_im[0].data();
+    float* a1r = s.m_re[1].data(); float* a1i = s.m_im[1].data();
+    while (s.m_part < s.m_parts) {
         if (quota <= 0) return;
-        const int p = s.part;
-        const int ca = (sa != nullptr && p < sa->parts) ? sa->cnt[static_cast<size_t>(p)] : 0;
-        const int cb = (sb != nullptr && p < sb->parts) ? sb->cnt[static_cast<size_t>(p)] : 0;
+        const int p = s.m_part;
+        const int ca = (sa != nullptr && p < sa->m_parts) ? sa->m_cnt[static_cast<size_t>(p)] : 0;
+        const int cb = (sb != nullptr && p < sb->m_parts) ? sb->m_cnt[static_cast<size_t>(p)] : 0;
         const int top = std::max(ca, cb);
-        if (s.bin >= top) { ++s.part; s.bin = 0; continue; }
+        if (s.m_bin >= top) { ++s.m_part; s.m_bin = 0; continue; }
         // Partition p meets the input block p blocks older than the newest.
-        int slotIndex = s.fdlHead - 1 - p;
-        if (slotIndex < 0) slotIndex += s.capParts;
-        const size_t xo = static_cast<size_t>(slotIndex) * static_cast<size_t>(s.slot);
-        const float* x0r = s.fdlRe[0].data() + xo; const float* x0i = s.fdlIm[0].data() + xo;
-        const float* x1r = s.fdlRe[1].data() + xo; const float* x1i = s.fdlIm[1].data() + xo;
-        const int k0 = s.bin;
+        int slotIndex = s.m_fdlHead - 1 - p;
+        if (slotIndex < 0) slotIndex += s.m_capParts;
+        const size_t xo = static_cast<size_t>(slotIndex) * static_cast<size_t>(s.m_slot);
+        const float* x0r = s.m_fdlRe[0].data() + xo; const float* x0i = s.m_fdlIm[0].data() + xo;
+        const float* x1r = s.m_fdlRe[1].data() + xo; const float* x1i = s.m_fdlIm[1].data() + xo;
+        const int k0 = s.m_bin;
         const int chunk = roundUp8(static_cast<int>(std::min<long long>(std::max<long long>(64, quota / 2), 1 << 24)));
         const int k1 = std::min(top, k0 + chunk);
         const int both = std::min(ca, cb);
         if (k0 < both) {   // the two impulses blended
             const int e = std::min(k1, both);
-            const size_t oa = static_cast<size_t>(sa->off[static_cast<size_t>(p)]), ob = static_cast<size_t>(sb->off[static_cast<size_t>(p)]);
-            if (!A->stereo && !B->stereo) {
+            const size_t oa = static_cast<size_t>(sa->m_off[static_cast<size_t>(p)]), ob = static_cast<size_t>(sb->m_off[static_cast<size_t>(p)]);
+            if (!A->m_stereo && !B->m_stereo) {
                 blendTwo(a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i,
-                         sa->re[0].data() + oa, sa->im[0].data() + oa, s.wa, sb->re[0].data() + ob, sb->im[0].data() + ob, s.wb, k0, e);
+                         sa->m_re[0].data() + oa, sa->m_im[0].data() + oa, s.m_wa, sb->m_re[0].data() + ob, sb->m_im[0].data() + ob, s.m_wb, k0, e);
             } else {
-                const int a0 = 0, a1 = A->stereo ? 1 : 0, b0 = 0, b1 = B->stereo ? 1 : 0;
-                blendOne(a0r, a0i, x0r, x0i, sa->re[a0].data() + oa, sa->im[a0].data() + oa, s.wa, sb->re[b0].data() + ob, sb->im[b0].data() + ob, s.wb, k0, e);
-                blendOne(a1r, a1i, x1r, x1i, sa->re[a1].data() + oa, sa->im[a1].data() + oa, s.wa, sb->re[b1].data() + ob, sb->im[b1].data() + ob, s.wb, k0, e);
+                const int a0 = 0, a1 = A->m_stereo ? 1 : 0, b0 = 0, b1 = B->m_stereo ? 1 : 0;
+                blendOne(a0r, a0i, x0r, x0i, sa->m_re[a0].data() + oa, sa->m_im[a0].data() + oa, s.m_wa, sb->m_re[b0].data() + ob, sb->m_im[b0].data() + ob, s.m_wb, k0, e);
+                blendOne(a1r, a1i, x1r, x1i, sa->m_re[a1].data() + oa, sa->m_im[a1].data() + oa, s.m_wa, sb->m_re[b1].data() + ob, sb->m_im[b1].data() + ob, s.m_wb, k0, e);
             }
         }
         const int f = std::max(k0, both);
@@ -1103,56 +1103,56 @@ void Convolver::sum(Stage& s, int g, const Impulse* A, const Impulse* B, long lo
             const bool fromA = ca > cb;
             const Impulse* I = fromA ? A : B;
             const Spectra* sp = fromA ? sa : sb;
-            const float w = fromA ? s.wa : s.wb;
-            const size_t o = static_cast<size_t>(sp->off[static_cast<size_t>(p)]);
-            if (!I->stereo) {
-                sumTwo(a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i, sp->re[0].data() + o, sp->im[0].data() + o, w, f, k1);
+            const float w = fromA ? s.m_wa : s.m_wb;
+            const size_t o = static_cast<size_t>(sp->m_off[static_cast<size_t>(p)]);
+            if (!I->m_stereo) {
+                sumTwo(a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i, sp->m_re[0].data() + o, sp->m_im[0].data() + o, w, f, k1);
             } else {
-                sumOne(a0r, a0i, x0r, x0i, sp->re[0].data() + o, sp->im[0].data() + o, w, f, k1);
-                sumOne(a1r, a1i, x1r, x1i, sp->re[1].data() + o, sp->im[1].data() + o, w, f, k1);
+                sumOne(a0r, a0i, x0r, x0i, sp->m_re[0].data() + o, sp->m_im[0].data() + o, w, f, k1);
+                sumOne(a1r, a1i, x1r, x1i, sp->m_re[1].data() + o, sp->m_im[1].data() + o, w, f, k1);
             }
         }
         quota -= 2LL * (k1 - k0);
-        s.bin = k1;
+        s.m_bin = k1;
     }
     // Real input, so the upper half of the spectrum is the conjugate of the lower.
-    const int b = s.block, N = 2 * b;
+    const int b = s.m_block, N = 2 * b;
     for (int c = 0; c < 2; ++c) {
-        float* re = s.re[c].data(); float* im = s.im[c].data();
+        float* re = s.m_re[c].data(); float* im = s.m_im[c].data();
         for (int k = 1; k < b; ++k) { re[N - k] = re[k]; im[N - k] = -im[k]; }
     }
     quota -= 2LL * b;
-    s.phase = kInvert; s.ch = 0; s.run = FftRun{};
+    s.m_phase = INVERT; s.m_ch = 0; s.m_run = FftRun{};
 }
 
 void Convolver::step()
 {
-    stepsBegun_.fetch_add(1, std::memory_order_acq_rel);
+    m_stepsBegun.fetch_add(1, std::memory_order_acq_rel);
     // Every way out of this function has to say so, including this one. A step that is counted
     // as begun and never as done leaves the two counters apart for good, and every loader after
     // it waits out its whole timeout for a step that ended long ago.
     struct Done {
-        std::atomic<unsigned long long>& c;
-        ~Done() { c.fetch_add(1, std::memory_order_release); }
-    } done { stepsDone_ };
-    const int ia = active_[0].load(std::memory_order_acquire), ib = active_[1].load(std::memory_order_acquire);
-    const Impulse* A = ia >= 0 ? &imp_[0][ia] : nullptr;
-    const Impulse* B = ib >= 0 ? &imp_[1][ib] : nullptr;
-    const long long now = t_ / head_;
-    for (int g = 0; g < stages_; ++g) {
-        Stage& s = stage_[g];
-        if (t_ % s.block == 0) {
+        std::atomic<unsigned long long>& m_c;
+        ~Done() { m_c.fetch_add(1, std::memory_order_release); }
+    } done { m_stepsDone };
+    const int ia = m_active[0].load(std::memory_order_acquire), ib = m_active[1].load(std::memory_order_acquire);
+    const Impulse* A = ia >= 0 ? &m_imp[0][ia] : nullptr;
+    const Impulse* B = ib >= 0 ? &m_imp[1][ib] : nullptr;
+    const long long now = m_t / m_head;
+    for (int g = 0; g < m_stages; ++g) {
+        Stage& s = m_stage[g];
+        if (m_t % s.m_block == 0) {
             // The schedule finishes every block a step before the next; should one ever be left,
             // it is finished here rather than dropped.
-            if (s.phase != kIdle) advance(s, g, kUnlimited, A, B);
+            if (s.m_phase != IDLE) advance(s, g, Unlimited, A, B);
             begin(s);
         }
-        if (s.phase == kIdle) continue;
+        if (s.m_phase == IDLE) continue;
         // An equal share of what is left for every step until it is due; the last takes the rest.
-        const long long left = s.due - now + 1;
-        const long long quota = left <= 1 ? kUnlimited : std::max<long long>(1, (s.work + left - 1) / left);
+        const long long left = s.m_due - now + 1;
+        const long long quota = left <= 1 ? Unlimited : std::max<long long>(1, (s.m_work + left - 1) / left);
         const long long used = advance(s, g, quota, A, B);
-        s.work = std::max<long long>(1, s.work - used);
+        s.m_work = std::max<long long>(1, s.m_work - used);
     }
 }
 
@@ -1160,16 +1160,16 @@ void Convolver::process(const float* inL, const float* inR, float* outL, float* 
 {
     int i = 0;
     while (i < n) {
-        const int toStep = head_ - static_cast<int>(t_ & (head_ - 1));
+        const int toStep = m_head - static_cast<int>(m_t & (m_head - 1));
         const int m = std::min(n - i, toStep);
         // In before out, so the outputs may be the inputs.
-        ringWrite(hist_[0], static_cast<int>(t_ & histMask_), inL + i, m);
-        ringWrite(hist_[1], static_cast<int>(t_ & histMask_), inR + i, m);
-        ringTake(ring_[0], static_cast<int>(t_ & ringMask_), outL + i, m);
-        ringTake(ring_[1], static_cast<int>(t_ & ringMask_), outR + i, m);
-        t_ += m;
+        ringWrite(m_hist[0], static_cast<int>(m_t & m_histMask), inL + i, m);
+        ringWrite(m_hist[1], static_cast<int>(m_t & m_histMask), inR + i, m);
+        ringTake(m_ring[0], static_cast<int>(m_t & m_ringMask), outL + i, m);
+        ringTake(m_ring[1], static_cast<int>(m_t & m_ringMask), outR + i, m);
+        m_t += m;
         i += m;
-        if ((t_ & (head_ - 1)) == 0) step();
+        if ((m_t & (m_head - 1)) == 0) step();
     }
 }
 

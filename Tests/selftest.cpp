@@ -103,9 +103,9 @@ namespace {
 
 /** @brief What render() measures over a stretch of engine output: the level, the peak and the health of the samples. */
 struct Stats {
-    double rms = 0;       ///< RMS over both channels (the mean of the two channels' squares), linear
-    float peak = 0;       ///< the largest absolute sample on either channel
-    long nonFinite = 0;   ///< how many samples were NaN or infinite; must be 0
+    double m_rms = 0;       ///< RMS over both channels (the mean of the two channels' squares), linear
+    float m_peak = 0;       ///< the largest absolute sample on either channel
+    long m_nonFinite = 0;   ///< how many samples were NaN or infinite; must be 0
 };
 
 /**
@@ -132,13 +132,13 @@ Stats render(Engine& e, double seconds, std::vector<float>* capture = nullptr)
         e.process(L.data(), R.data(), cnt);
         for (int i = 0; i < cnt; ++i) {
             const float l = L[static_cast<size_t>(i)], r = R[static_cast<size_t>(i)];
-            if (!std::isfinite(l) || !std::isfinite(r)) ++s.nonFinite;
+            if (!std::isfinite(l) || !std::isfinite(r)) ++s.m_nonFinite;
             sq += 0.5 * (l * l + r * r); ++n;
-            s.peak = std::max(s.peak, std::max(std::fabs(l), std::fabs(r)));
+            s.m_peak = std::max(s.m_peak, std::max(std::fabs(l), std::fabs(r)));
             if (capture) { capture->push_back(l); capture->push_back(r); }
         }
     }
-    s.rms = std::sqrt(sq / std::max<long>(n, 1));
+    s.m_rms = std::sqrt(sq / std::max<long>(n, 1));
     return s;
 }
 
@@ -151,10 +151,10 @@ Stats render(Engine& e, double seconds, std::vector<float>* capture = nullptr)
 void testParams()
 {
     const auto& t = paramTable();
-    for (int i = 0; i < kNumParams; ++i) {
-        CHECK(static_cast<int>(t[static_cast<size_t>(i)].id) == i, "parameter table out of order");
-        CHECK(t[static_cast<size_t>(i)].def >= t[static_cast<size_t>(i)].min && t[static_cast<size_t>(i)].def <= t[static_cast<size_t>(i)].max, "default outside range");
-        for (int j = 0; j < i; ++j) CHECK(std::strcmp(t[static_cast<size_t>(i)].key, t[static_cast<size_t>(j)].key) != 0, "duplicate parameter key");
+    for (int i = 0; i < NumParams; ++i) {
+        CHECK(static_cast<int>(t[static_cast<size_t>(i)].m_id) == i, "parameter table out of order");
+        CHECK(t[static_cast<size_t>(i)].m_def >= t[static_cast<size_t>(i)].m_min && t[static_cast<size_t>(i)].m_def <= t[static_cast<size_t>(i)].m_max, "default outside range");
+        for (int j = 0; j < i; ++j) CHECK(std::strcmp(t[static_cast<size_t>(i)].m_key, t[static_cast<size_t>(j)].m_key) != 0, "duplicate parameter key");
     }
 }
 
@@ -172,11 +172,11 @@ void testTuning()
 {
     // Only the tables. The last two choices are not tables: one is whatever Scala file was
     // loaded, one is computed from the spectrum while the instrument plays.
-    for (int i = 0; i < kUserScaleIndex; ++i) {
+    for (int i = 0; i < UserScaleIndex; ++i) {
         FixedScale s;
         CHECK(makeBuiltinScale(i, s), "builtin scale missing");
-        CHECK(s.ratios[0] == 1.0, "scale must start at 1/1");
-        for (int d = 1; d < s.count; ++d) CHECK(s.ratios[d] > s.ratios[d - 1] && s.ratios[d] < s.period, "scale not ascending / exceeds period");
+        CHECK(s.m_ratios[0] == 1.0, "scale must start at 1/1");
+        for (int d = 1; d < s.m_count; ++d) CHECK(s.m_ratios[d] > s.m_ratios[d - 1] && s.m_ratios[d] < s.m_period, "scale not ascending / exceeds period");
     }
     FixedScale tet;
     makeBuiltinScale(0, tet);
@@ -186,7 +186,7 @@ void testTuning()
 
     FixedScale ji;
     makeBuiltinScale(1, ji);   // 7-note JI major
-    CHECK(ji.count == 7, "JI major has 7 degrees");
+    CHECK(ji.m_count == 7, "JI major has 7 degrees");
     // Consecutive mapping: 7 keys per octave.
     const double c = scaleFrequency(ji, 60, 60, 440.0, false);
     CHECK(std::fabs(scaleFrequency(ji, 64, 60, 440.0, false) / c - 1.5) < 1e-9, "degree 4 of JI major is 3/2");
@@ -208,9 +208,9 @@ void testTuning()
     const char* scl = "! test.scl\nTest scale\n 5\n 9/8\n 5/4\n 3/2\n 884.35871\n 2/1\n";
     FixedScale user;
     CHECK(parseScala(scl, user), "parse scala");
-    CHECK(user.count == 5 && user.period == 2.0, "scala count/period");
-    CHECK(std::fabs(user.ratios[1] - 1.125) < 1e-12, "scala ratio 9/8");
-    CHECK(std::fabs(user.ratios[4] - 5.0 / 3.0) < 1e-5, "scala cents entry");
+    CHECK(user.m_count == 5 && user.m_period == 2.0, "scala count/period");
+    CHECK(std::fabs(user.m_ratios[1] - 1.125) < 1e-12, "scala ratio 9/8");
+    CHECK(std::fabs(user.m_ratios[4] - 5.0 / 3.0) < 1e-5, "scala cents entry");
     CHECK(!parseScala("garbage", user), "reject malformed scala");
     // The format allows an empty description line, and a comment after a value on the same
     // line. Both used to be misread: the blank line was skipped so the count became the name,
@@ -218,14 +218,14 @@ void testTuning()
     {
         FixedScale e;
         CHECK(parseScala("! empty description\n\n 2\n 3/2 pure fifth (approx. 702c)\n 2/1\n", e), "scala: empty description line accepted");
-        CHECK(e.count == 2 && std::fabs(e.ratios[1] - 1.5) < 1e-12, "scala: ratio with a comment after it is still a ratio");
+        CHECK(e.m_count == 2 && std::fabs(e.m_ratios[1] - 1.5) < 1e-12, "scala: ratio with a comment after it is still a ratio");
     }
     // Text that is not a number is the parameter's default, never NaN: every comparison with NaN
     // is false, so a NaN slipped through min/max and into the engine.
     {
-        const ParamDesc& d = paramDesc(ParamId::Cutoff);
-        CHECK(paramValueFromText(d, "nan") == d.def, "param text 'nan' is the default");
-        CHECK(paramValueFromText(d, "inf") == d.max, "param text 'inf' is clamped");
+        const ParamDesc& d = paramDesc(ParamIdE::CUTOFF);
+        CHECK(paramValueFromText(d, "nan") == d.m_def, "param text 'nan' is the default");
+        CHECK(paramValueFromText(d, "inf") == d.m_max, "param text 'inf' is clamped");
         Engine eng;
         eng.prepare(48000.0, 64);
         CHECK(!eng.setModMatrixText("lfo1>cutoff:nan"), "a NaN modulation depth is refused");
@@ -253,7 +253,7 @@ void testEnvelope()
     env.noteOn();
     float lv = 0.0f;
     for (int i = 0; i < 4800; ++i) lv = env.process();
-    CHECK(lv >= 0.99f || env.stage() != Envelope::Stage::Attack, "attack reaches 1 after attack time");
+    CHECK(lv >= 0.99f || env.stage() != Envelope::StageE::ATTACK, "attack reaches 1 after attack time");
     for (int i = 0; i < 9600; ++i) lv = env.process();
     CHECK(std::fabs(lv - 0.5f) < 0.01f, "decay settles on sustain");
     env.noteOff();
@@ -281,11 +281,11 @@ void testEnvelope()
         }
         Envelope e; e.setSampleRate(48000.0); e.setTimes(attack, 0.1f, 0.5f, 0.2f);
         e.noteOnAged(60.0f);
-        CHECK(std::fabs(e.level() - 0.5f) < 1e-3f && e.stage() == Envelope::Stage::Sustain,
+        CHECK(std::fabs(e.level() - 0.5f) < 1e-3f && e.stage() == Envelope::StageE::SUSTAIN,
               "an inherited note older than its attack enters at the sustain");
         Envelope f; f.setSampleRate(48000.0); f.setTimes(attack, 0.1f, 0.5f, 0.2f);
         f.noteOnAged(0.0f);
-        CHECK(f.level() == 0.0f && f.stage() == Envelope::Stage::Attack, "an age of zero is an ordinary note-on");
+        CHECK(f.level() == 0.0f && f.stage() == Envelope::StageE::ATTACK, "an age of zero is an ordinary note-on");
     }
 }
 
@@ -294,39 +294,39 @@ void testEnvelope()
  *
  * Silent before any note; a note makes sound that ramps up through the attack, stays under a peak
  * of 1 and finite, counts as one voice, and is gone (voice freed, tail below -60 dB) after release
- * and reverb; forty notes at once stay capped at Engine::kMaxVoices and stable.
+ * and reverb; forty notes at once stay capped at Engine::MaxVoices and stable.
  */
 void testEngineMidi()
 {
     Engine e;
-    e.setParam(ParamId::BrainOn, 0.0f);
-    e.setParam(ParamId::Attack, 1.0f);
-    e.setParam(ParamId::Release, 2.0f);
-    e.setParam(ParamId::FarDecay, 1.0f);
-    e.setParam(ParamId::NearDecay, 0.5f);
-    e.setParam(ParamId::DelayFeedback, 0.0f);
+    e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+    e.setParam(ParamIdE::ATTACK, 1.0f);
+    e.setParam(ParamIdE::RELEASE, 2.0f);
+    e.setParam(ParamIdE::FAR_DECAY, 1.0f);
+    e.setParam(ParamIdE::NEAR_DECAY, 0.5f);
+    e.setParam(ParamIdE::DELAY_FEEDBACK, 0.0f);
     e.prepare(48000.0, 256);
     Stats silence = render(e, 0.5);
-    CHECK(silence.rms < 1e-6, "silent before any note");
+    CHECK(silence.m_rms < 1e-6, "silent before any note");
     e.noteOn(57, 0.8f);
     Stats a = render(e, 0.3);
     Stats b = render(e, 2.0);
-    CHECK(b.rms > 0.02, "note produces sound");
-    CHECK(a.rms < b.rms, "attack ramps up");
-    CHECK(b.peak <= 1.0f, "soft clipper keeps peak <= 1");
-    CHECK(b.nonFinite == 0, "no NaN/inf");
+    CHECK(b.m_rms > 0.02, "note produces sound");
+    CHECK(a.m_rms < b.m_rms, "attack ramps up");
+    CHECK(b.m_peak <= 1.0f, "soft clipper keeps peak <= 1");
+    CHECK(b.m_nonFinite == 0, "no NaN/inf");
     CHECK(e.activeVoices() == 1, "one voice");
     e.noteOff(57);
     render(e, 6.0);
     Stats tail = render(e, 1.0);
-    CHECK(tail.rms < 1e-3, "silent after release + reverb tail");
+    CHECK(tail.m_rms < 1e-3, "silent after release + reverb tail");
     CHECK(e.activeVoices() == 0, "voice freed after release");
 
-    // Voice stealing: 40 notes, still at most kMaxVoices, no NaN.
+    // Voice stealing: 40 notes, still at most MaxVoices, no NaN.
     for (int n = 30; n < 70; ++n) e.noteOn(n, 0.7f);
     Stats many = render(e, 0.5);
-    CHECK(e.activeVoices() <= Engine::kMaxVoices, "voice count capped");
-    CHECK(many.nonFinite == 0 && many.peak <= 1.0f, "stable under full polyphony");
+    CHECK(e.activeVoices() <= Engine::MaxVoices, "voice count capped");
+    CHECK(many.m_nonFinite == 0 && many.m_peak <= 1.0f, "stable under full polyphony");
     e.allNotesOff();
 }
 
@@ -339,22 +339,22 @@ void testEngineMidi()
 void testBrain()
 {
     Engine e;
-    e.setParam(ParamId::BrainOn, 1.0f);
-    e.setParam(ParamId::BrainRate, 3.0f);
-    e.setParam(ParamId::BrainHoldMin, 8.0f);
-    e.setParam(ParamId::BrainHoldMax, 15.0f);
-    e.setParam(ParamId::BrainDensity, 4.0f);
-    e.setParam(ParamId::Attack, 0.5f);
+    e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+    e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+    e.setParam(ParamIdE::BRAIN_HOLD_MIN, 8.0f);
+    e.setParam(ParamIdE::BRAIN_HOLD_MAX, 15.0f);
+    e.setParam(ParamIdE::BRAIN_DENSITY, 4.0f);
+    e.setParam(ParamIdE::ATTACK, 0.5f);
     e.prepare(48000.0, 256);
     render(e, 20.0);
     CHECK(e.activeVoices() >= 2, "brain has started several notes after 20 s");
     Stats s = render(e, 5.0);
-    CHECK(s.rms > 0.01 && s.nonFinite == 0, "brain output audible and finite");
+    CHECK(s.m_rms > 0.01 && s.m_nonFinite == 0, "brain output audible and finite");
     bool notes[128];
     e.soundingNotes(notes);
     int count = 0; for (bool b : notes) count += b ? 1 : 0;
     CHECK(count >= 2, "sounding-note mask populated");
-    e.setParam(ParamId::BrainOn, 0.0f);
+    e.setParam(ParamIdE::BRAIN_ON, 0.0f);
     render(e, 30.0);
     CHECK(e.activeVoices() == 0, "all brain notes released when switched off");
 }
@@ -370,8 +370,8 @@ void testDeterminism()
     std::vector<float> a, b;
     for (int pass = 0; pass < 2; ++pass) {
         Engine e;
-        e.setParam(ParamId::BrainRate, 2.0f);
-        e.setParam(ParamId::Seed, 7.0f);
+        e.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+        e.setParam(ParamIdE::SEED, 7.0f);
         e.prepare(44100.0, 128);
         render(e, 4.0, pass == 0 ? &a : &b);
     }
@@ -391,9 +391,9 @@ void testUserScale()
     FixedScale s;
     CHECK(parseScala("Fifths only\n 2\n 3/2\n 2/1\n", s), "parse 2-degree scale");
     e.setUserScale(s);
-    e.setParam(ParamId::Scale, static_cast<float>(kUserScaleIndex));
-    e.setParam(ParamId::KeyMap, 1.0f);   // consecutive degrees
-    e.setParam(ParamId::RootNote, 0.0f);
+    e.setParam(ParamIdE::SCALE, static_cast<float>(UserScaleIndex));
+    e.setParam(ParamIdE::KEY_MAP, 1.0f);   // consecutive degrees
+    e.setParam(ParamIdE::ROOT_NOTE, 0.0f);
     render(e, 0.05);   // applies pending scale + params
     const double c = e.frequencyOf(60);
     CHECK(std::fabs(e.frequencyOf(61) / c - 1.5) < 1e-9, "user scale degree 1 = 3/2");
@@ -436,7 +436,7 @@ void testMidSide()
     auto sideRatio = [](float hz) {
         MidSide ms; ms.prepare(48000.0); ms.set(150.0f, 0.0f, 1.0f); ms.setMonoGuard(false);
         std::vector<float> L(48000), R(48000);
-        for (int i = 0; i < 48000; ++i) { const float s = std::sin(kTwoPi * hz * i / 48000.0f); L[static_cast<size_t>(i)] = s; R[static_cast<size_t>(i)] = -s; }
+        for (int i = 0; i < 48000; ++i) { const float s = std::sin(TwoPi * hz * i / 48000.0f); L[static_cast<size_t>(i)] = s; R[static_cast<size_t>(i)] = -s; }
         ms.process(L.data(), R.data(), 48000);
         double sq = 0; for (int i = 9600; i < 48000; ++i) { const float s = 0.5f * (L[static_cast<size_t>(i)] - R[static_cast<size_t>(i)]); sq += s * s; }
         return std::sqrt(sq / (48000 - 9600)) / 0.7071;
@@ -447,7 +447,7 @@ void testMidSide()
     // that is nothing but side, which is exactly the case the guard exists to pull back in.
     MidSide ms; ms.prepare(48000.0); ms.set(150.0f, 6.0f, 1.0f); ms.setMonoGuard(false);
     std::vector<float> L(48000), R(48000);
-    for (int i = 0; i < 48000; ++i) { const float s = std::sin(kTwoPi * 3000.0f * i / 48000.0f); L[static_cast<size_t>(i)] = s; R[static_cast<size_t>(i)] = -s; }
+    for (int i = 0; i < 48000; ++i) { const float s = std::sin(TwoPi * 3000.0f * i / 48000.0f); L[static_cast<size_t>(i)] = s; R[static_cast<size_t>(i)] = -s; }
     ms.process(L.data(), R.data(), 48000);
     double sq = 0; for (int i = 9600; i < 48000; ++i) { const float s = 0.5f * (L[static_cast<size_t>(i)] - R[static_cast<size_t>(i)]); sq += s * s; }
     const double lift = 20.0 * std::log10(std::sqrt(sq / (48000 - 9600)) / 0.7071);
@@ -485,13 +485,13 @@ void testMidSide()
 void testPresets()
 {
     CHECK(builtinPresetCount() == 256, "exactly 256 built-in presets");
-    CHECK(std::strcmp(preset(0).name, "Init") == 0, "the empty preset opens the list");
+    CHECK(std::strcmp(preset(0).m_name, "Init") == 0, "the empty preset opens the list");
     CHECK(numPresets() == builtinPresetCount(), "no packs loaded during the test");
     for (int p = 0; p < numPresets(); ++p)
-        for (int q = 0; q < p; ++q) CHECK(std::strcmp(preset(p).name, preset(q).name) != 0, "preset names unique");
+        for (int q = 0; q < p; ++q) CHECK(std::strcmp(preset(p).m_name, preset(q).m_name) != 0, "preset names unique");
     for (int p = 0; p < numPresets(); ++p) {
-        bool touched[kNumParams] = {};
-        const bool ok = applyPreset(preset(p), [&](ParamId id, float) { touched[static_cast<int>(id)] = true; });
+        bool touched[NumParams] = {};
+        const bool ok = applyPreset(preset(p), [&](ParamIdE id, float) { touched[static_cast<int>(id)] = true; });
         CHECK(ok, "preset settings all refer to known parameters");
         int count = 0; for (bool t : touched) count += t ? 1 : 0;
         // Two kinds of parameter a preset does not reach. The performance state -- morph, macros,
@@ -502,14 +502,14 @@ void testPresets()
         // back to zero and switched the foreground off without saying so.
         int perf = 0, nearLayer = 0;
         for (const ParamDesc& d : paramTable()) {
-            if (isPerformanceParam(d.id)) ++perf;
-            else if (isNearLayerParam(d.id)) ++nearLayer;
+            if (isPerformanceParam(d.m_id)) ++perf;
+            else if (isNearLayerParam(d.m_id)) ++nearLayer;
         }
-        for (const ParamDesc& d : paramTable()) CHECK(paramHelp(d.id)[0] != 0, (std::string("help text for ") + d.key).c_str());
-        CHECK(count == kNumParams - perf - nearLayer,
+        for (const ParamDesc& d : paramTable()) CHECK(paramHelp(d.m_id)[0] != 0, (std::string("help text for ") + d.m_key).c_str());
+        CHECK(count == NumParams - perf - nearLayer,
               "preset sets every parameter except the performance state and the near layer");
         bool touchedNear = false;
-        for (const ParamDesc& d : paramTable()) if (isNearLayerParam(d.id) && touched[static_cast<int>(d.id)]) touchedNear = true;
+        for (const ParamDesc& d : paramTable()) if (isNearLayerParam(d.m_id) && touched[static_cast<int>(d.m_id)]) touchedNear = true;
         CHECK(!touchedNear, "and no built-in preset reaches into the near layer at all");
     }
     Engine e;
@@ -518,12 +518,12 @@ void testPresets()
         // writes them -- an index would silently mean the wrong scale the day one is inserted.
         const Preset byName = { "choice by name", "scale=Harmonic 8-16;root=E" };
         Engine t;
-        CHECK(applyPreset(byName, [&](ParamId id, float v) { t.setParam(id, v); }), "settings by name parse");
-        CHECK(t.getParam(ParamId::Scale) == 6.0f, "Harmonic 8-16 chosen by name");
-        CHECK(t.getParam(ParamId::RootNote) == 4.0f, "root E by name");
+        CHECK(applyPreset(byName, [&](ParamIdE id, float v) { t.setParam(id, v); }), "settings by name parse");
+        CHECK(t.getParam(ParamIdE::SCALE) == 6.0f, "Harmonic 8-16 chosen by name");
+        CHECK(t.getParam(ParamIdE::ROOT_NOTE) == 4.0f, "root E by name");
         int named = 0;
         for (int p = 0; p < builtinPresetCount(); ++p)
-            if (std::strstr(preset(p).settings, "scale=") != nullptr) ++named;
+            if (std::strstr(preset(p).m_settings, "scale=") != nullptr) ++named;
         CHECK(named > 20, "and the built-ins do name their scales");
     }
     CHECK(!e.applyPreset(999), "out of range preset rejected");
@@ -539,19 +539,19 @@ void testPresets()
 void testSpace()
 {
     Engine e;
-    e.setParam(ParamId::BrainRate, 2.0f);
-    e.setParam(ParamId::Attack, 0.5f);
-    e.setParam(ParamId::Depth, 1.0f);
+    e.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+    e.setParam(ParamIdE::ATTACK, 0.5f);
+    e.setParam(ParamIdE::DEPTH, 1.0f);
     e.prepare(48000.0, 256);
     Stats s = render(e, 15.0);
-    CHECK(s.nonFinite == 0 && s.rms > 0.01, "spatial engine renders");
+    CHECK(s.m_nonFinite == 0 && s.m_rms > 0.01, "spatial engine renders");
     bool notes[128]; e.soundingNotes(notes);
     int seen = 0, farCount = 0;   // ("far" is a Windows macro)
     for (int n = 0; n < 128; ++n) if (notes[n]) { const float d = e.noteDistance(n); CHECK(d >= 0.0f && d <= 1.0f, "distance in range"); ++seen; if (d > 0.5f) ++farCount; }
     CHECK(seen >= 2, "several notes sounding");
     CHECK(farCount >= 1, "at least one note in the background plane");
     // MIDI notes take the keys depth.
-    e.setParam(ParamId::KeysDepth, 0.9f);
+    e.setParam(ParamIdE::KEYS_DEPTH, 0.9f);
     render(e, 0.1);
     e.noteOn(100, 0.5f);
     render(e, 0.1);
@@ -595,16 +595,16 @@ void testSources()
 {
     const int sr = 48000;
     auto quietVoice = [](Engine& e) {   // main bank silent (Source 1 level 0), everything dry
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::OscLevel, 0.0f);
-        e.setParam(ParamId::Attack, 0.2f);
-        e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 9.0f);   // 12-TET, A: key 57 = 220 Hz
-        e.setParam(ParamId::Partials, 1.0f); e.setParam(ParamId::Unison, 1.0f);
-        e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f); e.setParam(ParamId::Shimmer, 0.0f);
-        e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Cutoff, 18000.0f); e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-        e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f); e.setParam(ParamId::Spread, 0.0f);
-        e.setParam(ParamId::Src2Pan, 0.0f); e.setParam(ParamId::Src2PosDrift, 0.0f); e.setParam(ParamId::Src2Level, 1.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::OSC_LEVEL, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.2f);
+        e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 9.0f);   // 12-TET, A: key 57 = 220 Hz
+        e.setParam(ParamIdE::PARTIALS, 1.0f); e.setParam(ParamIdE::UNISON, 1.0f);
+        e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+        e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::CUTOFF, 18000.0f); e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f); e.setParam(ParamIdE::SPREAD, 0.0f);
+        e.setParam(ParamIdE::SRC2_PAN, 0.0f); e.setParam(ParamIdE::SRC2_POS_DRIFT, 0.0f); e.setParam(ParamIdE::SRC2_LEVEL, 1.0f);
     };
     auto monoSecond = [&](Engine& e, int note, std::vector<float>& mono) {
         e.prepare(sr, 256);
@@ -617,69 +617,69 @@ void testSources()
     {   // Wavetable Classic: position 0 is a sine, position 0.5 a saw (second partial at half).
         std::vector<float> m;
         Engine sine; quietVoice(sine);
-        sine.setParam(ParamId::Src2Type, 1.0f); sine.setParam(ParamId::Src2Table, 0.0f); sine.setParam(ParamId::Src2Position, 0.0f);
+        sine.setParam(ParamIdE::SRC2_TYPE, 1.0f); sine.setParam(ParamIdE::SRC2_TABLE, 0.0f); sine.setParam(ParamIdE::SRC2_POSITION, 0.0f);
         monoSecond(sine, 57, m);
         const double s1 = goertzel(m.data(), sr, 220.0, sr), s2 = goertzel(m.data(), sr, 440.0, sr);
         CHECK(s1 > 100.0 * s2, "wavetable position 0 (sine) has no second partial");
         Engine saw; quietVoice(saw);
-        saw.setParam(ParamId::Src2Type, 1.0f); saw.setParam(ParamId::Src2Table, 0.0f); saw.setParam(ParamId::Src2Position, 0.5f);
+        saw.setParam(ParamIdE::SRC2_TYPE, 1.0f); saw.setParam(ParamIdE::SRC2_TABLE, 0.0f); saw.setParam(ParamIdE::SRC2_POSITION, 0.5f);
         monoSecond(saw, 57, m);
         const double w1 = goertzel(m.data(), sr, 220.0, sr), w2 = goertzel(m.data(), sr, 440.0, sr), w3 = goertzel(m.data(), sr, 660.0, sr);
         CHECK(w2 > 0.15 * w1 && w2 < 0.4 * w1 && w3 > 0.05 * w1, "wavetable position 0.5 (saw) has 1/h partials");
         // Ratio 3/2 and octave +1 move the slot: 220 * 1.5 * 2 = 660 Hz.
         Engine moved; quietVoice(moved);
-        moved.setParam(ParamId::Src2Type, 1.0f); moved.setParam(ParamId::Src2Position, 0.0f);
-        moved.setParam(ParamId::Src2Ratio, 5.0f); moved.setParam(ParamId::Src2Octave, 1.0f);
+        moved.setParam(ParamIdE::SRC2_TYPE, 1.0f); moved.setParam(ParamIdE::SRC2_POSITION, 0.0f);
+        moved.setParam(ParamIdE::SRC2_RATIO, 5.0f); moved.setParam(ParamIdE::SRC2_OCTAVE, 1.0f);
         monoSecond(moved, 57, m);
         CHECK(goertzel(m.data(), sr, 660.0, sr) > 50.0 * goertzel(m.data(), sr, 440.0, sr), "slot ratio 3/2 and octave +1 land at 660 Hz");
     }
     {   // FM: index 0 is a pure carrier, index 3 has sidebands at carrier +- modulator.
         std::vector<float> m;
         Engine pure; quietVoice(pure);
-        pure.setParam(ParamId::Src2Type, 2.0f); pure.setParam(ParamId::Src2FmIndex, 0.0f); pure.setParam(ParamId::Src2FmRatio, 2.0f);
+        pure.setParam(ParamIdE::SRC2_TYPE, 2.0f); pure.setParam(ParamIdE::SRC2_FM_INDEX, 0.0f); pure.setParam(ParamIdE::SRC2_FM_RATIO, 2.0f);
         monoSecond(pure, 57, m);
         const double c0 = goertzel(m.data(), sr, 220.0, sr), sb0 = goertzel(m.data(), sr, 660.0, sr);
         CHECK(c0 > 100.0 * sb0, "FM index 0 is a plain sine");
         Engine fm; quietVoice(fm);
-        fm.setParam(ParamId::Src2Type, 2.0f); fm.setParam(ParamId::Src2FmIndex, 3.0f); fm.setParam(ParamId::Src2FmRatio, 2.0f);
+        fm.setParam(ParamIdE::SRC2_TYPE, 2.0f); fm.setParam(ParamIdE::SRC2_FM_INDEX, 3.0f); fm.setParam(ParamIdE::SRC2_FM_RATIO, 2.0f);
         monoSecond(fm, 57, m);
         const double c1 = goertzel(m.data(), sr, 220.0, sr), sb1 = goertzel(m.data(), sr, 660.0, sr);
         CHECK(sb1 > 0.1 * c1 && sb1 > 100.0 * sb0, "FM index 3 puts energy on the sidebands");
         // Ratio 1 with a deep index carries a DC term (J1 of the index); the slot must block it.
         Engine dc; quietVoice(dc);
-        dc.setParam(ParamId::Src2Type, 2.0f); dc.setParam(ParamId::Src2FmIndex, 1.5f); dc.setParam(ParamId::Src2FmRatio, 1.0f);
+        dc.setParam(ParamIdE::SRC2_TYPE, 2.0f); dc.setParam(ParamIdE::SRC2_FM_INDEX, 1.5f); dc.setParam(ParamIdE::SRC2_FM_RATIO, 1.0f);
         monoSecond(dc, 57, m);
         double mean = 0; for (float v : m) mean += v; mean /= static_cast<double>(m.size());
         CHECK(std::fabs(mean) < 0.002, "FM at ratio 1 has no DC offset");
     }
     {   // Texture: a 440 Hz sample; Free plays it as is, Note pitches it to the key (A3 = 220 with base C4 = 261.6 -> 370 Hz).
         std::vector<float> sample(sr * 2);
-        for (int i = 0; i < sr * 2; ++i) sample[static_cast<size_t>(i)] = 0.5f * std::sin(kTwoPi * 440.0f * i / sr);
+        for (int i = 0; i < sr * 2; ++i) sample[static_cast<size_t>(i)] = 0.5f * std::sin(TwoPi * 440.0f * i / sr);
         std::vector<float> m;
         Engine freeT; quietVoice(freeT);
-        freeT.setParam(ParamId::Src2Type, 3.0f); freeT.setParam(ParamId::Src2Follow, 0.0f); freeT.setParam(ParamId::Src2Density, 20.0f);
+        freeT.setParam(ParamIdE::SRC2_TYPE, 3.0f); freeT.setParam(ParamIdE::SRC2_FOLLOW, 0.0f); freeT.setParam(ParamIdE::SRC2_DENSITY, 20.0f);
         freeT.setTexture(sample.data(), static_cast<int>(sample.size()), sr);
         monoSecond(freeT, 57, m);
         const double f440 = goertzel(m.data(), sr, 440.0, sr), f370 = goertzel(m.data(), sr, 370.0, sr);
         CHECK(f440 > 20.0 * f370 && f440 > 1.0, "texture Free plays the sample at its own pitch");
         Engine noteT; quietVoice(noteT);
-        noteT.setParam(ParamId::Src2Type, 3.0f); noteT.setParam(ParamId::Src2Follow, 1.0f); noteT.setParam(ParamId::Src2Density, 20.0f);
+        noteT.setParam(ParamIdE::SRC2_TYPE, 3.0f); noteT.setParam(ParamIdE::SRC2_FOLLOW, 1.0f); noteT.setParam(ParamIdE::SRC2_DENSITY, 20.0f);
         noteT.setTexture(sample.data(), static_cast<int>(sample.size()), sr);
         monoSecond(noteT, 57, m);
         const double n440 = goertzel(m.data(), sr, 440.0, sr), n370 = goertzel(m.data(), sr, 370.0, sr);
         CHECK(n370 > 20.0 * n440, "texture Note pitches the sample to the key");
         Engine none; quietVoice(none);
-        none.setParam(ParamId::Src2Type, 3.0f);
+        none.setParam(ParamIdE::SRC2_TYPE, 3.0f);
         monoSecond(none, 57, m);
         double sq = 0; for (float v : m) sq += v * v;
         CHECK(sq < 1e-9, "texture slot without a loaded texture is silent");
     }
     {   // User wavetable from frames: frame 0 sine, frame 1 square -> analysed, position 1 shows odd partials.
         std::vector<float> frames(4096);
-        for (int i = 0; i < 2048; ++i) { frames[static_cast<size_t>(i)] = std::sin(kTwoPi * i / 2048.0f); frames[static_cast<size_t>(2048 + i)] = i < 1024 ? 1.0f : -1.0f; }
+        for (int i = 0; i < 2048; ++i) { frames[static_cast<size_t>(i)] = std::sin(TwoPi * i / 2048.0f); frames[static_cast<size_t>(2048 + i)] = i < 1024 ? 1.0f : -1.0f; }
         Wavetable t;
-        CHECK(t.analyse(frames.data(), 4096) && t.frames == 2, "wavetable analysis finds two frames");
-        float spec[kTablePartials]; t.spectrumAt(1.0f, spec);
+        CHECK(t.analyse(frames.data(), 4096) && t.m_frames == 2, "wavetable analysis finds two frames");
+        float spec[TablePartials]; t.spectrumAt(1.0f, spec);
         CHECK(spec[0] > 0.5f && spec[2] > 0.25f * spec[0] && spec[1] < 0.05f * spec[0], "square frame has odd partials only");
         t.spectrumAt(0.0f, spec);
         CHECK(spec[0] > 0.9f && spec[1] < 0.02f, "sine frame is a single partial");
@@ -721,27 +721,27 @@ void testPurityFreezeSleep()
     const int sr = 48000;
     {   // Purity 0 = 12-TET, 1 = the scale, 0.5 = geometric middle; sounding voices glide there.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Scale, 1.0f); e.setParam(ParamId::RootNote, 0.0f);   // Ptolemy major, root C: E4 = 5/4 * 261.63 = 327.03 Hz
-        e.setParam(ParamId::TunePurity, 1.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::SCALE, 1.0f); e.setParam(ParamIdE::ROOT_NOTE, 0.0f);   // Ptolemy major, root C: E4 = 5/4 * 261.63 = 327.03 Hz
+        e.setParam(ParamIdE::TUNE_PURITY, 1.0f);
         e.prepare(sr, 256);
         const double pure = e.frequencyOf(64), et = 440.0 * std::pow(2.0, (64 - 69) / 12.0);
         CHECK(std::fabs(pure - 327.03) < 0.05 && std::fabs(et - 329.63) < 0.05, "scale and 12-TET frequencies of E4");
-        e.setParam(ParamId::TunePurity, 0.0f);
+        e.setParam(ParamIdE::TUNE_PURITY, 0.0f);
         render(e, 0.02);
         CHECK(std::fabs(e.frequencyOf(64) - et) < 1e-6, "purity 0 is 12-TET");
-        e.setParam(ParamId::TunePurity, 0.5f);
+        e.setParam(ParamIdE::TUNE_PURITY, 0.5f);
         render(e, 0.02);
         CHECK(std::fabs(e.frequencyOf(64) - std::sqrt(pure * et)) < 1e-6, "purity 0.5 is the geometric middle");
         // a sounding voice follows: after 5 s it sits within 0.1 Hz of the new frequency
-        e.setParam(ParamId::TunePurity, 1.0f); render(e, 0.02);
-        e.setParam(ParamId::Attack, 0.1f); e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f);
-        e.setParam(ParamId::Shimmer, 0.0f); e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Partials, 1.0f); e.setParam(ParamId::Cutoff, 18000.0f);
-        e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f); e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
+        e.setParam(ParamIdE::TUNE_PURITY, 1.0f); render(e, 0.02);
+        e.setParam(ParamIdE::ATTACK, 0.1f); e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);
+        e.setParam(ParamIdE::SHIMMER, 0.0f); e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::PARTIALS, 1.0f); e.setParam(ParamIdE::CUTOFF, 18000.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
         e.noteOn(64, 0.8f);
         render(e, 1.0);
-        e.setParam(ParamId::TunePurity, 0.0f);
+        e.setParam(ParamIdE::TUNE_PURITY, 0.0f);
         std::vector<float> cap;
         render(e, 6.0, &cap);
         std::vector<float> mono(sr * 2);
@@ -752,13 +752,13 @@ void testPurityFreezeSleep()
     {   // Freeze stops the shimmer: two seconds of a frozen voice have a steadier spectrum than the same voice moving.
         auto spectralWobble = [&](bool freeze) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Attack, 0.1f);
-            e.setParam(ParamId::Shimmer, 1.0f); e.setParam(ParamId::ShimmerRate, 2.0f); e.setParam(ParamId::Partials, 16.0f);
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::Cutoff, 18000.0f); e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-            e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f); e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 0.0f);
-            e.setParam(ParamId::Freeze, freeze ? 1.0f : 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.1f);
+            e.setParam(ParamIdE::SHIMMER, 1.0f); e.setParam(ParamIdE::SHIMMER_RATE, 2.0f); e.setParam(ParamIdE::PARTIALS, 16.0f);
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::CUTOFF, 18000.0f); e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f); e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 0.0f);
+            e.setParam(ParamIdE::FREEZE, freeze ? 1.0f : 0.0f);
             e.prepare(sr, 256);
             e.noteOn(57, 0.8f);
             render(e, 1.0);
@@ -783,17 +783,17 @@ void testPurityFreezeSleep()
         // shaped was silent for good (five of the 2.0 library's were).
         auto entered = [&](bool freeze) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Attack, 0.05f);
-            e.setParam(ParamId::Src1Type, 0.0f);                       // slot 1 off: only the delayed slot can sound
-            e.setParam(ParamId::Src2Type, 5.0f); e.setParam(ParamId::Src2Level, 0.6f); e.setParam(ParamId::Src2Delay, 0.5f);   // 5 = Additive
-            e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
-            e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-            e.setParam(ParamId::Freeze, freeze ? 1.0f : 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.05f);
+            e.setParam(ParamIdE::SRC1_TYPE, 0.0f);                       // slot 1 off: only the delayed slot can sound
+            e.setParam(ParamIdE::SRC2_TYPE, 5.0f); e.setParam(ParamIdE::SRC2_LEVEL, 0.6f); e.setParam(ParamIdE::SRC2_DELAY, 0.5f);   // 5 = Additive
+            e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+            e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+            e.setParam(ParamIdE::FREEZE, freeze ? 1.0f : 0.0f);
             e.prepare(sr, 256);
             e.noteOn(57, 0.8f);
             const Stats before = render(e, 0.3);
             const Stats after = render(e, 1.5);
-            return std::make_pair(before.rms, after.rms);
+            return std::make_pair(before.m_rms, after.m_rms);
         };
         const auto moving = entered(false), frozen = entered(true);
         std::printf("  [probe] delayed slot, frozen: %.5f before the delay, %.5f after (moving: %.5f / %.5f)\n",
@@ -825,55 +825,55 @@ void testPurityFreezeSleep()
         }
         {   // a texture: the mean is taken out as it is loaded
             std::vector<float> buf(static_cast<size_t>(sr));
-            for (int i = 0; i < sr; ++i) buf[static_cast<size_t>(i)] = 0.4f + 0.3f * std::sin(static_cast<float>(kTwoPi * 220.0 * i / sr));
+            for (int i = 0; i < sr; ++i) buf[static_cast<size_t>(i)] = 0.4f + 0.3f * std::sin(static_cast<float>(TwoPi * 220.0 * i / sr));
             const Texture t = Engine::makeTexture(buf.data(), nullptr, sr, sr, 220.0, true);
             double mean = 0.0;
-            for (float v : t.mono) mean += v;
-            mean /= std::max<size_t>(t.mono.size(), 1);
+            for (float v : t.m_mono) mean += v;
+            mean /= std::max<size_t>(t.m_mono.size(), 1);
             CHECK(std::fabs(mean) < 1e-3, "a loaded texture carries no offset");
         }
         {   // and the whole: the offending recipe, thirty seconds, still audible at the end
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Attack, 0.05f);
-            e.setParam(ParamId::Src1Type, 3.0f);                        // 3 = Texture
-            e.setParam(ParamId::PatinaAmount, 0.4f);
-            e.setParam(ParamId::FarLevel, 1.0f); e.setParam(ParamId::FarDecay, 40.0f);
-            e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.05f);
+            e.setParam(ParamIdE::SRC1_TYPE, 3.0f);                        // 3 = Texture
+            e.setParam(ParamIdE::PATINA_AMOUNT, 0.4f);
+            e.setParam(ParamIdE::FAR_LEVEL, 1.0f); e.setParam(ParamIdE::FAR_DECAY, 40.0f);
+            e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
             e.prepare(sr, 256);
             std::vector<float> buf(static_cast<size_t>(2 * sr));
-            for (int i = 0; i < 2 * sr; ++i) buf[static_cast<size_t>(i)] = 0.4f + 0.3f * std::sin(static_cast<float>(kTwoPi * 220.0 * i / sr));
+            for (int i = 0; i < 2 * sr; ++i) buf[static_cast<size_t>(i)] = 0.4f + 0.3f * std::sin(static_cast<float>(TwoPi * 220.0 * i / sr));
             e.setTexture(0, buf.data(), 2 * sr, sr, 220.0, true);
             e.noteOn(57, 0.8f);
             render(e, 28.0);
             const Stats end = render(e, 2.0);
-            std::printf("  [probe] a texture with an offset through a forty-second hall and the Patina: rms %.5f after thirty seconds\n", end.rms);
-            CHECK(end.rms > 1e-3, "an offset in a texture no longer silences the instrument");
+            std::printf("  [probe] a texture with an offset through a forty-second hall and the Patina: rms %.5f after thirty seconds\n", end.m_rms);
+            CHECK(end.m_rms > 1e-3, "an offset in a texture no longer silences the instrument");
         }
     }
     {   // Sleep: after two silent seconds the engine sleeps; a note wakes it.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Release, 0.1f); e.setParam(ParamId::FarDecay, 1.0f); e.setParam(ParamId::NearDecay, 0.2f);
-        e.setParam(ParamId::DelayFeedback, 0.0f); e.setParam(ParamId::Delay2Feedback, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::RELEASE, 0.1f); e.setParam(ParamIdE::FAR_DECAY, 1.0f); e.setParam(ParamIdE::NEAR_DECAY, 0.2f);
+        e.setParam(ParamIdE::DELAY_FEEDBACK, 0.0f); e.setParam(ParamIdE::DELAY2_FEEDBACK, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
         e.prepare(sr, 256);
         render(e, 3.0);
         CHECK(e.asleep(), "engine sleeps after silence");
         e.noteOn(57, 0.8f);
         Stats s = render(e, 0.5);
-        CHECK(!e.asleep() && s.rms > 0.001, "a note wakes it and sounds");
+        CHECK(!e.asleep() && s.m_rms > 0.001, "a note wakes it and sounds");
     }
     {   // Rest zone: both hands low = nothing written; raise one hand and the mapping writes again.
         GestureLayer g;
         g.clearMappings();
-        g.addMapping({ GestureInput::LeftHeight, ParamId::Depth, 0.0f, 1.0f, 0.0f, 0.0f, GestureInput::Count, false });
+        g.addMapping({ GestureInputE::LEFT_HEIGHT, ParamIdE::DEPTH, 0.0f, 1.0f, 0.0f, 0.0f, GestureInputE::COUNT, false });
         g.setRestZone(0.1f);
         g.setCalibration(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);   // heights map 1:1
         g.setHand(0, 0.0f, 0.02f, 0.0f, 0.0f, 0.0f);   // left low
         g.setHand(1, 0.0f, 0.02f, 0.0f, 0.0f, 0.0f);   // right low
         int writes = 0;
-        g.update(0.02, [&](ParamId, float) { ++writes; });
+        g.update(0.02, [&](ParamIdE, float) { ++writes; });
         CHECK(g.resting() && writes == 0, "both hands low: resting, nothing written");
         g.setHand(0, 0.0f, 0.8f, 0.0f, 0.0f, 0.0f);
-        g.update(0.02, [&](ParamId, float) { ++writes; });
+        g.update(0.02, [&](ParamIdE, float) { ++writes; });
         CHECK(!g.resting() && writes > 0, "a raised hand ends the rest");
     }
 }
@@ -891,16 +891,16 @@ void testGhostPortaInertiaTapeCoherence()
 {
     const int sr = 48000;
     auto dryVoice = [](Engine& e) {
-        e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Attack, 0.1f);
-        e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 9.0f);   // 12-TET, A
-        e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f); e.setParam(ParamId::Shimmer, 0.0f);
-        e.setParam(ParamId::Cutoff, 18000.0f); e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-        e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.1f);
+        e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 9.0f);   // 12-TET, A
+        e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+        e.setParam(ParamIdE::CUTOFF, 18000.0f); e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f);
     };
     {   // Ghost: noise alone (bank level 0) through the resonators shows the note's harmonics.
         Engine e; dryVoice(e);
-        e.setParam(ParamId::OscLevel, 0.0f); e.setParam(ParamId::Air, 1.0f); e.setParam(ParamId::AirQ, 20.0f); e.setParam(ParamId::AirMode, 1.0f);
+        e.setParam(ParamIdE::OSC_LEVEL, 0.0f); e.setParam(ParamIdE::AIR, 1.0f); e.setParam(ParamIdE::AIR_Q, 20.0f); e.setParam(ParamIdE::AIR_MODE, 1.0f);
         e.prepare(sr, 256);
         e.noteOn(57, 0.8f);   // 220 Hz
         std::vector<float> cap; render(e, 3.0, &cap);
@@ -913,9 +913,9 @@ void testGhostPortaInertiaTapeCoherence()
     {   // Portamento: A3 then E4 with 2 s glide -- half-way it is between, at the end it has arrived; gravity lingers longer near the fifth.
         auto pitchAt = [&](float gravity, double t) {
             Engine e; dryVoice(e);
-            e.setParam(ParamId::Partials, 1.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::Release, 0.05f);   // the first key must be gone before the pitch is counted
-            e.setParam(ParamId::Portamento, 2.0f); e.setParam(ParamId::PortaGravity, gravity);
+            e.setParam(ParamIdE::PARTIALS, 1.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::RELEASE, 0.05f);   // the first key must be gone before the pitch is counted
+            e.setParam(ParamIdE::PORTAMENTO, 2.0f); e.setParam(ParamIdE::PORTA_GRAVITY, gravity);
             e.prepare(sr, 256);
             e.noteOn(57, 0.8f); render(e, 0.5); e.noteOff(57);
             e.noteOn(64, 0.8f);
@@ -933,35 +933,35 @@ void testGhostPortaInertiaTapeCoherence()
     }
     {   // Inertia: a parameter jump arrives slowly.
         Engine e; dryVoice(e);
-        e.setParam(ParamId::Inertia, 2.0f);
+        e.setParam(ParamIdE::INERTIA, 2.0f);
         e.prepare(sr, 256);
         render(e, 0.1);
-        e.setParam(ParamId::Depth, 1.0f);   // from 0.7
-        e.setParam(ParamId::FarDecay, 80.0f);
+        e.setParam(ParamIdE::DEPTH, 1.0f);   // from 0.7
+        e.setParam(ParamIdE::FAR_DECAY, 80.0f);
         render(e, 0.2);
-        const float early = e.effectiveParam(ParamId::FarDecay);
+        const float early = e.effectiveParam(ParamIdE::FAR_DECAY);
         CHECK(early >= 80.0f - 1e-3f, "effectiveParam is the target (inertia works on what the engine reads)");
         // the brain depth is read through the inertia; check via the read value used for far reverb: use a probe parameter
         Engine f; dryVoice(f);
-        f.setParam(ParamId::Inertia, 0.0f);
+        f.setParam(ParamIdE::INERTIA, 0.0f);
         f.prepare(sr, 256);
         CHECK(true, "inertia off leaves values immediate");
     }
     {   // Tape in the loop stays bounded and free of DC.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::FeedbackBus, 0.8f); e.setParam(ParamId::FeedbackDrive, 0.8f); e.setParam(ParamId::FeedbackTape, 1.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::FEEDBACK_BUS, 0.8f); e.setParam(ParamIdE::FEEDBACK_DRIVE, 0.8f); e.setParam(ParamIdE::FEEDBACK_TAPE, 1.0f);
         e.prepare(sr, 256);
         e.noteOn(57, 0.8f);
         std::vector<float> cap;
         Stats s = render(e, 12.0, &cap);
         double mean = 0; for (size_t i = cap.size() / 2; i < cap.size(); ++i) mean += cap[i]; mean /= static_cast<double>(cap.size() / 2);
-        CHECK(s.nonFinite == 0 && s.peak < 0.98f && std::fabs(mean) < 0.01, "tape loop is bounded and DC-free");
+        CHECK(s.m_nonFinite == 0 && s.m_peak < 0.98f && std::fabs(mean) < 0.01, "tape loop is bounded and DC-free");
     }
     {   // Coherence: coupled oscillators pull together, uncoupled ones do not.
         auto spread = [&](float k) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Coherence, k); e.setParam(ParamId::CoherenceRate, 5.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::COHERENCE, k); e.setParam(ParamIdE::COHERENCE_RATE, 5.0f);
             e.prepare(sr, 4096);
             float L[4096], R[4096];
             for (int b = 0; b < 48000 * 240 / 4096; ++b) e.process(L, R, 4096);   // 240 s at rate 5 = 20 minutes of phase
@@ -985,22 +985,22 @@ void testGhostPortaInertiaTapeCoherence()
 void testTimeline()
 {
     SetTimeline t;
-    t.add({ 2.0, TimelineEvent::Type::Param, static_cast<int>(ParamId::FarDecay), 42.0f });
-    t.add({ 0.5, TimelineEvent::Type::NoteOn, 57, 0.8f });      // out of order on purpose
-    t.add({ 30.0, TimelineEvent::Type::NoteOff, 57, 0.0f });
-    t.add({ 2.0, TimelineEvent::Type::Param, static_cast<int>(ParamId::Depth), 0.9f });
-    CHECK(t.size() == 4 && t.event(0).type == TimelineEvent::Type::NoteOn && std::fabs(t.length() - 30.0) < 1e-9, "events are kept sorted by time");
+    t.add({ 2.0, TimelineEvent::TypeE::PARAM, static_cast<int>(ParamIdE::FAR_DECAY), 42.0f });
+    t.add({ 0.5, TimelineEvent::TypeE::NOTE_ON, 57, 0.8f });      // out of order on purpose
+    t.add({ 30.0, TimelineEvent::TypeE::NOTE_OFF, 57, 0.0f });
+    t.add({ 2.0, TimelineEvent::TypeE::PARAM, static_cast<int>(ParamIdE::DEPTH), 0.9f });
+    CHECK(t.size() == 4 && t.event(0).m_type == TimelineEvent::TypeE::NOTE_ON && std::fabs(t.length() - 30.0) < 1e-9, "events are kept sorted by time");
     const std::vector<char> text = t.write();
     SetTimeline u;
     CHECK(u.parse(text.data()) && u.size() == 4, "timeline text round-trips");
-    CHECK(u.event(1).type == TimelineEvent::Type::Param && u.event(1).a == static_cast<int>(ParamId::FarDecay) && std::fabs(u.event(1).v - 42.0f) < 1e-4f, "parameter event survives by key");
+    CHECK(u.event(1).m_type == TimelineEvent::TypeE::PARAM && u.event(1).m_a == static_cast<int>(ParamIdE::FAR_DECAY) && std::fabs(u.event(1).m_v - 42.0f) < 1e-4f, "parameter event survives by key");
     int got = 0; double lastT = -1.0;
     u.seek(0.0);
-    u.step(0.0, 1.0, [&](const TimelineEvent& e) { ++got; lastT = e.t; });
+    u.step(0.0, 1.0, [&](const TimelineEvent& e) { ++got; lastT = e.m_t; });
     CHECK(got == 1 && std::fabs(lastT - 0.5) < 1e-9, "step emits only the events in the window");
-    u.step(1.0, 3.0, [&](const TimelineEvent& e) { ++got; lastT = e.t; });
+    u.step(1.0, 3.0, [&](const TimelineEvent& e) { ++got; lastT = e.m_t; });
     CHECK(got == 3 && !u.finished(), "the two events at 2.0 s follow");
-    u.step(3.0, 60.0, [&](const TimelineEvent& e) { ++got; lastT = e.t; });
+    u.step(3.0, 60.0, [&](const TimelineEvent& e) { ++got; lastT = e.m_t; });
     CHECK(got == 4 && u.finished(), "the note-off ends the set");
     CHECK(!u.parse("1.0 param no_such_key 3\n"), "unknown parameter key is rejected");
     CHECK(u.parse("# comment\n0.0 on 60 0.5\n\n1.5 off 60\n") && u.size() == 2, "comments and blank lines are skipped");
@@ -1020,11 +1020,11 @@ void testZPlane()
     const int sr = 48000;
     {   // interpolation: corners reproduce their frames, the centre lies between in log frequency
         const ZFrame a = zInterpolate(0, 0.0f, 0.0f), d = zInterpolate(0, 1.0f, 1.0f), m = zInterpolate(0, 0.5f, 0.5f);
-        CHECK(std::fabs(a.s[0].poleHz - 700.0f) < 0.5f && std::fabs(d.s[0].poleHz - 270.0f) < 0.5f, "corner frames come back exactly");
-        CHECK(m.s[0].poleHz > 270.0f && m.s[0].poleHz < 700.0f, "the centre point lies between the corners");
+        CHECK(std::fabs(a.m_s[0].m_poleHz - 700.0f) < 0.5f && std::fabs(d.m_s[0].m_poleHz - 270.0f) < 0.5f, "corner frames come back exactly");
+        CHECK(m.m_s[0].m_poleHz > 270.0f && m.m_s[0].m_poleHz < 700.0f, "the centre point lies between the corners");
         Resonator r; r.set(1000.0f, 50.0f, 1.0f, sr);
         std::vector<float> x(sr), y(sr);
-        for (int i = 0; i < sr; ++i) { x[static_cast<size_t>(i)] = std::sin(kTwoPi * 1000.0f * i / sr); y[static_cast<size_t>(i)] = r.tick(x[static_cast<size_t>(i)]); }
+        for (int i = 0; i < sr; ++i) { x[static_cast<size_t>(i)] = std::sin(TwoPi * 1000.0f * i / sr); y[static_cast<size_t>(i)] = r.tick(x[static_cast<size_t>(i)]); }
         double ex = 0, ey = 0; for (int i = sr / 2; i < sr; ++i) { ex += x[static_cast<size_t>(i)] * x[static_cast<size_t>(i)]; ey += y[static_cast<size_t>(i)] * y[static_cast<size_t>(i)]; }
         CHECK(std::fabs(std::sqrt(ey / ex) - 1.0) < 0.1, "resonator has unity gain at its peak");
     }
@@ -1034,24 +1034,24 @@ void testZPlane()
         for (int i = 0; i < sr; ++i) noise[static_cast<size_t>(i)] = 0.25f * rng.bipolar();
         const float pts[5][2] = { { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { 1.0f, 1.0f }, { 0.5f, 0.5f } };
         int bad = 0, quiet = 0, loud = 0, mismatched = 0;
-        for (int shape = 0; shape < kZShapes; ++shape) {
-            for (int c = 1; c < 4; ++c) if (zFrameFromSpec(kZCorners[shape][c]).used != zFrameFromSpec(kZCorners[shape][0]).used) ++mismatched;
+        for (int shape = 0; shape < ZShapes; ++shape) {
+            for (int c = 1; c < 4; ++c) if (zFrameFromSpec(ZCorners[shape][c]).m_used != zFrameFromSpec(ZCorners[shape][0]).m_used) ++mismatched;
             for (int p = 0; p < 5; ++p) {
                 const ZFrame f = zInterpolate(shape, pts[p][0], pts[p][1]);
-                ZBiquad ch[kZSections];
+                ZBiquad ch[ZSections];
                 const float norm = zBuildCascade(f, ch, static_cast<float>(sr));
                 double sq = 0; float peak = 0.0f; bool finite = true;
                 for (int i = 0; i < sr; ++i) {
                     float v = noise[static_cast<size_t>(i)];
-                    for (int k = 0; k < f.used; ++k) v = ch[k].tick(v);
+                    for (int k = 0; k < f.m_used; ++k) v = ch[k].tick(v);
                     v *= norm;
                     if (!std::isfinite(v)) { finite = false; break; }
                     if (i > sr / 4) { sq += static_cast<double>(v) * v; peak = std::max(peak, std::fabs(v)); }
                 }
                 const double rms = finite ? std::sqrt(sq / (0.75 * sr)) : 0.0;
-                if (!finite) { ++bad; std::printf("  z-plane %s at (%.1f,%.1f): non-finite\n", kZShapeNames[shape], pts[p][0], pts[p][1]); }
-                else if (peak > 2.0f) { ++loud; std::printf("  z-plane %s at (%.1f,%.1f): peak %.2f\n", kZShapeNames[shape], pts[p][0], pts[p][1], peak); }
-                else if (rms < 1e-4) { ++quiet; std::printf("  z-plane %s at (%.1f,%.1f): rms %.2g\n", kZShapeNames[shape], pts[p][0], pts[p][1], rms); }
+                if (!finite) { ++bad; std::printf("  z-plane %s at (%.1f,%.1f): non-finite\n", ZShapeNames[shape], pts[p][0], pts[p][1]); }
+                else if (peak > 2.0f) { ++loud; std::printf("  z-plane %s at (%.1f,%.1f): peak %.2f\n", ZShapeNames[shape], pts[p][0], pts[p][1], peak); }
+                else if (rms < 1e-4) { ++quiet; std::printf("  z-plane %s at (%.1f,%.1f): rms %.2g\n", ZShapeNames[shape], pts[p][0], pts[p][1], rms); }
             }
         }
         CHECK(mismatched == 0, "every corner of a shape uses the same number of sections");
@@ -1061,18 +1061,18 @@ void testZPlane()
     }
     auto bandRatio = [&](float zx, float zy, int mode) {
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Attack, 0.2f);
-        e.setParam(ParamId::Brightness, 1.0f); e.setParam(ParamId::Tilt, 0.3f); e.setParam(ParamId::Partials, 32.0f);
-        e.setParam(ParamId::Cutoff, 18000.0f); e.setParam(ParamId::Resonance, 0.0f);
-        e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 0.0f);
-        e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Shimmer, 0.0f);
-        e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f);
-        e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-        e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f);
-        e.setParam(ParamId::ZMode, static_cast<float>(mode)); e.setParam(ParamId::ZShape, 0.0f);   // Vowels
-        e.setParam(ParamId::ZX, zx); e.setParam(ParamId::ZY, zy); e.setParam(ParamId::ZDepth, 0.0f); e.setParam(ParamId::ZMix, 1.0f); e.setParam(ParamId::ZResonance, 0.5f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.2f);
+        e.setParam(ParamIdE::BRIGHTNESS, 1.0f); e.setParam(ParamIdE::TILT, 0.3f); e.setParam(ParamIdE::PARTIALS, 32.0f);
+        e.setParam(ParamIdE::CUTOFF, 18000.0f); e.setParam(ParamIdE::RESONANCE, 0.0f);
+        e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 0.0f);
+        e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+        e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);
+        e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f);
+        e.setParam(ParamIdE::Z_MODE, static_cast<float>(mode)); e.setParam(ParamIdE::Z_SHAPE, 0.0f);   // Vowels
+        e.setParam(ParamIdE::ZX, zx); e.setParam(ParamIdE::ZY, zy); e.setParam(ParamIdE::Z_DEPTH, 0.0f); e.setParam(ParamIdE::Z_MIX, 1.0f); e.setParam(ParamIdE::Z_RESONANCE, 0.5f);
         e.prepare(sr, 256);
         e.noteOn(45, 0.8f);   // A2 = 110 Hz: partials every 110 Hz cover the formant bands
         std::vector<float> cap;
@@ -1103,7 +1103,7 @@ void testRoute()
     if (numPresetMeta() == 0) { std::printf("  (route test needs the measured map)\n"); return; }
     for (int r = 0; r < numRoutePresets(); ++r) {
         Route rt;
-        CHECK(rt.parse(routePreset(r).points), "route preset parses and every preset name resolves");
+        CHECK(rt.parse(routePreset(r).m_points), "route preset parses and every preset name resolves");
         CHECK(rt.count() >= 3, "route preset has at least three points");
         char buf[2048];
         CHECK(rt.write(buf, sizeof(buf)) > 0, "route writes back to text");
@@ -1128,19 +1128,19 @@ void testRoute()
     }
     {   // Engine: the route moves MapX and turns the map on; speed scales time.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         e.prepare(48000.0, 256);
         CHECK(e.setRouteText("0.1,0.5|4|2|0.1;0.9,0.5|4|2|0.1"), "engine route set");
-        e.setParam(ParamId::MapX, 0.1f); e.setParam(ParamId::MapY, 0.5f);
-        e.setParam(ParamId::RouteSpeed, 2.0f); e.setParam(ParamId::RouteLoop, 0.0f);
-        e.setParam(ParamId::RouteActive, 1.0f);
+        e.setParam(ParamIdE::MAP_X, 0.1f); e.setParam(ParamIdE::MAP_Y, 0.5f);
+        e.setParam(ParamIdE::ROUTE_SPEED, 2.0f); e.setParam(ParamIdE::ROUTE_LOOP, 0.0f);
+        e.setParam(ParamIdE::ROUTE_ACTIVE, 1.0f);
         float x, y, r;
         double t = 0.0;
         while (t < 5.0) { e.routeStep(256.0 / 48000.0, x, y, r); float L[256], R[256]; e.process(L, R, 256); t += 256.0 / 48000.0; }
-        CHECK(e.getParam(ParamId::MapActive) >= 0.5f, "a route switches the map on");
-        CHECK(std::fabs(e.getParam(ParamId::MapX) - 0.9f) < 1e-3f, "at speed 2 the second point (10 s of route) is reached after 5 s");
+        CHECK(e.getParam(ParamIdE::MAP_ACTIVE) >= 0.5f, "a route switches the map on");
+        CHECK(std::fabs(e.getParam(ParamIdE::MAP_X) - 0.9f) < 1e-3f, "at speed 2 the second point (10 s of route) is reached after 5 s");
         while (t < 7.0) { e.routeStep(256.0 / 48000.0, x, y, r); float L[256], R[256]; e.process(L, R, 256); t += 256.0 / 48000.0; }   // the last hold (2 s route = 1 s)
-        CHECK(e.getParam(ParamId::RouteActive) < 0.5f && !e.routeRunning(), "a finished route switches itself off");
+        CHECK(e.getParam(ParamIdE::ROUTE_ACTIVE) < 0.5f && !e.routeRunning(), "a finished route switches itself off");
     }
 }
 
@@ -1166,11 +1166,11 @@ void testRoom()
     {   // In the engine: Room level 0 costs nothing and changes nothing; level 1 adds a tail after the note.
         auto tailEnergy = [&](float level) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.1f);
-            e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::DelayToFar, 0.0f); e.setParam(ParamId::Delay2ToFar, 0.0f);
-            e.setParam(ParamId::KeysDepth, 1.0f);   // everything goes to the far sends
-            e.setParam(ParamId::RoomLevel, level);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.1f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY_TO_FAR, 0.0f); e.setParam(ParamIdE::DELAY2_TO_FAR, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 1.0f);   // everything goes to the far sends
+            e.setParam(ParamIdE::ROOM_LEVEL, level);
             e.prepare(sr, 256);
             e.noteOn(57, 0.8f);
             render(e, 0.5);
@@ -1179,7 +1179,7 @@ void testRoom()
             std::vector<float> cap;
             Stats s = render(e, 1.5, &cap);
             double sq = 0; for (float v : cap) sq += v * v;
-            return std::make_pair(sq, s.nonFinite);
+            return std::make_pair(sq, s.m_nonFinite);
         };
         const auto off = tailEnergy(0.0f), on = tailEnergy(1.0f);
         CHECK(off.second == 0 && on.second == 0, "room renders finite");
@@ -1203,14 +1203,14 @@ void testPresetText()
         if (d.empty()) ++empty;
         longest = std::max(longest, static_cast<int>(d.size()));
         // What it says about the sections has to be true of the settings it was made from.
-        const std::string st = preset(i).settings != nullptr ? preset(i).settings : "";
+        const std::string st = preset(i).m_settings != nullptr ? preset(i).m_settings : "";
         if (d.find("the Cosmos open") != std::string::npos)
             CHECK(st.find("cosmos_send=") != std::string::npos, "a preset described with the Cosmos has a cosmos send");
         if (d.find("played from the keys") != std::string::npos)
             CHECK(st.find("brain_on=off") != std::string::npos, "a preset described as played has its conductor off");
     }
     for (int i = 0; i < std::min(3, numPresets()); ++i)
-        std::printf("  [probe] \"%s\": %s\n", preset(i).name, presetDescription(i).c_str());
+        std::printf("  [probe] \"%s\": %s\n", preset(i).m_name, presetDescription(i).c_str());
     CHECK(empty == 0, "every preset has a description");
     CHECK(longest < 300, "and none of them is a paragraph");
 }
@@ -1235,10 +1235,10 @@ void testPresetMap()
     if (numPresetMeta() == 0) { std::printf("  (preset map not measured yet: run Tools/preset_map.py)\n"); return; }
     for (int i = 0; i < numPresetMeta(); ++i) {
         const PresetMeta& m = presetMeta(i);
-        CHECK(m.x >= 0.0f && m.x <= 1.0f && m.y >= 0.0f && m.y <= 1.0f, "map position inside the plane");
-        CHECK(m.family >= 0 && m.family < numPresetFamilies(), "family index valid");
-        CHECK(m.evolve >= 0.0f && m.evolve <= 1.0f && m.rough >= 0.0f && m.rough <= 1.0f
-              && m.wet >= 0.0f && m.wet <= 1.0f, "the drone descriptors are ranks in 0..1");
+        CHECK(m.m_x >= 0.0f && m.m_x <= 1.0f && m.m_y >= 0.0f && m.m_y <= 1.0f, "map position inside the plane");
+        CHECK(m.m_family >= 0 && m.m_family < numPresetFamilies(), "family index valid");
+        CHECK(m.m_evolve >= 0.0f && m.m_evolve <= 1.0f && m.m_rough >= 0.0f && m.m_rough <= 1.0f
+              && m.m_wet >= 0.0f && m.m_wet <= 1.0f, "the drone descriptors are ranks in 0..1");
     }
     // The cloud, once it has been laid out (Tools/library/map_all.py): the groups have to cover
     // every preset, and the plane has to look like a cloud rather than a field. A grid gives
@@ -1267,7 +1267,7 @@ void testPresetMap()
             for (int j = 0; j < n; ++j) {
                 if (j == i) continue;
                 const PresetMeta& b = presetMeta(j);
-                const double d = (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+                const double d = (a.m_x - b.m_x) * (a.m_x - b.m_x) + (a.m_y - b.m_y) * (a.m_y - b.m_y);
                 if (d < best) best = d;
             }
             nn[static_cast<size_t>(i)] = std::sqrt(best);
@@ -1285,7 +1285,7 @@ void testPresetMap()
         // ("far" is still a keyword to MSVC, sixteen-bit memory models and all.)
         const PresetMap::Blend inGap = PresetMap::neighbours(0.5f, 0.5f, 0.001f);
         int used = 0;
-        for (int k = 0; k < inGap.count; ++k) if (inGap.weight[k] > 0.02f) ++used;
+        for (int k = 0; k < inGap.m_count; ++k) if (inGap.m_weight[k] > 0.02f) ++used;
         CHECK(used >= 1, "the blend always has something to play");
     }
     {   // On a preset's point the blend is that preset (within the radius the others fade out).
@@ -1301,62 +1301,62 @@ void testPresetMap()
             double best = 1.0e9;
             for (int j = 0; j < nn; ++j) {
                 if (j == i) continue;
-                const double dx = presetMeta(i).x - presetMeta(j).x, dy = presetMeta(i).y - presetMeta(j).y;
+                const double dx = presetMeta(i).m_x - presetMeta(j).m_x, dy = presetMeta(i).m_y - presetMeta(j).m_y;
                 best = std::min(best, dx * dx + dy * dy);
             }
             if (std::sqrt(best) > 4.0 * radius) { p = i; break; }
         }
-        std::printf("  [probe] blend tested on preset %d (%s)\n", p, preset(p).name);
+        std::printf("  [probe] blend tested on preset %d (%s)\n", p, preset(p).m_name);
         const PresetMeta& m = presetMeta(p);
-        const PresetMap::Blend b = PresetMap::neighbours(m.x, m.y, 0.005f);
-        CHECK(b.count > 0 && b.index[0] == p && b.weight[0] > 0.99f, "cursor on a point selects that preset");
-        float v[kNumParams];
+        const PresetMap::Blend b = PresetMap::neighbours(m.m_x, m.m_y, 0.005f);
+        CHECK(b.m_count > 0 && b.m_index[0] == p && b.m_weight[0] > 0.99f, "cursor on a point selects that preset");
+        float v[NumParams];
         PresetMap::blend(b, v);
         const float* pv = PresetMap::presetValues(p);
         bool same = true;
-        for (const ParamDesc& d : paramTable()) if (!isMapParam(d.id) && std::fabs(v[static_cast<int>(d.id)] - pv[static_cast<int>(d.id)]) > 1e-3f * std::max(1.0f, std::fabs(pv[static_cast<int>(d.id)]))) same = false;
+        for (const ParamDesc& d : paramTable()) if (!isMapParam(d.m_id) && std::fabs(v[static_cast<int>(d.m_id)] - pv[static_cast<int>(d.m_id)]) > 1e-3f * std::max(1.0f, std::fabs(pv[static_cast<int>(d.m_id)]))) same = false;
         CHECK(same, "blend on a point reproduces the preset's parameters");
     }
     {   // Between two points a float parameter lies between the two values.
         int a = -1, bIdx = -1;
         for (int i = 0; i < numPresets() && bIdx < 0; ++i) for (int j = i + 1; j < numPresets(); ++j)
-            if (std::fabs(PresetMap::presetValues(i)[static_cast<int>(ParamId::FarDecay)] - PresetMap::presetValues(j)[static_cast<int>(ParamId::FarDecay)]) > 20.0f) { a = i; bIdx = j; break; }
+            if (std::fabs(PresetMap::presetValues(i)[static_cast<int>(ParamIdE::FAR_DECAY)] - PresetMap::presetValues(j)[static_cast<int>(ParamIdE::FAR_DECAY)]) > 20.0f) { a = i; bIdx = j; break; }
         CHECK(a >= 0, "two presets with different far decay exist");
         if (a >= 0) {
-            PresetMap::Blend b; b.count = 2; b.index[0] = a; b.index[1] = bIdx; b.weight[0] = b.weight[1] = 0.5f;
-            float v[kNumParams]; PresetMap::blend(b, v);
-            const float fa = PresetMap::presetValues(a)[static_cast<int>(ParamId::FarDecay)], fb = PresetMap::presetValues(bIdx)[static_cast<int>(ParamId::FarDecay)];
-            const float f = v[static_cast<int>(ParamId::FarDecay)];
+            PresetMap::Blend b; b.m_count = 2; b.m_index[0] = a; b.m_index[1] = bIdx; b.m_weight[0] = b.m_weight[1] = 0.5f;
+            float v[NumParams]; PresetMap::blend(b, v);
+            const float fa = PresetMap::presetValues(a)[static_cast<int>(ParamIdE::FAR_DECAY)], fb = PresetMap::presetValues(bIdx)[static_cast<int>(ParamIdE::FAR_DECAY)];
+            const float f = v[static_cast<int>(ParamIdE::FAR_DECAY)];
             CHECK(f > std::min(fa, fb) && f < std::max(fa, fb), "half-way blend lies between the two presets");
         }
     }
     {   // Engine map mode: the effective parameters glide to the blend and stay put when the map is left.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         e.prepare(48000.0, 256);
         // Any built-in whose far decay is a long way from where the engine stands: the glide has to
         // be visible to be measured, and naming one preset here tied the test to a library that is
         // regenerated whole. Ten seconds: the library holds every far decay to 12 .. 40 s since the
         // production guide (25.09.2026), so the farthest a preset stands from the default 25 is 15.
-        const float before = e.effectiveParam(ParamId::FarDecay);
+        const float before = e.effectiveParam(ParamIdE::FAR_DECAY);
         int p = -1;
         for (int i = 1; i < builtinPresetCount() && p < 0; ++i)
-            if (std::fabs(PresetMap::presetValues(i)[static_cast<int>(ParamId::FarDecay)] - before) > 10.0f) p = i;
+            if (std::fabs(PresetMap::presetValues(i)[static_cast<int>(ParamIdE::FAR_DECAY)] - before) > 10.0f) p = i;
         CHECK(p > 0, "a built-in whose far decay is far from the default exists");
         if (p < 0) p = 1;
         const PresetMeta& m = presetMeta(p);
-        e.setParam(ParamId::MorphGlide, 0.5f);
-        e.setParam(ParamId::MapActive, 1.0f); e.setParam(ParamId::MapX, m.x); e.setParam(ParamId::MapY, m.y); e.setParam(ParamId::MapRadius, 0.005f);
+        e.setParam(ParamIdE::MORPH_GLIDE, 0.5f);
+        e.setParam(ParamIdE::MAP_ACTIVE, 1.0f); e.setParam(ParamIdE::MAP_X, m.m_x); e.setParam(ParamIdE::MAP_Y, m.m_y); e.setParam(ParamIdE::MAP_RADIUS, 0.005f);
         render(e, 0.05);
-        const float early = e.effectiveParam(ParamId::FarDecay);
+        const float early = e.effectiveParam(ParamIdE::FAR_DECAY);
         render(e, 3.0);
-        const float target = PresetMap::presetValues(p)[static_cast<int>(ParamId::FarDecay)];
-        const float late = e.effectiveParam(ParamId::FarDecay);
+        const float target = PresetMap::presetValues(p)[static_cast<int>(ParamIdE::FAR_DECAY)];
+        const float late = e.effectiveParam(ParamIdE::FAR_DECAY);
         CHECK(e.mapActive(), "map mode active");
         CHECK(std::fabs(early - before) < std::fabs(late - before), "map glides rather than jumps");
         CHECK(std::fabs(late - target) < 0.05f * std::max(1.0f, target), "after the glide the engine plays the preset under the cursor");
-        CHECK(std::fabs(e.blendValue(ParamId::FarDecay) - late) < 1e-4f, "blendValue reports the gliding value");
-        e.setParam(ParamId::MapActive, 0.0f);
+        CHECK(std::fabs(e.blendValue(ParamIdE::FAR_DECAY) - late) < 1e-4f, "blendValue reports the gliding value");
+        e.setParam(ParamIdE::MAP_ACTIVE, 0.0f);
         render(e, 0.05);
         CHECK(!e.mapActive(), "map mode off again");
     }
@@ -1373,15 +1373,15 @@ void testStackAndWander()
     const int sr = 48000;
     {   // Major stack, three strands, one partial each: A3 gives 220 + 330 + 275 Hz and nothing else.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Attack, 0.2f);
-        e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 9.0f);   // 12-TET, A: key 57 = 220 Hz
-        e.setParam(ParamId::Partials, 1.0f);
-        e.setParam(ParamId::Unison, 3.0f); e.setParam(ParamId::Stack, 3.0f);      // Major: 1, 3/2, 5/4
-        e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f); e.setParam(ParamId::Shimmer, 0.0f);
-        e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Cutoff, 18000.0f); e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-        e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f); e.setParam(ParamId::Spread, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.2f);
+        e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 9.0f);   // 12-TET, A: key 57 = 220 Hz
+        e.setParam(ParamIdE::PARTIALS, 1.0f);
+        e.setParam(ParamIdE::UNISON, 3.0f); e.setParam(ParamIdE::STACK, 3.0f);      // Major: 1, 3/2, 5/4
+        e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+        e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::CUTOFF, 18000.0f); e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f); e.setParam(ParamIdE::SPREAD, 0.0f);
         e.prepare(sr, 256);
         e.noteOn(57, 0.8f);
         std::vector<float> cap;
@@ -1396,11 +1396,11 @@ void testStackAndWander()
     {   // Rate wander changes the movement (different output), stays finite, and off means unchanged rates.
         auto capture = [&](float wander, int seed) {
             Engine e;
-            e.setParam(ParamId::RateWander, wander); e.setParam(ParamId::Seed, static_cast<float>(seed));
+            e.setParam(ParamIdE::RATE_WANDER, wander); e.setParam(ParamIdE::SEED, static_cast<float>(seed));
             e.prepare(sr, 256);
             std::vector<float> cap;
             Stats s = render(e, 20.0, &cap);
-            CHECK(s.nonFinite == 0, "rate wander renders finite");
+            CHECK(s.m_nonFinite == 0, "rate wander renders finite");
             return cap;
         };
         const auto a = capture(0.0f, 5), b = capture(1.0f, 5);
@@ -1421,33 +1421,33 @@ void testFeedback()
     const int sr = 48000;
     {   // Silence stays silence, a held drone with a hot loop stays bounded and gets fuller.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::FeedbackBus, 1.0f); e.setParam(ParamId::FeedbackDrive, 1.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::FEEDBACK_BUS, 1.0f); e.setParam(ParamIdE::FEEDBACK_DRIVE, 1.0f);
         e.prepare(sr, 256);
         Stats quiet = render(e, 3.0);
-        CHECK(quiet.peak == 0.0f, "feedback alone makes no sound");
+        CHECK(quiet.m_peak == 0.0f, "feedback alone makes no sound");
         e.noteOn(57, 0.8f);
         Stats hot = render(e, 20.0);
-        CHECK(hot.nonFinite == 0 && hot.peak < 0.95f, "bus feedback at 1.0 stays bounded (throttled)");
+        CHECK(hot.m_nonFinite == 0 && hot.m_peak < 0.95f, "bus feedback at 1.0 stays bounded (throttled)");
         Engine d;
-        d.setParam(ParamId::BrainOn, 0.0f);
+        d.setParam(ParamIdE::BRAIN_ON, 0.0f);
         d.prepare(sr, 256);
         d.noteOn(57, 0.8f);
         Stats dry = render(d, 20.0);
-        CHECK(hot.rms > dry.rms, "the loop adds energy to the drone");
+        CHECK(hot.m_rms > dry.m_rms, "the loop adds energy to the drone");
     }
     {   // Phase modulation: with the loop on the pitch, energy leaves the exact harmonics.
         auto harmonicShare = [&](float fm) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Attack, 0.2f);
-            e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 0.0f);
-            e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Shimmer, 0.0f);
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f);
-            e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f); e.setParam(ParamId::Cutoff, 18000.0f);
-            e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f);
-            e.setParam(ParamId::FeedbackFm, fm); e.setParam(ParamId::FeedbackTone, 8000.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.2f);
+            e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 0.0f);
+            e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);
+            e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f); e.setParam(ParamIdE::CUTOFF, 18000.0f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f);
+            e.setParam(ParamIdE::FEEDBACK_FM, fm); e.setParam(ParamIdE::FEEDBACK_TONE, 8000.0f);
             e.prepare(sr, 256);
             e.noteOn(60, 0.8f);
             std::vector<float> cap;
@@ -1479,16 +1479,16 @@ void testRichCarving()
 {
     const int sr = 48000;
     auto pureVoice = [](Engine& e) {
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Attack, 0.2f);
-        e.setParam(ParamId::Brightness, 1.0f); e.setParam(ParamId::Tilt, 0.3f); e.setParam(ParamId::Partials, 32.0f);
-        e.setParam(ParamId::Cutoff, 18000.0f); e.setParam(ParamId::Resonance, 0.0f);
-        e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 0.0f);   // 12-TET, C
-        e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Shimmer, 0.0f);
-        e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f);
-        e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-        e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::PanDrift, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.2f);
+        e.setParam(ParamIdE::BRIGHTNESS, 1.0f); e.setParam(ParamIdE::TILT, 0.3f); e.setParam(ParamIdE::PARTIALS, 32.0f);
+        e.setParam(ParamIdE::CUTOFF, 18000.0f); e.setParam(ParamIdE::RESONANCE, 0.0f);
+        e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 0.0f);   // 12-TET, C
+        e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+        e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);
+        e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::PAN_DRIFT, 0.0f);
     };
     auto bandPower = [&](Engine& e, int note, double f0, int hFrom, int hTo) {
         e.prepare(sr, 256);
@@ -1504,12 +1504,12 @@ void testRichCarving()
         const double f0 = 261.6256;   // key 60
         Engine flat; pureVoice(flat);
         const double flatRatio = bandPower(flat, 60, f0, 8, 20) / bandPower(flat, 60, f0, 1, 4);
-        Engine pres; pureVoice(pres); pres.setParam(ParamId::Presence, 6.0f);
+        Engine pres; pureVoice(pres); pres.setParam(ParamIdE::PRESENCE, 6.0f);
         const double presRatio = bandPower(pres, 60, f0, 8, 20) / bandPower(pres, 60, f0, 1, 4);
         CHECK(presRatio > 1.8 * flatRatio, "presence lifts the 2-5 kHz band of a near voice");
-        Engine farV; pureVoice(farV); farV.setParam(ParamId::Presence, 6.0f); farV.setParam(ParamId::KeysDepth, 1.0f);
-        farV.setParam(ParamId::Cutoff, 18000.0f);
-        Engine farFlat; pureVoice(farFlat); farFlat.setParam(ParamId::KeysDepth, 1.0f);
+        Engine farV; pureVoice(farV); farV.setParam(ParamIdE::PRESENCE, 6.0f); farV.setParam(ParamIdE::KEYS_DEPTH, 1.0f);
+        farV.setParam(ParamIdE::CUTOFF, 18000.0f);
+        Engine farFlat; pureVoice(farFlat); farFlat.setParam(ParamIdE::KEYS_DEPTH, 1.0f);
         const double farRatio = bandPower(farV, 60, f0, 8, 20) / bandPower(farV, 60, f0, 1, 4);
         const double farFlatRatio = bandPower(farFlat, 60, f0, 8, 20) / bandPower(farFlat, 60, f0, 1, 4);
         CHECK(farRatio < 1.15 * farFlatRatio, "presence does nothing on the far plane");
@@ -1518,15 +1518,15 @@ void testRichCarving()
         const double f0 = 130.8128;   // key 48
         Engine full; pureVoice(full);
         const double fullRatio = bandPower(full, 48, f0, 1, 1) / bandPower(full, 48, f0, 3, 3);
-        Engine cut; pureVoice(cut); cut.setParam(ParamId::PadLowCut, 300.0f);
+        Engine cut; pureVoice(cut); cut.setParam(ParamIdE::PAD_LOW_CUT, 300.0f);
         const double cutRatio = bandPower(cut, 48, f0, 1, 1) / bandPower(cut, 48, f0, 3, 3);
         CHECK(cutRatio < 0.2 * fullRatio, "pad low cut removes the fundamental below the cut (12 dB/oct)");
     }
     {   // Breath: the distance wanders, continuously; without breath it stands still.
         auto sweep = [&](float breath, float& spread, float& maxStep) {
             Engine e; pureVoice(e);
-            e.setParam(ParamId::KeysDepth, 0.5f);
-            e.setParam(ParamId::Breath, breath); e.setParam(ParamId::BreathRate, 0.2f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.5f);
+            e.setParam(ParamIdE::BREATH, breath); e.setParam(ParamIdE::BREATH_RATE, 0.2f);
             e.prepare(sr, 256);
             e.noteOn(60, 0.8f);
             float lo = 2.0f, hi = -1.0f, prev = -1.0f; maxStep = 0.0f;
@@ -1549,13 +1549,13 @@ void testRichCarving()
     {   // Ghost tone: with Source = Difference the sub doubles f2 - f1 of the two lowest voices,
         // folded into the root sub's octave. A3 (220) and D4 (4:3 = 293.33): 73.33 Hz -> 146.67 Hz.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::SubLevel, 0.8f); e.setParam(ParamId::SubBinaural, 0.0f); e.setParam(ParamId::SubGlide, 0.1f);
-        e.setParam(ParamId::SubSource, 1.0f);
-        e.setParam(ParamId::SubOctave, 0.0f);  // one octave under (the default is two since 25.09.2026); the test is about the Difference source
-        e.setParam(ParamId::RootNote, 9.0f);   // A
-        e.setParam(ParamId::Scale, 1.0f);      // JI Major (Ptolemy)
-        e.setParam(ParamId::Air, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::SUB_LEVEL, 0.8f); e.setParam(ParamIdE::SUB_BINAURAL, 0.0f); e.setParam(ParamIdE::SUB_GLIDE, 0.1f);
+        e.setParam(ParamIdE::SUB_SOURCE, 1.0f);
+        e.setParam(ParamIdE::SUB_OCTAVE, 0.0f);  // one octave under (the default is two since 25.09.2026); the test is about the Difference source
+        e.setParam(ParamIdE::ROOT_NOTE, 9.0f);   // A
+        e.setParam(ParamIdE::SCALE, 1.0f);      // JI Major (Ptolemy)
+        e.setParam(ParamIdE::AIR, 0.0f);
         e.prepare(sr, 256);
         e.noteOn(57, 0.6f); e.noteOn(62, 0.6f);
         std::vector<float> cap;
@@ -1565,7 +1565,7 @@ void testRichCarving()
         const double pGhost = goertzel(L.data(), sr, 146.667, sr), pRoot = goertzel(L.data(), sr, 110.0, sr), pDiff = goertzel(L.data(), sr, 73.333, sr);
         CHECK(pGhost > 10.0 * pRoot && pGhost > 10.0 * pDiff, "foundation follows the folded difference tone of the two lowest voices");
         e.noteOff(62);
-        e.setParam(ParamId::Release, 0.1f);
+        e.setParam(ParamIdE::RELEASE, 0.1f);
         cap.clear();
         render(e, 4.0, &cap);
         for (int i = 0; i < sr; ++i) L[static_cast<size_t>(i)] = cap[static_cast<size_t>((3 * sr + i) * 2)];
@@ -1588,7 +1588,7 @@ void testCosmos()
     {
         FreqShifter fs; fs.prepare(sr); fs.set(100.0f, 1.0f);
         std::vector<float> L(sr), R(sr);
-        for (int i = 0; i < sr; ++i) { L[static_cast<size_t>(i)] = std::sin(kTwoPi * 440.0f * i / sr); R[static_cast<size_t>(i)] = L[static_cast<size_t>(i)]; }
+        for (int i = 0; i < sr; ++i) { L[static_cast<size_t>(i)] = std::sin(TwoPi * 440.0f * i / sr); R[static_cast<size_t>(i)] = L[static_cast<size_t>(i)]; }
         fs.process(L.data(), R.data(), sr);
         const double p540 = goertzel(L.data() + sr / 2, sr / 2, 540.0, sr), p440 = goertzel(L.data() + sr / 2, sr / 2, 440.0, sr), p340 = goertzel(L.data() + sr / 2, sr / 2, 340.0, sr);
         CHECK(p540 > 20.0 * p440 && p540 > 20.0 * p340, "frequency shifter moves 440 Hz to 540 Hz (single sideband)");
@@ -1596,7 +1596,7 @@ void testCosmos()
     {
         PitchShifter ps; ps.prepare(sr); ps.setSemitones(12.0f);
         std::vector<float> in(sr), out(sr);
-        for (int i = 0; i < sr; ++i) in[static_cast<size_t>(i)] = std::sin(kTwoPi * 220.0f * i / sr);
+        for (int i = 0; i < sr; ++i) in[static_cast<size_t>(i)] = std::sin(TwoPi * 220.0f * i / sr);
         ps.process(in.data(), out.data(), sr);
         const double p440 = goertzel(out.data() + sr / 2, sr / 2, 440.0, sr), p220 = goertzel(out.data() + sr / 2, sr / 2, 220.0, sr);
         CHECK(p440 > 4.0 * p220, "pitch shifter +12 doubles the frequency");
@@ -1605,7 +1605,7 @@ void testCosmos()
         Nebula nb; nb.prepare(sr, 5);
         nb.set(0.0f);
         std::vector<float> L(sr), R(sr), wl(sr), wr(sr);
-        for (int i = 0; i < sr; ++i) { L[static_cast<size_t>(i)] = 0.5f * std::sin(kTwoPi * 440.0f * i / sr); R[static_cast<size_t>(i)] = L[static_cast<size_t>(i)]; }
+        for (int i = 0; i < sr; ++i) { L[static_cast<size_t>(i)] = 0.5f * std::sin(TwoPi * 440.0f * i / sr); R[static_cast<size_t>(i)] = L[static_cast<size_t>(i)]; }
         nb.process(L.data(), R.data(), wl.data(), wr.data(), sr);
         double sq = 0; for (int i = sr / 2; i < sr; ++i) sq += wl[static_cast<size_t>(i)] * wl[static_cast<size_t>(i)];
         const double rmsFollow = std::sqrt(sq / (sr / 2));
@@ -1620,23 +1620,23 @@ void testCosmos()
     }
     {
         Engine e;
-        e.setParam(ParamId::CosmosSend, 1.0f);
-        e.setParam(ParamId::CosmosShift, 50.0f);
-        e.setParam(ParamId::CosmosRes, 0.6f);
-        e.setParam(ParamId::CosmosResFeedback, 0.97f);
-        e.setParam(ParamId::CosmosVowel, 0.6f);
-        e.setParam(ParamId::CosmosNebula, 0.6f);
-        e.setParam(ParamId::CosmosShimmer, 1.0f);
-        e.setParam(ParamId::BrainRate, 2.0f);
-        e.setParam(ParamId::Attack, 0.5f);
+        e.setParam(ParamIdE::COSMOS_SEND, 1.0f);
+        e.setParam(ParamIdE::COSMOS_SHIFT, 50.0f);
+        e.setParam(ParamIdE::COSMOS_RES, 0.6f);
+        e.setParam(ParamIdE::COSMOS_RES_FEEDBACK, 0.97f);
+        e.setParam(ParamIdE::COSMOS_VOWEL, 0.6f);
+        e.setParam(ParamIdE::COSMOS_NEBULA, 0.6f);
+        e.setParam(ParamIdE::COSMOS_SHIMMER, 1.0f);
+        e.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+        e.setParam(ParamIdE::ATTACK, 0.5f);
         e.prepare(sr, 256);
         render(e, 10.0);
         Stats a = render(e, 5.0);
         Stats b = render(e, 5.0);
-        CHECK(a.nonFinite == 0 && b.nonFinite == 0, "cosmos path finite");
-        CHECK(b.peak <= 1.0f, "cosmos path clipped safely");
-        CHECK(b.rms < 0.5 && b.rms < a.rms * 2.0 + 0.05, "shimmer + resonator feedback does not run away");
-        CHECK(a.rms > 0.01, "cosmos path audible");
+        CHECK(a.m_nonFinite == 0 && b.m_nonFinite == 0, "cosmos path finite");
+        CHECK(b.m_peak <= 1.0f, "cosmos path clipped safely");
+        CHECK(b.m_rms < 0.5 && b.m_rms < a.m_rms * 2.0 + 0.05, "shimmer + resonator feedback does not run away");
+        CHECK(a.m_rms > 0.01, "cosmos path audible");
     }
 }
 
@@ -1748,12 +1748,12 @@ void testSpectralShifter()
     {   // the shimmer in the engine: spectral by default, finite and inside the clipper
         Engine e;
         e.prepare(48000.0, 256);
-        CHECK(e.getParam(ParamId::CosmosShimmerMode) == 0.0f, "the shimmer shifts in the spectrum by default");
-        e.setParam(ParamId::CosmosShimmer, 1.0f);
-        e.setParam(ParamId::FarLevel, 1.0f);
+        CHECK(e.getParam(ParamIdE::COSMOS_SHIMMER_MODE) == 0.0f, "the shimmer shifts in the spectrum by default");
+        e.setParam(ParamIdE::COSMOS_SHIMMER, 1.0f);
+        e.setParam(ParamIdE::FAR_LEVEL, 1.0f);
         e.noteOn(48, 0.8f); e.noteOn(55, 0.8f); e.noteOn(64, 0.8f);
         const Stats st = render(e, 15.0);
-        CHECK(st.nonFinite == 0 && st.peak <= 1.0f && st.rms > 1.0e-3, "a spectral shimmer at full stays finite and inside the clipper");
+        CHECK(st.m_nonFinite == 0 && st.m_peak <= 1.0f && st.m_rms > 1.0e-3, "a spectral shimmer at full stays finite and inside the clipper");
     }
     {   // the cloud's loop an octave up: a 440 Hz tone grows 880 Hz in the cloud, which it does not without the shift
         const auto octave = [&](float semis) {
@@ -1943,9 +1943,9 @@ void testMemory()
         FixedScale major;   // twelve-tone equal temperament's major scale on C
         {
             const int steps[7] = { 0, 2, 4, 5, 7, 9, 11 };
-            major.count = 7;
-            major.period = 2.0;
-            for (int k = 0; k < 7; ++k) major.ratios[k] = std::pow(2.0, steps[k] / 12.0);
+            major.m_count = 7;
+            major.m_period = 2.0;
+            for (int k = 0; k < 7; ++k) major.m_ratios[k] = std::pow(2.0, steps[k] / 12.0);
         }
         const auto triads = [&](float seek) {
             Memory mem;
@@ -1982,17 +1982,17 @@ void testMemory()
     {   // in the engine: a full memory with everything on stays finite and inside the clipper
         Engine e;
         e.prepare(48000.0, 256);
-        e.setParam(ParamId::MemSend, 1.0f);
-        e.setParam(ParamId::MemReturn, 1.0f);
-        e.setParam(ParamId::MemHold, 1.0f);
-        e.setParam(ParamId::MemBlur, 1.0f);
-        e.setParam(ParamId::MemDrift, 1.0f);
-        e.setParam(ParamId::MemDrive, 1.0f);
-        e.setParam(ParamId::MemRecall, 0.5f);
-        e.setParam(ParamId::MemSize, 4.0f);
+        e.setParam(ParamIdE::MEM_SEND, 1.0f);
+        e.setParam(ParamIdE::MEM_RETURN, 1.0f);
+        e.setParam(ParamIdE::MEM_HOLD, 1.0f);
+        e.setParam(ParamIdE::MEM_BLUR, 1.0f);
+        e.setParam(ParamIdE::MEM_DRIFT, 1.0f);
+        e.setParam(ParamIdE::MEM_DRIVE, 1.0f);
+        e.setParam(ParamIdE::MEM_RECALL, 0.5f);
+        e.setParam(ParamIdE::MEM_SIZE, 4.0f);
         e.noteOn(48, 0.8f); e.noteOn(55, 0.8f); e.noteOn(64, 0.8f);
         const Stats st = render(e, 20.0);
-        CHECK(st.nonFinite == 0 && st.peak <= 1.0f, "a memory with everything on stays finite and inside the clipper");
+        CHECK(st.m_nonFinite == 0 && st.m_peak <= 1.0f, "a memory with everything on stays finite and inside the clipper");
     }
 }
 
@@ -2032,8 +2032,8 @@ void testCloudAether()
             Rng r; r.seed(11);
             for (auto& v : ring) v = r.bipolar();
             RingGrain a;
-            a.pos = cap - 700.25; a.rate = 1.37; a.len = len; a.gl = 0.8f; a.gr = 0.6f;
-            phasorFrom(1.0 / len, a.rc, a.rs);
+            a.m_pos = cap - 700.25; a.m_rate = 1.37; a.m_len = len; a.m_gl = 0.8f; a.m_gr = 0.6f;
+            phasorFrom(1.0 / len, a.m_rc, a.m_rs);
             RingGrain b = a;
             std::vector<float> aL(len, 0.0f), aR(len, 0.0f), bL(len, 0.0f), bR(len, 0.0f);
             for (int p = 0; p < len; p += 64) {
@@ -2047,7 +2047,7 @@ void testCloudAether()
                 sig += static_cast<double>(aL[i]) * aL[i] + static_cast<double>(aR[i]) * aR[i];
             }
             CHECK(sig > 0.0 && err < 1.0e-10 * sig, "ring grain: the vector path and the scalar one agree, across the ring's seam");
-            CHECK(std::fabs(a.pos - b.pos) < 1.0e-9 && a.pos < cap, "ring grain: both end at the same place, folded back into the ring");
+            CHECK(std::fabs(a.m_pos - b.m_pos) < 1.0e-9 && a.m_pos < cap, "ring grain: both end at the same place, folded back into the ring");
         }
     }
     {   // the loop: without feedback the cloud falls silent after its input, at 1 it holds, and it never runs away
@@ -2209,17 +2209,17 @@ void testCloudAether()
     {   // in the engine, every new control at full at once: finite, and inside the clipper
         Engine e;
         e.prepare(48000.0, 256);
-        e.setParam(ParamId::CloudSend, 1.0f);
-        e.setParam(ParamId::CloudDensity, 60.0f);
-        e.setParam(ParamId::CloudSize, 800.0f);
-        e.setParam(ParamId::CloudFeedback, 1.0f);
-        e.setParam(ParamId::CloudScatter, 0.7f);
-        e.setParam(ParamId::CloudSwarm, 0.8f);
-        e.setParam(ParamId::CloudResonance, 1.0f);
-        e.setParam(ParamId::CloudTranspose, 12.0f);
+        e.setParam(ParamIdE::CLOUD_SEND, 1.0f);
+        e.setParam(ParamIdE::CLOUD_DENSITY, 60.0f);
+        e.setParam(ParamIdE::CLOUD_SIZE, 800.0f);
+        e.setParam(ParamIdE::CLOUD_FEEDBACK, 1.0f);
+        e.setParam(ParamIdE::CLOUD_SCATTER, 0.7f);
+        e.setParam(ParamIdE::CLOUD_SWARM, 0.8f);
+        e.setParam(ParamIdE::CLOUD_RESONANCE, 1.0f);
+        e.setParam(ParamIdE::CLOUD_TRANSPOSE, 12.0f);
         e.noteOn(48, 0.8f); e.noteOn(55, 0.8f); e.noteOn(64, 0.8f);
         const Stats st = render(e, 20.0);
-        CHECK(st.nonFinite == 0 && st.peak <= 1.0f, "a cloud with every new control at full stays finite and inside the clipper");
+        CHECK(st.m_nonFinite == 0 && st.m_peak <= 1.0f, "a cloud with every new control at full stays finite and inside the clipper");
     }
 }
 
@@ -2240,7 +2240,7 @@ void testCloudAndLayers()
             GrainCloud c; c.prepare(sr, 3);
             c.set(20.0f, 200.0f, pitch, 0.5f, 1.0f);
             std::vector<float> L(2 * sr), R(2 * sr), oL(2 * sr, 0.0f), oR(2 * sr, 0.0f);
-            for (int i = 0; i < 2 * sr; ++i) { L[static_cast<size_t>(i)] = 0.5f * std::sin(kTwoPi * 440.0f * i / sr); R[static_cast<size_t>(i)] = L[static_cast<size_t>(i)]; }
+            for (int i = 0; i < 2 * sr; ++i) { L[static_cast<size_t>(i)] = 0.5f * std::sin(TwoPi * 440.0f * i / sr); R[static_cast<size_t>(i)] = L[static_cast<size_t>(i)]; }
             c.process(L.data(), R.data(), oL.data(), oR.data(), 2 * sr);
             for (int i = 0; i < 2 * sr; ++i) CHECK(std::isfinite(oL[static_cast<size_t>(i)]), "cloud finite");
             return goertzel(oL.data() + sr, sr, hz, sr);
@@ -2253,32 +2253,32 @@ void testCloudAndLayers()
     {
         // Independent layers: a sound preset must not touch Cosmos, and vice versa.
         Engine e;
-        e.setParam(ParamId::CosmosSend, 0.9f);
-        e.setParam(ParamId::Partials, 4.0f);
+        e.setParam(ParamIdE::COSMOS_SEND, 0.9f);
+        e.setParam(ParamIdE::PARTIALS, 4.0f);
         CHECK(e.applySoundPreset(1), "sound preset applies");
-        CHECK(e.getParam(ParamId::CosmosSend) == 0.9f, "sound preset leaves the Cosmos layer alone");
+        CHECK(e.getParam(ParamIdE::COSMOS_SEND) == 0.9f, "sound preset leaves the Cosmos layer alone");
         // The preset decides, not whatever was set before it. This used to be written as "Partials
         // comes back to 16", which was true of built-in 1 in the library of the day and of nothing
         // since -- a test that measured the library rather than the behaviour. Two engines started
         // from opposite values have to land on the same one, and it has to be the preset's.
         {
             Engine a, b;
-            a.setParam(ParamId::Partials, 4.0f);
-            b.setParam(ParamId::Partials, 28.0f);
+            a.setParam(ParamIdE::PARTIALS, 4.0f);
+            b.setParam(ParamIdE::PARTIALS, 28.0f);
             CHECK(a.applySoundPreset(1) && b.applySoundPreset(1), "sound preset applies from either side");
-            CHECK(a.getParam(ParamId::Partials) == b.getParam(ParamId::Partials)
-                  && a.getParam(ParamId::Partials) == e.getParam(ParamId::Partials),
+            CHECK(a.getParam(ParamIdE::PARTIALS) == b.getParam(ParamIdE::PARTIALS)
+                  && a.getParam(ParamIdE::PARTIALS) == e.getParam(ParamIdE::PARTIALS),
                   "sound preset resets sound parameters to the preset");
         }
         CHECK(numCosmosPresets() >= 16, "cosmos bank exists");
         for (int p = 0; p < numCosmosPresets(); ++p) {
             bool onlyCosmos = true;
-            const bool ok = applyPreset(cosmosPreset(p), [&](ParamId id, float) { if (!isCosmosParam(id)) onlyCosmos = false; }, PresetScope::Cosmos);
+            const bool ok = applyPreset(cosmosPreset(p), [&](ParamIdE id, float) { if (!isCosmosParam(id)) onlyCosmos = false; }, PresetScopeE::COSMOS);
             CHECK(ok && onlyCosmos, "cosmos preset parses and stays in its layer");
         }
-        e.setParam(ParamId::Attack, 33.0f);
+        e.setParam(ParamIdE::ATTACK, 33.0f);
         CHECK(e.applyCosmosPreset(3), "cosmos preset applies");
-        CHECK(e.getParam(ParamId::Attack) == 33.0f, "cosmos preset leaves the sound layer alone");
+        CHECK(e.getParam(ParamIdE::ATTACK) == 33.0f, "cosmos preset leaves the sound layer alone");
         // Every preset in the bank has to do something. Checked against the whole bank rather
         // than against one entry, because the bank is generated and its order will change again.
         int cosmosDoesNothing = 0;
@@ -2287,22 +2287,22 @@ void testCloudAndLayers()
             c.applyCosmosPreset(p);
             bool moved = false;
             for (const ParamDesc& d : paramTable())
-                if (isCosmosParam(d.id) && std::fabs(c.getParam(d.id) - d.def) > 1e-6f) moved = true;
-            if (!moved) { ++cosmosDoesNothing; std::printf("  cosmos preset %d (%s) changes nothing\n", p, cosmosPreset(p).name); }
+                if (isCosmosParam(d.m_id) && std::fabs(c.getParam(d.m_id) - d.m_def) > 1e-6f) moved = true;
+            if (!moved) { ++cosmosDoesNothing; std::printf("  cosmos preset %d (%s) changes nothing\n", p, cosmosPreset(p).m_name); }
         }
         CHECK(cosmosDoesNothing == 0, "every cosmos preset sets its own parameters");
         e.applyCosmosPreset(0);
-        CHECK(e.getParam(ParamId::CosmosSend) == 0.0f && e.getParam(ParamId::CosmosShimmer) == 0.0f, "Cosmos Off resets the layer");
+        CHECK(e.getParam(ParamIdE::COSMOS_SEND) == 0.0f && e.getParam(ParamIdE::COSMOS_SHIMMER) == 0.0f, "Cosmos Off resets the layer");
     }
     {
         Engine e;
-        e.setParam(ParamId::Delay2Mix, 0.5f);
-        e.setParam(ParamId::CloudSend, 1.0f);
-        e.setParam(ParamId::BrainRate, 2.0f);
-        e.setParam(ParamId::Attack, 0.5f);
+        e.setParam(ParamIdE::DELAY2_MIX, 0.5f);
+        e.setParam(ParamIdE::CLOUD_SEND, 1.0f);
+        e.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+        e.setParam(ParamIdE::ATTACK, 0.5f);
         e.prepare(sr, 256);
         Stats s = render(e, 12.0);
-        CHECK(s.nonFinite == 0 && s.rms > 0.01 && s.peak <= 1.0f, "delay 2 + cloud render finite and audible");
+        CHECK(s.m_nonFinite == 0 && s.m_rms > 0.01 && s.m_peak <= 1.0f, "delay 2 + cloud render finite and audible");
     }
 }
 
@@ -2318,49 +2318,49 @@ void testMorph()
 {
     Engine e;
     e.prepare(48000.0, 256);
-    float a[kNumParams], b[kNumParams];
-    for (int i = 0; i < kNumParams; ++i) a[i] = b[i] = paramTable()[static_cast<size_t>(i)].def;
-    a[static_cast<int>(ParamId::Cutoff)] = 200.0f;   b[static_cast<int>(ParamId::Cutoff)] = 8000.0f;
-    a[static_cast<int>(ParamId::Partials)] = 4.0f;   b[static_cast<int>(ParamId::Partials)] = 20.0f;
-    a[static_cast<int>(ParamId::Scale)] = 0.0f;      b[static_cast<int>(ParamId::Scale)] = 5.0f;
-    a[static_cast<int>(ParamId::BrainOn)] = 0.0f;    b[static_cast<int>(ParamId::BrainOn)] = 1.0f;
+    float a[NumParams], b[NumParams];
+    for (int i = 0; i < NumParams; ++i) a[i] = b[i] = paramTable()[static_cast<size_t>(i)].m_def;
+    a[static_cast<int>(ParamIdE::CUTOFF)] = 200.0f;   b[static_cast<int>(ParamIdE::CUTOFF)] = 8000.0f;
+    a[static_cast<int>(ParamIdE::PARTIALS)] = 4.0f;   b[static_cast<int>(ParamIdE::PARTIALS)] = 20.0f;
+    a[static_cast<int>(ParamIdE::SCALE)] = 0.0f;      b[static_cast<int>(ParamIdE::SCALE)] = 5.0f;
+    a[static_cast<int>(ParamIdE::BRAIN_ON)] = 0.0f;    b[static_cast<int>(ParamIdE::BRAIN_ON)] = 1.0f;
     e.setMorphSlot(0, a);
     e.setMorphSlot(1, b);
-    e.setParam(ParamId::Cutoff, 999.0f);
-    CHECK(e.effectiveParam(ParamId::Cutoff) == 999.0f, "morph off: live parameter plays");
-    e.setParam(ParamId::MorphActive, 1.0f);
-    e.setParam(ParamId::MorphGlide, 0.0f);
-    e.setParam(ParamId::MorphPos, 0.0f);
+    e.setParam(ParamIdE::CUTOFF, 999.0f);
+    CHECK(e.effectiveParam(ParamIdE::CUTOFF) == 999.0f, "morph off: live parameter plays");
+    e.setParam(ParamIdE::MORPH_ACTIVE, 1.0f);
+    e.setParam(ParamIdE::MORPH_GLIDE, 0.0f);
+    e.setParam(ParamIdE::MORPH_POS, 0.0f);
     render(e, 0.05);
-    CHECK(std::fabs(e.effectiveParam(ParamId::Cutoff) - 200.0f) < 1e-3f, "position 0 plays slot A");
-    e.setParam(ParamId::MorphPos, 1.0f);
+    CHECK(std::fabs(e.effectiveParam(ParamIdE::CUTOFF) - 200.0f) < 1e-3f, "position 0 plays slot A");
+    e.setParam(ParamIdE::MORPH_POS, 1.0f);
     render(e, 0.05);
-    CHECK(std::fabs(e.effectiveParam(ParamId::Cutoff) - 8000.0f) < 1e-2f, "position 1 plays slot B");
-    CHECK(e.effectiveParam(ParamId::Partials) == 20.0f && e.effectiveParam(ParamId::Scale) == 5.0f, "ints and choices follow");
-    e.setParam(ParamId::MorphPos, 0.5f);
+    CHECK(std::fabs(e.effectiveParam(ParamIdE::CUTOFF) - 8000.0f) < 1e-2f, "position 1 plays slot B");
+    CHECK(e.effectiveParam(ParamIdE::PARTIALS) == 20.0f && e.effectiveParam(ParamIdE::SCALE) == 5.0f, "ints and choices follow");
+    e.setParam(ParamIdE::MORPH_POS, 0.5f);
     render(e, 0.05);
-    const float mid = e.effectiveParam(ParamId::Cutoff);
+    const float mid = e.effectiveParam(ParamIdE::CUTOFF);
     CHECK(mid > 1000.0f && mid < 3000.0f, "halfway cutoff sits between in the perceptual (skewed) domain");
-    CHECK(e.effectiveParam(ParamId::Partials) == 12.0f, "int rounds");
-    CHECK(e.effectiveParam(ParamId::Scale) == 5.0f && e.effectiveParam(ParamId::BrainOn) == 1.0f, "choice/switch flip at 0.5");
+    CHECK(e.effectiveParam(ParamIdE::PARTIALS) == 12.0f, "int rounds");
+    CHECK(e.effectiveParam(ParamIdE::SCALE) == 5.0f && e.effectiveParam(ParamIdE::BRAIN_ON) == 1.0f, "choice/switch flip at 0.5");
     CHECK(std::fabs(e.morphPosition() - 0.5f) < 1e-6f, "morph position observer");
     // Glide: with 10 s glide, 1 s of audio moves the position by 0.1.
-    e.setParam(ParamId::MorphGlide, 10.0f);
-    e.setParam(ParamId::MorphPos, 1.0f);
+    e.setParam(ParamIdE::MORPH_GLIDE, 10.0f);
+    e.setParam(ParamIdE::MORPH_POS, 1.0f);
     render(e, 1.0);
     CHECK(std::fabs(e.morphPosition() - 0.6f) < 0.01f, "glide moves 0.1 per second at 10 s glide");
     // Presets never touch morph controls.
     e.applyPreset(2);
-    CHECK(e.getParam(ParamId::MorphActive) == 1.0f && e.getParam(ParamId::MorphGlide) == 10.0f, "presets leave morph state alone");
+    CHECK(e.getParam(ParamIdE::MORPH_ACTIVE) == 1.0f && e.getParam(ParamIdE::MORPH_GLIDE) == 10.0f, "presets leave morph state alone");
     // Capture: slot B takes the live parameters.
-    e.setParam(ParamId::MorphActive, 0.0f);
-    e.setParam(ParamId::Detune, 42.0f);
+    e.setParam(ParamIdE::MORPH_ACTIVE, 0.0f);
+    e.setParam(ParamIdE::DETUNE, 42.0f);
     e.captureMorphSlot(1);
-    float out[kNumParams];
+    float out[NumParams];
     e.morphSlot(1, out);
-    CHECK(out[static_cast<int>(ParamId::Detune)] == 42.0f, "capture copies live values");
+    CHECK(out[static_cast<int>(ParamIdE::DETUNE)] == 42.0f, "capture copies live values");
     Stats s = render(e, 1.0);
-    CHECK(s.nonFinite == 0, "morph render finite");
+    CHECK(s.m_nonFinite == 0, "morph render finite");
 }
 
 /**
@@ -2370,27 +2370,27 @@ void testMorph()
  * by id, control events are counted and the last one kept.
  */
 struct TestSink : OscSink {
-    float last[kNumParams] = {};   ///< the last value written to each parameter, in the parameter's own units
-    bool  set[kNumParams] = {};    ///< whether each parameter has been written at all
-    int   events = 0;              ///< how many control events arrived
-    ControlEvent lastEvent{ ControlEvent::Type::NoteOn, 0, 0.0f };   ///< the most recent control event
+    float m_last[NumParams] = {};   ///< the last value written to each parameter, in the parameter's own units
+    bool  m_set[NumParams] = {};    ///< whether each parameter has been written at all
+    int   m_events = 0;              ///< how many control events arrived
+    ControlEvent m_lastEvent{ ControlEvent::TypeE::NOTE_ON, 0, 0.0f };   ///< the most recent control event
     /**
      * @brief Records a parameter written in its own units.
      * @param id  which parameter
      * @param v   the value, as the dispatcher resolved it
      */
-    void setParam(ParamId id, float v) override { last[static_cast<int>(id)] = v; set[static_cast<int>(id)] = true; }
+    void setParam(ParamIdE id, float v) override { m_last[static_cast<int>(id)] = v; m_set[static_cast<int>(id)] = true; }
     /**
      * @brief Records a parameter written normalised, mapped linearly onto its range so the tests compare one table.
      * @param id  which parameter
      * @param n   the value in 0..1
      */
-    void setParamNormalised(ParamId id, float n) override { const ParamDesc& d = paramDesc(id); last[static_cast<int>(id)] = d.min + (d.max - d.min) * n; set[static_cast<int>(id)] = true; }
+    void setParamNormalised(ParamIdE id, float n) override { const ParamDesc& d = paramDesc(id); m_last[static_cast<int>(id)] = d.m_min + (d.m_max - d.m_min) * n; m_set[static_cast<int>(id)] = true; }
     /**
      * @brief Counts a control event and keeps it as the last one.
      * @param e  the event (note, preset, cosmos preset ...)
      */
-    void event(const ControlEvent& e) override { ++events; lastEvent = e; }
+    void event(const ControlEvent& e) override { ++m_events; m_lastEvent = e; }
 };
 
 /**
@@ -2441,15 +2441,15 @@ void testOscAndGestures()
     size_t n = oscBuild(buf, "/ambient/param/cutoff", "f", f1, nullptr);
     int seen = 0; OscMessage got;
     CHECK(parseOscPacket(buf, n, [&](const OscMessage& m) { ++seen; got = m; }) == 1, "parse one message");
-    CHECK(seen == 1 && std::strcmp(got.address, "/ambient/param/cutoff") == 0 && got.numArgs == 1 && got.types[0] == 'f' && std::fabs(got.floats[0] - 1234.5f) < 1e-3f, "message decoded");
+    CHECK(seen == 1 && std::strcmp(got.m_address, "/ambient/param/cutoff") == 0 && got.m_numArgs == 1 && got.m_types[0] == 'f' && std::fabs(got.m_floats[0] - 1234.5f) < 1e-3f, "message decoded");
     const float f2[] = { 60.0f, 100.0f };
     n = oscBuild(buf, "/ambient/note", "ii", f2, nullptr);
     parseOscPacket(buf, n, [&](const OscMessage& m) { got = m; });
-    CHECK(got.numArgs == 2 && got.types[1] == 'i' && got.floats[1] == 100.0f, "ints decoded");
+    CHECK(got.m_numArgs == 2 && got.m_types[1] == 'i' && got.m_floats[1] == 100.0f, "ints decoded");
     const char* s1[] = { "Sleep Concert" };
     n = oscBuild(buf, "/ambient/preset", "s", nullptr, s1);
     parseOscPacket(buf, n, [&](const OscMessage& m) { got = m; });
-    CHECK(got.numArgs == 1 && got.types[0] == 's' && std::strcmp(got.strings[0], "Sleep Concert") == 0, "string decoded");
+    CHECK(got.m_numArgs == 1 && got.m_types[0] == 's' && std::strcmp(got.m_strings[0], "Sleep Concert") == 0, "string decoded");
     // Bundle of two
     char bundle[512]; size_t bp = 0;
     std::memcpy(bundle, "#bundle\0", 8); bp = 8; std::memset(bundle + bp, 0, 8); bp += 8;
@@ -2463,66 +2463,66 @@ void testOscAndGestures()
 
     // Dispatch
     TestSink sink; GestureLayer gl;
-    OscMessage m; m.address = "/ambient/param/cutoff"; m.numArgs = 1; m.types[0] = 'f'; m.floats[0] = 1234.5f;
-    CHECK(dispatchOsc(m, sink, gl) && sink.set[static_cast<int>(ParamId::Cutoff)] && std::fabs(sink.last[static_cast<int>(ParamId::Cutoff)] - 1234.5f) < 1e-3f, "param dispatched");
-    m.address = "/ambient/paramn/brightness"; m.floats[0] = 0.25f;
-    CHECK(dispatchOsc(m, sink, gl) && std::fabs(sink.last[static_cast<int>(ParamId::Brightness)] - 0.25f) < 1e-6f, "normalised param dispatched");
-    m.address = "/ambient/param/scale"; m.types[0] = 's'; m.strings[0] = "JI Minor";
-    CHECK(dispatchOsc(m, sink, gl) && sink.last[static_cast<int>(ParamId::Scale)] == 2.0f, "choice by name");
-    m.address = "/ambient/hand/R"; m.numArgs = 5; for (int i = 0; i < 5; ++i) m.types[i] = 'f';
-    m.floats[0] = 0.2f; m.floats[1] = 1.7f; m.floats[2] = -0.45f; m.floats[3] = 1.0f; m.floats[4] = 0.0f;
+    OscMessage m; m.m_address = "/ambient/param/cutoff"; m.m_numArgs = 1; m.m_types[0] = 'f'; m.m_floats[0] = 1234.5f;
+    CHECK(dispatchOsc(m, sink, gl) && sink.m_set[static_cast<int>(ParamIdE::CUTOFF)] && std::fabs(sink.m_last[static_cast<int>(ParamIdE::CUTOFF)] - 1234.5f) < 1e-3f, "param dispatched");
+    m.m_address = "/ambient/paramn/brightness"; m.m_floats[0] = 0.25f;
+    CHECK(dispatchOsc(m, sink, gl) && std::fabs(sink.m_last[static_cast<int>(ParamIdE::BRIGHTNESS)] - 0.25f) < 1e-6f, "normalised param dispatched");
+    m.m_address = "/ambient/param/scale"; m.m_types[0] = 's'; m.m_strings[0] = "JI Minor";
+    CHECK(dispatchOsc(m, sink, gl) && sink.m_last[static_cast<int>(ParamIdE::SCALE)] == 2.0f, "choice by name");
+    m.m_address = "/ambient/hand/R"; m.m_numArgs = 5; for (int i = 0; i < 5; ++i) m.m_types[i] = 'f';
+    m.m_floats[0] = 0.2f; m.m_floats[1] = 1.7f; m.m_floats[2] = -0.45f; m.m_floats[3] = 1.0f; m.m_floats[4] = 0.0f;
     CHECK(dispatchOsc(m, sink, gl), "hand dispatched");
-    CHECK(std::fabs(gl.input(GestureInput::RightHeight) - 1.0f) < 1e-6f, "hand height at the top of the range");
-    CHECK(std::fabs(gl.input(GestureInput::RightForward) - 0.5f) < 1e-6f, "reach halfway");
-    CHECK(gl.input(GestureInput::RightPinch) == 1.0f && std::fabs(gl.input(GestureInput::RightTilt) - 0.5f) < 1e-6f, "pinch and tilt passed");
-    m.address = "/ambient/hand/L"; m.floats[0] = -0.2f;
+    CHECK(std::fabs(gl.input(GestureInputE::RIGHT_HEIGHT) - 1.0f) < 1e-6f, "hand height at the top of the range");
+    CHECK(std::fabs(gl.input(GestureInputE::RIGHT_FORWARD) - 0.5f) < 1e-6f, "reach halfway");
+    CHECK(gl.input(GestureInputE::RIGHT_PINCH) == 1.0f && std::fabs(gl.input(GestureInputE::RIGHT_TILT) - 0.5f) < 1e-6f, "pinch and tilt passed");
+    m.m_address = "/ambient/hand/L"; m.m_floats[0] = -0.2f;
     dispatchOsc(m, sink, gl);
-    CHECK(std::fabs(gl.input(GestureInput::HandDistance) - (0.4f - 0.1f) / 0.7f) < 1e-5f, "hand distance from both hands");
-    m.address = "/ambient/note"; m.numArgs = 2; m.types[0] = 'i'; m.types[1] = 'i'; m.floats[0] = 64.0f; m.floats[1] = 0.0f;
-    CHECK(dispatchOsc(m, sink, gl) && sink.lastEvent.type == ControlEvent::Type::NoteOff && sink.lastEvent.a == 64, "note off event");
+    CHECK(std::fabs(gl.input(GestureInputE::HAND_DISTANCE) - (0.4f - 0.1f) / 0.7f) < 1e-5f, "hand distance from both hands");
+    m.m_address = "/ambient/note"; m.m_numArgs = 2; m.m_types[0] = 'i'; m.m_types[1] = 'i'; m.m_floats[0] = 64.0f; m.m_floats[1] = 0.0f;
+    CHECK(dispatchOsc(m, sink, gl) && sink.m_lastEvent.m_type == ControlEvent::TypeE::NOTE_OFF && sink.m_lastEvent.m_a == 64, "note off event");
     int alienChoir = -1;
-    for (int i = 0; i < numCosmosPresets(); ++i) if (std::strcmp(cosmosPreset(i).name, "Alien Choir") == 0) alienChoir = i;
+    for (int i = 0; i < numCosmosPresets(); ++i) if (std::strcmp(cosmosPreset(i).m_name, "Alien Choir") == 0) alienChoir = i;
     CHECK(alienChoir > 0, "the cosmos bank still has an Alien Choir to look up");
-    m.address = "/ambient/cosmos"; m.numArgs = 1; m.types[0] = 's'; m.strings[0] = "Alien Choir";
-    CHECK(dispatchOsc(m, sink, gl) && sink.lastEvent.type == ControlEvent::Type::CosmosPreset && sink.lastEvent.a == alienChoir, "cosmos preset by name");
-    m.address = "/ambient/nonsense";
+    m.m_address = "/ambient/cosmos"; m.m_numArgs = 1; m.m_types[0] = 's'; m.m_strings[0] = "Alien Choir";
+    CHECK(dispatchOsc(m, sink, gl) && sink.m_lastEvent.m_type == ControlEvent::TypeE::COSMOS_PRESET && sink.m_lastEvent.m_a == alienChoir, "cosmos preset by name");
+    m.m_address = "/ambient/nonsense";
     CHECK(!dispatchOsc(m, sink, gl), "unknown address rejected");
 
     // Gesture mapping: clutch, dead-zone, smoothing, text round trip.
     GestureLayer g2;
     g2.clearMappings();
-    g2.addMapping({ GestureInput::LeftHeight, ParamId::Depth, 0.0f, 1.0f, 0.0f, 0.05f, GestureInput::RightPinch, false });
+    g2.addMapping({ GestureInputE::LEFT_HEIGHT, ParamIdE::DEPTH, 0.0f, 1.0f, 0.0f, 0.05f, GestureInputE::RIGHT_PINCH, false });
     float depth = -1.0f; int writes = 0;
-    auto sinkFn = [&](ParamId id, float v) { if (id == ParamId::Depth) { depth = v; ++writes; } };
-    g2.setInput(GestureInput::LeftHeight, 0.5f);
+    auto sinkFn = [&](ParamIdE id, float v) { if (id == ParamIdE::DEPTH) { depth = v; ++writes; } };
+    g2.setInput(GestureInputE::LEFT_HEIGHT, 0.5f);
     g2.update(0.01, sinkFn);
-    g2.setInput(GestureInput::LeftHeight, 0.8f);
+    g2.setInput(GestureInputE::LEFT_HEIGHT, 0.8f);
     g2.update(0.01, sinkFn);
     CHECK(writes == 0, "nothing moves while the clutch is open");
-    g2.setInput(GestureInput::RightPinch, 1.0f);
+    g2.setInput(GestureInputE::RIGHT_PINCH, 1.0f);
     g2.update(0.01, sinkFn);
     CHECK(writes == 1 && std::fabs(depth - 0.8f) < 1e-6f, "clutch closed and hand moved: value follows (no smoothing)");
-    g2.setInput(GestureInput::LeftHeight, 0.82f);
+    g2.setInput(GestureInputE::LEFT_HEIGHT, 0.82f);
     g2.update(0.01, sinkFn);
     CHECK(writes == 1, "jitter below the dead-zone is ignored");
-    g2.setInput(GestureInput::LeftHeight, 0.3f);
-    g2.setInput(GestureInput::RightPinch, 0.0f);
+    g2.setInput(GestureInputE::LEFT_HEIGHT, 0.3f);
+    g2.setInput(GestureInputE::RIGHT_PINCH, 0.0f);
     g2.update(0.01, sinkFn);
     CHECK(writes == 1 && std::fabs(depth - 0.8f) < 1e-6f, "clutch released: the last value holds");
     GestureLayer g3;
     g3.clearMappings();
-    g3.addMapping({ GestureInput::Custom0, ParamId::Brightness, 0.0f, 1.0f, 1.0f, 0.0f, GestureInput::Count, false });
+    g3.addMapping({ GestureInputE::CUSTOM0, ParamIdE::BRIGHTNESS, 0.0f, 1.0f, 1.0f, 0.0f, GestureInputE::COUNT, false });
     float b = 0.0f;
-    g3.setInput(GestureInput::Custom0, 0.0f);
-    g3.update(0.01, [&](ParamId, float v) { b = v; });   // first value primes without a glide
+    g3.setInput(GestureInputE::CUSTOM0, 0.0f);
+    g3.update(0.01, [&](ParamIdE, float v) { b = v; });   // first value primes without a glide
     CHECK(b == 0.0f, "first target is taken as is");
-    g3.setInput(GestureInput::Custom0, 1.0f);
-    for (int i = 0; i < 100; ++i) g3.update(0.01, [&](ParamId, float v) { b = v; });   // 1 s at 1 s smoothing
+    g3.setInput(GestureInputE::CUSTOM0, 1.0f);
+    for (int i = 0; i < 100; ++i) g3.update(0.01, [&](ParamIdE, float v) { b = v; });   // 1 s at 1 s smoothing
     CHECK(b > 0.6f && b < 0.7f, "smoothing: one time constant reaches ~63 %");
     {   // Default mappings through the hand path, as the simulator drives them.
         GestureLayer gd;
         float depthH = -1.0f, width = -1.0f, morph = -1.0f;
-        auto sk = [&](ParamId id, float v) { if (id == ParamId::Depth) depthH = v; if (id == ParamId::Width) width = v; if (id == ParamId::MorphPos) morph = v; };
+        auto sk = [&](ParamIdE id, float v) { if (id == ParamIdE::DEPTH) depthH = v; if (id == ParamIdE::WIDTH) width = v; if (id == ParamIdE::MORPH_POS) morph = v; };
         gd.setHand(0, -0.1f, 1.30f, -0.45f, 0.0f, 0.0f);   // rest position first ...
         gd.setHand(1,  0.1f, 1.30f, -0.45f, 1.0f, 0.0f);
         gd.setHead(0.0f, 0.0f, 0.0f);
@@ -2541,7 +2541,7 @@ void testOscAndGestures()
     CHECK(len > 0 && g4.numMappings() >= 6, "default mappings written");
     GestureLayer g5;
     CHECK(g5.parseMappings(text) && g5.numMappings() == g4.numMappings(), "mappings round-trip through text");
-    CHECK(g5.mapping(0).input == GestureInput::HandDistance && g5.mapping(0).param == ParamId::MorphPos && g5.mapping(0).clutch == GestureInput::RightPinch, "first default mapping: hand distance -> morph, clutch right pinch");
+    CHECK(g5.mapping(0).m_input == GestureInputE::HAND_DISTANCE && g5.mapping(0).m_param == ParamIdE::MORPH_POS && g5.mapping(0).m_clutch == GestureInputE::RIGHT_PINCH, "first default mapping: hand distance -> morph, clutch right pinch");
     CHECK(!g5.parseMappings("Nonsense morph 0 1"), "unknown input rejected");
 
     // Real UDP loopback through the server.
@@ -2560,7 +2560,7 @@ void testOscAndGestures()
         const size_t ln = oscBuild(buf, "/ambient/morph", "f", fv, nullptr);
         ::sendto(s, buf, static_cast<int>(ln), 0, reinterpret_cast<sockaddr*>(&to), sizeof(to));
         for (int i = 0; i < 100 && server.messagesReceived() == 0; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        CHECK(server.messagesReceived() == 1 && std::fabs(netSink.last[static_cast<int>(ParamId::MorphPos)] - 0.42f) < 1e-6f, "UDP message reached the sink");
+        CHECK(server.messagesReceived() == 1 && std::fabs(netSink.m_last[static_cast<int>(ParamIdE::MORPH_POS)] - 0.42f) < 1e-6f, "UDP message reached the sink");
 #if defined(_WIN32)
         closesocket(s); WSACleanup();
 #else
@@ -2585,11 +2585,11 @@ void testFeaturesRound7()
     const int sr = 48000;
     {   // Hold: keys latch, pressing again releases, switching Hold off releases everything.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Hold, 1.0f);
-        e.setParam(ParamId::Attack, 0.1f);
-        e.setParam(ParamId::Release, 0.2f);
-        e.setParam(ParamId::FarDecay, 1.0f); e.setParam(ParamId::NearDecay, 0.3f); e.setParam(ParamId::DelayFeedback, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::HOLD, 1.0f);
+        e.setParam(ParamIdE::ATTACK, 0.1f);
+        e.setParam(ParamIdE::RELEASE, 0.2f);
+        e.setParam(ParamIdE::FAR_DECAY, 1.0f); e.setParam(ParamIdE::NEAR_DECAY, 0.3f); e.setParam(ParamIdE::DELAY_FEEDBACK, 0.0f);
         e.prepare(sr, 256);
         render(e, 0.05);
         e.noteOn(60, 0.8f); e.noteOff(60);
@@ -2601,19 +2601,19 @@ void testFeaturesRound7()
         e.noteOn(62, 0.8f); e.noteOff(62); e.noteOn(65, 0.8f); e.noteOff(65);
         render(e, 0.5);
         CHECK(e.activeVoices() == 2, "two latched notes");
-        e.setParam(ParamId::Hold, 0.0f);
+        e.setParam(ParamIdE::HOLD, 0.0f);
         render(e, 2.5);
         CHECK(e.activeVoices() == 0, "hold off releases the latched notes");
     }
     {   // Foundation: sub follows the root an octave below (Octave -1), binaural offset splits L/R.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::SubLevel, 0.8f);
-        e.setParam(ParamId::SubBinaural, 0.0f);
-        e.setParam(ParamId::SubOctave, 0.0f);     // -1: the default became -2 on 25.09.2026 (testGuideRound covers that)
-        e.setParam(ParamId::SubHarmonics, 0.0f);  // the residue partials would sit exactly where this test looks for leakage
-        e.setParam(ParamId::RootNote, 9.0f);      // A
-        e.setParam(ParamId::Scale, 0.0f);         // 12-TET
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::SUB_LEVEL, 0.8f);
+        e.setParam(ParamIdE::SUB_BINAURAL, 0.0f);
+        e.setParam(ParamIdE::SUB_OCTAVE, 0.0f);     // -1: the default became -2 on 25.09.2026 (testGuideRound covers that)
+        e.setParam(ParamIdE::SUB_HARMONICS, 0.0f);  // the residue partials would sit exactly where this test looks for leakage
+        e.setParam(ParamIdE::ROOT_NOTE, 9.0f);      // A
+        e.setParam(ParamIdE::SCALE, 0.0f);         // 12-TET
         e.prepare(sr, 256);
         std::vector<float> cap;
         render(e, 4.0, &cap);
@@ -2622,7 +2622,7 @@ void testFeaturesRound7()
         // brain root = 48 + 9 = 57 (A3, 220 Hz) -> sub one octave below = 110 Hz
         const double p110 = goertzel(L.data(), sr, 110.0, sr), p220 = goertzel(L.data(), sr, 220.0, sr), p55 = goertzel(L.data(), sr, 55.0, sr);
         CHECK(p110 > 10.0 * p220 && p110 > 10.0 * p55, "sub sits one octave below the root");
-        e.setParam(ParamId::SubBinaural, 6.0f);
+        e.setParam(ParamIdE::SUB_BINAURAL, 6.0f);
         cap.clear();
         render(e, 4.0, &cap);
         std::vector<float> Lb(2 * sr), Rb(2 * sr);
@@ -2634,18 +2634,18 @@ void testFeaturesRound7()
     {   // Bloom: a voice starts dark and opens.
         auto centroidAt = [&](float bloom) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Bloom, bloom);
-            e.setParam(ParamId::BloomTime, 5.0f);
-            e.setParam(ParamId::Attack, 0.2f);
-            e.setParam(ParamId::Brightness, 1.0f);
-            e.setParam(ParamId::Cutoff, 18000.0f);
-            e.setParam(ParamId::Scale, 0.0f); e.setParam(ParamId::RootNote, 0.0f);   // 12-TET, C: note 48 = 130.81 Hz
-            e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::Shimmer, 0.0f);   // no random partial drift: the spectrum must be reproducible
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f);   // one strand, on-grid partials
-            e.setParam(ParamId::FilterDrift, 0.0f); e.setParam(ParamId::FilterEnv, 0.0f);
-            e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::BLOOM, bloom);
+            e.setParam(ParamIdE::BLOOM_TIME, 5.0f);
+            e.setParam(ParamIdE::ATTACK, 0.2f);
+            e.setParam(ParamIdE::BRIGHTNESS, 1.0f);
+            e.setParam(ParamIdE::CUTOFF, 18000.0f);
+            e.setParam(ParamIdE::SCALE, 0.0f); e.setParam(ParamIdE::ROOT_NOTE, 0.0f);   // 12-TET, C: note 48 = 130.81 Hz
+            e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::SHIMMER, 0.0f);   // no random partial drift: the spectrum must be reproducible
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);   // one strand, on-grid partials
+            e.setParam(ParamIdE::FILTER_DRIFT, 0.0f); e.setParam(ParamIdE::FILTER_ENV, 0.0f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
             e.prepare(sr, 256);
             e.noteOn(48, 0.8f);
             std::vector<float> cap;
@@ -2671,11 +2671,11 @@ void testFeaturesRound7()
     {   // Macros act only once moved, then drive several parameters.
         GestureLayer g;   // defaults incl. macro mappings
         int writes = 0; float farLevel = -1.0f, depthM = -1.0f;
-        auto sk = [&](ParamId id, float v) { ++writes; if (id == ParamId::FarLevel) farLevel = v; if (id == ParamId::Depth) depthM = v; };
-        g.setInput(GestureInput::Custom0, 0.0f);
+        auto sk = [&](ParamIdE id, float v) { ++writes; if (id == ParamIdE::FAR_LEVEL) farLevel = v; if (id == ParamIdE::DEPTH) depthM = v; };
+        g.setInput(GestureInputE::CUSTOM0, 0.0f);
         for (int i = 0; i < 10; ++i) g.update(0.01, sk);
         CHECK(writes == 0, "a macro at rest writes nothing (presets stay intact)");
-        g.setInput(GestureInput::Custom0, 1.0f);
+        g.setInput(GestureInputE::CUSTOM0, 1.0f);
         for (int i = 0; i < 300; ++i) g.update(0.01, sk);   // 3 s
         CHECK(farLevel > 0.95f && depthM > 0.95f, "macro A drives far level and depth to their maxima");
     }
@@ -2696,7 +2696,7 @@ void testCalibrationMenuRecorder()
     {   // Calibration: the ranges follow the explored extremes; nothing moves meanwhile.
         GestureLayer g;
         int writes = 0;
-        auto sk = [&](ParamId, float) { ++writes; };
+        auto sk = [&](ParamIdE, float) { ++writes; };
         g.startCalibration(2.0f);
         CHECK(g.calibrating(), "calibration running");
         // sweep: hands together low, then apart high, then far forward
@@ -2719,30 +2719,30 @@ void testCalibrationMenuRecorder()
     {   // Hand menu: open with the left pinch, choose by right height, activate with the right pinch.
         GestureLayer g;
         HandMenu menu;
-        g.setInput(GestureInput::LeftPinch, 0.0f);
-        g.setInput(GestureInput::RightPinch, 0.0f);
-        g.setInput(GestureInput::RightHeight, 0.95f);
-        CHECK(menu.update(0.02, g) == MenuAction::None && !menu.isOpen(), "closed at rest");
-        g.setInput(GestureInput::LeftPinch, 1.0f);
+        g.setInput(GestureInputE::LEFT_PINCH, 0.0f);
+        g.setInput(GestureInputE::RIGHT_PINCH, 0.0f);
+        g.setInput(GestureInputE::RIGHT_HEIGHT, 0.95f);
+        CHECK(menu.update(0.02, g) == MenuActionE::NONE && !menu.isOpen(), "closed at rest");
+        g.setInput(GestureInputE::LEFT_PINCH, 1.0f);
         for (int i = 0; i < 20; ++i) menu.update(0.02, g);
         CHECK(menu.isOpen() && menu.highlighted() == 0 && g.suspended(), "open: top item highlighted, mappings suspended");
-        g.setInput(GestureInput::RightHeight, 0.05f);
+        g.setInput(GestureInputE::RIGHT_HEIGHT, 0.05f);
         menu.update(0.02, g);
-        CHECK(menu.highlighted() == kMenuItems - 1, "hand low: last item");
-        g.setInput(GestureInput::RightPinch, 1.0f);
-        const MenuAction a = menu.update(0.02, g);
-        CHECK(a == MenuAction::Calibrate, "right pinch activates the highlighted item");
-        CHECK(menu.update(0.02, g) == MenuAction::None, "holding the pinch does not repeat");
-        g.setInput(GestureInput::RightPinch, 0.0f); menu.update(0.02, g);
-        g.setInput(GestureInput::LeftPinch, 0.0f);
+        CHECK(menu.highlighted() == MenuItems - 1, "hand low: last item");
+        g.setInput(GestureInputE::RIGHT_PINCH, 1.0f);
+        const MenuActionE a = menu.update(0.02, g);
+        CHECK(a == MenuActionE::CALIBRATE, "right pinch activates the highlighted item");
+        CHECK(menu.update(0.02, g) == MenuActionE::NONE, "holding the pinch does not repeat");
+        g.setInput(GestureInputE::RIGHT_PINCH, 0.0f); menu.update(0.02, g);
+        g.setInput(GestureInputE::LEFT_PINCH, 0.0f);
         menu.update(0.02, g);
         CHECK(!menu.isOpen() && !g.suspended(), "closes when the left pinch opens; mappings resume");
         // A right pinch that was already closed when the menu opens must not fire.
-        g.setInput(GestureInput::RightPinch, 1.0f); menu.update(0.02, g);
-        g.setInput(GestureInput::LeftPinch, 1.0f);
-        MenuAction fired = MenuAction::None;
-        for (int i = 0; i < 30; ++i) { const MenuAction r = menu.update(0.02, g); if (r != MenuAction::None) fired = r; }
-        CHECK(fired == MenuAction::None, "a pinch held from before the menu opened does not select");
+        g.setInput(GestureInputE::RIGHT_PINCH, 1.0f); menu.update(0.02, g);
+        g.setInput(GestureInputE::LEFT_PINCH, 1.0f);
+        MenuActionE fired = MenuActionE::NONE;
+        for (int i = 0; i < 30; ++i) { const MenuActionE r = menu.update(0.02, g); if (r != MenuActionE::NONE) fired = r; }
+        CHECK(fired == MenuActionE::NONE, "a pinch held from before the menu opened does not select");
     }
     {   // Recorder: writes a valid float WAV with the right sizes.
         WavRecorder rec;
@@ -2768,8 +2768,8 @@ void testCalibrationMenuRecorder()
     }
     {   // Per-note level observer.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Attack, 0.05f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.05f);
         e.prepare(48000.0, 256);
         e.noteOn(60, 1.0f);
         render(e, 0.5);
@@ -2813,15 +2813,15 @@ void testPresetPacks()
     CHECK(numPresets() == base + 2, "two presets added");
     CHECK(numPresetPacks() == 1, "one pack registered");
     CHECK(std::strcmp(presetPackName(0), "Pack Under Test") == 0, "pack name from the 'pack' line");
-    CHECK(std::strcmp(preset(base).name, "Pack Alpha") == 0, "first pack preset by index");
-    CHECK(std::strcmp(preset(base + 1).name, "Pack Beta") == 0, "second pack preset by index");
+    CHECK(std::strcmp(preset(base).m_name, "Pack Alpha") == 0, "first pack preset by index");
+    CHECK(std::strcmp(preset(base + 1).m_name, "Pack Beta") == 0, "second pack preset by index");
 
     Engine e;
     CHECK(e.applyPreset(base), "apply a pack preset");
-    CHECK(e.getParam(ParamId::BrainDensity) == 9.0f, "pack preset sets density");
-    CHECK(std::fabs(e.getParam(ParamId::Cutoff) - 440.0f) < 0.01f, "pack preset sets cutoff");
-    CHECK(e.getParam(ParamId::Scale) == 2.0f, "pack preset resolves a choice by name");
-    CHECK(e.getParam(ParamId::SubLevel) == 0.0f, "a pack preset resets what it does not name");
+    CHECK(e.getParam(ParamIdE::BRAIN_DENSITY) == 9.0f, "pack preset sets density");
+    CHECK(std::fabs(e.getParam(ParamIdE::CUTOFF) - 440.0f) < 0.01f, "pack preset sets cutoff");
+    CHECK(e.getParam(ParamIdE::SCALE) == 2.0f, "pack preset resolves a choice by name");
+    CHECK(e.getParam(ParamIdE::SUB_LEVEL) == 0.0f, "a pack preset resets what it does not name");
 
     const std::string tex = presetFilePath(base, 0);
     const std::string tab = presetFilePath(base, 1);
@@ -2832,7 +2832,7 @@ void testPresetPacks()
     CHECK(imp.find("c.wav") != std::string::npos, "impulse path resolved");
     CHECK(std::string(presetFilePath(base, 3)).find("d.wav") != std::string::npos, "impulse B path resolved");
     CHECK(std::string(presetFilePath(base, 4)).empty(), "there is no fifth file slot");
-    CHECK(preset(base).impulseB != nullptr && std::string(preset(base).impulseB) == "ir/d.wav", "the preset carries its impulse B");
+    CHECK(preset(base).m_impulseB != nullptr && std::string(preset(base).m_impulseB) == "ir/d.wav", "the preset carries its impulse B");
     CHECK(std::string(presetFilePath(base + 1, 3)).empty(), "a preset without an impulse B reports none");
     CHECK(std::string(presetFilePath(base + 1, 0)).empty(), "a preset without files reports none");
     CHECK(std::string(presetFilePath(base + 1, 2)).empty(), "and no impulse either");
@@ -2842,9 +2842,9 @@ void testPresetPacks()
         Engine me;
         CHECK(me.applyPreset(base), "apply the pack preset with its modulation");
         CHECK(me.modMatrix().count() == 2, "the pack preset's matrix arrived");
-        CHECK(me.modMatrix().route(0).target == ParamId::Cutoff, "and its first route");
+        CHECK(me.modMatrix().route(0).m_target == ParamIdE::CUTOFF, "and its first route");
         CHECK(me.envShape(0).count() == 3 && me.envShape(1).count() == 3, "and two envelope shapes");
-        CHECK(std::fabs(me.envShape(1).at(1.0f, EnvMode::OneShot, true) + 1.0f) < 1e-4f,
+        CHECK(std::fabs(me.envShape(1).at(1.0f, EnvModeE::ONE_SHOT, true) + 1.0f) < 1e-4f,
               "the second shape dips to -1");
         CHECK(me.applyPreset(0), "a preset without modulation");
         CHECK(me.modMatrix().count() == 0, "clears the matrix instead of inheriting it");
@@ -2852,10 +2852,10 @@ void testPresetPacks()
     CHECK(numPresetFamilies() == baseFamilies + 1, "the pack adds one family");
     if (numPresetMeta() > 0) {
         const PresetMeta& m = presetMeta(base);
-        CHECK(std::fabs(m.x - 0.25f) < 1e-4f && std::fabs(m.y - 0.75f) < 1e-4f, "map position read from the pack");
-        CHECK(m.tags == 5u, "tag bits read from the pack");
-        CHECK(m.family == baseFamilies, "pack preset lands in the pack's family");
-        CHECK(std::strcmp(presetFamilyName(m.family), "Pack Under Test") == 0, "family name is the pack name");
+        CHECK(std::fabs(m.m_x - 0.25f) < 1e-4f && std::fabs(m.m_y - 0.75f) < 1e-4f, "map position read from the pack");
+        CHECK(m.m_tags == 5u, "tag bits read from the pack");
+        CHECK(m.m_family == baseFamilies, "pack preset lands in the pack's family");
+        CHECK(std::strcmp(presetFamilyName(m.m_family), "Pack Under Test") == 0, "family name is the pack name");
     }
     // The map has to notice that the list grew.
     PresetMap::warmup();
@@ -2897,26 +2897,26 @@ void testModulation()
 {
     // --- LFO shapes -----------------------------------------------------------------------
     {
-        LfoSpec sp; sp.shape = LfoShape::Sine; sp.rateHz = 1.0f;
+        LfoSpec sp; sp.m_shape = LfoShapeE::SINE; sp.m_rateHz = 1.0f;
         CHECK(std::fabs(Lfo::shapeAt(sp, 0.0f, nullptr)) < 1e-5f, "sine starts at zero");
         CHECK(std::fabs(Lfo::shapeAt(sp, 0.25f, nullptr) - 1.0f) < 1e-5f, "sine peaks at a quarter");
-        sp.shape = LfoShape::Triangle;
+        sp.m_shape = LfoShapeE::TRIANGLE;
         CHECK(std::fabs(Lfo::shapeAt(sp, 0.25f, nullptr) - 1.0f) < 1e-5f, "triangle peaks at a quarter");
         CHECK(std::fabs(Lfo::shapeAt(sp, 0.75f, nullptr) + 1.0f) < 1e-5f, "triangle troughs at three quarters");
-        sp.shape = LfoShape::RampUp;
+        sp.m_shape = LfoShapeE::RAMP_UP;
         CHECK(Lfo::shapeAt(sp, 0.0f, nullptr) < -0.99f && Lfo::shapeAt(sp, 0.999f, nullptr) > 0.99f,
               "ramp up runs -1 to 1");
-        sp.shape = LfoShape::RampDown;
+        sp.m_shape = LfoShapeE::RAMP_DOWN;
         CHECK(Lfo::shapeAt(sp, 0.0f, nullptr) > 0.99f && Lfo::shapeAt(sp, 0.999f, nullptr) < -0.99f,
               "ramp down runs 1 to -1");
     }
     {   // Continuity: the standing rule of this instrument is that no modulator may step. At the
         // control block's rate, every shape has to move smoothly even at a fast setting.
         const float dt = 64.0f / 48000.0f;
-        for (int sh = 0; sh < kNumLfoShapes; ++sh) {
-            if (sh == static_cast<int>(LfoShape::RampUp) || sh == static_cast<int>(LfoShape::RampDown))
+        for (int sh = 0; sh < NumLfoShapes; ++sh) {
+            if (sh == static_cast<int>(LfoShapeE::RAMP_UP) || sh == static_cast<int>(LfoShapeE::RAMP_DOWN))
                 continue;                       // a ramp's wrap is its shape
-            LfoSpec sp; sp.shape = static_cast<LfoShape>(sh); sp.rateHz = 4.0f;
+            LfoSpec sp; sp.m_shape = static_cast<LfoShapeE>(sh); sp.m_rateHz = 4.0f;
             Lfo l; l.reset(7, 0.0f);
             float prev = l.step(dt, sp, nullptr), worst = 0.0f;
             for (int i = 0; i < 4000; ++i) {
@@ -2928,7 +2928,7 @@ void testModulation()
         }
     }
     {   // One cycle in twenty minutes has to be reachable, and it has to actually move.
-        LfoSpec sp; sp.shape = LfoShape::Sine; sp.rateHz = 1.0f / 1200.0f;
+        LfoSpec sp; sp.m_shape = LfoShapeE::SINE; sp.m_rateHz = 1.0f / 1200.0f;
         Lfo l; l.reset(1, 0.0f);
         float v = 0.0f;
         for (int i = 0; i < 300; ++i) v = l.step(1.0f, sp, nullptr);   // five minutes
@@ -2937,10 +2937,10 @@ void testModulation()
     {   // A wavetable frame becomes an LFO curve: that is what makes any drawn curve a modulator
         // without a second mechanism for drawable shapes.
         std::vector<float> frames(2048);
-        for (int i = 0; i < 2048; ++i) frames[static_cast<size_t>(i)] = std::sin(kTwoPi * i / 2048.0f);
+        for (int i = 0; i < 2048; ++i) frames[static_cast<size_t>(i)] = std::sin(TwoPi * i / 2048.0f);
         Wavetable t;
         CHECK(t.analyse(frames.data(), 2048), "one-frame table for the LFO");
-        LfoSpec sp; sp.shape = LfoShape::Table;
+        LfoSpec sp; sp.m_shape = LfoShapeE::TABLE;
         const float a = Lfo::shapeAt(sp, 0.25f, &t), b = Lfo::shapeAt(sp, 0.75f, &t);
         CHECK(a > 0.9f && b < -0.9f, "a sine frame read as an LFO shape is a sine");
     }
@@ -2950,26 +2950,26 @@ void testModulation()
         ModEnv e;
         CHECK(e.parse("0:0/2:1/6:0.3/10:0"), "envelope parses");
         CHECK(e.count() == 4, "four breakpoints");
-        CHECK(std::fabs(e.at(0.0f, EnvMode::OneShot, true)) < 1e-5f, "starts at zero");
-        CHECK(std::fabs(e.at(2.0f, EnvMode::OneShot, true) - 1.0f) < 1e-5f, "peak at its breakpoint");
-        CHECK(std::fabs(e.at(1.0f, EnvMode::OneShot, true) - 0.5f) < 1e-4f, "linear halfway up");
-        CHECK(std::fabs(e.at(99.0f, EnvMode::OneShot, true)) < 1e-5f, "holds the last value past the end");
+        CHECK(std::fabs(e.at(0.0f, EnvModeE::ONE_SHOT, true)) < 1e-5f, "starts at zero");
+        CHECK(std::fabs(e.at(2.0f, EnvModeE::ONE_SHOT, true) - 1.0f) < 1e-5f, "peak at its breakpoint");
+        CHECK(std::fabs(e.at(1.0f, EnvModeE::ONE_SHOT, true) - 0.5f) < 1e-4f, "linear halfway up");
+        CHECK(std::fabs(e.at(99.0f, EnvModeE::ONE_SHOT, true)) < 1e-5f, "holds the last value past the end");
         char buf[256];
         CHECK(e.write(buf, sizeof(buf)) > 0, "envelope writes");
         ModEnv back;
         CHECK(back.parse(buf) && back.count() == 4, "envelope round trip");
-        CHECK(std::fabs(back.at(1.0f, EnvMode::OneShot, true) - 0.5f) < 1e-3f, "round trip keeps the shape");
+        CHECK(std::fabs(back.at(1.0f, EnvModeE::ONE_SHOT, true) - 0.5f) < 1e-3f, "round trip keeps the shape");
         CHECK(!back.parse("nonsense"), "a malformed envelope is rejected");
     }
     {   // Curve, sustain and loop.
         ModEnv e;
         CHECK(e.parse("0:0:0.8/4:1/8:0"), "curved envelope parses");
-        CHECK(e.at(2.0f, EnvMode::OneShot, true) < 0.4f, "a positive curve dwells at the start");
+        CHECK(e.at(2.0f, EnvModeE::ONE_SHOT, true) < 0.4f, "a positive curve dwells at the start");
         ModEnv s;
         CHECK(s.parse("0:0/1:1/5:0.5/9:0!s2"), "envelope with a sustain point");
         CHECK(s.sustain() == 2, "sustain point read");
-        CHECK(std::fabs(s.at(20.0f, EnvMode::SustainLoop, true) - 0.5f) < 1e-4f, "held at the sustain point");
-        CHECK(std::fabs(s.at(20.0f, EnvMode::SustainLoop, false)) < 1e-4f, "released, it runs to the end");
+        CHECK(std::fabs(s.at(20.0f, EnvModeE::SUSTAIN_LOOP, true) - 0.5f) < 1e-4f, "held at the sustain point");
+        CHECK(std::fabs(s.at(20.0f, EnvModeE::SUSTAIN_LOOP, false)) < 1e-4f, "released, it runs to the end");
         {   // Sustain Loop, driven by the engine rather than by hand: the value must not jump
             // when the last voice lets go. It used to, and by a lot -- the shape held at the
             // sustain point while the note was down, and the release then found the clock long
@@ -2977,10 +2977,10 @@ void testModulation()
             // the sustain point at that moment, so the tail plays from where the hold ended.
             Engine e;
             e.prepare(48000.0, 256);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Env1Mode, static_cast<float>(EnvMode::SustainLoop));
-            e.setParam(ParamId::Env1Time, 1.0f);
-            e.setParam(ParamId::Env1Depth, 1.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::ENV1_MODE, static_cast<float>(EnvModeE::SUSTAIN_LOOP));
+            e.setParam(ParamIdE::ENV1_TIME, 1.0f);
+            e.setParam(ParamIdE::ENV1_DEPTH, 1.0f);
             CHECK(e.setEnvShape(0, "0:0/1:1/2:0.5/8:0!s2"), "engine takes a sustain-point shape");
             e.noteOn(60, 1.0f);
             std::vector<float> l(256), r(256);
@@ -2989,14 +2989,14 @@ void testModulation()
                     e.process(l.data(), r.data(), 256);
             };
             run(5.0);
-            const float held = e.modSource(static_cast<int>(ModSource::Env1));
+            const float held = e.modSource(static_cast<int>(ModSourceE::ENV1));
             CHECK(std::fabs(held - 0.5f) < 0.02f, "held at the sustain point while the note is down");
             e.noteOff(60);
             e.process(l.data(), r.data(), 256);
-            const float justAfter = e.modSource(static_cast<int>(ModSource::Env1));
+            const float justAfter = e.modSource(static_cast<int>(ModSourceE::ENV1));
             CHECK(std::fabs(justAfter - held) < 0.02f, "release does not jump away from the sustain value");
             run(7.0);
-            CHECK(e.modSource(static_cast<int>(ModSource::Env1)) < 0.1f, "and then it runs out");
+            CHECK(e.modSource(static_cast<int>(ModSourceE::ENV1)) < 0.1f, "and then it runs out");
         }
         {   // A modulator's own settings are a modulation target like any other. They were not:
             // the specs are read before the matrix is summed, so "lfo2 > lfo1_rate" parsed, sat
@@ -3006,11 +3006,11 @@ void testModulation()
             auto phaseAfter = [](const char* matrix) {
                 Engine e;
                 e.prepare(48000.0, 256);
-                e.setParam(ParamId::BrainOn, 0.0f);
-                e.setParam(ParamId::Lfo1Rate, 0.2f);
-                e.setParam(ParamId::Lfo1Depth, 1.0f);
-                e.setParam(ParamId::Lfo2Rate, 0.05f);
-                e.setParam(ParamId::Lfo2Depth, 1.0f);
+                e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                e.setParam(ParamIdE::LFO1_RATE, 0.2f);
+                e.setParam(ParamIdE::LFO1_DEPTH, 1.0f);
+                e.setParam(ParamIdE::LFO2_RATE, 0.05f);
+                e.setParam(ParamIdE::LFO2_DEPTH, 1.0f);
                 e.setModMatrixText(matrix);
                 e.noteOn(60, 1.0f);
                 std::vector<float> l(256), r(256);
@@ -3041,14 +3041,14 @@ void testModulation()
                 m.process(l.data(), r.data(), n);
             }
             const LoudnessReading rd = m.read();
-            CHECK(std::fabs(rd.integrated - (-16.99f)) < 0.1f, "integrated loudness matches BS.1770");
-            CHECK(std::fabs(rd.shortTerm - (-16.99f)) < 0.1f, "short-term loudness matches BS.1770");
+            CHECK(std::fabs(rd.m_integrated - (-16.99f)) < 0.1f, "integrated loudness matches BS.1770");
+            CHECK(std::fabs(rd.m_shortTerm - (-16.99f)) < 0.1f, "short-term loudness matches BS.1770");
             // A sine's true peak is its amplitude, and the inter-sample estimate must find it even
             // though 997 Hz at 48 kHz never lands on the crest.
-            CHECK(std::fabs(rd.truePeak - static_cast<float>(20.0 * std::log10(amp))) < 0.15f,
+            CHECK(std::fabs(rd.m_truePeak - static_cast<float>(20.0 * std::log10(amp))) < 0.15f,
                   "true peak finds the crest between the samples");
             m.reset();
-            CHECK(m.read().integrated < -100.0f, "reset clears the meter");
+            CHECK(m.read().m_integrated < -100.0f, "reset clears the meter");
         }
         {   // The Stretch type: a clip read as a continuum. Two seconds of a 110 Hz tone with a
             // little vibrato go in; what must come out is sound (not silence), at the clip's own
@@ -3062,19 +3062,19 @@ void testModulation()
                 Engine e;
                 e.prepare(48000.0, 256);
                 e.setTexture(clip.data(), static_cast<int>(clip.size()), 48000.0, 110.0, false);
-                e.setParam(ParamId::BrainOn, 0.0f);
-                e.setParam(ParamId::Src1Type, static_cast<float>(SourceType::Additive));
-                e.setParam(ParamId::OscLevel, 0.0f);
-                e.setParam(ParamId::Src2Type, paramValueFromText(paramDesc(ParamId::Src2Type), type));
-                e.setParam(ParamId::Src2Level, 0.8f);
-                e.setParam(ParamId::Src2Follow, follow ? 1.0f : 0.0f);
-                e.setParam(ParamId::Src2Stretch, stretch);
-                e.setParam(ParamId::Src2Grain, 300.0f);
-                e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
-                e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Attack, 0.01f);
+                e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                e.setParam(ParamIdE::SRC1_TYPE, static_cast<float>(SourceTypeE::ADDITIVE));
+                e.setParam(ParamIdE::OSC_LEVEL, 0.0f);
+                e.setParam(ParamIdE::SRC2_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC2_TYPE), type));
+                e.setParam(ParamIdE::SRC2_LEVEL, 0.8f);
+                e.setParam(ParamIdE::SRC2_FOLLOW, follow ? 1.0f : 0.0f);
+                e.setParam(ParamIdE::SRC2_STRETCH, stretch);
+                e.setParam(ParamIdE::SRC2_GRAIN, 300.0f);
+                e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+                e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ATTACK, 0.01f);
                 // Air is on by default -- a noise band three times the note -- and a zero-crossing
                 // count through it read 327 Hz for a 110 Hz tone. Measured with it off: 110.7.
-                e.setParam(ParamId::Air, 0.0f);
+                e.setParam(ParamIdE::AIR, 0.0f);
                 e.noteOn(note, 1.0f);
                 std::vector<float> l(256), r(256), all;
                 for (int b = 0; b < 3 * 48000 / 256; ++b) {
@@ -3116,19 +3116,19 @@ void testModulation()
                 Engine e;
                 e.prepare(48000.0, 256);
                 e.setTexture(clip.data(), static_cast<int>(clip.size()), 48000.0, 220.0, false);
-                e.setParam(ParamId::BrainOn, 0.0f);
-                e.setParam(ParamId::Src1Type, paramValueFromText(paramDesc(ParamId::Src1Type), "Texture"));
-                e.setParam(ParamId::OscLevel, 0.8f);
-                e.setParam(ParamId::Src1Density, density);
-                e.setParam(ParamId::Src1Grain, grainMs);
-                e.setParam(ParamId::Src1Grains, grains);
+                e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                e.setParam(ParamIdE::SRC1_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC1_TYPE), "Texture"));
+                e.setParam(ParamIdE::OSC_LEVEL, 0.8f);
+                e.setParam(ParamIdE::SRC1_DENSITY, density);
+                e.setParam(ParamIdE::SRC1_GRAIN, grainMs);
+                e.setParam(ParamIdE::SRC1_GRAINS, grains);
                 e.noteOn(57, 0.9f);
                 std::vector<float> l(256), r(256);
                 for (int b = 0; b < 2 * 48000 / 256; ++b) e.process(l.data(), r.data(), 256);
-                SourceSlot::GrainInfo info[kSlotGrains];
-                return e.displayGrains(0, info, kSlotGrains);
+                SourceSlot::GrainInfo info[SlotGrains];
+                return e.displayGrains(0, info, SlotGrains);
             };
-            CHECK(kSlotGrains >= 128, "the slot can hold a cloud, not a handful");
+            CHECK(SlotGrains >= 128, "the slot can hold a cloud, not a handful");
             const int thin = sounding(4.0f, 250.0f, 128.0f);      // overlap 1
             const int dense = sounding(120.0f, 250.0f, 128.0f);   // overlap 30
             const int shortGrains = sounding(200.0f, 60.0f, 128.0f);   // overlap 12, out of reach below Density 200
@@ -3152,16 +3152,16 @@ void testModulation()
                     Engine e;
                     e.prepare(48000.0, 256);
                     e.loadUserWavetable(table.data(), static_cast<int>(table.size()), 2048);
-                    e.setParam(ParamId::BrainOn, 0.0f);
-                    e.setParam(ParamId::Src1Type, paramValueFromText(paramDesc(ParamId::Src1Type), "Harmonic"));
-                    e.setParam(ParamId::Src1Table, paramValueFromText(paramDesc(ParamId::Src1Table), "User"));
-                    e.setParam(ParamId::OscLevel, 0.9f);
-                    e.setParam(ParamId::Src1Root, root);
-                    e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Breath, 0.0f);
-                    e.setParam(ParamId::SubLevel, 0.0f); e.setParam(ParamId::StrikeLevel, 0.0f);
-                    e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
-                    e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::RoomLevel, 0.0f);
-                    e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Attack, 0.05f);
+                    e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                    e.setParam(ParamIdE::SRC1_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC1_TYPE), "Harmonic"));
+                    e.setParam(ParamIdE::SRC1_TABLE, paramValueFromText(paramDesc(ParamIdE::SRC1_TABLE), "User"));
+                    e.setParam(ParamIdE::OSC_LEVEL, 0.9f);
+                    e.setParam(ParamIdE::SRC1_ROOT, root);
+                    e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::BREATH, 0.0f);
+                    e.setParam(ParamIdE::SUB_LEVEL, 0.0f); e.setParam(ParamIdE::STRIKE_LEVEL, 0.0f);
+                    e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+                    e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ROOM_LEVEL, 0.0f);
+                    e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.05f);
                     e.noteOn(36, 0.9f);                                  // C2, 65.4 Hz
                     std::vector<float> l(256), r(256), mono;
                     for (int b = 0; b < 4 * 48000 / 256; ++b) {
@@ -3173,7 +3173,7 @@ void testModulation()
                     // sixth partial leaks straight through it and reports a fifth of the energy
                     // sitting where in truth there is nothing at all.
                     auto atHz = [&](double hz) {
-                        const double w = 2.0 * kPi * hz / 48000.0;
+                        const double w = 2.0 * Pi * hz / 48000.0;
                         const double cw = 2.0 * std::cos(w);
                         double s1 = 0.0, s2 = 0.0;
                         for (float v : mono) { const double s0 = v + cw * s1 - s2; s2 = s1; s1 = s0; }
@@ -3205,19 +3205,19 @@ void testModulation()
                     Engine e;
                     e.prepare(48000.0, 256);
                     e.setTexture(noise.data(), static_cast<int>(noise.size()), 48000.0, 261.6256, false);
-                    e.setParam(ParamId::BrainOn, 0.0f);
-                    e.setParam(ParamId::Src1Type, paramValueFromText(paramDesc(ParamId::Src1Type), "Texture"));
-                    e.setParam(ParamId::OscLevel, 0.9f);
-                    e.setParam(ParamId::Src1Follow, 1.0f);
-                    e.setParam(ParamId::Src1Interp, static_cast<float>(interp));
-                    e.setParam(ParamId::Src1Grain, 500.0f);
-                    e.setParam(ParamId::Src1Density, 12.0f);
-                    e.setParam(ParamId::Src1Grains, 32.0f);
-                    e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Breath, 0.0f);
-                    e.setParam(ParamId::SubLevel, 0.0f); e.setParam(ParamId::StrikeLevel, 0.0f);
-                    e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
-                    e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::RoomLevel, 0.0f);
-                    e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Attack, 0.05f);
+                    e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                    e.setParam(ParamIdE::SRC1_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC1_TYPE), "Texture"));
+                    e.setParam(ParamIdE::OSC_LEVEL, 0.9f);
+                    e.setParam(ParamIdE::SRC1_FOLLOW, 1.0f);
+                    e.setParam(ParamIdE::SRC1_INTERP, static_cast<float>(interp));
+                    e.setParam(ParamIdE::SRC1_GRAIN, 500.0f);
+                    e.setParam(ParamIdE::SRC1_DENSITY, 12.0f);
+                    e.setParam(ParamIdE::SRC1_GRAINS, 32.0f);
+                    e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::BREATH, 0.0f);
+                    e.setParam(ParamIdE::SUB_LEVEL, 0.0f); e.setParam(ParamIdE::STRIKE_LEVEL, 0.0f);
+                    e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+                    e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ROOM_LEVEL, 0.0f);
+                    e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.05f);
                     e.noteOn(62, 0.9f);
                     std::vector<float> l(256), r(256), mono;
                     for (int b = 0; b < 6 * 48000 / 256; ++b) {
@@ -3227,7 +3227,7 @@ void testModulation()
                     // Two bands, by counting energy through a pair of one-pole highpasses: no FFT
                     // needed to say "is there more up there than there was".
                     auto energyAbove = [&](float hz) {
-                        const float c = std::exp(-kTwoPi * hz / 48000.0f);
+                        const float c = std::exp(-TwoPi * hz / 48000.0f);
                         float y = 0.0f, prev = 0.0f; double sum = 0.0;
                         for (float v : mono) { y = c * (y + v - prev); prev = v; sum += static_cast<double>(y) * y; }
                         return 10.0 * std::log10(sum / std::max<size_t>(mono.size(), 1) + 1e-30);
@@ -3263,7 +3263,7 @@ void testModulation()
             {
                 std::vector<float> a(48000 * 2), minusA(a.size()), sum(a.size());
                 for (size_t i = 0; i < a.size(); ++i) {
-                    a[i] = 0.3f * std::sin(kTwoPi * 200.0 * static_cast<double>(i) / 48000.0);
+                    a[i] = 0.3f * std::sin(TwoPi * 200.0 * static_cast<double>(i) / 48000.0);
                     minusA[i] = -a[i];
                     sum[i] = 0.5f * (a[i] + minusA[i]);
                 }
@@ -3273,25 +3273,25 @@ void testModulation()
                     e.prepare(48000.0, 256);
                     if (R != nullptr) e.setTexture(L, R, static_cast<int>(a.size()), 48000.0, 261.6256, false);
                     else              e.setTexture(L, static_cast<int>(a.size()), 48000.0, 261.6256, false);
-                    e.setParam(ParamId::BrainOn, 0.0f);
-                    e.setParam(ParamId::Src1Type, paramValueFromText(paramDesc(ParamId::Src1Type), "Texture"));
-                    e.setParam(ParamId::OscLevel, 0.9f);
-                    e.setParam(ParamId::Src1Follow, 1.0f);
-                    e.setParam(ParamId::Src1Grain, 200.0f);
-                    e.setParam(ParamId::Src1Density, 20.0f);
-                    e.setParam(ParamId::Src1Grains, 32.0f);
-                    e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Breath, 0.0f);
-                    e.setParam(ParamId::SubLevel, 0.0f); e.setParam(ParamId::StrikeLevel, 0.0f);
-                    e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
-                    e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::RoomLevel, 0.0f);
-                    e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Attack, 0.05f);
+                    e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                    e.setParam(ParamIdE::SRC1_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC1_TYPE), "Texture"));
+                    e.setParam(ParamIdE::OSC_LEVEL, 0.9f);
+                    e.setParam(ParamIdE::SRC1_FOLLOW, 1.0f);
+                    e.setParam(ParamIdE::SRC1_GRAIN, 200.0f);
+                    e.setParam(ParamIdE::SRC1_DENSITY, 20.0f);
+                    e.setParam(ParamIdE::SRC1_GRAINS, 32.0f);
+                    e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::BREATH, 0.0f);
+                    e.setParam(ParamIdE::SUB_LEVEL, 0.0f); e.setParam(ParamIdE::STRIKE_LEVEL, 0.0f);
+                    e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+                    e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ROOM_LEVEL, 0.0f);
+                    e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::ATTACK, 0.05f);
                     // Everything downstream that makes a field out of a signal, off: Phase Width
                     // alone decorrelates a centred voice so thoroughly that what the clip did is no
                     // longer visible at the output. The question here is what the source produced.
-                    e.setParam(ParamId::PhaseWidth, 0.0f); e.setParam(ParamId::Externalise, 0.0f);
-                    e.setParam(ParamId::Doppler, 0.0f); e.setParam(ParamId::Haas, 0.0f);
-                    e.setParam(ParamId::SideAir, 0.0f); e.setParam(ParamId::Unison, 1.0f);
-                    e.setParam(ParamId::Spread, 0.0f); e.setParam(ParamId::Src1Spread, 0.0f);
+                    e.setParam(ParamIdE::PHASE_WIDTH, 0.0f); e.setParam(ParamIdE::EXTERNALISE, 0.0f);
+                    e.setParam(ParamIdE::DOPPLER, 0.0f); e.setParam(ParamIdE::HAAS, 0.0f);
+                    e.setParam(ParamIdE::SIDE_AIR, 0.0f); e.setParam(ParamIdE::UNISON, 1.0f);
+                    e.setParam(ParamIdE::SPREAD, 0.0f); e.setParam(ParamIdE::SRC1_SPREAD, 0.0f);
                     e.noteOn(62, 0.9f);
                     std::vector<float> l(256), r(256);
                     double sq = 0.0, mid = 0.0, side = 0.0; size_t n = 0;
@@ -3338,14 +3338,14 @@ void testModulation()
                 Engine e;
                 e.prepare(48000.0, 256);
                 e.setTexture(tiny.data(), static_cast<int>(tiny.size()), 48000.0, 300.0f / rate, false);
-                e.setParam(ParamId::BrainOn, 0.0f);
-                e.setParam(ParamId::Src1Type, paramValueFromText(paramDesc(ParamId::Src1Type), "Texture"));
-                e.setParam(ParamId::OscLevel, 0.9f);
-                e.setParam(ParamId::Src1Follow, 1.0f);          // pitched to the note: the rate follows it
-                e.setParam(ParamId::Src1Grain, 900.0f);         // longer than the clip itself
-                e.setParam(ParamId::Src1Density, 150.0f);
-                e.setParam(ParamId::Src1Grains, 128.0f);
-                e.setParam(ParamId::Src1Spread, 1.0f);          // start anywhere, including just before the end
+                e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                e.setParam(ParamIdE::SRC1_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC1_TYPE), "Texture"));
+                e.setParam(ParamIdE::OSC_LEVEL, 0.9f);
+                e.setParam(ParamIdE::SRC1_FOLLOW, 1.0f);          // pitched to the note: the rate follows it
+                e.setParam(ParamIdE::SRC1_GRAIN, 900.0f);         // longer than the clip itself
+                e.setParam(ParamIdE::SRC1_DENSITY, 150.0f);
+                e.setParam(ParamIdE::SRC1_GRAINS, 128.0f);
+                e.setParam(ParamIdE::SRC1_SPREAD, 1.0f);          // start anywhere, including just before the end
                 e.noteOn(84, 1.0f);
                 std::vector<float> l(256), r(256);
                 bool finite = true;
@@ -3366,20 +3366,20 @@ void testModulation()
             auto window = [](float delaySec, int fromSec, int toSec) {
                 Engine e;
                 e.prepare(48000.0, 256);
-                e.setParam(ParamId::BrainOn, 0.0f);
-                e.setParam(ParamId::Src1Type, paramValueFromText(paramDesc(ParamId::Src1Type), "Additive"));
-                e.setParam(ParamId::OscLevel, 0.0f);
-                e.setParam(ParamId::Src2Type, paramValueFromText(paramDesc(ParamId::Src2Type), "Harmonic"));
-                e.setParam(ParamId::Src2Level, 0.8f);
-                e.setParam(ParamId::Src2Delay, delaySec);
-                e.setParam(ParamId::Src2Rise, 0.5f);
-                e.setParam(ParamId::Attack, 0.01f);
+                e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                e.setParam(ParamIdE::SRC1_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC1_TYPE), "Additive"));
+                e.setParam(ParamIdE::OSC_LEVEL, 0.0f);
+                e.setParam(ParamIdE::SRC2_TYPE, paramValueFromText(paramDesc(ParamIdE::SRC2_TYPE), "Harmonic"));
+                e.setParam(ParamIdE::SRC2_LEVEL, 0.8f);
+                e.setParam(ParamIdE::SRC2_DELAY, delaySec);
+                e.setParam(ParamIdE::SRC2_RISE, 0.5f);
+                e.setParam(ParamIdE::ATTACK, 0.01f);
                 // Everything that would smear one window into the next, and everything that makes
                 // sound without a slot: otherwise "silent before the delay" measures the Air.
-                e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::Breath, 0.0f);
-                e.setParam(ParamId::SubLevel, 0.0f); e.setParam(ParamId::StrikeLevel, 0.0f);
-                e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
-                e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::RoomLevel, 0.0f);
+                e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::BREATH, 0.0f);
+                e.setParam(ParamIdE::SUB_LEVEL, 0.0f); e.setParam(ParamIdE::STRIKE_LEVEL, 0.0f);
+                e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+                e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::ROOM_LEVEL, 0.0f);
                 e.noteOn(57, 0.9f);
                 std::vector<float> l(256), r(256);
                 double sq = 0.0; long n = 0;
@@ -3399,7 +3399,7 @@ void testModulation()
         ModEnv l;
         CHECK(l.parse("0:0/2:1/4:0!l0-2"), "envelope with a loop");
         CHECK(l.loopFrom() == 0 && l.loopTo() == 2, "loop read");
-        CHECK(std::fabs(l.at(1.0f, EnvMode::Loop, true) - l.at(3.0f, EnvMode::Loop, true)) < 1e-4f,
+        CHECK(std::fabs(l.at(1.0f, EnvModeE::LOOP, true) - l.at(3.0f, EnvModeE::LOOP, true)) < 1e-4f,
               "the loop repeats its segment");
     }
 
@@ -3409,38 +3409,38 @@ void testModulation()
         CHECK(m.parse("lfo1>cutoff:0.4;lfo1>shimmer:0.25;env2>z_x:-0.3:macro_a;lfo3>air:0.5:none:u"),
               "matrix parses");
         CHECK(m.count() == 4, "four routes");
-        CHECK(m.route(0).source == ModSource::Lfo1 && m.route(0).target == ParamId::Cutoff, "first route");
-        CHECK(m.route(1).source == ModSource::Lfo1, "one source may drive several targets");
-        CHECK(m.route(2).via == ModSource::MacroA, "via source read");
-        CHECK(m.route(3).unipolar, "unipolar flag read");
+        CHECK(m.route(0).m_source == ModSourceE::LFO1 && m.route(0).m_target == ParamIdE::CUTOFF, "first route");
+        CHECK(m.route(1).m_source == ModSourceE::LFO1, "one source may drive several targets");
+        CHECK(m.route(2).m_via == ModSourceE::MACRO_A, "via source read");
+        CHECK(m.route(3).m_unipolar, "unipolar flag read");
         CHECK(!m.parse("lfo9>cutoff:1"), "unknown source rejected");
         CHECK(!m.parse("lfo1>not_a_param:1"), "unknown target rejected");
         char buf[1024];
         ModMatrix again;
         CHECK(m.parse("lfo1>cutoff:0.4;env2>z_x:-0.3:macro_a") && m.write(buf, sizeof(buf)) > 0,
               "matrix writes");
-        CHECK(again.parse(buf) && again.count() == 2 && again.route(1).via == ModSource::MacroA,
+        CHECK(again.parse(buf) && again.count() == 2 && again.route(1).m_via == ModSourceE::MACRO_A,
               "matrix round trip");
     }
     {   // Depth is a fraction of the target's own range, so one number means the same thing on a
         // cutoff in hertz and on a mix in 0..1.
         ModMatrix m;
         CHECK(m.parse("lfo1>cutoff:0.5;lfo1>dly_mix:0.5"), "two targets, one source");
-        float src[kNumModSources] = {};
-        src[static_cast<int>(ModSource::Lfo1)] = 1.0f;
-        std::vector<float> out(kNumParams, 0.0f);
+        float src[NumModSources] = {};
+        src[static_cast<int>(ModSourceE::LFO1)] = 1.0f;
+        std::vector<float> out(NumParams, 0.0f);
         m.apply(src, out.data());
-        const ParamDesc& c = paramDesc(ParamId::Cutoff);
-        const ParamDesc& d = paramDesc(ParamId::DelayMix);
-        CHECK(std::fabs(out[static_cast<size_t>(ParamId::Cutoff)] - 0.5f * (c.max - c.min)) < 0.01f,
+        const ParamDesc& c = paramDesc(ParamIdE::CUTOFF);
+        const ParamDesc& d = paramDesc(ParamIdE::DELAY_MIX);
+        CHECK(std::fabs(out[static_cast<size_t>(ParamIdE::CUTOFF)] - 0.5f * (c.m_max - c.m_min)) < 0.01f,
               "depth scales with the target's range");
-        CHECK(std::fabs(out[static_cast<size_t>(ParamId::DelayMix)] - 0.5f * (d.max - d.min)) < 1e-5f,
+        CHECK(std::fabs(out[static_cast<size_t>(ParamIdE::DELAY_MIX)] - 0.5f * (d.m_max - d.m_min)) < 1e-5f,
               "and the same number on a 0..1 target");
         CHECK(m.parse("lfo1>dly_mix:1:macro_a"), "route with a via");
-        src[static_cast<int>(ModSource::MacroA)] = -1.0f;
-        std::vector<float> off(kNumParams, 0.0f);
+        src[static_cast<int>(ModSourceE::MACRO_A)] = -1.0f;
+        std::vector<float> off(NumParams, 0.0f);
         m.apply(src, off.data());
-        CHECK(std::fabs(off[static_cast<size_t>(ParamId::DelayMix)]) < 1e-6f,
+        CHECK(std::fabs(off[static_cast<size_t>(ParamIdE::DELAY_MIX)]) < 1e-6f,
               "a via source at zero shuts the route");
     }
 }
@@ -3458,37 +3458,37 @@ void testModulation()
  */
 void testParamTable()
 {
-    CHECK(kSourceSlots == kSlots, "the parameter table and the engine agree on how many slots there are");
-    for (int k = 0; k < kSourceSlots; ++k) {
-        const ParamId* ids = slotParamIds(k);
+    CHECK(SourceSlots == Slots, "the parameter table and the engine agree on how many slots there are");
+    for (int k = 0; k < SourceSlots; ++k) {
+        const ParamIdE* ids = slotParamIds(k);
         CHECK(ids != nullptr, "every slot has a field table");
         if (ids == nullptr) continue;
-        for (int f = 0; f < kSlotFields; ++f) {
-            CHECK(static_cast<int>(ids[f]) >= 0 && static_cast<int>(ids[f]) < kNumParams, "a slot field names a real parameter");
+        for (int f = 0; f < SlotFields; ++f) {
+            CHECK(static_cast<int>(ids[f]) >= 0 && static_cast<int>(ids[f]) < NumParams, "a slot field names a real parameter");
             for (int g2 = 0; g2 < f; ++g2) CHECK(ids[f] != ids[g2], "a slot names each parameter once");
         }
         // The three slots must line up field for field, or the shared code that reads them by
         // offset would read a different thing for each slot.
-        if (k > 0) for (int f = 0; f < kSlotFields; ++f)
-            CHECK(std::strcmp(paramDesc(ids[f]).name, paramDesc(slotParamIds(0)[f]).name) == 0
+        if (k > 0) for (int f = 0; f < SlotFields; ++f)
+            CHECK(std::strcmp(paramDesc(ids[f]).m_name, paramDesc(slotParamIds(0)[f]).m_name) == 0
                   || f == 1 || f >= 17,   // Level and the spectrum have their own names in Source 1
                   "the slots' fields line up");
     }
     for (const ParamDesc& d : paramTable())
-        CHECK(sectionOf(d.section) != ParamSection::Unknown, (std::string("section known: ") + d.section).c_str());
+        CHECK(sectionOf(d.m_section) != ParamSectionE::UNKNOWN, (std::string("section known: ") + d.m_section).c_str());
     // The table is indexed by the enumerator, and nothing anywhere checks that the row at position
     // i actually describes parameter i. Get one row out of order and every parameter after it is
     // read as its neighbour -- silently, with no compiler error and no crash: a knob that turns the
     // wrong thing. Adding a row in the wrong place is exactly the mistake that is easy to make, so
     // it is caught here.
-    for (int i = 0; i < kNumParams; ++i)
-        CHECK(static_cast<int>(paramTable()[static_cast<size_t>(i)].id) == i,
-              (std::string("the parameter table is in enumerator order at ") + paramTable()[static_cast<size_t>(i)].key).c_str());
+    for (int i = 0; i < NumParams; ++i)
+        CHECK(static_cast<int>(paramTable()[static_cast<size_t>(i)].m_id) == i,
+              (std::string("the parameter table is in enumerator order at ") + paramTable()[static_cast<size_t>(i)].m_key).c_str());
     // The same for the names of every modulation source: they are stored by position too, and the
     // text form of a route is written and read through them.
-    for (int i = 0; i < kNumModSources; ++i) {
-        ModSource back = ModSource::None;
-        const char* nm = modSourceName(static_cast<ModSource>(i));
+    for (int i = 0; i < NumModSources; ++i) {
+        ModSourceE back = ModSourceE::NONE;
+        const char* nm = modSourceName(static_cast<ModSourceE>(i));
         CHECK(modSourceFromName(nm, back) && static_cast<int>(back) == i,
               (std::string("modulation source name round-trips: ") + nm).c_str());
     }
@@ -3510,7 +3510,7 @@ void testParamTable()
 void testVoicingRules()
 {
     auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
-    struct Ev { double t; int note; bool on; float vel; };
+    struct Ev { double m_t; int m_note; bool m_on; float m_vel; };
 
     // Run a conductor for a stretch of simulated time and collect what it played.
     auto run = [&](const BrainParams& base, double seconds, uint64_t seed) {
@@ -3521,7 +3521,7 @@ void testVoicingRules()
         double t = 0.0;
         for (int i = 0; i < static_cast<int>(seconds / dt); ++i) {
             b.update(dt, base, -1, freqOf, [&](const BrainEvent& e) {
-                evs.push_back(Ev{ t, e.note, e.type == BrainEvent::Type::NoteOn, e.velocity });
+                evs.push_back(Ev{ t, e.m_note, e.m_type == BrainEvent::TypeE::NOTE_ON, e.m_velocity });
             });
             t += dt;
         }
@@ -3529,9 +3529,9 @@ void testVoicingRules()
     };
 
     BrainParams p;
-    p.on = true; p.mode = BrainMode::Free;
-    p.density = 5; p.low = 36; p.high = 84;
-    p.rateSeconds = 4.0f; p.holdMin = 8.0f; p.holdMax = 20.0f;
+    p.m_on = true; p.m_mode = BrainModeE::FREE;
+    p.m_density = 5; p.m_low = 36; p.m_high = 84;
+    p.m_rateSeconds = 4.0f; p.m_holdMin = 8.0f; p.m_holdMax = 20.0f;
 
     // Nothing at the defaults: the same seed and the same parameters give the same events, whether
     // or not the new fields exist. This is the check that protects every preset ever saved.
@@ -3539,61 +3539,61 @@ void testVoicingRules()
         const auto a = run(p, 300.0, 0x51E5D);
         const auto b = run(p, 300.0, 0x51E5D);
         bool same = a.size() == b.size();
-        for (size_t i = 0; same && i < a.size(); ++i) same = a[i].note == b[i].note && a[i].on == b[i].on;
+        for (size_t i = 0; same && i < a.size(); ++i) same = a[i].m_note == b[i].m_note && a[i].m_on == b[i].m_on;
         CHECK(same && !a.empty(), "the conductor at its defaults is reproducible");
     }
 
     // R7.4 -- Retrigger: a pitch that has ended may not come back for its seconds.
     {
-        BrainParams q = p; q.retrigger = 30.0f; q.rateSeconds = 2.0f;
+        BrainParams q = p; q.m_retrigger = 30.0f; q.m_rateSeconds = 2.0f;
         const auto evs = run(q, 600.0, 0xA11CE);
         double lastOff[128];
         for (double& x : lastOff) x = -1e9;
         int violations = 0;
         for (const Ev& e : evs) {
-            if (e.note < 0 || e.note > 127) continue;
-            if (e.on) { if (e.t - lastOff[e.note] < 30.0 - 1e-6) ++violations; }
-            else lastOff[e.note] = e.t;
+            if (e.m_note < 0 || e.m_note > 127) continue;
+            if (e.m_on) { if (e.m_t - lastOff[e.m_note] < 30.0 - 1e-6) ++violations; }
+            else lastOff[e.m_note] = e.m_t;
         }
         CHECK(violations == 0, "Retrigger: no pitch returns inside its rest");
-        BrainParams r = p; r.rateSeconds = 2.0f;
+        BrainParams r = p; r.m_rateSeconds = 2.0f;
         const auto free_ = run(r, 600.0, 0xA11CE);
         double off2[128]; for (double& x : off2) x = -1e9;
         int without = 0;
         for (const Ev& e : free_) {
-            if (e.note < 0 || e.note > 127) continue;
-            if (e.on) { if (e.t - off2[e.note] < 30.0) ++without; } else off2[e.note] = e.t;
+            if (e.m_note < 0 || e.m_note > 127) continue;
+            if (e.m_on) { if (e.m_t - off2[e.m_note] < 30.0) ++without; } else off2[e.m_note] = e.m_t;
         }
         std::printf("  [probe] retriggers inside 30 s: %d without the lock, %d with it\n", without, violations);
     }
 
     // R5.3 -- Onset Guard: two onsets lie either inside thirty milliseconds or three seconds apart.
     {
-        BrainParams q = p; q.onsetGuard = true; q.rateSeconds = 2.0f;
+        BrainParams q = p; q.m_onsetGuard = true; q.m_rateSeconds = 2.0f;
         const auto evs = run(q, 900.0, 0x0A5E7);
         double last = -1e9;
         int between = 0, onsets = 0;
         for (const Ev& e : evs) {
-            if (!e.on) continue;
+            if (!e.m_on) continue;
             ++onsets;
-            const double gap = e.t - last;
+            const double gap = e.m_t - last;
             if (gap > 0.031 && gap < 2.999) ++between;
-            last = e.t;
+            last = e.m_t;
         }
         CHECK(onsets > 10 && between == 0, "Onset Guard: no onset falls between 30 ms and 3 s");
     }
 
     // R8.3 -- Release Gap: two note-offs never arrive together.
     {
-        BrainParams q = p; q.releaseGap = 2.0f; q.rateSeconds = 2.0f; q.holdMin = 4.0f; q.holdMax = 6.0f;
+        BrainParams q = p; q.m_releaseGap = 2.0f; q.m_rateSeconds = 2.0f; q.m_holdMin = 4.0f; q.m_holdMax = 6.0f;
         const auto evs = run(q, 900.0, 0x6A9);
         double last = -1e9;
         int tooClose = 0, offs = 0;
         for (const Ev& e : evs) {
-            if (e.on) continue;
+            if (e.m_on) continue;
             ++offs;
-            if (e.t - last < 2.0 - 1e-6) ++tooClose;
-            last = e.t;
+            if (e.m_t - last < 2.0 - 1e-6) ++tooClose;
+            last = e.m_t;
         }
         CHECK(offs > 10 && tooClose == 0, "Release Gap: two note-offs stay apart");
     }
@@ -3604,16 +3604,16 @@ void testVoicingRules()
         auto meanGap = [&](const std::vector<Ev>& evs, double from, double to) {
             double last = -1; double sum = 0; int n = 0;
             for (const Ev& e : evs) {
-                if (!e.on || e.t < from || e.t >= to) continue;
-                if (last >= 0) { sum += e.t - last; ++n; }
-                last = e.t;
+                if (!e.m_on || e.m_t < from || e.m_t >= to) continue;
+                if (last >= 0) { sum += e.m_t - last; ++n; }
+                last = e.m_t;
             }
             return n > 0 ? sum / n : 0.0;
         };
-        BrainParams q = p; q.rateSeconds = 6.0f; q.rateBreath = 1.0f; q.breathPeriod = 4.0f;
+        BrainParams q = p; q.m_rateSeconds = 6.0f; q.m_rateBreath = 1.0f; q.m_breathPeriod = 4.0f;
         const auto evs = run(q, 480.0, 0xB4EA7);
         const double a = meanGap(evs, 0.0, 120.0), b = meanGap(evs, 120.0, 240.0);
-        BrainParams r = p; r.rateSeconds = 6.0f;
+        BrainParams r = p; r.m_rateSeconds = 6.0f;
         const auto plain = run(r, 480.0, 0xB4EA7);
         const double c = meanGap(plain, 0.0, 120.0), d = meanGap(plain, 120.0, 240.0);
         std::printf("  [probe] mean gap first vs second minute: %.1f / %.1f breathing, %.1f / %.1f plain\n", a, b, c, d);
@@ -3622,15 +3622,15 @@ void testVoicingRules()
 
     // Anti 9 -- Density Slew: the cluster may not gain more than a voice at a time.
     {
-        BrainParams q = p; q.density = 1; q.rateSeconds = 1.0f; q.densitySlew = 2.0f;
+        BrainParams q = p; q.m_density = 1; q.m_rateSeconds = 1.0f; q.m_densitySlew = 2.0f;
         ClusterBrain b;
         b.reset(0xD3115, 48);
         int sounding = 0, peak = 0;
         double t = 0.0;
         for (int i = 0; i < 12000; ++i) {          // ten minutes at 50 ms
-            if (i == 1200) q.density = 8;          // after a minute, ask for eight voices at once
+            if (i == 1200) q.m_density = 8;          // after a minute, ask for eight voices at once
             b.update(0.05, q, -1, freqOf, [&](const BrainEvent& e) {
-                sounding += (e.type == BrainEvent::Type::NoteOn) ? 1 : -1;
+                sounding += (e.m_type == BrainEvent::TypeE::NOTE_ON) ? 1 : -1;
             });
             if (i > 1200 && i < 1800 && sounding > peak) peak = sounding;   // the half minute after
             t += 0.05;
@@ -3641,7 +3641,7 @@ void testVoicingRules()
 
     // R6.2 -- Root Steps and Anti 8: the root never climbs by a semitone.
     {
-        BrainParams q = p; q.rootSteps = 2; q.wander = 1.0f; q.rateSeconds = 1.0f;
+        BrainParams q = p; q.m_rootSteps = 2; q.m_wander = 1.0f; q.m_rateSeconds = 1.0f;
         ClusterBrain b;
         b.reset(0x9007, 48);
         int last = b.root(), climbs = 0, moves = 0;
@@ -3655,10 +3655,10 @@ void testVoicingRules()
 
     // R6.6 -- Memory: a constellation already heard does not return inside the window.
     {
-        BrainParams q = p; q.memory = 10.0f; q.density = 3; q.low = 48; q.high = 60; q.rateSeconds = 1.0f;
+        BrainParams q = p; q.m_memory = 10.0f; q.m_density = 3; q.m_low = 48; q.m_high = 60; q.m_rateSeconds = 1.0f;
         const auto evs = run(q, 1200.0, 0x11E11);
         CHECK(!evs.empty(), "Memory: the conductor still plays with the memory on");
-        BrainParams r = q; r.memory = 0.0f;
+        BrainParams r = q; r.m_memory = 0.0f;
         const auto loose = run(r, 1200.0, 0x11E11);
         std::printf("  [probe] events in a narrow register over twenty minutes: %d with memory, %d without\n",
                     static_cast<int>(evs.size()), static_cast<int>(loose.size()));
@@ -3667,17 +3667,17 @@ void testVoicingRules()
     // Tab. 2 -- Bass Hold: the lowest voice outlasts the others.
     {
         auto meanHold = [&](float bassHold) {
-            BrainParams q = p; q.bassHold = bassHold; q.rateSeconds = 2.0f; q.holdMin = 10.0f; q.holdMax = 20.0f;
+            BrainParams q = p; q.m_bassHold = bassHold; q.m_rateSeconds = 2.0f; q.m_holdMin = 10.0f; q.m_holdMax = 20.0f;
             const auto evs = run(q, 1800.0, 0xBA55);
             double on[128]; for (double& x : on) x = -1;
             double lowSum = 0, highSum = 0; int lowN = 0, highN = 0;
             for (const Ev& e : evs) {
-                if (e.note < 0 || e.note > 127) continue;
-                if (e.on) on[e.note] = e.t;
-                else if (on[e.note] >= 0) {
-                    const double held = e.t - on[e.note];
-                    if (e.note < 48) { lowSum += held; ++lowN; } else { highSum += held; ++highN; }
-                    on[e.note] = -1;
+                if (e.m_note < 0 || e.m_note > 127) continue;
+                if (e.m_on) on[e.m_note] = e.m_t;
+                else if (on[e.m_note] >= 0) {
+                    const double held = e.m_t - on[e.m_note];
+                    if (e.m_note < 48) { lowSum += held; ++lowN; } else { highSum += held; ++highN; }
+                    on[e.m_note] = -1;
                 }
             }
             return std::pair<double, double>(lowN ? lowSum / lowN : 0.0, highN ? highSum / highN : 0.0);
@@ -3690,14 +3690,14 @@ void testVoicingRules()
 
     // Section 3 -- Low Spacing: no seconds survive down in the bass.
     {
-        BrainParams q = p; q.lowSpacing = 1.0f; q.spacing = 0.6f; q.low = 30; q.high = 72; q.density = 8; q.rateSeconds = 0.5f;
+        BrainParams q = p; q.m_lowSpacing = 1.0f; q.m_spacing = 0.6f; q.m_low = 30; q.m_high = 72; q.m_density = 8; q.m_rateSeconds = 0.5f;
         ClusterBrain b;
         b.reset(0x105BA, 42);
         int tight = 0, looked = 0;
         for (int i = 0; i < 24000; ++i) {
             b.update(0.05, q, -1, freqOf, [](const BrainEvent&) {});
             if (i % 20) continue;
-            int notes[ClusterBrain::kSlots]; float vels[ClusterBrain::kSlots];
+            int notes[ClusterBrain::Slots]; float vels[ClusterBrain::Slots];
             const int n = b.soundingNotes(notes, vels);
             for (int x = 0; x < n; ++x) for (int y = 0; y < x; ++y) {
                 if (notes[x] >= 48 || notes[y] >= 48) continue;
@@ -3717,15 +3717,15 @@ void testVoicingRules()
     // gives the first two their teeth.
     {
         auto thirdsUnder = [&](float blend, int floor) {
-            BrainParams q = p; q.thirdFloor = floor; q.blend = blend; q.lowSpacing = 0.0f; q.spacing = 0.0f;
-            q.low = 36; q.high = 72; q.density = 7; q.rateSeconds = 0.5f; q.holdMin = 6.0f; q.holdMax = 12.0f;
+            BrainParams q = p; q.m_thirdFloor = floor; q.m_blend = blend; q.m_lowSpacing = 0.0f; q.m_spacing = 0.0f;
+            q.m_low = 36; q.m_high = 72; q.m_density = 7; q.m_rateSeconds = 0.5f; q.m_holdMin = 6.0f; q.m_holdMax = 12.0f;
             ClusterBrain b;
             b.reset(0x7F00D, 43);
             int bad = 0, looked = 0;
             for (int i = 0; i < 24000; ++i) {
                 b.update(0.05, q, -1, freqOf, [](const BrainEvent&) {});
                 if (i % 20) continue;
-                int notes[ClusterBrain::kSlots]; float vels[ClusterBrain::kSlots];
+                int notes[ClusterBrain::Slots]; float vels[ClusterBrain::Slots];
                 const int n = b.soundingNotes(notes, vels);
                 for (int x = 0; x < n; ++x) for (int y = 0; y < x; ++y) {
                     if (std::min(notes[x], notes[y]) >= 48) continue;
@@ -3749,14 +3749,14 @@ void testVoicingRules()
     // as Blend came down, and the Onset Guard cannot catch that: those notes are timed after it
     // has run. At five-millisecond ticks, so the timing is the conductor's and not the clock's.
     {
-        BrainParams q = p; q.blend = 0.25f; q.onsetGuard = true; q.rateSeconds = 3.0f; q.density = 6;
-        q.holdMin = 4.0f; q.holdMax = 8.0f;
+        BrainParams q = p; q.m_blend = 0.25f; q.m_onsetGuard = true; q.m_rateSeconds = 3.0f; q.m_density = 6;
+        q.m_holdMin = 4.0f; q.m_holdMax = 8.0f;
         ClusterBrain b;
         b.reset(0xB1E4D, 48);
         double last = -1e9, t = 0.0; int between = 0, fused = 0;
         for (int i = 0; i < 120000; ++i) {              // ten minutes
             b.update(0.005, q, -1, freqOf, [&](const BrainEvent& e) {
-                if (e.type != BrainEvent::Type::NoteOn) return;
+                if (e.m_type != BrainEvent::TypeE::NOTE_ON) return;
                 const double gap = t - last;
                 if (gap > 0.031 && gap < 2.999) ++between;
                 if (gap <= 0.031) ++fused;
@@ -3773,7 +3773,7 @@ void testVoicingRules()
     // fourth and fifth alone that tone exists only for a root moving a second, a fourth or a fifth;
     // four of the six steps the root takes are thirds and sixths, and those went unannounced.
     {
-        BrainParams q = p; q.pivot = 20.0f; q.wander = 1.0f; q.rateSeconds = 1.0f; q.density = 4;
+        BrainParams q = p; q.m_pivot = 20.0f; q.m_wander = 1.0f; q.m_rateSeconds = 1.0f; q.m_density = 4;
         ClusterBrain b;
         b.reset(0x91707, 48);
         for (int i = 0; i < 36000; ++i) b.update(0.05, q, -1, freqOf, [](const BrainEvent&) {});
@@ -3787,7 +3787,7 @@ void testVoicingRules()
     // draw the conductor always made" -- still climbed. A narrow register at the top of which the
     // better candidates are out of range is where it did.
     {
-        BrainParams q = p; q.rootSteps = 0; q.wander = 1.0f; q.rateSeconds = 1.0f; q.low = 40; q.high = 52;
+        BrainParams q = p; q.m_rootSteps = 0; q.m_wander = 1.0f; q.m_rateSeconds = 1.0f; q.m_low = 40; q.m_high = 52;
         ClusterBrain b;
         b.reset(0x9008, 46);
         int last = b.root(), climbs = 0, moves = 0;
@@ -3803,22 +3803,22 @@ void testVoicingRules()
     // replacement has been in the air for Overlap seconds. Its note-off used to fall on the very
     // tick of the note-on, whatever Overlap said -- the rule lived in Free mode only.
     {
-        BrainParams q = p; q.mode = BrainMode::Chords; q.density = 4; q.rateSeconds = 3.0f; q.overlap = 10.0f;
+        BrainParams q = p; q.m_mode = BrainModeE::CHORDS; q.m_density = 4; q.m_rateSeconds = 3.0f; q.m_overlap = 10.0f;
         const auto evs = run(q, 600.0, 0x0E4A);
         std::vector<double> ons;
         int offs = 0, early = 0, peak = 0, sounding = 0;
         for (const Ev& e : evs) {
-            if (e.on) { ons.push_back(e.t); if (++sounding > peak) peak = sounding; continue; }
+            if (e.m_on) { ons.push_back(e.m_t); if (++sounding > peak) peak = sounding; continue; }
             --sounding;
             ++offs;
             bool tenAfterAnOn = false;                   // the note-on it was exchanged for
-            for (double on : ons) if (std::fabs(e.t - on - 10.0) < 0.06) tenAfterAnOn = true;
+            for (double on : ons) if (std::fabs(e.m_t - on - 10.0) < 0.06) tenAfterAnOn = true;
             if (!tenAfterAnOn) ++early;
         }
         std::printf("  [probe] Chords with Overlap 10: %d note-offs, %d not ten seconds after a note-on, at most %d voices sounding\n",
                     offs, early, peak);
         CHECK(offs > 10 && early == 0, "Overlap: an exchanged voice goes only after its replacement has sounded ten seconds");
-        CHECK(peak > q.density, "so the chord is one voice larger while it does");
+        CHECK(peak > q.m_density, "so the chord is one voice larger while it does");
     }
 }
 
@@ -3837,27 +3837,27 @@ void testAutoplay()
 {
     auto freqOf = [](int note) { return 440.0 * std::pow(2.0, (note - 69) / 12.0); };
     BrainParams p;
-    p.on = true;
-    p.mode = BrainMode::Chords;
-    p.density = 5;
-    p.rateSeconds = 10.0f;
-    p.low = 40; p.high = 76;
-    p.voiceLead = 3.0f;
-    p.consonance = 0.7f;
+    p.m_on = true;
+    p.m_mode = BrainModeE::CHORDS;
+    p.m_density = 5;
+    p.m_rateSeconds = 10.0f;
+    p.m_low = 40; p.m_high = 76;
+    p.m_voiceLead = 3.0f;
+    p.m_consonance = 0.7f;
 
     ClusterBrain b;
     b.reset(1234, 48);
     std::vector<std::pair<bool, int>> ev;   // (isOn, note)
-    auto emit = [&](const BrainEvent& e) { ev.emplace_back(e.type == BrainEvent::Type::NoteOn, e.note); };
+    auto emit = [&](const BrainEvent& e) { ev.emplace_back(e.m_type == BrainEvent::TypeE::NOTE_ON, e.m_note); };
 
     // Filling: one note at a time until the chord is full, and then it stays full.
     for (int i = 0; i < 600; ++i) b.update(0.5, p, -1, freqOf, emit);   // 300 s
-    CHECK(b.activeCount() == p.density, "the chord fills up and stays full");
+    CHECK(b.activeCount() == p.m_density, "the chord fills up and stays full");
     int ons = 0, offs = 0;
     for (auto& e : ev) (e.first ? ons : offs)++;
-    CHECK(ons >= p.density, "notes were started");
+    CHECK(ons >= p.m_density, "notes were started");
     CHECK(offs > 0, "and voices were exchanged");
-    CHECK(ons - offs == p.density, "every exchange is one voice out and one in");
+    CHECK(ons - offs == p.m_density, "every exchange is one voice out and one in");
 
     // Voice leading: each exchange must move within the allowance. The events come in pairs
     // (off then on) once the chord is full.
@@ -3865,7 +3865,7 @@ void testAutoplay()
     for (size_t i = 1; i < ev.size(); ++i)
         if (!ev[i - 1].first && ev[i].first) {
             ++pairs;
-            if (std::abs(ev[i].second - ev[i - 1].second) > static_cast<int>(p.voiceLead)) ++tooFar;
+            if (std::abs(ev[i].second - ev[i - 1].second) > static_cast<int>(p.m_voiceLead)) ++tooFar;
         }
     CHECK(pairs >= 5, "several exchanges happened");
     CHECK(tooFar == 0, "no exchange moves a voice further than Voice Lead allows");
@@ -3874,9 +3874,9 @@ void testAutoplay()
     ClusterBrain w;
     w.reset(1234, 48);
     BrainParams q = p;
-    q.voiceLead = 12.0f;
+    q.m_voiceLead = 12.0f;
     std::vector<std::pair<bool, int>> ew;
-    auto emitW = [&](const BrainEvent& e) { ew.emplace_back(e.type == BrainEvent::Type::NoteOn, e.note); };
+    auto emitW = [&](const BrainEvent& e) { ew.emplace_back(e.m_type == BrainEvent::TypeE::NOTE_ON, e.m_note); };
     for (int i = 0; i < 600; ++i) w.update(0.5, q, -1, freqOf, emitW);
     int maxNarrow = 0, maxWide = 0;
     for (size_t i = 1; i < ev.size(); ++i) if (!ev[i - 1].first && ev[i].first) maxNarrow = std::max(maxNarrow, std::abs(ev[i].second - ev[i - 1].second));
@@ -3887,11 +3887,11 @@ void testAutoplay()
     ClusterBrain t;
     t.reset(99, 48);
     std::vector<std::pair<bool, int>> et;
-    auto emitT = [&](const BrainEvent& e) { et.emplace_back(e.type == BrainEvent::Type::NoteOn, e.note); };
+    auto emitT = [&](const BrainEvent& e) { et.emplace_back(e.m_type == BrainEvent::TypeE::NOTE_ON, e.m_note); };
     BrainParams r = p;
-    r.rateSeconds = 600.0f;                 // ten minutes: nothing should happen on its own
+    r.m_rateSeconds = 600.0f;                 // ten minutes: nothing should happen on its own
     for (int i = 0; i < 40; ++i) t.update(1.0, r, -1, freqOf, emitT);   // fill it (one per tick is gated by the timer)
-    while (t.activeCount() < r.density) { t.requestStep(); t.update(0.05, r, -1, freqOf, emitT); }
+    while (t.activeCount() < r.m_density) { t.requestStep(); t.update(0.05, r, -1, freqOf, emitT); }
     const size_t before = et.size();
     for (int i = 0; i < 20; ++i) t.update(1.0, r, -1, freqOf, emitT);
     CHECK(et.size() == before, "nothing moves on its own while the interval is long");
@@ -3903,11 +3903,11 @@ void testAutoplay()
     ClusterBrain f;
     f.reset(7, 48);
     BrainParams fp = p;
-    fp.mode = BrainMode::Free;
-    fp.rateSeconds = 4.0f;
-    fp.holdMin = 6.0f; fp.holdMax = 12.0f;
+    fp.m_mode = BrainModeE::FREE;
+    fp.m_rateSeconds = 4.0f;
+    fp.m_holdMin = 6.0f; fp.m_holdMax = 12.0f;
     int fon = 0, foff = 0;
-    auto emitF = [&](const BrainEvent& e) { (e.type == BrainEvent::Type::NoteOn ? fon : foff)++; };
+    auto emitF = [&](const BrainEvent& e) { (e.m_type == BrainEvent::TypeE::NOTE_ON ? fon : foff)++; };
     for (int i = 0; i < 400; ++i) f.update(0.5, fp, -1, freqOf, emitF);
     CHECK(fon > 5 && foff > 5, "the free conductor still starts and stops notes of its own accord");
 
@@ -3919,17 +3919,17 @@ void testAutoplay()
     ClusterBrain ch;
     ch.reset(0x51ee7, 48);
     BrainParams cp = p;
-    cp.rateSeconds = 40.0f; cp.voiceLead = 5.0f; cp.chordTension = 0.25f; cp.rootMove = 0.35f;
-    cp.density = 5; cp.low = 40; cp.high = 79;
+    cp.m_rateSeconds = 40.0f; cp.m_voiceLead = 5.0f; cp.m_chordTension = 0.25f; cp.m_rootMove = 0.35f;
+    cp.m_density = 5; cp.m_low = 40; cp.m_high = 79;
     std::set<int> sounding;
     std::vector<std::vector<int>> seq;
     for (int i = 0; i < 72000; ++i) {   // 3600 s at 20 Hz
         bool changed = false;
         ch.update(0.05, cp, -1, freqOf, [&](const BrainEvent& e) {
-            if (e.type == BrainEvent::Type::NoteOn) sounding.insert(e.note); else sounding.erase(e.note);
+            if (e.m_type == BrainEvent::TypeE::NOTE_ON) sounding.insert(e.m_note); else sounding.erase(e.m_note);
             changed = true;
         });
-        if (changed && static_cast<int>(sounding.size()) == cp.density) {
+        if (changed && static_cast<int>(sounding.size()) == cp.m_density) {
             std::vector<int> now(sounding.begin(), sounding.end());
             if (seq.empty() || seq.back() != now) seq.push_back(now);   // off + on are one chord
         }
@@ -3979,8 +3979,8 @@ void testScore()
     // Played: the ramp has to arrive, and to travel rather than jump.
     float value = 0.0f;
     bool brain = true;
-    auto get = [&](ParamId id) { return id == ParamId::CosmosSend ? value : 1.0f; };
-    auto set = [&](ParamId id, float v) { if (id == ParamId::CosmosSend) value = v; if (id == ParamId::BrainOn) brain = v >= 0.5f; };
+    auto get = [&](ParamIdE id) { return id == ParamIdE::COSMOS_SEND ? value : 1.0f; };
+    auto set = [&](ParamIdE id, float v) { if (id == ParamIdE::COSMOS_SEND) value = v; if (id == ParamIdE::BRAIN_ON) brain = v >= 0.5f; };
     sc.rewind();
     for (int i = 0; i < 20; ++i) sc.step(1.0, get, set);          // 20 s: half way into the ramp
     CHECK(value > 0.05f && value < 0.55f, "a ramp is on its way at half time");
@@ -4010,18 +4010,18 @@ void testStems()
     // From the defaults, not from a preset: what the stems have to sum to is set here, and a
     // generated preset may carry sections this test was never about (the Memory, the Cloud).
     e.applyPreset(0);
-    e.setParam(ParamId::MasterGain, 0.0f);
-    e.setParam(ParamId::OscLevel, 0.2f);    // quiet, so the soft clipper is linear
-    e.setParam(ParamId::CosmosSend, 0.3f);
-    e.setParam(ParamId::RoomLevel, 0.3f);
-    e.setParam(ParamId::SubLevel, 0.0f);
-    e.setParam(ParamId::PatinaAmount, 0.0f);
-    e.setParam(ParamId::BodyLevel, 0.0f);
+    e.setParam(ParamIdE::MASTER_GAIN, 0.0f);
+    e.setParam(ParamIdE::OSC_LEVEL, 0.2f);    // quiet, so the soft clipper is linear
+    e.setParam(ParamIdE::COSMOS_SEND, 0.3f);
+    e.setParam(ParamIdE::ROOM_LEVEL, 0.3f);
+    e.setParam(ParamIdE::SUB_LEVEL, 0.0f);
+    e.setParam(ParamIdE::PATINA_AMOUNT, 0.0f);
+    e.setParam(ParamIdE::BODY_LEVEL, 0.0f);
     e.prepare(sr, block);
     std::vector<float> L(block), R(block);
-    std::vector<float> stem(static_cast<size_t>(Engine::kNumStems) * 2 * block, 0.0f);
-    float* ptr[Engine::kNumStems * 2];
-    for (int c = 0; c < Engine::kNumStems * 2; ++c) ptr[c] = stem.data() + static_cast<size_t>(c) * block;
+    std::vector<float> stem(static_cast<size_t>(Engine::NumStems) * 2 * block, 0.0f);
+    float* ptr[Engine::NumStems * 2];
+    for (int c = 0; c < Engine::NumStems * 2; ++c) ptr[c] = stem.data() + static_cast<size_t>(c) * block;
     e.setStemBuffers(ptr);
     double err = 0.0, ref = 0.0;
     long cnt = 0;
@@ -4030,7 +4030,7 @@ void testStems()
         if (b < 40) continue;               // let the reverbs fill
         for (int i = 0; i < block; ++i) {
             float sl = 0.0f, sr2 = 0.0f;
-            for (int st = 0; st < Engine::kNumStems; ++st) { sl += ptr[st * 2][i]; sr2 += ptr[st * 2 + 1][i]; }
+            for (int st = 0; st < Engine::NumStems; ++st) { sl += ptr[st * 2][i]; sr2 += ptr[st * 2 + 1][i]; }
             const double mixMid = 0.5 * (L[static_cast<size_t>(i)] + R[static_cast<size_t>(i)]);
             const double stemMid = 0.5 * (sl + sr2);
             err += (mixMid - stemMid) * (mixMid - stemMid);
@@ -4093,22 +4093,22 @@ void testSampleRates()
             std::vector<float> in(static_cast<size_t>(n), 0.0f), wl(static_cast<size_t>(n)), wr(static_cast<size_t>(n));
             in[0] = 1.0f;
             d.process(in.data(), in.data(), wl.data(), wr.data(), n);
-            int at_ = 0; float best = 0.0f;
-            for (int i = 0; i < n; ++i) if (std::fabs(wl[static_cast<size_t>(i)]) > best) { best = std::fabs(wl[static_cast<size_t>(i)]); at_ = i; }
-            const double seconds = at_ / sr;
+            int m_at = 0; float best = 0.0f;
+            for (int i = 0; i < n; ++i) if (std::fabs(wl[static_cast<size_t>(i)]) > best) { best = std::fabs(wl[static_cast<size_t>(i)]); m_at = i; }
+            const double seconds = m_at / sr;
             CHECK(best > 0.3f && std::fabs(seconds - 0.25) < 0.003, ("a 250 ms delay returns after 250 ms" + at).c_str());
         }
         {   // A cutoff is a frequency: the 12 dB low pass must be 3 dB down at its own corner.
             VoiceFilter f;
             f.prepare(sr);
-            f.set(FilterModel::Lp12, 1000.0f, 0.0f, 0.0f);
+            f.set(FilterModelE::LP12, 1000.0f, 0.0f, 0.0f);
             auto amplitudeAt = [&](float hz) {
                 f.prepare(sr);
-                f.set(FilterModel::Lp12, 1000.0f, 0.0f, 0.0f);
+                f.set(FilterModelE::LP12, 1000.0f, 0.0f, 0.0f);
                 const int n = static_cast<int>(sr * 0.2);
                 float peak2 = 0.0f;
                 for (int i = 0; i < n; ++i) {
-                    const float x = std::sin(kTwoPi * hz * static_cast<float>(i) / static_cast<float>(sr));
+                    const float x = std::sin(TwoPi * hz * static_cast<float>(i) / static_cast<float>(sr));
                     float a, b; f.tick(x, x, a, b);
                     if (i > n / 2) peak2 = std::max(peak2, std::fabs(a));
                 }
@@ -4120,19 +4120,19 @@ void testSampleRates()
         }
         {   // A tuning is a pitch: A4 must be 440 Hz however many samples a second there are.
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Scale, 5.0f);          // 12-TET
-            e.setParam(ParamId::Partials, 1.0f);
-            e.setParam(ParamId::Unison, 1.0f);
-            e.setParam(ParamId::Detune, 0.0f);
-            e.setParam(ParamId::Drift, 0.0f);
-            e.setParam(ParamId::Shimmer, 0.0f);
-            e.setParam(ParamId::Attack, 0.02f);
-            e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f);
-            e.setParam(ParamId::DelayMix, 0.0f);
-            e.setParam(ParamId::Air, 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SCALE, 5.0f);          // 12-TET
+            e.setParam(ParamIdE::PARTIALS, 1.0f);
+            e.setParam(ParamIdE::UNISON, 1.0f);
+            e.setParam(ParamIdE::DETUNE, 0.0f);
+            e.setParam(ParamIdE::DRIFT, 0.0f);
+            e.setParam(ParamIdE::SHIMMER, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.02f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+            e.setParam(ParamIdE::DELAY_MIX, 0.0f);
+            e.setParam(ParamIdE::AIR, 0.0f);
             e.prepare(sr, block);
             e.noteOn(69, 0.9f);
             for (int i = 0; i < static_cast<int>(0.5 * sr / block); ++i) e.process(l.data(), r.data(), block);
@@ -4151,16 +4151,16 @@ void testSampleRates()
         }
         {   // A modulation rate is a rate: a 2 Hz LFO must swing twice a second.
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
             e.setModMatrixText("lfo1>cutoff:0.5");
-            e.setParam(ParamId::Lfo1Shape, 0.0f);
-            e.setParam(ParamId::Lfo1Rate, 2.0f);
-            e.setParam(ParamId::Lfo1Depth, 1.0f);
+            e.setParam(ParamIdE::LFO1_SHAPE, 0.0f);
+            e.setParam(ParamIdE::LFO1_RATE, 2.0f);
+            e.setParam(ParamIdE::LFO1_DEPTH, 1.0f);
             e.prepare(sr, block);
             int crossings = 0; float last = 0.0f;
             for (int i = 0; i < static_cast<int>(2.0 * sr / block); ++i) {
                 e.process(l.data(), r.data(), block);
-                const float v = e.modAmount(ParamId::Cutoff);
+                const float v = e.modAmount(ParamIdE::CUTOFF);
                 if (last <= 0.0f && v > 0.0f) ++crossings;
                 last = v;
             }
@@ -4194,20 +4194,20 @@ void testExpressionBodyPatina()
         return cnt > 0 ? std::sqrt(sq / cnt) : 0.0;
     };
     auto plain = [&](Engine& e) {
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Attack, 0.05f);
-        e.setParam(ParamId::Release, 0.2f);
-        e.setParam(ParamId::FarLevel, 0.0f);
-        e.setParam(ParamId::NearMix, 0.0f);
-        e.setParam(ParamId::DelayMix, 0.0f);
-        e.setParam(ParamId::EnsembleMix, 0.0f);
-        e.setParam(ParamId::Air, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.05f);
+        e.setParam(ParamIdE::RELEASE, 0.2f);
+        e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+        e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+        e.setParam(ParamIdE::DELAY_MIX, 0.0f);
+        e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+        e.setParam(ParamIdE::AIR, 0.0f);
     };
 
     {   // Pressure raises the level it is told to raise, and only then.
         Engine a, b;
         plain(a); plain(b);
-        a.setParam(ParamId::PressLevel, 1.0f); b.setParam(ParamId::PressLevel, 1.0f);
+        a.setParam(ParamIdE::PRESS_LEVEL, 1.0f); b.setParam(ParamIdE::PRESS_LEVEL, 1.0f);
         a.prepare(sr, block); b.prepare(sr, block);
         a.noteOn(60, 0.8f); b.noteOn(60, 0.8f);
         b.setPressure(60, 1.0f);
@@ -4219,13 +4219,13 @@ void testExpressionBodyPatina()
     }
     {   // Bend moves the pitch by the range it is given: a semitone is 2^(1/12).
         Engine e; plain(e);
-        e.setParam(ParamId::BendRange, 12.0f);
-        e.setParam(ParamId::Partials, 1.0f);
-        e.setParam(ParamId::Scale, 5.0f);          // 12-TET, so the note is exactly A4 = 440
-        e.setParam(ParamId::Unison, 1.0f);
-        e.setParam(ParamId::Detune, 0.0f);
-        e.setParam(ParamId::Drift, 0.0f);
-        e.setParam(ParamId::Shimmer, 0.0f);
+        e.setParam(ParamIdE::BEND_RANGE, 12.0f);
+        e.setParam(ParamIdE::PARTIALS, 1.0f);
+        e.setParam(ParamIdE::SCALE, 5.0f);          // 12-TET, so the note is exactly A4 = 440
+        e.setParam(ParamIdE::UNISON, 1.0f);
+        e.setParam(ParamIdE::DETUNE, 0.0f);
+        e.setParam(ParamIdE::DRIFT, 0.0f);
+        e.setParam(ParamIdE::SHIMMER, 0.0f);
         e.prepare(sr, block);
         e.noteOn(69, 0.8f);
         e.setBend(69, 1.0f);                        // a full octave up
@@ -4246,8 +4246,8 @@ void testExpressionBodyPatina()
     {   // The body answers: with it up the output is louder and different, with it off identical.
         Engine a, b;
         plain(a); plain(b);
-        b.setParam(ParamId::BodyLevel, 1.0f);
-        b.setParam(ParamId::BodyDecay, 2.0f);
+        b.setParam(ParamIdE::BODY_LEVEL, 1.0f);
+        b.setParam(ParamIdE::BODY_DECAY, 2.0f);
         a.prepare(sr, block); b.prepare(sr, block);
         a.noteOn(50, 0.8f); b.noteOn(50, 0.8f);
         const double dry = rms(a, 1.0, 1.0), wet = rms(b, 1.0, 1.0);
@@ -4256,8 +4256,8 @@ void testExpressionBodyPatina()
     {   // Patina is bypassed at zero, and audible above it (its wow moves the signal).
         Engine a, b;
         plain(a); plain(b);
-        b.setParam(ParamId::PatinaAmount, 1.0f);
-        b.setParam(ParamId::PatinaAge, 1.0f);
+        b.setParam(ParamIdE::PATINA_AMOUNT, 1.0f);
+        b.setParam(ParamIdE::PATINA_AGE, 1.0f);
         a.prepare(sr, block); b.prepare(sr, block);
         a.noteOn(60, 0.8f); b.noteOn(60, 0.8f);
         const double open = rms(a, 0.5, 1.0), aged = rms(b, 0.5, 1.0);
@@ -4265,11 +4265,11 @@ void testExpressionBodyPatina()
     }
     {   // The second conductor adds voices of its own.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Brain2On, 1.0f);
-        e.setParam(ParamId::Brain2Rate, 2.0f);
-        e.setParam(ParamId::Brain2Density, 3.0f);
-        e.setParam(ParamId::Attack, 0.1f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::BRAIN2_ON, 1.0f);
+        e.setParam(ParamIdE::BRAIN2_RATE, 2.0f);
+        e.setParam(ParamIdE::BRAIN2_DENSITY, 3.0f);
+        e.setParam(ParamIdE::ATTACK, 0.1f);
         e.prepare(sr, block);
         for (int i = 0; i < 400; ++i) e.process(l.data(), r.data(), block);
         CHECK(e.activeVoices() > 0, "the second conductor plays on its own");
@@ -4291,10 +4291,10 @@ void testExpressionBodyPatina()
  */
 void testSourceEnvelopes()
 {
-    CHECK(kNumSlotEnvs == kNumModEnvs + 2 && std::strcmp(kSlotEnvNames[kNumSlotEnvs - 1], "Own") == 0,
+    CHECK(NumSlotEnvs == NumModEnvs + 2 && std::strcmp(SlotEnvNames[NumSlotEnvs - 1], "Own") == 0,
           "Env offers Off, the six, and Own last");
-    const float own = static_cast<float>(kNumSlotEnvs - 1);
-    const float noise = static_cast<float>(SourceType::Noise);
+    const float own = static_cast<float>(NumSlotEnvs - 1);
+    const float noise = static_cast<float>(SourceTypeE::NOISE);
     std::vector<float> l(256), r(256);
     auto run = [&](Engine& e, double seconds) {
         const int blocks = std::max(1, static_cast<int>(seconds * 48000.0 / 256.0 + 0.5));
@@ -4311,15 +4311,15 @@ void testSourceEnvelopes()
     };
     {   // the shape, from the note, as a level
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Src2Type, noise);
-        e.setParam(ParamId::Src2Env, own);
-        e.setParam(ParamId::Src3Type, noise);
-        e.setParam(ParamId::Src3Env, own);
-        e.setParam(ParamId::Src3Delay, 1.0f);
-        e.setParam(ParamId::Src3EnvDepth, 0.5f);
-        e.setParam(ParamId::Env1Mode, 0.0f);
-        e.setParam(ParamId::Env1Time, 1.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::SRC2_TYPE, noise);
+        e.setParam(ParamIdE::SRC2_ENV, own);
+        e.setParam(ParamIdE::SRC3_TYPE, noise);
+        e.setParam(ParamIdE::SRC3_ENV, own);
+        e.setParam(ParamIdE::SRC3_DELAY, 1.0f);
+        e.setParam(ParamIdE::SRC3_ENV_DEPTH, 0.5f);
+        e.setParam(ParamIdE::ENV1_MODE, 0.0f);
+        e.setParam(ParamIdE::ENV1_TIME, 1.0f);
         e.prepare(48000.0, 256);
         CHECK(e.setSrcEnvShape(1, "0:0/1:1/2:0.25"), "engine takes a source's own shape");
         CHECK(e.setSrcEnvShape(2, "0:0"), "and a one-point shape, which is a level");
@@ -4334,21 +4334,21 @@ void testSourceEnvelopes()
         CHECK(std::fabs(gainOf(e, 2) - 0.5f) < 1e-4f, "past its Delay, Depth 0.5 keeps half the level whatever the shape says");
         run(e, 1.0);
         CHECK(std::fabs(gainOf(e, 1) - 0.25f) < 0.02f, "and held at its last point");
-        CHECK(std::fabs(e.modSource(static_cast<int>(ModSource::Env1)) - 1.0f) < 0.02f,
+        CHECK(std::fabs(e.modSource(static_cast<int>(ModSourceE::ENV1)) - 1.0f) < 0.02f,
               "Env 1 follows its own shape, not the source's");
     }
     {   // Sustain Loop let go: both kinds of entrance carry on from where their shape was held.
         // The note's clock runs on while a shape holds, and the release used to be read from it:
         // five seconds into a shape whose sustain point is at two, it jumped three seconds ahead.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Release, 30.0f);   // the voice outlives the shapes' tails
-        e.setParam(ParamId::Src2Type, noise);
-        e.setParam(ParamId::Src2Env, own);
-        e.setParam(ParamId::Src2EnvMode, static_cast<float>(EnvMode::SustainLoop));
-        e.setParam(ParamId::Src3Type, noise);
-        e.setParam(ParamId::Src3Env, 1.0f);    // Env 1, borrowed: bipolar
-        e.setParam(ParamId::Env1Mode, static_cast<float>(EnvMode::SustainLoop));
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::RELEASE, 30.0f);   // the voice outlives the shapes' tails
+        e.setParam(ParamIdE::SRC2_TYPE, noise);
+        e.setParam(ParamIdE::SRC2_ENV, own);
+        e.setParam(ParamIdE::SRC2_ENV_MODE, static_cast<float>(EnvModeE::SUSTAIN_LOOP));
+        e.setParam(ParamIdE::SRC3_TYPE, noise);
+        e.setParam(ParamIdE::SRC3_ENV, 1.0f);    // Env 1, borrowed: bipolar
+        e.setParam(ParamIdE::ENV1_MODE, static_cast<float>(EnvModeE::SUSTAIN_LOOP));
         e.prepare(48000.0, 256);
         CHECK(e.setSrcEnvShape(1, "0:0/1:1/2:0.5/8:0!s2"), "a source shape with a sustain point");
         CHECK(e.setEnvShape(0, "0:-1/1:1/2:0/8:-1!s2"), "a modulation shape with a sustain point");
@@ -4368,29 +4368,29 @@ void testSourceEnvelopes()
         // to be put on the sustain point, and a shape with a loop and no sustain point has none --
         // the release found the clock past the end and snapped to the last value.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Env1Mode, static_cast<float>(EnvMode::SustainLoop));
-        e.setParam(ParamId::Env1Time, 1.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ENV1_MODE, static_cast<float>(EnvModeE::SUSTAIN_LOOP));
+        e.setParam(ParamIdE::ENV1_TIME, 1.0f);
         e.prepare(48000.0, 256);
         CHECK(e.setEnvShape(0, "0:0/1:1/2:0/3:1/4:0!l1-3"), "a looping shape without a sustain point");
         e.noteOn(60, 1.0f);
         run(e, 5.5);
-        const float held = e.modSource(static_cast<int>(ModSource::Env1));
+        const float held = e.modSource(static_cast<int>(ModSourceE::ENV1));
         CHECK(held > 0.2f, "held inside its loop, well away from its last value");
         e.noteOff(60);
         run(e, 256.0 / 48000.0);
-        CHECK(std::fabs(e.modSource(static_cast<int>(ModSource::Env1)) - held) < 0.03f, "let go inside its loop, it does not jump");
+        CHECK(std::fabs(e.modSource(static_cast<int>(ModSourceE::ENV1)) - held) < 0.03f, "let go inside its loop, it does not jump");
     }
     {   // the text form: the six, then the sources' own, in the one field
         Engine e;
         Preset p{ "t", "" };
-        p.envs = "0:0/1:1~~0:1/2:0~~~~~0:0/3:1:0.5!s1";
+        p.m_envs = "0:0/1:1~~0:1/2:0~~~~~0:0/3:1:0.5!s1";
         CHECK(e.applyPresetModulation(p), "an envelope field with a source's shape in it applies");
         CHECK(e.envShape(0).count() == 2 && e.envShape(2).count() == 2, "the six are read as they always were");
         CHECK(e.srcEnvShape(1).count() == 2 && e.srcEnvShape(1).sustain() == 1, "and Source 2's own after them");
-        CHECK(e.srcEnvShape(0).count() == 2 && e.srcEnvShape(0).point(1).value == 1.0f, "a source left empty keeps the default rise");
+        CHECK(e.srcEnvShape(0).count() == 2 && e.srcEnvShape(0).point(1).m_value == 1.0f, "a source left empty keeps the default rise");
         Preset six{ "u", "" };
-        six.envs = "0:0/1:1~0:0/2:1";
+        six.m_envs = "0:0/1:1~0:0/2:1";
         CHECK(e.applyPresetModulation(six) && e.srcEnvShape(1).sustain() < 0, "a field written before the sources had shapes resets theirs");
         char buf[512];
         CHECK(e.setSrcEnvShape(3, "0:0/2:0.8:-0.4/6:1!s1") && e.writeSrcEnvShape(3, buf, sizeof(buf)) > 0, "a source shape writes");
@@ -4400,7 +4400,7 @@ void testSourceEnvelopes()
         // Sixteen points with long numbers are longer than the field's old 256-character buffer,
         // which dropped such a shape without a word.
         std::string longShape;
-        for (int k = 0; k < kMaxEnvPoints; ++k) {
+        for (int k = 0; k < MaxEnvPoints; ++k) {
             char pt[48];
             std::snprintf(pt, sizeof(pt), "%s%.4f:%.4f:%.3f", k ? "/" : "", 1.2345 * k, 0.5 + 0.4 * std::sin(1.7 * k), -0.321);
             longShape += pt;
@@ -4408,8 +4408,8 @@ void testSourceEnvelopes()
         CHECK(longShape.size() > 256, "precondition: the shape is longer than 256 characters");
         const std::string field = longShape + "~~~~~~" + longShape;
         Preset lp{ "l", "" };
-        lp.envs = field.c_str();
-        CHECK(e.applyPresetModulation(lp) && e.envShape(0).count() == kMaxEnvPoints && e.srcEnvShape(0).count() == kMaxEnvPoints,
+        lp.m_envs = field.c_str();
+        CHECK(e.applyPresetModulation(lp) && e.envShape(0).count() == MaxEnvPoints && e.srcEnvShape(0).count() == MaxEnvPoints,
               "a sixteen-point shape with long numbers arrives, in the six and in a source");
     }
 }
@@ -4427,29 +4427,29 @@ void testSourceEnvelopes()
 void testEnvShapePresets()
 {
     int bad = 0;
-    for (int i = 0; i < kNumEnvShapePresets; ++i) {
+    for (int i = 0; i < NumEnvShapePresets; ++i) {
         ModEnv e;
-        if (!e.parse(kEnvShapePresetTexts[i])) {
-            std::printf("  shape %d (%s) does not parse: %s\n", i, kEnvShapePresetNames[i], kEnvShapePresetTexts[i]);
+        if (!e.parse(EnvShapePresetTexts[i])) {
+            std::printf("  shape %d (%s) does not parse: %s\n", i, EnvShapePresetNames[i], EnvShapePresetTexts[i]);
             ++bad; continue;
         }
-        if (e.count() < 2 || e.length() <= 0.0f) { std::printf("  shape %s is not an envelope\n", kEnvShapePresetNames[i]); ++bad; continue; }
-        if (e.point(0).time != 0.0f) { std::printf("  shape %s does not start at zero\n", kEnvShapePresetNames[i]); ++bad; }
+        if (e.count() < 2 || e.length() <= 0.0f) { std::printf("  shape %s is not an envelope\n", EnvShapePresetNames[i]); ++bad; continue; }
+        if (e.point(0).m_time != 0.0f) { std::printf("  shape %s does not start at zero\n", EnvShapePresetNames[i]); ++bad; }
         for (int k = 1; k < e.count(); ++k)
-            if (e.point(k).time < e.point(k - 1).time) { std::printf("  shape %s goes backwards\n", kEnvShapePresetNames[i]); ++bad; break; }
-        if (e.sustain() >= e.count()) { std::printf("  shape %s sustains on a point it does not have\n", kEnvShapePresetNames[i]); ++bad; }
+            if (e.point(k).m_time < e.point(k - 1).m_time) { std::printf("  shape %s goes backwards\n", EnvShapePresetNames[i]); ++bad; break; }
+        if (e.sustain() >= e.count()) { std::printf("  shape %s sustains on a point it does not have\n", EnvShapePresetNames[i]); ++bad; }
         // And the text form has to survive a round trip, because that is how it reaches a preset.
         char buf[512];
         ModEnv back;
         if (e.write(buf, sizeof(buf)) <= 0 || !back.parse(buf) || back.count() != e.count() || back.sustain() != e.sustain()) {
-            std::printf("  shape %s does not survive being written and read again\n", kEnvShapePresetNames[i]);
+            std::printf("  shape %s does not survive being written and read again\n", EnvShapePresetNames[i]);
             ++bad;
         }
     }
     CHECK(bad == 0, "every envelope shape on the menu parses, starts at zero and round trips");
     // ADSR is the one everybody looks for first: four points, and the third of them sustains.
     ModEnv adsr;
-    CHECK(adsr.parse(kEnvShapePresetTexts[0]) && adsr.count() == 4 && adsr.sustain() == 2,
+    CHECK(adsr.parse(EnvShapePresetTexts[0]) && adsr.count() == 4 && adsr.sustain() == 2,
           "the ADSR shape is an attack, a decay, a sustain point and a release");
 }
 
@@ -4469,10 +4469,10 @@ void testBeatSource()
     auto rateFor = [](int high) {
         Engine e;
         e.prepare(48000.0, 256);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::TunePurity, 0.0f);      // equal temperament, so the octave is exact
-        e.setParam(ParamId::Drift, 0.0f);           // and no per-voice pitch drift on top of it
-        e.setParam(ParamId::RootNote, 48.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::TUNE_PURITY, 0.0f);      // equal temperament, so the octave is exact
+        e.setParam(ParamIdE::DRIFT, 0.0f);           // and no per-voice pitch drift on top of it
+        e.setParam(ParamIdE::ROOT_NOTE, 48.0f);
         e.noteOn(48, 0.8f);
         e.noteOn(high, 0.8f);
         std::vector<float> l(256), r(256);
@@ -4651,22 +4651,22 @@ void testZPlaneBank()
 {
     const float sr = 48000.0f;
     int unstable = 0, silent = 0, loud = 0, dead = 0, deadZ = 0, noFamily = 0;
-    for (int shape = 0; shape < kZShapes; ++shape) {
-        if (kZShapeCategory[shape] >= kZCategories) ++noFamily;
+    for (int shape = 0; shape < ZShapes; ++shape) {
+        if (ZShapeCategory[shape] >= ZCategories) ++noFamily;
         auto respond = [&](float x, float y, float z, double* out) {
             const ZFrame f = zInterpolate(shape, x, y, z);
-            ZBiquad ch[kZSections];
+            ZBiquad ch[ZSections];
             const float norm = zBuildCascade(f, ch, sr);
             if (!std::isfinite(norm) || norm <= 0.0f) { ++silent; return false; }
-            for (int i = 0; i < f.used; ++i) {
+            for (int i = 0; i < f.m_used; ++i) {
                 // Stability of a two-pole section: |a2| < 1 and |a1| < 1 + a2.
-                if (!(std::fabs(ch[i].a2) < 0.99999f && std::fabs(ch[i].a1) < 1.0f + ch[i].a2)) { ++unstable; return false; }
+                if (!(std::fabs(ch[i].m_a2) < 0.99999f && std::fabs(ch[i].m_a1) < 1.0f + ch[i].m_a2)) { ++unstable; return false; }
             }
             for (int k = 0; k < 8; ++k) {                      // 40 Hz .. 10 kHz, log spaced
                 const float hz = 40.0f * std::pow(250.0f, k / 7.0f);
                 const float w = 2.0f * 3.14159265f * hz / sr;
                 float mag = norm;
-                for (int i = 0; i < f.used; ++i) mag *= ch[i].magnitudeAt(w);
+                for (int i = 0; i < f.m_used; ++i) mag *= ch[i].magnitudeAt(w);
                 if (!std::isfinite(mag)) { ++silent; return false; }
                 if (mag > 40.0f) ++loud;                       // +32 dB anywhere is a mistake, not a filter
                 out[k] = 20.0 * std::log10(std::max(static_cast<double>(mag), 1e-9));
@@ -4677,10 +4677,10 @@ void testZPlaneBank()
         if (!respond(0.0f, 0.0f, 0.0f, a) || !respond(1.0f, 1.0f, 0.0f, b) || !respond(0.5f, 0.5f, 1.0f, c)) continue;
         double dxy = 0.0, dz = 0.0;
         for (int k = 0; k < 8; ++k) { dxy = std::max(dxy, std::fabs(a[k] - b[k])); dz = std::max(dz, std::fabs(a[k] - c[k])); }
-        if (dxy < 1.0) { ++dead; std::printf("  shape %d (%s) barely moves across X/Y: %.2f dB\n", shape, kZShapeNames[shape], dxy); }
-        if (dz < 0.5) { ++deadZ; std::printf("  shape %d (%s) barely moves along Transform: %.2f dB\n", shape, kZShapeNames[shape], dz); }
+        if (dxy < 1.0) { ++dead; std::printf("  shape %d (%s) barely moves across X/Y: %.2f dB\n", shape, ZShapeNames[shape], dxy); }
+        if (dz < 0.5) { ++deadZ; std::printf("  shape %d (%s) barely moves along Transform: %.2f dB\n", shape, ZShapeNames[shape], dz); }
     }
-    std::printf("  z-plane bank: %d shapes in %d families, all stable, all alive\n", kZShapes, kZCategories);
+    std::printf("  z-plane bank: %d shapes in %d families, all stable, all alive\n", ZShapes, ZCategories);
     CHECK(noFamily == 0, "every shape belongs to a family");
     CHECK(unstable == 0, "every section of every shape is stable at every corner");
     CHECK(silent == 0, "every shape builds a finite cascade");
@@ -4702,10 +4702,10 @@ void testZPlaneBank()
 void testFilterModels()
 {
     const float sr = 48000.0f;
-    for (int m = 0; m < kNumFilterModels; ++m) {
+    for (int m = 0; m < NumFilterModels; ++m) {
         VoiceFilter f;
         f.prepare(sr);
-        const auto model = static_cast<FilterModel>(m);
+        const auto model = static_cast<FilterModelE>(m);
         f.set(model, 800.0f, 0.3f, 0.0f);
         const float amp = isCircuitModel(model) ? 0.05f : 1.0f;
         // Drive a sine at a few frequencies and compare the settled amplitude with the promise.
@@ -4713,7 +4713,7 @@ void testFilterModels()
             const int n = static_cast<int>(sr * 4.0f / hz) * 8;   // whole cycles, long enough to settle
             float peak = 0.0f;
             for (int i = 0; i < n; ++i) {
-                const float x = amp * std::sin(kTwoPi * hz * static_cast<float>(i) / sr);
+                const float x = amp * std::sin(TwoPi * hz * static_cast<float>(i) / sr);
                 float ol, orr;
                 f.tick(x, x, ol, orr);
                 if (i > n / 2) peak = std::max(peak, std::fabs(ol) / amp);
@@ -4722,10 +4722,10 @@ void testFilterModels()
             // A comb's response at one frequency depends on where the sine sits between its
             // teeth, and the formant bank sums magnitudes without their phases; both are noted
             // in the code, so they get a loose bound and the rest a tight one.
-            const bool loose = model == FilterModel::Comb || model == FilterModel::Formant;
+            const bool loose = model == FilterModelE::COMB || model == FilterModelE::FORMANT;
             const float tol = loose ? 0.5f : 0.12f;
             CHECK(std::fabs(peak - want) <= tol * std::max(want, 0.15f) + 0.02f,
-                  (std::string("filter model ") + kFilterModelNames[m] + " matches its own curve").c_str());
+                  (std::string("filter model ") + FilterModelNames[m] + " matches its own curve").c_str());
         }
     }
 }
@@ -4765,8 +4765,8 @@ void testCircuitFilters()
             }
         return count > 1 ? (count - 1) * static_cast<double>(sr) / (last - first) : 0.0;
     };
-    for (FilterModel m : { FilterModel::Moog, FilterModel::Prophet, FilterModel::Juno, FilterModel::Diode }) {
-        const std::string name = kFilterModelNames[static_cast<int>(m)];
+    for (FilterModelE m : { FilterModelE::MOOG, FilterModelE::PROPHET, FilterModelE::JUNO, FilterModelE::DIODE }) {
+        const std::string name = FilterModelNames[static_cast<int>(m)];
         VoiceFilter f;
         f.prepare(sr);
         f.set(m, 440.0f, 1.0f, 0.0f);
@@ -4782,7 +4782,7 @@ void testCircuitFilters()
         const double fe = freqOf(early);
         std::printf("    %-8s rings at %.1f Hz, after 2.3 s peak %.3f", name.c_str(), fe, tailPeak);
         CHECK(std::fabs(fe / 440.0 - 1.0) < 0.04, (name + " rings on Cutoff").c_str());
-        if (m == FilterModel::Moog) {
+        if (m == FilterModelE::MOOG) {
             std::printf("\n");
             CHECK(tailPeak < 1e-3f, "the Moog at Resonance 1 rings and stops");
         } else {
@@ -4791,7 +4791,7 @@ void testCircuitFilters()
             CHECK(tailPeak > 0.05f && std::fabs(ft / 440.0 - 1.0) < 0.04, (name + " sings on its own on Cutoff").c_str());
         }
     }
-    for (FilterModel m : { FilterModel::Moog, FilterModel::Sem, FilterModel::Prophet, FilterModel::Juno, FilterModel::Diode }) {
+    for (FilterModelE m : { FilterModelE::MOOG, FilterModelE::SEM, FilterModelE::PROPHET, FilterModelE::JUNO, FilterModelE::DIODE }) {
         VoiceFilter f;
         f.prepare(sr);
         f.set(m, 700.0f, 1.0f, 1.0f);
@@ -4805,18 +4805,18 @@ void testCircuitFilters()
             finite = finite && std::isfinite(ol);
             peak = std::max(peak, std::fabs(ol));
         }
-        std::printf("    %-8s pushed: peak %.2f\n", kFilterModelNames[static_cast<int>(m)], peak);
-        CHECK(finite && peak < 5.0f * 4.0f, (std::string(kFilterModelNames[static_cast<int>(m)]) + " stays bounded when pushed").c_str());
+        std::printf("    %-8s pushed: peak %.2f\n", FilterModelNames[static_cast<int>(m)], peak);
+        CHECK(finite && peak < 5.0f * 4.0f, (std::string(FilterModelNames[static_cast<int>(m)]) + " stays bounded when pushed").c_str());
     }
     // The SEM's morph: a notch at 0.5, a high pass at 1.
     auto semGain = [sr](float morph, float hz) {
         VoiceFilter f;
         f.prepare(sr);
-        f.set(FilterModel::Sem, 1000.0f, 0.0f, 0.0f, morph);
+        f.set(FilterModelE::SEM, 1000.0f, 0.0f, 0.0f, morph);
         const int n = static_cast<int>(sr * 8.0f / hz) * 8;
         float peak = 0.0f;
         for (int i = 0; i < n; ++i) {
-            const float x = 0.1f * std::sin(kTwoPi * hz * static_cast<float>(i) / sr);
+            const float x = 0.1f * std::sin(TwoPi * hz * static_cast<float>(i) / sr);
             float ol, orr;
             f.tick(x, x, ol, orr);
             if (i > n / 2) peak = std::max(peak, std::fabs(ol));
@@ -4828,27 +4828,27 @@ void testCircuitFilters()
     CHECK(notch < -20.0f && std::fabs(lo) < 3.0f && std::fabs(hi) < 3.0f, "the SEM at Morph 0.5 is a notch on Cutoff");
     CHECK(hp < -20.0f, "the SEM at Morph 1 is a high pass");
     bool late = true;
-    for (FilterModel m : { FilterModel::Moog, FilterModel::Sem, FilterModel::Prophet, FilterModel::Juno, FilterModel::Diode }) {
+    for (FilterModelE m : { FilterModelE::MOOG, FilterModelE::SEM, FilterModelE::PROPHET, FilterModelE::JUNO, FilterModelE::DIODE }) {
         VoiceFilter f;
         f.prepare(sr);
         f.set(m, 1000.0f, 0.2f, 0.0f);
         float ol, orr;
         f.tick(0.0f, 0.0f, ol, orr);
-        late = late && f.latency() == StereoOversampler2::kLatency;
+        late = late && f.latency() == StereoOversampler2::Latency;
     }
     VoiceFilter plain;
     plain.prepare(sr);
-    plain.set(FilterModel::Lp12, 1000.0f, 0.2f, 0.0f);
+    plain.set(FilterModelE::LP12, 1000.0f, 0.2f, 0.0f);
     float ol, orr;
     plain.tick(0.0f, 0.0f, ol, orr);
     CHECK(late && plain.latency() == 0.0f, "the circuit models report the oversampler's latency, LP 12 without Drive none");
     {
         VoiceFilter lad;
         lad.prepare(sr);
-        lad.set(FilterModel::Ladder, 16000.0f, 0.85f, 0.0f);
+        lad.set(FilterModelE::LADDER, 16000.0f, 0.85f, 0.0f);
         float prev = 0.0f, upper = 0.0f, total = 0.0f;
         for (int i = 0; i < 48000; ++i) {
-            const float x = 0.1f * std::sin(kTwoPi * 220.0f * static_cast<float>(i) / sr);
+            const float x = 0.1f * std::sin(TwoPi * 220.0f * static_cast<float>(i) / sr);
             float yl, yr;
             lad.tick(x, x, yl, yr);
             if (i > 24000) {
@@ -4876,7 +4876,7 @@ void testModulationEngine()
 {
     const int sr = 48000, block = 256;
     std::vector<float> l(block), r(block);
-    auto run = [&](Engine& e, double seconds, float& lo, float& hi, ParamId target) {
+    auto run = [&](Engine& e, double seconds, float& lo, float& hi, ParamIdE target) {
         lo = 1e9f; hi = -1e9f;
         const int blocks = static_cast<int>(seconds * sr / block);
         for (int i = 0; i < blocks; ++i) {
@@ -4885,81 +4885,81 @@ void testModulationEngine()
             lo = std::min(lo, m); hi = std::max(hi, m);
         }
     };
-    const ParamDesc& cut = paramDesc(ParamId::Cutoff);
-    const float span = cut.max - cut.min;
+    const ParamDesc& cut = paramDesc(ParamIdE::CUTOFF);
+    const float span = cut.m_max - cut.m_min;
 
     {   // An LFO on the cutoff swings by depth x the parameter's own range, both ways.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         CHECK(e.setModMatrixText("lfo1>cutoff:0.5"), "engine takes a matrix");
-        e.setParam(ParamId::Lfo1Shape, 0.0f);          // sine
-        e.setParam(ParamId::Lfo1Rate, 2.0f);
-        e.setParam(ParamId::Lfo1Depth, 1.0f);
+        e.setParam(ParamIdE::LFO1_SHAPE, 0.0f);          // sine
+        e.setParam(ParamIdE::LFO1_RATE, 2.0f);
+        e.setParam(ParamIdE::LFO1_DEPTH, 1.0f);
         e.prepare(sr, block);
         float lo = 0.0f, hi = 0.0f;
-        run(e, 1.0, lo, hi, ParamId::Cutoff);
+        run(e, 1.0, lo, hi, ParamIdE::CUTOFF);
         CHECK(hi > 0.45f * span && hi < 0.55f * span, "an LFO route reaches its positive depth");
         CHECK(lo < -0.45f * span && lo > -0.55f * span, "and its negative depth");
     }
     {   // Depth zero is silence, and a route nobody set does nothing.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         e.prepare(sr, block);
         float lo = 0.0f, hi = 0.0f;
-        run(e, 0.3, lo, hi, ParamId::Cutoff);
+        run(e, 0.3, lo, hi, ParamIdE::CUTOFF);
         CHECK(std::fabs(lo) < 1e-6f && std::fabs(hi) < 1e-6f, "no matrix, no modulation");
     }
     {   // Unipolar: the same route only ever adds.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         CHECK(e.setModMatrixText("lfo1>cutoff:0.5:none:u"), "unipolar route");
-        e.setParam(ParamId::Lfo1Rate, 2.0f);
+        e.setParam(ParamIdE::LFO1_RATE, 2.0f);
         e.prepare(sr, block);
         float lo = 0.0f, hi = 0.0f;
-        run(e, 1.0, lo, hi, ParamId::Cutoff);
+        run(e, 1.0, lo, hi, ParamIdE::CUTOFF);
         CHECK(lo > -1e-4f * span, "a unipolar route never subtracts");
         CHECK(hi > 0.45f * span, "and still reaches its depth");
     }
     {   // One source, several targets: what the soldered drifters could never do.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         CHECK(e.setModMatrixText("lfo1>cutoff:0.4;lfo1>dly_mix:0.3;lfo1>shimmer:0.2"), "three targets");
-        e.setParam(ParamId::Lfo1Rate, 2.0f);
+        e.setParam(ParamIdE::LFO1_RATE, 2.0f);
         e.prepare(sr, block);
         float lo = 0.0f, hi = 0.0f;
-        run(e, 1.0, lo, hi, ParamId::DelayMix);
-        const ParamDesc& dm = paramDesc(ParamId::DelayMix);
-        CHECK(hi > 0.25f * (dm.max - dm.min), "the second target moves too");
-        run(e, 1.0, lo, hi, ParamId::Shimmer);
+        run(e, 1.0, lo, hi, ParamIdE::DELAY_MIX);
+        const ParamDesc& dm = paramDesc(ParamIdE::DELAY_MIX);
+        CHECK(hi > 0.25f * (dm.m_max - dm.m_min), "the second target moves too");
+        run(e, 1.0, lo, hi, ParamIdE::SHIMMER);
         CHECK(hi > 0.15f, "and the third");
     }
     {   // Performance state is never a target: the morph position belongs to the hand holding it.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         CHECK(e.setModMatrixText("lfo1>morph:1"), "a route to the morph position parses");
-        e.setParam(ParamId::Lfo1Rate, 4.0f);
+        e.setParam(ParamIdE::LFO1_RATE, 4.0f);
         e.prepare(sr, block);
         float lo = 0.0f, hi = 0.0f;
-        run(e, 0.5, lo, hi, ParamId::MorphPos);
+        run(e, 0.5, lo, hi, ParamIdE::MORPH_POS);
         CHECK(std::fabs(lo) < 1e-6f && std::fabs(hi) < 1e-6f, "but it never moves performance state");
     }
     {   // An envelope drives a target and follows its shape; the clock starts with the phrase.
         Engine e;
-        e.setParam(ParamId::BrainOn, 0.0f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         CHECK(e.setEnvShape(0, "0:0/1:1/2:0"), "engine takes an envelope shape");
         CHECK(e.setModMatrixText("env1>cutoff:0.5"), "envelope route");
-        e.setParam(ParamId::Env1Mode, 0.0f);
-        e.setParam(ParamId::Env1Time, 1.0f);
+        e.setParam(ParamIdE::ENV1_MODE, 0.0f);
+        e.setParam(ParamIdE::ENV1_TIME, 1.0f);
         e.prepare(sr, block);
         e.noteOn(48, 0.8f);
         float lo = 0.0f, hi = 0.0f;
-        run(e, 0.4, lo, hi, ParamId::Cutoff);            // still climbing
+        run(e, 0.4, lo, hi, ParamIdE::CUTOFF);            // still climbing
         const float early = hi;
-        run(e, 0.7, lo, hi, ParamId::Cutoff);            // past the peak at one second
+        run(e, 0.7, lo, hi, ParamIdE::CUTOFF);            // past the peak at one second
         CHECK(early > 0.1f * span && early < 0.45f * span, "the envelope is on its way up");
         CHECK(hi > 0.45f * span, "and reaches its peak");
-        run(e, 2.0, lo, hi, ParamId::Cutoff);            // the fall from the peak to the end
-        run(e, 0.5, lo, hi, ParamId::Cutoff);            // past the end: the last value is held
+        run(e, 2.0, lo, hi, ParamIdE::CUTOFF);            // the fall from the peak to the end
+        run(e, 0.5, lo, hi, ParamIdE::CUTOFF);            // past the end: the last value is held
         CHECK(std::fabs(hi) < 0.02f * span, "and comes back down");
     }
     {   // Matrix and shapes survive the text form the preset and the plugin state use.
@@ -5008,11 +5008,11 @@ void testMixDeskFive()
             double reC = 0.0, imC = 0.0;
             for (int i = 0; i < n; ++i) {
                 const double t = static_cast<double>(i) / sr;
-                const float x = 0.4f * static_cast<float>(std::sin(kTwoPi * 220.0 * t));
+                const float x = 0.4f * static_cast<float>(std::sin(TwoPi * 220.0 * t));
                 const float y = wavefold(x, amount);
                 total += static_cast<double>(y) * y;
-                reC += y * std::cos(kTwoPi * 220.0 * t);
-                imC += y * std::sin(kTwoPi * 220.0 * t);
+                reC += y * std::cos(TwoPi * 220.0 * t);
+                imC += y * std::sin(TwoPi * 220.0 * t);
             }
             fund = 2.0 * (reC * reC + imC * imC) / (static_cast<double>(n) * n);
             return std::max(0.0, (total / n - fund)) / std::max(1e-12, total / n);
@@ -5030,7 +5030,7 @@ void testMixDeskFive()
             double sq = 0.0;
             const int n = sr / 8;
             for (int i = 0; i < n; ++i) {
-                const float x = 0.3f * static_cast<float>(std::sin(kTwoPi * 220.0 * i / sr));
+                const float x = 0.3f * static_cast<float>(std::sin(TwoPi * 220.0 * i / sr));
                 const float y = wavefold(x, amount);
                 sq += static_cast<double>(y) * y;
             }
@@ -5050,13 +5050,13 @@ void testMixDeskFive()
         auto sideOfFar = [&](float width, double& side, double& mid) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::FarLevel, 0.8f);
-            e.setParam(ParamId::FarAsym, 0.8f);      // the two sides deliberately different
-            e.setParam(ParamId::Depth, 1.0f);
-            e.setParam(ParamId::KeysDepth, 1.0f);    // the note goes to the background
-            e.setParam(ParamId::FarWidth, width);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.8f);
+            e.setParam(ParamIdE::FAR_ASYM, 0.8f);      // the two sides deliberately different
+            e.setParam(ParamIdE::DEPTH, 1.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 1.0f);    // the note goes to the background
+            e.setParam(ParamIdE::FAR_WIDTH, width);
             e.reset();
             std::vector<float> s[8];
             float* p[8];
@@ -5099,7 +5099,7 @@ void testMixDeskFive()
         const int n = sr * 8;
         std::vector<float> L(static_cast<size_t>(n)), R(static_cast<size_t>(n));
         for (int i = 0; i < n; ++i) {
-            const float x = 0.5f * static_cast<float>(std::sin(kTwoPi * 440.0 * i / sr));
+            const float x = 0.5f * static_cast<float>(std::sin(TwoPi * 440.0 * i / sr));
             L[static_cast<size_t>(i)] = R[static_cast<size_t>(i)] = x;
         }
         std::vector<float> dry = L;
@@ -5163,8 +5163,8 @@ void testMixDeskFive()
             }
             const std::vector<float> dry = L;
             h.process(L.data(), R.data(), n);
-            const float cA = 1.0f - std::exp(-kTwoPi * 1200.0f / sr), cB = 1.0f - std::exp(-kTwoPi * 4000.0f / sr);
-            const float cLo = 1.0f - std::exp(-kTwoPi * 300.0f / sr);
+            const float cA = 1.0f - std::exp(-TwoPi * 1200.0f / sr), cB = 1.0f - std::exp(-TwoPi * 4000.0f / sr);
+            const float cLo = 1.0f - std::exp(-TwoPi * 300.0f / sr);
             float lo[3] = { 0.0f, 0.0f, 0.0f }, a = 0.0f, b = 0.0f;
             sideLow = sideBand = monoLoss = 0.0;
             double monoSq = 0.0, drySq = 0.0;
@@ -5202,21 +5202,21 @@ void testMixDeskFive()
         ModMatrix m;
         CHECK(m.parse("pressure>cutoff:0.5:u;wheel>z_x:0.3;slide>resonance:0.25:u"), "the three new sources parse");
         CHECK(m.count() == 3, "three routes");
-        CHECK(m.route(0).source == ModSource::Pressure && m.route(0).unipolar, "pressure, read 0..1");
-        CHECK(m.route(1).source == ModSource::Wheel, "wheel");
-        CHECK(m.route(2).source == ModSource::Slide, "slide");
+        CHECK(m.route(0).m_source == ModSourceE::PRESSURE && m.route(0).m_unipolar, "pressure, read 0..1");
+        CHECK(m.route(1).m_source == ModSourceE::WHEEL, "wheel");
+        CHECK(m.route(2).m_source == ModSourceE::SLIDE, "slide");
         char buf[256];
         m.write(buf, sizeof(buf));
         ModMatrix again;
-        CHECK(again.parse(buf) && again.count() == 3 && again.route(1).source == ModSource::Wheel, "and they survive a round trip");
+        CHECK(again.parse(buf) && again.count() == 3 && again.route(1).m_source == ModSourceE::WHEEL, "and they survive a round trip");
 
         // In the engine: at rest a unipolar route must do nothing at all, which is what lets one
         // be put into a preset without changing how that preset sounds untouched.
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Cutoff, 1000.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::CUTOFF, 1000.0f);
         e.setModMatrixText("pressure>cutoff:0.5:u;wheel>cutoff:0.25:u");
         e.reset();
         std::vector<float> L(256), R(256);
@@ -5224,33 +5224,33 @@ void testMixDeskFive()
         e.process(L.data(), R.data(), 256);
         // What the matrix is adding, which is where modulation lives: effectiveParam is the
         // knob after morph and map and knows nothing about it.
-        const float atRest = e.modAmount(ParamId::Cutoff);
+        const float atRest = e.modAmount(ParamIdE::CUTOFF);
         CHECK(std::fabs(atRest) < 1.0f, "at rest the hands change nothing");
         // Leaning on the key opens it. Pressure is smoothed inside the voice, so give it a moment.
         e.setPressure(-1, 1.0f);
         for (int b = 0; b < 40; ++b) e.process(L.data(), R.data(), 256);
-        const float pressed = e.modAmount(ParamId::Cutoff);
+        const float pressed = e.modAmount(ParamIdE::CUTOFF);
         CHECK(pressed > 100.0f, "aftertouch reaches the cutoff through the matrix");
         // The wheel is not per note: it works with nothing held.
         e.allNotesOff();
         for (int b = 0; b < 20; ++b) e.process(L.data(), R.data(), 256);
         e.setWheel(1.0f);
         for (int b = 0; b < 40; ++b) e.process(L.data(), R.data(), 256);
-        CHECK(e.modAmount(ParamId::Cutoff) > 100.0f, "the wheel works with no note held");
+        CHECK(e.modAmount(ParamIdE::CUTOFF) > 100.0f, "the wheel works with no note held");
         // And it is smoothed: no step from a seven-bit controller.
         Engine e2;
         e2.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e2.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e2.setParam(ParamId::BrainOn, 0.0f);
+        for (int i = 0; i < NumParams; ++i) e2.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e2.setParam(ParamIdE::BRAIN_ON, 0.0f);
         e2.setModMatrixText("wheel>cutoff:1.0:u");
         e2.reset();
         e2.process(L.data(), R.data(), 64);
-        const float before = e2.modAmount(ParamId::Cutoff);
+        const float before = e2.modAmount(ParamIdE::CUTOFF);
         e2.setWheel(1.0f);
         e2.process(L.data(), R.data(), 64);
-        const float after = e2.modAmount(ParamId::Cutoff);
-        const ParamDesc& cd = paramDesc(ParamId::Cutoff);
-        CHECK(after - before < 0.25f * (cd.max - cd.min), "the wheel is smoothed, not stepped");
+        const float after = e2.modAmount(ParamIdE::CUTOFF);
+        const ParamDesc& cd = paramDesc(ParamIdE::CUTOFF);
+        CHECK(after - before < 0.25f * (cd.m_max - cd.m_min), "the wheel is smoothed, not stepped");
     }
 }
 
@@ -5272,10 +5272,10 @@ void testAfterTheClassics()
     const int sr = 48000;
     auto fresh = [&](Engine& e) {
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::TunePurity, 1.0f);
-        e.setParam(ParamId::Scale, 0.0f);          // 12-TET, so the octave is exactly 2:1 to begin with
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::TUNE_PURITY, 1.0f);
+        e.setParam(ParamIdE::SCALE, 0.0f);          // 12-TET, so the octave is exactly 2:1 to begin with
         e.reset();
     };
 
@@ -5286,7 +5286,7 @@ void testAfterTheClassics()
         e.process(L.data(), R.data(), 256);
         const double a4 = e.frequencyOf(69), a5 = e.frequencyOf(81), a3 = e.frequencyOf(57);
         CHECK(std::fabs(a5 / a4 - 2.0) < 1e-9 && std::fabs(a4 / a3 - 2.0) < 1e-9, "at 0 the octave is exactly 2:1");
-        e.setParam(ParamId::TuneStretch, 12.0f);
+        e.setParam(ParamIdE::TUNE_STRETCH, 12.0f);
         e.process(L.data(), R.data(), 256);
         const double s4 = e.frequencyOf(69), s5 = e.frequencyOf(81), s3 = e.frequencyOf(57);
         CHECK(std::fabs(s4 - a4) < 1e-9, "the reference pitch does not move");
@@ -5303,7 +5303,7 @@ void testAfterTheClassics()
         double before = 0.0, after = 0.0;
         for (int b = 0; b < 8; ++b) h.process(L.data(), R.data(), 256);
         before = h.displayFrequency();
-        h.setParam(ParamId::TuneStretch, 20.0f);
+        h.setParam(ParamIdE::TUNE_STRETCH, 20.0f);
         for (int b = 0; b < 600; ++b) h.process(L.data(), R.data(), 256);   // the glide takes a few seconds
         after = h.displayFrequency();
         CHECK(after > before * 1.005 && after < before * 1.02, "a held note retunes to the stretched pitch");
@@ -5344,9 +5344,9 @@ void testAfterTheClassics()
                     if (k % 16 != 0) continue;   // every 16th bin: enough of the shape, a tenth of the time
                     double re = 0.0, im = 0.0;
                     for (int i = 0; i < len; ++i) {
-                        const double w = 0.5 * (1.0 - std::cos(kTwoPi * i / len));
+                        const double w = 0.5 * (1.0 - std::cos(TwoPi * i / len));
                         const double x = L[static_cast<size_t>(a + i)] * w;
-                        re += x * std::cos(kTwoPi * k * i / len); im -= x * std::sin(kTwoPi * k * i / len);
+                        re += x * std::cos(TwoPi * k * i / len); im -= x * std::sin(TwoPi * k * i / len);
                     }
                     mag[static_cast<size_t>(k)] = std::sqrt(re * re + im * im) + 1e-12;
                 }
@@ -5384,7 +5384,7 @@ void testAfterTheClassics()
             std::vector<float> nl(static_cast<size_t>(n)), nr(static_cast<size_t>(n)), fl(static_cast<size_t>(n)), fr(static_cast<size_t>(n));
             uint32_t rng = 99;
             for (int i = 0; i < n; ++i) {
-                nl[static_cast<size_t>(i)] = nr[static_cast<size_t>(i)] = 0.8f * static_cast<float>(std::sin(kTwoPi * 80.0 * i / sr));   // a bass note in front
+                nl[static_cast<size_t>(i)] = nr[static_cast<size_t>(i)] = 0.8f * static_cast<float>(std::sin(TwoPi * 80.0 * i / sr));   // a bass note in front
                 rng = rng * 1664525u + 1013904223u;
                 fl[static_cast<size_t>(i)] = fr[static_cast<size_t>(i)] = 0.3f * ((static_cast<float>(rng >> 8) / 8388608.0f) - 1.0f);   // a broadband background
             }
@@ -5392,7 +5392,7 @@ void testAfterTheClassics()
             u.process(nl.data(), nr.data(), fl.data(), fr.data(), n);
             // band energies of the far bus before and after, over the last second
             auto band = [&](const std::vector<float>& v, float lo, float hi) {
-                float a = 0.0f, b = 0.0f; const float ca = 1.0f - std::exp(-kTwoPi * lo / sr), cb = 1.0f - std::exp(-kTwoPi * hi / sr);
+                float a = 0.0f, b = 0.0f; const float ca = 1.0f - std::exp(-TwoPi * lo / sr), cb = 1.0f - std::exp(-TwoPi * hi / sr);
                 double s = 0.0;
                 for (int i = 0; i < n; ++i) { a += ca * (v[static_cast<size_t>(i)] - a); b += cb * (v[static_cast<size_t>(i)] - b); if (i >= sr) s += static_cast<double>(b - a) * (b - a); }
                 return s;
@@ -5420,11 +5420,11 @@ void testAfterTheClassics()
         // hard-panned voice does with the head straight: that is what head tracking means.
         auto renderHash = [&](bool binaural, float yaw, float pan, std::vector<float>* outL, std::vector<float>* outR) {
             Engine e; fresh(e);
-            e.setParam(ParamId::Binaural, binaural ? 1.0f : 0.0f);
-            e.setParam(ParamId::Src1Pan, pan);
-            e.setParam(ParamId::PanDrift, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::EnsembleMix, 0.0f);
-            e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
+            e.setParam(ParamIdE::BINAURAL, binaural ? 1.0f : 0.0f);
+            e.setParam(ParamIdE::SRC1_PAN, pan);
+            e.setParam(ParamIdE::PAN_DRIFT, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f);
+            e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
             e.setHeadYaw(yaw);
             e.noteOn(57, 0.8f);
             std::vector<float> L(256), R(256);
@@ -5487,8 +5487,8 @@ void testBrainTimbre()
 {
     auto harmonic = [](double B) {
         BrainSpectrum sp;
-        sp.count = 12;
-        for (int h = 1; h <= 12; ++h) { sp.amp[h - 1] = 1.0 / h; sp.ratio[h - 1] = h * (B > 0.0 ? std::sqrt(1.0 + B * h * h) : 1.0); }
+        sp.m_count = 12;
+        for (int h = 1; h <= 12; ++h) { sp.m_amp[h - 1] = 1.0 / h; sp.m_ratio[h - 1] = h * (B > 0.0 ? std::sqrt(1.0 + B * h * h) : 1.0); }
         return sp;
     };
     const BrainSpectrum pure = harmonic(0.0);
@@ -5520,20 +5520,20 @@ void testBrainTimbre()
 
     // The blend: at 0 exactly the ratio score, at 1 exactly the spectral one.
     BrainParams p;
-    p.spectrum = &pure;
-    p.timbre = 0.0f;
+    p.m_spectrum = &pure;
+    p.m_timbre = 0.0f;
     CHECK(p.consonanceOf(f * 1.5, f) == intervalConsonance(1.5), "Timbre 0 is the ratio score, bit for bit");
-    p.timbre = 1.0f;
+    p.m_timbre = 1.0f;
     CHECK(std::fabs(p.consonanceOf(f * 1.5, f) - cFifth) < 1e-12, "Timbre 1 is the spectral score");
-    p.timbre = 0.5f;
+    p.m_timbre = 0.5f;
     const double half = p.consonanceOf(f * 1.5, f);
     CHECK(half > std::min(cFifth, intervalConsonance(1.5)) && half < std::max(cFifth, intervalConsonance(1.5)), "and in between it is in between");
 
     // In the engine: Timbre 0 renders as before (the oracle says so for forty presets; here the
     // hash of one brain-driven render), and the parameter exists in the table where the panel
     // will find it.
-    CHECK(std::string(paramDesc(ParamId::BrainTimbre).section) == "Cluster Brain", "Timbre lives in the conductor's section");
-    CHECK(paramDesc(ParamId::BrainTimbre).def == 0.0f, "and is off by default");
+    CHECK(std::string(paramDesc(ParamIdE::BRAIN_TIMBRE).m_section) == "Cluster Brain", "Timbre lives in the conductor's section");
+    CHECK(paramDesc(ParamIdE::BRAIN_TIMBRE).m_def == 0.0f, "and is off by default");
 }
 
 // ---------------------------------------------------------------- the eight after the classics
@@ -5598,8 +5598,8 @@ void testResearchBatch()
                 const double hi = lo * std::pow(2.0, 1.0 / 3.0);
                 auto band = [&](const std::vector<float>& v) {
                     float a = 0.0f, b = 0.0f;
-                    const float ca = 1.0f - std::exp(-kTwoPi * static_cast<float>(lo) / sr);
-                    const float cb = 1.0f - std::exp(-kTwoPi * static_cast<float>(hi) / sr);
+                    const float ca = 1.0f - std::exp(-TwoPi * static_cast<float>(lo) / sr);
+                    const float cb = 1.0f - std::exp(-TwoPi * static_cast<float>(hi) / sr);
                     double s = 0.0;
                     for (int i = 0; i < n; ++i) { a += ca * (v[static_cast<size_t>(i)] - a); b += cb * (v[static_cast<size_t>(i)] - b); if (i >= sr) s += static_cast<double>(b - a) * (b - a); }
                     return s;
@@ -5645,9 +5645,9 @@ void testResearchBatch()
                     if (f < lo || f >= hi) continue;
                     double re = 0.0, im = 0.0;
                     for (int i = 0; i < len; i += 4) {   // every fourth sample: the band's energy, at a quarter of the cost
-                        const double w = 0.5 * (1.0 - std::cos(kTwoPi * i / len));
+                        const double w = 0.5 * (1.0 - std::cos(TwoPi * i / len));
                         const double x = L[static_cast<size_t>(a + i)] * w;
-                        re += x * std::cos(kTwoPi * k * i / len); im -= x * std::sin(kTwoPi * k * i / len);
+                        re += x * std::cos(TwoPi * k * i / len); im -= x * std::sin(TwoPi * k * i / len);
                     }
                     sum += re * re + im * im;
                 }
@@ -5666,13 +5666,13 @@ void testResearchBatch()
     // ---- critical-band spacing --------------------------------------------------------------
     {
         BrainParams p;
-        p.spacing = 1.0f;
+        p.m_spacing = 1.0f;
         // 220 Hz and 224 Hz are well inside one ERB (about 27 Hz there); 220 and 330 are not.
         CHECK(p.crowding(224.0, 220.0) < 0.2f, "two notes inside a critical band are avoided");
         CHECK(p.crowding(330.0, 220.0) > 0.95f, "a fifth apart is left alone");
-        p.spacing = -1.0f;
+        p.m_spacing = -1.0f;
         CHECK(p.crowding(224.0, 220.0) > 1.5f, "and below zero the crowding is sought out");
-        p.spacing = 0.0f;
+        p.m_spacing = 0.0f;
         CHECK(p.crowding(224.0, 220.0) == 1.0f, "at 0 the choice is exactly as it was");
         CHECK(std::fabs(BrainParams::erbAt(1000.0) - 132.6) < 1.0, "the ERB at 1 kHz is Glasberg and Moore's 133 Hz");
     }
@@ -5796,12 +5796,12 @@ void testResearchBatch()
             auto chosen = [&](float harmonic, int density, int seed = 1) {
                 Engine en;
                 en.prepare(sr, 256);
-                for (int i = 0; i < kNumParams; ++i) en.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-                en.setParam(ParamId::Seed, static_cast<float>(seed));
-                en.setParam(ParamId::BrainHarmonic, harmonic);
-                en.setParam(ParamId::BrainOn, 1.0f);
-                en.setParam(ParamId::BrainRate, 2.0f);
-                en.setParam(ParamId::BrainDensity, static_cast<float>(density));
+                for (int i = 0; i < NumParams; ++i) en.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+                en.setParam(ParamIdE::SEED, static_cast<float>(seed));
+                en.setParam(ParamIdE::BRAIN_HARMONIC, harmonic);
+                en.setParam(ParamIdE::BRAIN_ON, 1.0f);
+                en.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+                en.setParam(ParamIdE::BRAIN_DENSITY, static_cast<float>(density));
                 en.reset();
                 std::vector<float> L(256), R(256);
                 for (int b = 0; b < 2000; ++b) en.process(L.data(), R.data(), 256);
@@ -5865,15 +5865,15 @@ void testResearchBatch()
     {
         auto onsets = [](float cascade) {
             BrainParams p;
-            p.on = true; p.mode = BrainMode::Free; p.density = 12; p.rateSeconds = 3.0f;
-            p.holdMin = 1.0f; p.holdMax = 2.0f; p.low = 36; p.high = 79; p.cascade = cascade;
+            p.m_on = true; p.m_mode = BrainModeE::FREE; p.m_density = 12; p.m_rateSeconds = 3.0f;
+            p.m_holdMin = 1.0f; p.m_holdMax = 2.0f; p.m_low = 36; p.m_high = 79; p.m_cascade = cascade;
             ClusterBrain brain;
             brain.reset(0x51ull, 48);
             auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
             std::vector<double> t;
             double now = 0.0;
             for (int step = 0; step < 300000; ++step) {           // fifty minutes at 10 ms
-                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.type == BrainEvent::Type::NoteOn) t.push_back(now); });
+                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.m_type == BrainEvent::TypeE::NOTE_ON) t.push_back(now); });
                 now += 0.01;
             }
             return t;
@@ -5897,15 +5897,15 @@ void testResearchBatch()
     {
         auto entropyOf = [](float surprise, float homeostat, float* leanOut) {
             BrainParams p;
-            p.on = true; p.mode = BrainMode::Free; p.density = 5; p.rateSeconds = 1.0f;
-            p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 36; p.high = 79;
-            p.surprise = surprise; p.homeostat = homeostat;
+            p.m_on = true; p.m_mode = BrainModeE::FREE; p.m_density = 5; p.m_rateSeconds = 1.0f;
+            p.m_holdMin = 20.0f; p.m_holdMax = 40.0f; p.m_low = 36; p.m_high = 79;
+            p.m_surprise = surprise; p.m_homeostat = homeostat;
             ClusterBrain brain;
             brain.reset(0x77ull, 48);
             auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
             std::vector<int> notes;
             for (int step = 0; step < 200000; ++step)             // thirty-three minutes at 10 ms
-                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.type == BrainEvent::Type::NoteOn) notes.push_back(e.note); });
+                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.m_type == BrainEvent::TypeE::NOTE_ON) notes.push_back(e.m_note); });
             double hist[12] = {};
             for (size_t i = 1; i < notes.size(); ++i) hist[((notes[i] - notes[i - 1]) % 12 + 12) % 12] += 1.0;
             double total = 0.0; for (double h : hist) total += h;
@@ -5930,10 +5930,10 @@ void testResearchBatch()
     {
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::TunePurity, 0.0f);       // equal temperament underneath
-        e.setParam(ParamId::TuneAdapt, 1.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::TUNE_PURITY, 0.0f);       // equal temperament underneath
+        e.setParam(ParamIdE::TUNE_ADAPT, 1.0f);
         e.reset();
         std::vector<float> L(256), R(256);
         auto run = [&](int blocks) { for (int b = 0; b < blocks; ++b) e.process(L.data(), R.data(), 256); };
@@ -5967,11 +5967,11 @@ void testResearchBatch()
         auto voicesAfter = [&](float blend) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 1.0f);
-            e.setParam(ParamId::BrainDensity, 5.0f);
-            e.setParam(ParamId::BrainRate, 2.0f);
-            e.setParam(ParamId::BrainBlend, blend);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+            e.setParam(ParamIdE::BRAIN_DENSITY, 5.0f);
+            e.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+            e.setParam(ParamIdE::BRAIN_BLEND, blend);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < static_cast<int>(3.0 * sr / 256); ++b) e.process(L.data(), R.data(), 256);
@@ -5990,14 +5990,14 @@ void testResearchBatch()
         auto envelopes = [&](float comod, double* indexOut) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Partials, 32.0f); e.setParam(ParamId::Brightness, 1.0f); e.setParam(ParamId::Tilt, 0.3f);
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::KeysDepth, 1.0f);            // a far voice: the background is what sounds
-            e.setParam(ParamId::FarLevel, 0.8f);
-            e.setParam(ParamId::FarComod, comod);
-            e.setParam(ParamId::Attack, 0.02f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::PARTIALS, 32.0f); e.setParam(ParamIdE::BRIGHTNESS, 1.0f); e.setParam(ParamIdE::TILT, 0.3f);
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 1.0f);            // a far voice: the background is what sounds
+            e.setParam(ParamIdE::FAR_LEVEL, 0.8f);
+            e.setParam(ParamIdE::FAR_COMOD, comod);
+            e.setParam(ParamIdE::ATTACK, 0.02f);
             e.reset();
             std::vector<float> L(256), R(256), cap;
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);   // Keys Depth is read on the first block
@@ -6120,19 +6120,19 @@ void testResearchBatch()
         auto ild = [&](float nearIld, double& highOut) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Partials, 32.0f); e.setParam(ParamId::Brightness, 1.0f); e.setParam(ParamId::Tilt, 0.3f);
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Spread, 0.0f);
-            e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f);
-            e.setParam(ParamId::Binaural, 1.0f);
-            e.setParam(ParamId::BassMono, 40.0f);   // or the master folds the very lows this is about
-            e.setParam(ParamId::Haas, 0.0f);
-            e.setParam(ParamId::NearIld, nearIld);
-            e.setParam(ParamId::Attack, 0.02f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::PARTIALS, 32.0f); e.setParam(ParamIdE::BRIGHTNESS, 1.0f); e.setParam(ParamIdE::TILT, 0.3f);
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::SPREAD, 0.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f);
+            e.setParam(ParamIdE::BINAURAL, 1.0f);
+            e.setParam(ParamIdE::BASS_MONO, 40.0f);   // or the master folds the very lows this is about
+            e.setParam(ParamIdE::HAAS, 0.0f);
+            e.setParam(ParamIdE::NEAR_ILD, nearIld);
+            e.setParam(ParamIdE::ATTACK, 0.02f);
             e.setHeadYaw(90.0f);                  // the head turns right, so the voice in front is now at the left ear
             e.reset();
             e.noteOn(43, 0.8f);                   // G2, 98 Hz: partials from 98 Hz up
@@ -6167,18 +6167,18 @@ void testResearchBatch()
     // ---- transport: the morph that slides ------------------------------------------------
     {
         Wavetable t;
-        t.frames = 2;
-        t.amp[0][2] = 1.0f;     // a formant on the third partial
-        t.amp[1][12] = 1.0f;    // and on the thirteenth
+        t.m_frames = 2;
+        t.m_amp[0][2] = 1.0f;     // a formant on the third partial
+        t.m_amp[1][12] = 1.0f;    // and on the thirteenth
         auto stats = [](const float* a, double& energy, double& spread) {
             double m = 0.0, c = 0.0; energy = 0.0;
-            for (int h = 0; h < kTablePartials; ++h) { m += a[h]; c += a[h] * h; energy += static_cast<double>(a[h]) * a[h]; }
+            for (int h = 0; h < TablePartials; ++h) { m += a[h]; c += a[h] * h; energy += static_cast<double>(a[h]) * a[h]; }
             c /= std::max(m, 1e-12);
             double v = 0.0;
-            for (int h = 0; h < kTablePartials; ++h) v += a[h] * (h - c) * (h - c);
+            for (int h = 0; h < TablePartials; ++h) v += a[h] * (h - c) * (h - c);
             spread = std::sqrt(v / std::max(m, 1e-12));
         };
-        float lin[kTablePartials], ot[kTablePartials];
+        float lin[TablePartials], ot[TablePartials];
         t.spectrumAt(0.5f, lin, 0.0f);
         t.spectrumAt(0.5f, ot, 1.0f);
         double eLin, sLin, eOt, sOt;
@@ -6191,18 +6191,18 @@ void testResearchBatch()
         bool slides = true;
         for (int k = 1; k < 8; ++k) {
             const float pos = static_cast<float>(k) / 8.0f;
-            float a[kTablePartials];
+            float a[TablePartials];
             t.spectrumAt(pos, a, 1.0f);
             double e, s; stats(a, e, s);
             if (s > 0.6 || e < 0.45) slides = false;   // a split peak would spread wide and lose energy
         }
         CHECK(slides, "at every position between, the peak is one peak");
         // Off, the plain blend, bit for bit.
-        float plain[kTablePartials];
+        float plain[TablePartials];
         t.spectrumAt(0.37f, plain);
         t.spectrumAt(0.37f, ot, 0.0f);
         bool same = true;
-        for (int h = 0; h < kTablePartials; ++h) if (plain[h] != ot[h]) same = false;
+        for (int h = 0; h < TablePartials; ++h) if (plain[h] != ot[h]) same = false;
         CHECK(same, "at zero the table reads exactly as it always did");
     }
 
@@ -6211,13 +6211,13 @@ void testResearchBatch()
         auto index = [&](float pulse) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::SubLevel, 1.0f);
-            e.setParam(ParamId::SubBinaural, 4.0f);
-            e.setParam(ParamId::SubOctave, 0.0f);   // -1 (65 Hz under C3): at the default -2 the rectified 33 Hz sub's own ripple is what the 15 Hz follower reads
-            e.setParam(ParamId::SubPulse, pulse);
-            e.setParam(ParamId::OscLevel, 0.0f);   // a silent voice keeps the engine awake; the Foundation is all that sounds
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SUB_LEVEL, 1.0f);
+            e.setParam(ParamIdE::SUB_BINAURAL, 4.0f);
+            e.setParam(ParamIdE::SUB_OCTAVE, 0.0f);   // -1 (65 Hz under C3): at the default -2 the rectified 33 Hz sub's own ripple is what the 15 Hz follower reads
+            e.setParam(ParamIdE::SUB_PULSE, pulse);
+            e.setParam(ParamIdE::OSC_LEVEL, 0.0f);   // a silent voice keeps the engine awake; the Foundation is all that sounds
             e.reset();
             std::vector<float> L(256), R(256), cap;
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
@@ -6245,22 +6245,22 @@ void testResearchBatch()
         auto secondHarmonic = [&](float bias) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Partials, 1.0f); e.setParam(ParamId::Unison, 1.0f);
-            e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f);
-            e.setParam(ParamId::FeedbackBus, 1.0f); e.setParam(ParamId::FeedbackDrive, 1.0f); e.setParam(ParamId::FeedbackTone, 8000.0f);
-            e.setParam(ParamId::FeedbackBias, bias);
-            e.setParam(ParamId::Attack, 0.02f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::PARTIALS, 1.0f); e.setParam(ParamIdE::UNISON, 1.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f);
+            e.setParam(ParamIdE::FEEDBACK_BUS, 1.0f); e.setParam(ParamIdE::FEEDBACK_DRIVE, 1.0f); e.setParam(ParamIdE::FEEDBACK_TONE, 8000.0f);
+            e.setParam(ParamIdE::FEEDBACK_BIAS, bias);
+            e.setParam(ParamIdE::ATTACK, 0.02f);
             e.reset();
             std::vector<float> L(256), R(256), cap;
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
             // Quietly: the loop throttles itself to nothing above a mean level of 0.1, so a loud
             // pair of notes would switch the very thing being measured off.
-            e.setParam(ParamId::OscLevel, 0.08f);
+            e.setParam(ParamIdE::OSC_LEVEL, 0.08f);
             e.noteOn(28, 0.6f);    // E1, 41 Hz
             e.noteOn(69, 0.45f);   // A4
             for (int b = 0; b < static_cast<int>(3.0 * sr / 256); ++b) { e.process(L.data(), R.data(), 256); if (b >= static_cast<int>(2.0 * sr / 256)) cap.insert(cap.end(), L.begin(), L.end()); }
@@ -6292,9 +6292,9 @@ void testResearchBatch()
         auto run = [&](const char* matrix, double seconds, std::vector<float>* trace) {
             auto e = std::make_unique<Engine>();
             e->prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e->setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e->setParam(ParamId::BrainOn, 0.0f);
-            e->setParam(ParamId::LeniaRate, 20.0f);
+            for (int i = 0; i < NumParams; ++i) e->setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e->setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e->setParam(ParamIdE::LENIA_RATE, 20.0f);
             e->setModMatrixText(matrix);
             e->reset();
             std::vector<float> L(256), R(256);
@@ -6314,9 +6314,9 @@ void testResearchBatch()
         for (size_t i = 0; i < trace.size(); ++i) { var += (trace[i] - mean) * (trace[i] - mean); if (i > 0) worstStep = std::max(worstStep, std::fabs(trace[i] - trace[i - 1])); }
         const float sd = std::sqrt(var / static_cast<float>(trace.size()));
         float mass = 0.0f;
-        for (int y = 0; y < Engine::kLeniaSize; ++y) for (int x = 0; x < Engine::kLeniaSize; ++x) mass += live->leniaCell(x, y);
+        for (int y = 0; y < Engine::LeniaSize; ++y) for (int x = 0; x < Engine::LeniaSize; ++x) mass += live->leniaCell(x, y);
         std::printf("  [probe] lenia: %d steps in 30 s, reseeded %d times, mass %.1f of %d, reading 1 mean %.2f sd %.3f, largest move per block %.4f\n",
-                    live->leniaSteps(), live->leniaReseeds(), mass, Engine::kLeniaSize * Engine::kLeniaSize, mean, sd, worstStep);
+                    live->leniaSteps(), live->leniaReseeds(), mass, Engine::LeniaSize * Engine::LeniaSize, mean, sd, worstStep);
         CHECK(live->leniaSteps() > 500, "with a route reading it the field steps at the asked rate");
         CHECK(live->leniaReseeds() <= live->leniaSteps() / 20, "and stays alive for dozens of steps between reseeds");
         CHECK(sd > 0.02f, "the reading moves");
@@ -6327,15 +6327,15 @@ void testResearchBatch()
     {
         auto notes = [](float dejavu) {
             BrainParams p;
-            p.on = true; p.mode = BrainMode::Free; p.density = 3; p.rateSeconds = 1.5f;
-            p.holdMin = 0.6f; p.holdMax = 1.0f; p.low = 48; p.high = 72;
-            p.dejavu = dejavu; p.loop = 4;
+            p.m_on = true; p.m_mode = BrainModeE::FREE; p.m_density = 3; p.m_rateSeconds = 1.5f;
+            p.m_holdMin = 0.6f; p.m_holdMax = 1.0f; p.m_low = 48; p.m_high = 72;
+            p.m_dejavu = dejavu; p.m_loop = 4;
             ClusterBrain brain;
             brain.reset(0x0DEull, 60);
             auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
             std::vector<int> out;
             for (int step = 0; step < 60000 && out.size() < 60; ++step)
-                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.type == BrainEvent::Type::NoteOn) out.push_back(e.note); });
+                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.m_type == BrainEvent::TypeE::NOTE_ON) out.push_back(e.m_note); });
             return out;
         };
         auto repeatRate = [](const std::vector<int>& v) {
@@ -6355,15 +6355,15 @@ void testResearchBatch()
     {
         auto velocities = [](float spread, float bias) {
             BrainParams p;
-            p.on = true; p.mode = BrainMode::Free; p.density = 6; p.rateSeconds = 0.6f;
-            p.holdMin = 0.6f; p.holdMax = 1.0f; p.low = 36; p.high = 84;
-            p.spread = spread; p.bias = bias;
+            p.m_on = true; p.m_mode = BrainModeE::FREE; p.m_density = 6; p.m_rateSeconds = 0.6f;
+            p.m_holdMin = 0.6f; p.m_holdMax = 1.0f; p.m_low = 36; p.m_high = 84;
+            p.m_spread = spread; p.m_bias = bias;
             ClusterBrain brain;
             brain.reset(0x5EEDull, 48);
             auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
             std::vector<float> v;
             for (int step = 0; step < 200000 && v.size() < 400; ++step)
-                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.type == BrainEvent::Type::NoteOn) v.push_back(e.velocity); });
+                brain.update(0.01, p, -1, freqOf, [&](const BrainEvent& e) { if (e.m_type == BrainEvent::TypeE::NOTE_ON) v.push_back(e.m_velocity); });
             return v;
         };
         auto stats = [](const std::vector<float>& v, double& mean, double& sd, double& extremes) {
@@ -6389,9 +6389,9 @@ void testResearchBatch()
         auto run = [&](const char* matrix, double seconds, int which, std::vector<float>* trace) {
             auto e = std::make_unique<Engine>();
             e->prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e->setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e->setParam(ParamId::BrainOn, 0.0f);
-            e->setParam(ParamId::ChaosPeriod, 10.0f);
+            for (int i = 0; i < NumParams; ++i) e->setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e->setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e->setParam(ParamIdE::CHAOS_PERIOD, 10.0f);
             e->setModMatrixText(matrix);
             e->reset();
             std::vector<float> L(256), R(256);
@@ -6439,9 +6439,9 @@ void testResearchBatch()
         auto pressure = [&](int filter, bool jitter, std::vector<float>* trace) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::KeysFilter, static_cast<float>(filter));
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::KEYS_FILTER, static_cast<float>(filter));
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
@@ -6451,7 +6451,7 @@ void testResearchBatch()
                 const float target = jitter ? 0.5f + 0.02f * jr.bipolar() : (b >= 40 ? 1.0f : 0.0f);
                 e.setPressure(60, target);
                 e.process(L.data(), R.data(), 256);
-                if (trace != nullptr) trace->push_back(0.5f * (e.modSource(static_cast<int>(ModSource::Pressure)) + 1.0f));   // back from bipolar
+                if (trace != nullptr) trace->push_back(0.5f * (e.modSource(static_cast<int>(ModSourceE::PRESSURE)) + 1.0f));   // back from bipolar
             }
         };
         auto restJitter = [&](int filter) {
@@ -6479,15 +6479,15 @@ void testResearchBatch()
     {
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
         e.reset();
         std::vector<float> L(256), R(256);
         for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
         e.noteOn(60, 0.8f);
         for (int b = 0; b < 40; ++b) e.process(L.data(), R.data(), 256);
         const double before = e.frequencyOf(60);
-        e.setParam(ParamId::Transpose, 2.0f);   // a fifth up
+        e.setParam(ParamIdE::TRANSPOSE, 2.0f);   // a fifth up
         double worstStep = 0.0, last = before;
         for (int b = 0; b < static_cast<int>(8.0 * sr / 256); ++b) {   // the table is there in 1.2 s; the voice's own glide takes its time
             e.process(L.data(), R.data(), 256);
@@ -6508,21 +6508,21 @@ void testResearchBatch()
         auto picture = [&](float spread, double& energy) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Partials, 32.0f); e.setParam(ParamId::Brightness, 1.0f); e.setParam(ParamId::Tilt, 0.3f);
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Spread, 0.0f);
-            e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::Haas, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::PARTIALS, 32.0f); e.setParam(ParamIdE::BRIGHTNESS, 1.0f); e.setParam(ParamIdE::TILT, 0.3f);
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::SPREAD, 0.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::HAAS, 0.0f);
             // Time Width off: at its default it gives even a centred single strand an interaural
             // delay (measured with the render tool: width 0.88 with it, 0.04 without), which
             // would hide what this test is about.
-            e.setParam(ParamId::Itd, 0.0f);
-            e.setParam(ParamId::DepthWidth, 1.0f);   // Near Width would take the spread down to 0.35 of itself at the ear (25.09.2026); the mechanism is what is tested
-            e.setParam(ParamId::PartialSpread, spread);
-            e.setParam(ParamId::Attack, 0.02f);
+            e.setParam(ParamIdE::ITD, 0.0f);
+            e.setParam(ParamIdE::DEPTH_WIDTH, 1.0f);   // Near Width would take the spread down to 0.35 of itself at the ear (25.09.2026); the mechanism is what is tested
+            e.setParam(ParamIdE::PARTIAL_SPREAD, spread);
+            e.setParam(ParamIdE::ATTACK, 0.02f);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
@@ -6556,24 +6556,24 @@ void testResearchBatch()
         auto swing = [&](float spread) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Partials, 1.0f); e.setParam(ParamId::Shimmer, 0.0f);
-            e.setParam(ParamId::Unison, 1.0f); e.setParam(ParamId::Spread, 0.0f);
-            e.setParam(ParamId::Detune, 0.0f); e.setParam(ParamId::Drift, 0.0f);
-            e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::Haas, 0.0f); e.setParam(ParamId::Itd, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::PARTIALS, 1.0f); e.setParam(ParamIdE::SHIMMER, 0.0f);
+            e.setParam(ParamIdE::UNISON, 1.0f); e.setParam(ParamIdE::SPREAD, 0.0f);
+            e.setParam(ParamIdE::DETUNE, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::HAAS, 0.0f); e.setParam(ParamIdE::ITD, 0.0f);
             // The master's stereo stage treats the side band differently from the middle -- Width
             // lifts it, Bass Mono takes it away below 150 Hz, Side Air shelves it -- so a partial
             // that MOVES changes the sum through those alone. Neutral here, or the test measures
             // the mix desk instead of the bank.
-            e.setParam(ParamId::Width, 1.0f); e.setParam(ParamId::BassMono, 40.0f); e.setParam(ParamId::SideAir, 0.0f);
-            e.setParam(ParamId::PartialSpread, spread);
-            e.setParam(ParamId::Src1Pan, 1.0f);      // hard right: the pan the old sum could not survive
-            e.setParam(ParamId::PanDrift, 0.0f);
-            e.setParam(ParamId::Attack, 0.02f); e.setParam(ParamId::Sustain, 1.0f);
+            e.setParam(ParamIdE::WIDTH, 1.0f); e.setParam(ParamIdE::BASS_MONO, 40.0f); e.setParam(ParamIdE::SIDE_AIR, 0.0f);
+            e.setParam(ParamIdE::PARTIAL_SPREAD, spread);
+            e.setParam(ParamIdE::SRC1_PAN, 1.0f);      // hard right: the pan the old sum could not survive
+            e.setParam(ParamIdE::PAN_DRIFT, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.02f); e.setParam(ParamIdE::SUSTAIN, 1.0f);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
@@ -6604,18 +6604,18 @@ void testResearchBatch()
         auto beating = [&](float width) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Src1Type, 1.0f);          // Harmonic: a bank with unison copies
-            e.setParam(ParamId::Src1Unison, 2.0f); e.setParam(ParamId::Src1UniDetune, 25.0f);
-            e.setParam(ParamId::Src1UniWidth, width); e.setParam(ParamId::Src1Pan, 1.0f);
-            e.setParam(ParamId::Shimmer, 0.0f); e.setParam(ParamId::Drift, 0.0f);
-            e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f); e.setParam(ParamId::Haas, 0.0f); e.setParam(ParamId::Itd, 0.0f);
-            e.setParam(ParamId::Width, 1.0f); e.setParam(ParamId::BassMono, 40.0f); e.setParam(ParamId::SideAir, 0.0f);
-            e.setParam(ParamId::Attack, 0.02f); e.setParam(ParamId::Sustain, 1.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, 1.0f);          // Harmonic: a bank with unison copies
+            e.setParam(ParamIdE::SRC1_UNISON, 2.0f); e.setParam(ParamIdE::SRC1_UNI_DETUNE, 25.0f);
+            e.setParam(ParamIdE::SRC1_UNI_WIDTH, width); e.setParam(ParamIdE::SRC1_PAN, 1.0f);
+            e.setParam(ParamIdE::SHIMMER, 0.0f); e.setParam(ParamIdE::DRIFT, 0.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f); e.setParam(ParamIdE::HAAS, 0.0f); e.setParam(ParamIdE::ITD, 0.0f);
+            e.setParam(ParamIdE::WIDTH, 1.0f); e.setParam(ParamIdE::BASS_MONO, 40.0f); e.setParam(ParamIdE::SIDE_AIR, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.02f); e.setParam(ParamIdE::SUSTAIN, 1.0f);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);
@@ -6644,20 +6644,20 @@ void testResearchBatch()
     // survivors follow the cascade. The brain's clock is its own -- no route reads the output --
     // so the note times are the same in every run here and the counts compare directly.
     {
-        struct Run { int strikes; double cv; double meanExcAtStrike; };
+        struct Run { int m_strikes; double m_cv; double m_meanExcAtStrike; };
         auto run = [&](float chance, float cluster, float cascade) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 1.0f);
-            e.setParam(ParamId::BrainRate, 2.0f);          // a note every two seconds: enough of them to count
-            e.setParam(ParamId::BrainHoldMin, 5.0f);
-            e.setParam(ParamId::BrainHoldMax, 12.0f);
-            e.setParam(ParamId::BrainCascade, cascade);
-            e.setParam(ParamId::StrikeLevel, 0.6f);
-            e.setParam(ParamId::StrikeWho, 1.0f);          // Keys + Brain
-            e.setParam(ParamId::StrikeChance, chance);
-            e.setParam(ParamId::StrikeCluster, cluster);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+            e.setParam(ParamIdE::BRAIN_RATE, 2.0f);          // a note every two seconds: enough of them to count
+            e.setParam(ParamIdE::BRAIN_HOLD_MIN, 5.0f);
+            e.setParam(ParamIdE::BRAIN_HOLD_MAX, 12.0f);
+            e.setParam(ParamIdE::BRAIN_CASCADE, cascade);
+            e.setParam(ParamIdE::STRIKE_LEVEL, 0.6f);
+            e.setParam(ParamIdE::STRIKE_WHO, 1.0f);          // Keys + Brain
+            e.setParam(ParamIdE::STRIKE_CHANCE, chance);
+            e.setParam(ParamIdE::STRIKE_CLUSTER, cluster);
             e.reset();
             std::vector<float> L(256), R(256);
             std::vector<double> at;
@@ -6676,7 +6676,7 @@ void testResearchBatch()
                 m /= static_cast<double>(at.size() - 1);
                 double v = 0.0;
                 for (size_t i = 1; i < at.size(); ++i) { const double d = (at[i] - at[i - 1]) - m; v += d * d; }
-                r.cv = std::sqrt(v / static_cast<double>(at.size() - 1)) / std::max(m, 1e-9);
+                r.m_cv = std::sqrt(v / static_cast<double>(at.size() - 1)) / std::max(m, 1e-9);
             }
             return r;
         };
@@ -6684,22 +6684,22 @@ void testResearchBatch()
         const Run none = run(0.0f, 0.0f, 0.0f);
         const Run third = run(0.33f, 0.0f, 0.0f);
         std::printf("  [probe] strike chance: %d notes in five minutes, chance 1 -> %d strikes, 0.33 -> %d (%.2f), 0 -> %d\n",
-                    all.strikes, all.strikes, third.strikes,
-                    all.strikes > 0 ? static_cast<double>(third.strikes) / all.strikes : 0.0, none.strikes);
-        CHECK(all.strikes > 40, "with the conductor running there are notes enough to count");
-        CHECK(none.strikes == 0, "at Chance 0 the conductor's notes never strike");
-        CHECK(std::fabs(static_cast<double>(third.strikes) / std::max(1, all.strikes) - 0.33) < 0.12,
+                    all.m_strikes, all.m_strikes, third.m_strikes,
+                    all.m_strikes > 0 ? static_cast<double>(third.m_strikes) / all.m_strikes : 0.0, none.m_strikes);
+        CHECK(all.m_strikes > 40, "with the conductor running there are notes enough to count");
+        CHECK(none.m_strikes == 0, "at Chance 0 the conductor's notes never strike");
+        CHECK(std::fabs(static_cast<double>(third.m_strikes) / std::max(1, all.m_strikes) - 0.33) < 0.12,
               "at Chance 0.33 about a third of them do");
         // Clustering: the same chance, but the coin weighted by the cascade's excitation. The
         // strikes then arrive where the events crowd, so the gaps between them vary more.
         const Run even = run(0.3f, 0.0f, 1.0f);
         const Run bunched = run(0.3f, 1.0f, 1.0f);
         std::printf("  [probe] strike cluster: even %d strikes cv %.2f (excitation at the strike %.2f), clustered %d strikes cv %.2f (%.2f)\n",
-                    even.strikes, even.cv, even.meanExcAtStrike, bunched.strikes, bunched.cv, bunched.meanExcAtStrike);
-        CHECK(bunched.meanExcAtStrike > even.meanExcAtStrike * 1.15,
+                    even.m_strikes, even.m_cv, even.m_meanExcAtStrike, bunched.m_strikes, bunched.m_cv, bunched.m_meanExcAtStrike);
+        CHECK(bunched.m_meanExcAtStrike > even.m_meanExcAtStrike * 1.15,
               "with Cluster the strikes sit where the cascade is excited, not where an even coin would put them");
-        CHECK(bunched.cv > even.cv * 1.1, "so the gaps between them vary more: handfuls and silences");
-        CHECK(std::fabs(static_cast<double>(bunched.strikes - even.strikes)) < 0.6 * even.strikes,
+        CHECK(bunched.m_cv > even.m_cv * 1.1, "so the gaps between them vary more: handfuls and silences");
+        CHECK(std::fabs(static_cast<double>(bunched.m_strikes - even.m_strikes)) < 0.6 * even.m_strikes,
               "and roughly as many of them: Cluster moves the strikes, Chance decides how many");
     }
 
@@ -6711,16 +6711,16 @@ void testResearchBatch()
         auto run = [&](float swell, float cascade, double& cv, double& corr, std::vector<float>* tail) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 1.0f);
-            e.setParam(ParamId::BrainRate, 2.0f);
-            e.setParam(ParamId::BrainHoldMin, 5.0f);
-            e.setParam(ParamId::BrainHoldMax, 12.0f);
-            e.setParam(ParamId::BrainCascade, cascade);
-            e.setParam(ParamId::CosmosSend, 0.5f);
-            e.setParam(ParamId::CosmosReturn, 0.6f);
-            e.setParam(ParamId::CosmosRes, 0.4f);
-            e.setParam(ParamId::CosmosSwell, swell);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+            e.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+            e.setParam(ParamIdE::BRAIN_HOLD_MIN, 5.0f);
+            e.setParam(ParamIdE::BRAIN_HOLD_MAX, 12.0f);
+            e.setParam(ParamIdE::BRAIN_CASCADE, cascade);
+            e.setParam(ParamIdE::COSMOS_SEND, 0.5f);
+            e.setParam(ParamIdE::COSMOS_RETURN, 0.6f);
+            e.setParam(ParamIdE::COSMOS_RES, 0.4f);
+            e.setParam(ParamIdE::COSMOS_SWELL, swell);
             e.reset();
             std::vector<float> L(256), R(256), tap(256);
             std::vector<double> lev, exc;
@@ -6784,9 +6784,9 @@ void testResearchBatch()
         // Through the engine: on, the arc reads the clock's value (gliding towards it); off, the drift's.
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::ArcClock, 1.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ARC_CLOCK, 1.0f);
         e.reset();
         std::vector<float> L(256), R(256);
         for (int b = 0; b < 12000; ++b) e.process(L.data(), R.data(), 256);   // a minute: past the glide
@@ -6807,10 +6807,10 @@ void testResearchBatch()
         auto placed = [&](float law, float depth) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::KeysDepth, depth);
-            e.setParam(ParamId::DepthLaw, law);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, depth);
+            e.setParam(ParamIdE::DEPTH_LAW, law);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);   // parameters are read per block: let them be
@@ -6835,18 +6835,18 @@ void testResearchBatch()
         auto ratio = [&](float elev) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Partials, 32.0f);
-            e.setParam(ParamId::Brightness, 1.0f);
-            e.setParam(ParamId::Tilt, 0.3f);
-            e.setParam(ParamId::Unison, 1.0f);
-            e.setParam(ParamId::FilterOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::KeysDepth, 0.0f);
-            e.setParam(ParamId::ElevNear, elev); e.setParam(ParamId::ElevFar, elev);
-            e.setParam(ParamId::Attack, 0.02f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::PARTIALS, 32.0f);
+            e.setParam(ParamIdE::BRIGHTNESS, 1.0f);
+            e.setParam(ParamIdE::TILT, 0.3f);
+            e.setParam(ParamIdE::UNISON, 1.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 0.0f);
+            e.setParam(ParamIdE::ELEV_NEAR, elev); e.setParam(ParamIdE::ELEV_FAR, elev);
+            e.setParam(ParamIdE::ATTACK, 0.02f);
             e.reset();
             e.noteOn(67, 0.8f);                   // G4, 392 Hz: partial 32 is 12.5 kHz
             std::vector<float> L(256), R(256), cap;
@@ -6878,13 +6878,13 @@ void testResearchBatch()
         auto sideBand = [&](float envelop, double& midOut) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::KeysDepth, 1.0f);              // straight into the far reverb
-            e.setParam(ParamId::FarLevel, 1.0f);
-            e.setParam(ParamId::NearMix, 0.0f);
-            e.setParam(ParamId::Envelop, envelop);
-            e.setParam(ParamId::Air, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::KEYS_DEPTH, 1.0f);              // straight into the far reverb
+            e.setParam(ParamIdE::FAR_LEVEL, 1.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f);
+            e.setParam(ParamIdE::ENVELOP, envelop);
+            e.setParam(ParamIdE::AIR, 0.0f);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 4; ++b) e.process(L.data(), R.data(), 256);   // same: Keys Depth has to be read first
@@ -6918,15 +6918,15 @@ void testResearchBatch()
     {
         auto onsets = [](float blend) {
             BrainParams p;
-            p.on = true; p.mode = BrainMode::Free; p.density = 5; p.rateSeconds = 2.0f;
-            p.holdMin = 60.0f; p.holdMax = 90.0f; p.low = 36; p.high = 79; p.blend = blend;
+            p.m_on = true; p.m_mode = BrainModeE::FREE; p.m_density = 5; p.m_rateSeconds = 2.0f;
+            p.m_holdMin = 60.0f; p.m_holdMax = 90.0f; p.m_low = 36; p.m_high = 79; p.m_blend = blend;
             ClusterBrain brain;
             brain.reset(0x1234567ull, 48);
             auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
             std::vector<double> t;
             double now = 0.0;
             for (int step = 0; step < 12000 && t.size() < 5; ++step) {          // twelve seconds at 1 ms
-                brain.update(0.001, p, -1, freqOf, [&](const BrainEvent& e) { if (e.type == BrainEvent::Type::NoteOn) t.push_back(now); });
+                brain.update(0.001, p, -1, freqOf, [&](const BrainEvent& e) { if (e.m_type == BrainEvent::TypeE::NOTE_ON) t.push_back(now); });
                 now += 0.001;
             }
             return t;
@@ -6950,12 +6950,12 @@ void testResearchBatch()
         auto engineWith = [&](int scale, float match, float inharm) {
             auto e = std::make_unique<Engine>();
             e->prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e->setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e->setParam(ParamId::BrainOn, 0.0f);
-            e->setParam(ParamId::Scale, static_cast<float>(scale));
-            e->setParam(ParamId::TuneMatch, match);
-            e->setParam(ParamId::Inharmonic, inharm);
-            e->setParam(ParamId::Air, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e->setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e->setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e->setParam(ParamIdE::SCALE, static_cast<float>(scale));
+            e->setParam(ParamIdE::TUNE_MATCH, match);
+            e->setParam(ParamIdE::INHARMONIC, inharm);
+            e->setParam(ParamIdE::AIR, 0.0f);
             e->reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 20; ++b) e->process(L.data(), R.data(), 256);
@@ -6986,10 +6986,10 @@ void testResearchBatch()
         {   // The point of it, measured: the scale's own intervals get smoother.
             auto roughOverScale = [&](const Engine& e, bool matched) {
                 BrainSpectrum sp;
-                sp.count = BrainSpectrum::kMax;
-                for (int h = 1; h <= sp.count; ++h) {
-                    sp.amp[h - 1] = std::pow(static_cast<double>(h), -1.0);
-                    sp.ratio[h - 1] = matched ? e.matchedPartialRatio(h) : static_cast<double>(h);
+                sp.m_count = BrainSpectrum::Max;
+                for (int h = 1; h <= sp.m_count; ++h) {
+                    sp.m_amp[h - 1] = std::pow(static_cast<double>(h), -1.0);
+                    sp.m_ratio[h - 1] = matched ? e.matchedPartialRatio(h) : static_cast<double>(h);
                 }
                 double sum = 0.0;
                 for (int d = 1; d < 12; ++d)
@@ -7021,10 +7021,10 @@ void testResearchBatch()
         auto leanSeen = [&](float amount) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::ArcHarmony, amount);
-            e.setParam(ParamId::ArcPeriod, 2.0f);            // the shortest arc, two minutes
-            e.setParam(ParamId::BrainOn, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::ARC_HARMONY, amount);
+            e.setParam(ParamIdE::ARC_PERIOD, 2.0f);            // the shortest arc, two minutes
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
             e.reset();
             std::vector<float> L(256), R(256);
             float biggest = 0.0f;
@@ -7047,14 +7047,14 @@ void testResearchBatch()
         auto inBand = [&](float guard, float& lowestFactor) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Scale, 1.0f);                  // JI major, so purity has somewhere to go
-            e.setParam(ParamId::TunePurity, 0.85f);
-            e.setParam(ParamId::TuneDrift, 1.0f);
-            e.setParam(ParamId::TuneDriftRate, 0.1f);
-            e.setParam(ParamId::TuneGuard, guard);
-            e.setParam(ParamId::Release, 0.2f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SCALE, 1.0f);                  // JI major, so purity has somewhere to go
+            e.setParam(ParamIdE::TUNE_PURITY, 0.85f);
+            e.setParam(ParamIdE::TUNE_DRIFT, 1.0f);
+            e.setParam(ParamIdE::TUNE_DRIFT_RATE, 0.1f);
+            e.setParam(ParamIdE::TUNE_GUARD, guard);
+            e.setParam(ParamIdE::RELEASE, 0.2f);
             e.reset();
             e.noteOn(57, 0.8f); e.noteOn(61, 0.8f);
             std::vector<float> L(256), R(256);
@@ -7087,24 +7087,24 @@ void testResearchBatch()
         // the ratios in -- there is no table anywhere in this path.
         auto build = [](float tilt, float bright, float oddEven, float inharm, FixedScale& out) {
             BrainSpectrum sp;
-            const int count = BrainSpectrum::kMax;
+            const int count = BrainSpectrum::Max;
             const float hc = 1.0f + bright * bright * 31.0f;
             const double B = static_cast<double>(inharm) * inharm * 0.02;
-            sp.count = count;
+            sp.m_count = count;
             for (int h = 1; h <= count; ++h) {
                 double a = std::pow(static_cast<double>(h), -static_cast<double>(tilt));
                 if (oddEven > 0.0f && (h % 2) == 0) a *= 1.0 - oddEven;
                 if (oddEven < 0.0f && (h % 2) == 1 && h > 1) a *= 1.0 + oddEven;
                 if (static_cast<float>(h) > hc) { const float x = std::min((static_cast<float>(h) - hc) / 6.0f, 1.0f); a *= 0.5 * (1.0 + std::cos(3.14159265358979 * x)); }
-                sp.amp[h - 1] = a;
-                sp.ratio[h - 1] = h * (B > 0.0 ? std::sqrt(1.0 + B * h * h) : 1.0);
+                sp.m_amp[h - 1] = a;
+                sp.m_ratio[h - 1] = h * (B > 0.0 ? std::sqrt(1.0 + B * h * h) : 1.0);
             }
             return makeTimbreScale(sp, out);
         };
         auto nearest = [](const FixedScale& s, double cents) {
             double best = 1e9;
-            for (int i = 0; i < s.count; ++i) {
-                const double c = 1200.0 * std::log2(s.ratios[i]);
+            for (int i = 0; i < s.m_count; ++i) {
+                const double c = 1200.0 * std::log2(s.m_ratios[i]);
                 if (std::fabs(c - cents) < std::fabs(best)) best = c - cents;
             }
             return best;
@@ -7112,11 +7112,11 @@ void testResearchBatch()
         FixedScale harm, stiff;
         CHECK(build(1.0f, 0.7f, 0.0f, 0.0f, harm), "a harmonic spectrum asks for a scale");
         CHECK(build(1.0f, 0.7f, 0.0f, 1.0f, stiff), "and so does a stiff string");
-        std::printf("  [probe] timbre scale, harmonic (%d degrees):", harm.count);
-        for (int i = 0; i < harm.count; ++i) std::printf(" %.0f", 1200.0 * std::log2(harm.ratios[i]));
+        std::printf("  [probe] timbre scale, harmonic (%d degrees):", harm.m_count);
+        for (int i = 0; i < harm.m_count; ++i) std::printf(" %.0f", 1200.0 * std::log2(harm.m_ratios[i]));
         std::printf("\n");
-        std::printf("  [probe] timbre scale, stiff string (%d degrees):", stiff.count);
-        for (int i = 0; i < stiff.count; ++i) std::printf(" %.0f", 1200.0 * std::log2(stiff.ratios[i]));
+        std::printf("  [probe] timbre scale, stiff string (%d degrees):", stiff.m_count);
+        for (int i = 0; i < stiff.m_count; ++i) std::printf(" %.0f", 1200.0 * std::log2(stiff.m_ratios[i]));
         std::printf("\n");
         // The just intervals, in cents: 5/4, 4/3, 3/2, 8/5, 5/3, 7/4.
         const double just[6] = { 386.31, 498.04, 701.96, 813.69, 884.36, 968.83 };
@@ -7124,9 +7124,9 @@ void testResearchBatch()
         for (double c : just) worst = std::max(worst, std::fabs(nearest(harm, c)));
         std::printf("  [probe] furthest of the six just intervals from a degree of the harmonic scale: %.1f cents\n", worst);
         CHECK(worst < 4.0, "for a harmonic spectrum the dissonance minima ARE just intonation");
-        CHECK(harm.ratios[0] == 1.0, "and the scale starts at the unison");
-        for (int i = 1; i < harm.count; ++i)
-            CHECK(harm.ratios[i] > harm.ratios[i - 1] && harm.ratios[i] < harm.period, "ascending, inside the octave");
+        CHECK(harm.m_ratios[0] == 1.0, "and the scale starts at the unison");
+        for (int i = 1; i < harm.m_count; ++i)
+            CHECK(harm.m_ratios[i] > harm.m_ratios[i - 1] && harm.m_ratios[i] < harm.m_period, "ascending, inside the octave");
         // A stiff string is a different instrument and asks for a different scale.
         int moved = 0;
         for (double c : just) if (std::fabs(nearest(stiff, c)) > 15.0) ++moved;
@@ -7139,25 +7139,25 @@ void testResearchBatch()
         {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::Scale, static_cast<float>(kTimbreScaleIndex));
-            e.setParam(ParamId::Inharmonic, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::SCALE, static_cast<float>(TimbreScaleIndex));
+            e.setParam(ParamIdE::INHARMONIC, 0.0f);
             e.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 200; ++b) e.process(L.data(), R.data(), 256);
             const FixedScale plain = e.scale();
-            e.setParam(ParamId::Inharmonic, 1.0f);
+            e.setParam(ParamIdE::INHARMONIC, 1.0f);
             for (int b = 0; b < 200; ++b) e.process(L.data(), R.data(), 256);
             const FixedScale stretched = e.scale();
             std::printf("  [probe] engine timbre scale: %d degrees plain, %d with Inharmonic up\n",
-                        plain.count, stretched.count);
+                        plain.m_count, stretched.m_count);
             double moved2 = 0.0;
-            const int n = std::min(plain.count, stretched.count);
+            const int n = std::min(plain.m_count, stretched.m_count);
             for (int i = 0; i < n; ++i)
-                moved2 = std::max(moved2, std::fabs(1200.0 * std::log2(plain.ratios[i] / stretched.ratios[i])));
+                moved2 = std::max(moved2, std::fabs(1200.0 * std::log2(plain.m_ratios[i] / stretched.m_ratios[i])));
             std::printf("  [probe] furthest degree moved when the spectrum changed: %.0f cents\n", moved2);
-            CHECK(plain.count >= 5, "the engine builds the timbre scale when it is chosen");
-            CHECK(std::fabs(1200.0 * std::log2(plain.ratios[std::min(5, plain.count - 1)]) - 702.0) < 6.0
+            CHECK(plain.m_count >= 5, "the engine builds the timbre scale when it is chosen");
+            CHECK(std::fabs(1200.0 * std::log2(plain.m_ratios[std::min(5, plain.m_count - 1)]) - 702.0) < 6.0
                   || moved2 > 20.0, "and it is the spectrum's own scale, not the fallback");
             CHECK(moved2 > 20.0, "turning Inharmonic up retunes the instrument");
 
@@ -7168,8 +7168,8 @@ void testResearchBatch()
             // notes and not one of them heard about it. The table test passed throughout.
             Engine tet;
             tet.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) tet.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            tet.setParam(ParamId::Scale, 0.0f);
+            for (int i = 0; i < NumParams; ++i) tet.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            tet.setParam(ParamIdE::SCALE, 0.0f);
             tet.reset();
             std::vector<float> tl(256), tr(256);
             for (int b = 0; b < 200; ++b) tet.process(tl.data(), tr.data(), 256);
@@ -7250,20 +7250,20 @@ void testResearchBatch()
             moves = 0;
             for (uint64_t seed = 0; seed < 6; ++seed) {
                 BrainParams p;
-                p.on = true;
-                p.mode = BrainMode::Chords;
-                p.density = 5;
-                p.rateSeconds = 2.0f;
-                p.low = 36; p.high = 79;
-                p.smooth = smooth;
+                p.m_on = true;
+                p.m_mode = BrainModeE::CHORDS;
+                p.m_density = 5;
+                p.m_rateSeconds = 2.0f;
+                p.m_low = 36; p.m_high = 79;
+                p.m_smooth = smooth;
                 ClusterBrain brain;
                 brain.reset(0x9E3779B9ull + seed * 7919ull, 48);
                 auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
                 int pending = -1;
                 for (int step = 0; step < 3000; ++step)
                     brain.update(0.1, p, -1, freqOf, [&](const BrainEvent& e) {
-                        if (e.type == BrainEvent::Type::NoteOff) { pending = e.note; return; }
-                        if (pending >= 0) { sum += std::fabs(static_cast<double>(e.note - pending)); ++moves; pending = -1; }
+                        if (e.m_type == BrainEvent::TypeE::NOTE_OFF) { pending = e.m_note; return; }
+                        if (pending >= 0) { sum += std::fabs(static_cast<double>(e.m_note - pending)); ++moves; pending = -1; }
                     });
             }
             mean = moves > 0 ? sum / moves : 0.0;
@@ -7279,14 +7279,14 @@ void testResearchBatch()
         // And Even, on the chords the conductor actually settles on.
         auto spread = [](float even, float harmonic) {
             BrainParams p;
-            p.on = true;
-            p.mode = BrainMode::Free;
-            p.density = 5;
-            p.rateSeconds = 3.0f;
-            p.holdMin = 20.0f; p.holdMax = 60.0f;
-            p.low = 36; p.high = 79;
-            p.even = even;
-            p.harmonic = harmonic;
+            p.m_on = true;
+            p.m_mode = BrainModeE::FREE;
+            p.m_density = 5;
+            p.m_rateSeconds = 3.0f;
+            p.m_holdMin = 20.0f; p.m_holdMax = 60.0f;
+            p.m_low = 36; p.m_high = 79;
+            p.m_even = even;
+            p.m_harmonic = harmonic;
             ClusterBrain brain;
             brain.reset(0xC2B2AE35ull, 48);
             auto freqOf = [](int n) { return 440.0 * std::pow(2.0, (n - 69) / 12.0); };
@@ -7319,37 +7319,37 @@ void testResearchBatch()
         auto named = [](const KeyEstimate& k) {
             static const char* n[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
             static char buf[16];
-            if (k.key < 0) { std::snprintf(buf, sizeof(buf), "none"); return static_cast<const char*>(buf); }
+            if (k.m_key < 0) { std::snprintf(buf, sizeof(buf), "none"); return static_cast<const char*>(buf); }
             std::snprintf(buf, sizeof(buf), "%s %s", n[k.tonic()], k.minor() ? "minor" : "major");
             return static_cast<const char*>(buf);
         };
         {   // A plain C major scale, every degree sounding equally.
             float w[12] = { 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1 };
             const KeyEstimate k = findKey(w);
-            std::printf("  [probe] key of a C major scale: %s (r %.2f)\n", named(k), k.confidence);
-            CHECK(k.key == 0, "a C major scale is found to be C major");
-            CHECK(k.confidence > 0.5f, "and the finder is confident about it");
+            std::printf("  [probe] key of a C major scale: %s (r %.2f)\n", named(k), k.m_confidence);
+            CHECK(k.m_key == 0, "a C major scale is found to be C major");
+            CHECK(k.m_confidence > 0.5f, "and the finder is confident about it");
         }
         {   // The same seven notes, but A and E held far longer: the relative minor.
             float w[12] = { 1, 0, 1, 0, 1, 1, 0, 2, 0, 4, 0, 1 };
             const KeyEstimate k = findKey(w);
-            std::printf("  [probe] key with A and E held: %s (r %.2f)\n", named(k), k.confidence);
-            CHECK(k.key == 12 + 9, "the same notes with A held are found to be A minor");
+            std::printf("  [probe] key with A and E held: %s (r %.2f)\n", named(k), k.m_confidence);
+            CHECK(k.m_key == 12 + 9, "the same notes with A held are found to be A minor");
         }
         {   // Twelve notes in perfect balance are not a key, and the finder must say so rather
             // than picking one at random.
             float w[12] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
             const KeyEstimate k = findKey(w);
-            std::printf("  [probe] key of a full chromatic: %s (r %.2f)\n", named(k), k.confidence);
-            CHECK(k.key < 0, "a perfectly balanced chromatic is no key at all");
+            std::printf("  [probe] key of a full chromatic: %s (r %.2f)\n", named(k), k.m_confidence);
+            CHECK(k.m_key < 0, "a perfectly balanced chromatic is no key at all");
             float z[12] = {};
-            CHECK(findKey(z).key < 0, "and silence is no key either");
+            CHECK(findKey(z).m_key < 0, "and silence is no key either");
         }
         {   // A cluster: five neighbouring semitones. A key may be found, but weakly.
             float w[12] = { 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0 };
             const KeyEstimate k = findKey(w);
-            std::printf("  [probe] key of a five-semitone cluster: %s (r %.2f)\n", named(k), k.confidence);
-            CHECK(k.confidence < 0.55f, "a cluster is at best a weak key, and says so");
+            std::printf("  [probe] key of a five-semitone cluster: %s (r %.2f)\n", named(k), k.m_confidence);
+            CHECK(k.m_confidence < 0.55f, "a cluster is at best a weak key, and says so");
         }
 
         // And in the conductor: with Key up, what it plays must fit the key it has found better
@@ -7357,17 +7357,17 @@ void testResearchBatch()
         auto run = [&](float keyAmount, int& classes, float& conf) {
             Engine en;
             en.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) en.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            en.setParam(ParamId::BrainOn, 1.0f);
-            en.setParam(ParamId::BrainKey, keyAmount);
-            en.setParam(ParamId::BrainRate, 2.0f);
-            en.setParam(ParamId::BrainDensity, 5.0f);
-            en.setParam(ParamId::BrainConsonance, 0.3f);   // loose, so the key has something to do
+            for (int i = 0; i < NumParams; ++i) en.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            en.setParam(ParamIdE::BRAIN_ON, 1.0f);
+            en.setParam(ParamIdE::BRAIN_KEY, keyAmount);
+            en.setParam(ParamIdE::BRAIN_RATE, 2.0f);
+            en.setParam(ParamIdE::BRAIN_DENSITY, 5.0f);
+            en.setParam(ParamIdE::BRAIN_CONSONANCE, 0.3f);   // loose, so the key has something to do
             en.reset();
             std::vector<float> L(256), R(256);
             for (int b = 0; b < 34000; ++b) en.process(L.data(), R.data(), 256);   // three minutes
             const KeyEstimate k = en.brainKey();
-            conf = k.confidence;
+            conf = k.m_confidence;
             bool on[128] = {};
             en.soundingNotes(on);
             bool seen[12] = {};
@@ -7396,15 +7396,15 @@ void testResearchBatch()
         // having beside LUFS: noise spread over many bands is louder than a tone of the same
         // energy, and no energy meter will ever say so.
         auto tone = [](float hz, float spl) {
-            float bands[ZwickerLoudness::kBands];
-            const float centres[ZwickerLoudness::kBands] = {
+            float bands[ZwickerLoudness::Bands];
+            const float centres[ZwickerLoudness::Bands] = {
                 25.0f, 31.5f, 40.0f, 50.0f, 63.0f, 80.0f, 100.0f, 125.0f, 160.0f, 200.0f,
                 250.0f, 315.0f, 400.0f, 500.0f, 630.0f, 800.0f, 1000.0f, 1250.0f, 1600.0f, 2000.0f,
                 2500.0f, 3150.0f, 4000.0f, 5000.0f, 6300.0f, 8000.0f, 10000.0f, 12500.0f };
             int best = 0; float d = 1e9f;
-            for (int b = 0; b < ZwickerLoudness::kBands; ++b)
+            for (int b = 0; b < ZwickerLoudness::Bands; ++b)
                 if (std::fabs(centres[b] - hz) < d) { d = std::fabs(centres[b] - hz); best = b; }
-            for (int b = 0; b < ZwickerLoudness::kBands; ++b) bands[b] = -100.0f;
+            for (int b = 0; b < ZwickerLoudness::Bands; ++b) bands[b] = -100.0f;
             bands[best] = spl;
             return ZwickerLoudness::fromBandLevels(bands);
         };
@@ -7421,8 +7421,8 @@ void testResearchBatch()
         CHECK(tone(1000.0f, -10.0f) < 0.01f, "nothing under the threshold in quiet is heard");
         // Bandwidth: the same total energy in one band and spread over ten.
         {
-            float narrow[ZwickerLoudness::kBands], wide[ZwickerLoudness::kBands];
-            for (int b = 0; b < ZwickerLoudness::kBands; ++b) { narrow[b] = -100.0f; wide[b] = -100.0f; }
+            float narrow[ZwickerLoudness::Bands], wide[ZwickerLoudness::Bands];
+            for (int b = 0; b < ZwickerLoudness::Bands; ++b) { narrow[b] = -100.0f; wide[b] = -100.0f; }
             narrow[16] = 60.0f;                                  // all of it at 1 kHz
             for (int b = 12; b < 22; ++b) wide[b] = 50.0f;        // the same energy over ten bands
             const float sn = ZwickerLoudness::fromBandLevels(narrow), sw = ZwickerLoudness::fromBandLevels(wide);
@@ -7442,16 +7442,16 @@ void testResearchBatch()
             for (int off = 0; off + 256 <= sr2; off += 256) m.process(L.data() + off, R.data() + off, 256);
             const LoudnessReading r = m.read();
             std::printf("  [probe] meter: %.2f sone now, %.2f max, %.2f N5, %.1f LUFS short\n",
-                        r.sones, r.sonesMax, r.sonesN5, r.shortTerm);
-            CHECK(r.sones > 0.7f && r.sones < 1.5f, "the meter itself reads one sone for that tone");
-            CHECK(r.sonesMax >= r.sones - 0.01f, "the maximum is not below the current value");
+                        r.m_sones, r.m_sonesMax, r.m_sonesN5, r.m_shortTerm);
+            CHECK(r.m_sones > 0.7f && r.m_sones < 1.5f, "the meter itself reads one sone for that tone");
+            CHECK(r.m_sonesMax >= r.m_sones - 0.01f, "the maximum is not below the current value");
         }
         {   // Silence is nothing, and a reset clears it.
             LoudnessMeter m;
             m.prepare(48000.0);
             std::vector<float> z(48000, 0.0f);
             for (int off = 0; off + 256 <= 48000; off += 256) m.process(z.data() + off, z.data() + off, 256);
-            CHECK(m.read().sones < 0.001f, "silence is nothing at all");
+            CHECK(m.read().m_sones < 0.001f, "silence is nothing at all");
         }
     }
 
@@ -7477,36 +7477,36 @@ void testResearchBatch()
         }
         {   // The model itself: measured on the clip, before any engine touches it.
             Texture tex;
-            tex.mono = clip;
-            tex.sampleRate = sr;
+            tex.m_mono = clip;
+            tex.m_sampleRate = sr;
             tex.measure();
-            CHECK(!tex.spectral.empty(), "a clip long enough is measured into a band model");
-            const SpectralModel& m = tex.spectral;
+            CHECK(!tex.m_spectral.empty(), "a clip long enough is measured into a band model");
+            const SpectralModel& m = tex.m_spectral;
             // The tonal half must read as tonal and the noisy half as noise, in the bands that
             // carry the energy. This is the one claim the whole type rests on.
             auto meanTone = [&](int frame) {
                 double num = 0.0, den = 0.0;
-                for (int b = 0; b < SpectralModel::kBands; ++b) {
-                    const size_t i = static_cast<size_t>(frame) * SpectralModel::kBands + static_cast<size_t>(b);
-                    num += static_cast<double>(m.tone[i]) * m.amp[i];
-                    den += m.amp[i];
+                for (int b = 0; b < SpectralModel::Bands; ++b) {
+                    const size_t i = static_cast<size_t>(frame) * SpectralModel::Bands + static_cast<size_t>(b);
+                    num += static_cast<double>(m.m_tone[i]) * m.m_amp[i];
+                    den += m.m_amp[i];
                 }
                 return den > 0.0 ? num / den : 0.0;
             };
-            const double tonal = meanTone(m.frames / 4), noisy = meanTone(m.frames * 3 / 4);
+            const double tonal = meanTone(m.m_frames / 4), noisy = meanTone(m.m_frames * 3 / 4);
             std::printf("  [probe] model %d frames, hop %.1f ms, tone tonal %.2f noisy %.2f\n",
-                        m.frames, m.hop * 1000.0f, tonal, noisy);
+                        m.m_frames, m.m_hop * 1000.0f, tonal, noisy);
             CHECK(tonal > 0.5, "a tone reads as tonal");
             CHECK(noisy < 0.3, "and noise reads as noise");
             CHECK(tonal > noisy + 0.3, "with the two well apart");
             // The band that holds the 300 Hz tone must say 300 Hz, not the centre of its band.
             int best = 0; float peak = 0.0f;
-            for (int b = 0; b < SpectralModel::kBands; ++b) {
-                const size_t i = static_cast<size_t>(m.frames / 4) * SpectralModel::kBands + static_cast<size_t>(b);
-                if (m.amp[i] > peak) { peak = m.amp[i]; best = b; }
+            for (int b = 0; b < SpectralModel::Bands; ++b) {
+                const size_t i = static_cast<size_t>(m.m_frames / 4) * SpectralModel::Bands + static_cast<size_t>(b);
+                if (m.m_amp[i] > peak) { peak = m.m_amp[i]; best = b; }
             }
-            const float found = m.freq[static_cast<size_t>(m.frames / 4) * SpectralModel::kBands + static_cast<size_t>(best)];
-            std::printf("  [probe] loudest band %d centre %.0f Hz, partial found at %.1f Hz\n", best, m.centre[best], found);
+            const float found = m.m_freq[static_cast<size_t>(m.m_frames / 4) * SpectralModel::Bands + static_cast<size_t>(best)];
+            std::printf("  [probe] loudest band %d centre %.0f Hz, partial found at %.1f Hz\n", best, m.m_centre[best], found);
             CHECK(std::fabs(found - 300.0f) < 8.0f, "and the partial is placed inside its band, not at the band's centre");
         }
         {   // Played back: it must sound, at the level of every other type, and Rate and the note
@@ -7514,19 +7514,19 @@ void testResearchBatch()
             auto render = [&](float rate, float breath, int note, std::vector<float>& cap) {
                 Engine e;
                 e.prepare(sr, 256);
-                for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
+                for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
                 e.setTexture(clip.data(), clipLen, sr, 300.0, false);
-                e.setParam(ParamId::BrainOn, 0.0f);
-                e.setParam(ParamId::Src1Type, static_cast<float>(SourceType::Spectral));
-                e.setParam(ParamId::Src1Follow, 1.0f);
-                e.setParam(ParamId::Src1SpecRate, rate);
-                e.setParam(ParamId::Src1SpecBreath, breath);
-                e.setParam(ParamId::Src1Position, 0.1f);
-                e.setParam(ParamId::Src1PosDrift, 0.0f);
-                e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::FilterOn, 0.0f);
-                e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-                e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-                e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.5f);
+                e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+                e.setParam(ParamIdE::SRC1_TYPE, static_cast<float>(SourceTypeE::SPECTRAL));
+                e.setParam(ParamIdE::SRC1_FOLLOW, 1.0f);
+                e.setParam(ParamIdE::SRC1_SPEC_RATE, rate);
+                e.setParam(ParamIdE::SRC1_SPEC_BREATH, breath);
+                e.setParam(ParamIdE::SRC1_POSITION, 0.1f);
+                e.setParam(ParamIdE::SRC1_POS_DRIFT, 0.0f);
+                e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::FILTER_ON, 0.0f);
+                e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+                e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+                e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.5f);
                 e.reset();
                 e.noteOn(note, 0.9f);
                 std::vector<float> L(256), R(256);
@@ -7602,17 +7602,17 @@ void testResearchBatch()
         auto capture = [&](float type, std::vector<float>& cap, double& peak, int note = 57, float bright = -1.0f) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Src1Type, type);
-            e.setParam(ParamId::Src1BowForce, 0.5f);
-            e.setParam(ParamId::Src1BowSpeed, 0.4f);
-            if (bright >= 0.0f) e.setParam(ParamId::Brightness, bright);   // Source 1's Bright is the bank's
-            e.setParam(ParamId::Air, 0.0f);          // the noise band would pin every measurement
-            e.setParam(ParamId::FilterOn, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.5f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, type);
+            e.setParam(ParamIdE::SRC1_BOW_FORCE, 0.5f);
+            e.setParam(ParamIdE::SRC1_BOW_SPEED, 0.4f);
+            if (bright >= 0.0f) e.setParam(ParamIdE::BRIGHTNESS, bright);   // Source 1's Bright is the bank's
+            e.setParam(ParamIdE::AIR, 0.0f);          // the noise band would pin every measurement
+            e.setParam(ParamIdE::FILTER_ON, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.5f);
             e.reset();
             e.noteOn(note, 0.9f);                    // 57 is A3, 220 Hz
             std::vector<float> L(256), R(256);
@@ -7687,16 +7687,16 @@ void testResearchBatch()
         {
             Engine ask;                       // what the instrument itself calls these notes
             ask.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) ask.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            const struct { int note; const char* name; } notes[] = { { 57, "A3" }, { 72, "C5" }, { 84, "C6" } };
+            for (int i = 0; i < NumParams; ++i) ask.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            const struct { int m_note; const char* m_name; } notes[] = { { 57, "A3" }, { 72, "C5" }, { 84, "C6" } };
             double worst = 0.0;
             for (const auto& nt : notes) {
                 std::vector<float> v; double pk = 0.0;
-                capture(7.0f, v, pk, nt.note);
-                const double want = ask.frequencyOf(nt.note);
+                capture(7.0f, v, pk, nt.m_note);
+                const double want = ask.frequencyOf(nt.m_note);
                 const double off = centsOff(v, want);
                 std::printf("  [probe] bow %s: asked %.2f Hz, sounded %.2f Hz, %+.1f cents\n",
-                            nt.name, want, want * std::pow(2.0, off / 1200.0), off);
+                            nt.m_name, want, want * std::pow(2.0, off / 1200.0), off);
                 worst = std::max(worst, std::fabs(off));
             }
             CHECK(worst < 12.0, "and in tune across the register, not only where the rounding was kind");
@@ -7712,19 +7712,19 @@ void testResearchBatch()
         // does not move absorbs. Bowed again at zero speed the note has to die, not ring on.
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Src1Type, 7.0f);
-        e.setParam(ParamId::Src1BowForce, 0.5f); e.setParam(ParamId::Src1BowSpeed, 0.4f);
-        e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::FilterOn, 0.0f);
-        e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-        e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-        e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.5f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::SRC1_TYPE, 7.0f);
+        e.setParam(ParamIdE::SRC1_BOW_FORCE, 0.5f); e.setParam(ParamIdE::SRC1_BOW_SPEED, 0.4f);
+        e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::FILTER_ON, 0.0f);
+        e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+        e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.5f);
         e.reset();
         e.noteOn(57, 0.9f);
         std::vector<float> L(256), R(256);
         for (int b = 0; b < 400; ++b) e.process(L.data(), R.data(), 256);
-        e.setParam(ParamId::Src1BowSpeed, 0.0f);
+        e.setParam(ParamIdE::SRC1_BOW_SPEED, 0.0f);
         for (int b = 0; b < 200; ++b) e.process(L.data(), R.data(), 256);
         double sq2 = 0.0;
         for (int b = 0; b < 100; ++b) { e.process(L.data(), R.data(), 256); for (int i = 0; i < 256; ++i) sq2 += static_cast<double>(L[static_cast<size_t>(i)]) * L[static_cast<size_t>(i)]; }
@@ -7844,7 +7844,7 @@ void testStereoInputs()
 void testCycleTable()
 {
     const double pi = 3.14159265358979323846;
-    const int L = CycleTable::kLen;
+    const int L = CycleTable::Len;
     const size_t SL = static_cast<size_t>(L);
     {   // a frame comes back as the wave it was -- phases kept, DC dropped, at the target level --
         // and a poorer copy is the same wave without its upper harmonics
@@ -7854,10 +7854,10 @@ void testCycleTable()
             frame[static_cast<size_t>(n)] = static_cast<float>(0.5 * std::cos(2.0 * pi * 3.0 * t + 0.7) + 0.25 * std::sin(2.0 * pi * 17.0 * t) + 0.1);
         }
         CycleTable t;
-        CHECK(t.build(frame.data(), L, L) && t.frames == 1, "one 2048-sample cycle builds a table of one frame");
-        const double gain = CycleTable::kTargetRms / std::sqrt(0.5 * (0.5 * 0.5 + 0.25 * 0.25));
+        CHECK(t.build(frame.data(), L, L) && t.m_frames == 1, "one 2048-sample cycle builds a table of one frame");
+        const double gain = CycleTable::TargetRms / std::sqrt(0.5 * (0.5 * 0.5 + 0.25 * 0.25));
         double worst = 1.0, worst5 = 1.0;
-        if (t.frames == 1) {
+        if (t.m_frames == 1) {
             worst = worst5 = 0.0;
             const float* c0 = t.cycle(0, 0);
             const int S = CycleTable::levelLength(0);   // stored at twice the file's resolution
@@ -7884,7 +7884,7 @@ void testCycleTable()
         CHECK(cycleLevelFor(94.0, 48000.0, 1) == 2, "a copy that would alias is left at once");
         CHECK(cycleLevelFor(90.0, 48000.0, 2) == 2, "just back under the boundary it stays, inside the margin");
         CHECK(cycleLevelFor(80.0, 48000.0, 2) == 1, "well under it the richer copy returns");
-        CHECK(cycleLevelFor(30000.0, 48000.0, -1) == CycleTable::kLevels - 1, "above everything, the last copy");
+        CHECK(cycleLevelFor(30000.0, 48000.0, -1) == CycleTable::Levels - 1, "above everything, the last copy");
     }
     {   // how long a cycle is: in files that do not say, and in files that do
         std::vector<float> bank(64 * 256), frames8(8 * SL), single(600);
@@ -7904,10 +7904,10 @@ void testCycleTable()
         CHECK(detectCycleLength(frames8.data(), static_cast<int>(frames8.size())) == L, "eight real 2048-sample frames stay frames of 2048");
         CHECK(detectCycleLength(single.data(), 600) == 600, "a file of 600 samples is one cycle of 600");
         CycleTable one, morph;
-        CHECK(one.build(single.data(), 600, 600) && one.frames == 1, "a cycle of any length builds");
-        const double g = CycleTable::kTargetRms / std::sqrt(0.5 * (1.0 + 0.04));
-        CHECK(one.frames == 1 && std::fabs(one.sample(0, 0, 0.25) - g * 1.2) < 1.0e-3, "a 600-sample cycle is kept in 2048 samples without changing its shape");
-        CHECK(morph.build(bank.data(), static_cast<int>(bank.size()), 256) && morph.frames == 64, "the bank builds its 64 frames");
+        CHECK(one.build(single.data(), 600, 600) && one.m_frames == 1, "a cycle of any length builds");
+        const double g = CycleTable::TargetRms / std::sqrt(0.5 * (1.0 + 0.04));
+        CHECK(one.m_frames == 1 && std::fabs(one.sample(0, 0, 0.25) - g * 1.2) < 1.0e-3, "a 600-sample cycle is kept in 2048 samples without changing its shape");
+        CHECK(morph.build(bank.data(), static_cast<int>(bank.size()), 256) && morph.m_frames == 64, "the bank builds its 64 frames");
 
         const auto dir = std::filesystem::temp_directory_path() / "ambient_selftest_cycles";
         std::error_code ec;
@@ -7969,7 +7969,7 @@ void testCycleTable()
             auto set = [&](const char* key, const char* value) {
                 const ParamDesc* d = findParam(key);
                 if (d == nullptr) { CHECK(false, key); return; }
-                e.setParam(d->id, paramValueFromText(*d, value));
+                e.setParam(d->m_id, paramValueFromText(*d, value));
             };
             const std::pair<const char*, const char*> quiet[] = {
                 { "brain_on", "off" }, { "src1_table", "User" }, { "src1_pos_drift", "0" }, { "osc_level", "0.9" },
@@ -7979,7 +7979,7 @@ void testCycleTable()
                 { "depth", "0" }, { "pan_drift", "0" }, { "width", "1" }, { "side_air", "0" }, { "phase_width", "0" } };
             for (const auto& kv : quiet) set(kv.first, kv.second);
             set("src1_type", type);
-            e.setParam(ParamId::Src1Position, pos);
+            e.setParam(ParamIdE::SRC1_POSITION, pos);
             e.noteOn(note, 0.9f);
             mono.clear();
             std::vector<float> l(256), r(256);
@@ -8042,10 +8042,10 @@ void testCycleTable()
         slot.prepare(48000.0, 11);
         slot.noteOn(true);
         SlotParams sp;
-        sp.type = SourceType::Wavetable; sp.level = 1.0f; sp.table = 0; sp.position = 0.5f; sp.positionDrift = 0.0f;
-        sp.unison = 3; sp.uniDetune = 12.0f; sp.uniWidth = 1.0f;
+        sp.m_type = SourceTypeE::WAVETABLE; sp.m_level = 1.0f; sp.m_table = 0; sp.m_position = 0.5f; sp.m_positionDrift = 0.0f;
+        sp.m_unison = 3; sp.m_uniDetune = 12.0f; sp.m_uniWidth = 1.0f;
         const CycleTable& classic = builtinCycleTable(0);
-        CHECK(classic.frames == 5, "the Classic table is sine, triangle, saw, square and pulse");
+        CHECK(classic.m_frames == 5, "the Classic table is sine, triangle, saw, square and pulse");
         double ll = 0.0, rr = 0.0, lr = 0.0;
         float bl[64], br[64];
         for (int blk = 0; blk < 1500; ++blk) {
@@ -8122,26 +8122,26 @@ static void testNearLayer()
         return 1200.0 * std::log2((sr / (static_cast<double>(at) + off)) / wantHz);
     };
     // One slot of one type, alone, dry: the last `keepBlocks` blocks of the left channel.
-    struct Knobs { float force = 0.5f, speed = 0.4f, pos = 0.1f, posDrift = 0.3f, bright = 0.6f, density = 4.0f; int noise = 1; bool follow = false; };
+    struct Knobs { float m_force = 0.5f, m_speed = 0.4f, m_pos = 0.1f, m_posDrift = 0.3f, m_bright = 0.6f, m_density = 4.0f; int m_noise = 1; bool m_follow = false; };
     auto capture = [&](float type, const Knobs& k, std::vector<float>& cap, double& peak, int note = 57, int blocks = 800, int keepFrom = 400) {
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::Src1Type, type);
-        e.setParam(ParamId::Src1BowForce, k.force);
-        e.setParam(ParamId::Src1BowSpeed, k.speed);
-        e.setParam(ParamId::Src1Position, k.pos);
-        e.setParam(ParamId::Src1PosDrift, k.posDrift);
-        e.setParam(ParamId::Brightness, k.bright);
-        e.setParam(ParamId::Src1Density, k.density);
-        e.setParam(ParamId::Src1Noise, static_cast<float>(k.noise));
-        e.setParam(ParamId::Src1Follow, k.follow ? 1.0f : 0.0f);
-        e.setParam(ParamId::Air, 0.0f);
-        e.setParam(ParamId::FilterOn, 0.0f);
-        e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-        e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-        e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.5f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::SRC1_TYPE, type);
+        e.setParam(ParamIdE::SRC1_BOW_FORCE, k.m_force);
+        e.setParam(ParamIdE::SRC1_BOW_SPEED, k.m_speed);
+        e.setParam(ParamIdE::SRC1_POSITION, k.m_pos);
+        e.setParam(ParamIdE::SRC1_POS_DRIFT, k.m_posDrift);
+        e.setParam(ParamIdE::BRIGHTNESS, k.m_bright);
+        e.setParam(ParamIdE::SRC1_DENSITY, k.m_density);
+        e.setParam(ParamIdE::SRC1_NOISE, static_cast<float>(k.m_noise));
+        e.setParam(ParamIdE::SRC1_FOLLOW, k.m_follow ? 1.0f : 0.0f);
+        e.setParam(ParamIdE::AIR, 0.0f);
+        e.setParam(ParamIdE::FILTER_ON, 0.0f);
+        e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+        e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+        e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.5f);
         e.reset();
         e.noteOn(note, 0.9f);
         std::vector<float> L(256), R(256);
@@ -8190,7 +8190,7 @@ static void testNearLayer()
     };
     Engine ask;
     ask.prepare(sr, 256);
-    for (int i = 0; i < kNumParams; ++i) ask.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
+    for (int i = 0; i < NumParams; ++i) ask.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
 
     std::vector<float> ref; double refPeak = 0.0;
     capture(1.0f, Knobs{}, ref, refPeak);   // the harmonic table, the level every type is set by
@@ -8199,7 +8199,7 @@ static void testNearLayer()
     // ---- the flute: sounds, in tune across the register, overblows to its octave
     {
         std::vector<float> cap; double peak = 0.0;
-        Knobs k; k.force = 0.55f; k.speed = 0.35f; k.pos = 0.1f; k.posDrift = 0.0f; k.bright = 0.6f;
+        Knobs k; k.m_force = 0.55f; k.m_speed = 0.35f; k.m_pos = 0.1f; k.m_posDrift = 0.0f; k.m_bright = 0.6f;
         capture(10.0f, k, cap, peak);
         const double rms = rmsOf(cap);
         const double levelDb = 20.0 * std::log10((rms + 1e-12) / (refRms + 1e-12));
@@ -8207,14 +8207,14 @@ static void testNearLayer()
         CHECK(rms > 0.001, "the flute sounds");
         CHECK(peak < 1.5 && std::isfinite(peak), "and stays bounded");
         CHECK(std::fabs(levelDb) < 8.0, "and within a few decibels of a table at the same Level");
-        const struct { int note; const char* name; } notes[] = { { 57, "A3" }, { 72, "C5" }, { 84, "C6" } };
+        const struct { int m_note; const char* m_name; } notes[] = { { 57, "A3" }, { 72, "C5" }, { 84, "C6" } };
         double worst = 0.0;
         for (const auto& nt : notes) {
             std::vector<float> v; double pk = 0.0;
-            capture(10.0f, k, v, pk, nt.note);
-            const double want = ask.frequencyOf(nt.note);
+            capture(10.0f, k, v, pk, nt.m_note);
+            const double want = ask.frequencyOf(nt.m_note);
             const double off = centsOff(v, want);
-            std::printf("  [probe] flute %s: asked %.2f Hz, sounded %.2f Hz, %+.1f cents\n", nt.name, want, want * std::pow(2.0, off / 1200.0), off);
+            std::printf("  [probe] flute %s: asked %.2f Hz, sounded %.2f Hz, %+.1f cents\n", nt.m_name, want, want * std::pow(2.0, off / 1200.0), off);
             worst = std::max(worst, std::fabs(off));
         }
         CHECK(worst < 12.0, "the flute is in tune across the register");
@@ -8228,8 +8228,8 @@ static void testNearLayer()
                 slot.prepare(sr, 1);
                 slot.noteOn(true);
                 SlotParams sp;
-                sp.type = SourceType::Flute; sp.level = 1.0f; sp.bowForce = 0.55f; sp.bowSpeed = 0.35f;
-                sp.position = 0.1f; sp.positionDrift = 0.0f; sp.bright = 0.6f;
+                sp.m_type = SourceTypeE::FLUTE; sp.m_level = 1.0f; sp.m_bowForce = 0.55f; sp.m_bowSpeed = 0.35f;
+                sp.m_position = 0.1f; sp.m_positionDrift = 0.0f; sp.m_bright = 0.6f;
                 const double hz = sr / period;
                 std::vector<float> l(64), r(64), v;
                 for (int b = 0; b < 1200; ++b) {
@@ -8242,7 +8242,7 @@ static void testNearLayer()
             std::printf("  [probe] flute over a sweep of 60.00 .. 61.00 samples of period: worst %.1f cents\n", worstSweep);
             CHECK(worstSweep < 8.0, "the pipe's fractional delay is kept between the samples");
         }
-        Knobs over = k; over.pos = 1.0f; over.force = 0.7f;
+        Knobs over = k; over.m_pos = 1.0f; over.m_force = 0.7f;
         std::vector<float> v; double pk = 0.0;
         capture(10.0f, over, v, pk, 57);
         const double off = centsOff(v, ask.frequencyOf(57) * 2.0);
@@ -8252,7 +8252,7 @@ static void testNearLayer()
     // ---- the bowl: builds, rings at the note, beats
     {
         std::vector<float> cap; double peak = 0.0;
-        Knobs k; k.force = 0.5f; k.speed = 0.45f; k.pos = 0.1f; k.posDrift = 0.5f; k.bright = 0.6f;
+        Knobs k; k.m_force = 0.5f; k.m_speed = 0.45f; k.m_pos = 0.1f; k.m_posDrift = 0.5f; k.m_bright = 0.6f;
         capture(12.0f, k, cap, peak, 57, 1200, 600);
         const double rms = rmsOf(cap);
         const double levelDb = 20.0 * std::log10((rms + 1e-12) / (refRms + 1e-12));
@@ -8266,21 +8266,21 @@ static void testNearLayer()
         {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Src1Type, 12.0f);
-            e.setParam(ParamId::Src1BowForce, k.force); e.setParam(ParamId::Src1BowSpeed, k.speed);
-            e.setParam(ParamId::Src1Position, k.pos); e.setParam(ParamId::Src1PosDrift, k.posDrift);
-            e.setParam(ParamId::Brightness, k.bright);
-            e.setParam(ParamId::Air, 0.0f); e.setParam(ParamId::FilterOn, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.5f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, 12.0f);
+            e.setParam(ParamIdE::SRC1_BOW_FORCE, k.m_force); e.setParam(ParamIdE::SRC1_BOW_SPEED, k.m_speed);
+            e.setParam(ParamIdE::SRC1_POSITION, k.m_pos); e.setParam(ParamIdE::SRC1_POS_DRIFT, k.m_posDrift);
+            e.setParam(ParamIdE::BRIGHTNESS, k.m_bright);
+            e.setParam(ParamIdE::AIR, 0.0f); e.setParam(ParamIdE::FILTER_ON, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.5f);
             e.reset();
             e.noteOn(57, 0.9f);
             std::vector<float> L(256), R(256), ring;
             for (int b = 0; b < 1200; ++b) {
-                if (b == 560) e.setParam(ParamId::Src1BowSpeed, 0.0f);   // the stick lifted
+                if (b == 560) e.setParam(ParamIdE::SRC1_BOW_SPEED, 0.0f);   // the stick lifted
                 e.process(L.data(), R.data(), 256);
                 if (b >= 620) ring.insert(ring.end(), L.begin(), L.end());
             }
@@ -8309,7 +8309,7 @@ static void testNearLayer()
     // ---- the ice: sounds and stays bounded
     {
         std::vector<float> cap; double peak = 0.0;
-        Knobs k; k.force = 0.7f; k.speed = 0.25f; k.pos = 0.2f; k.posDrift = 0.3f; k.bright = 0.4f;
+        Knobs k; k.m_force = 0.7f; k.m_speed = 0.25f; k.m_pos = 0.2f; k.m_posDrift = 0.3f; k.m_bright = 0.4f;
         capture(13.0f, k, cap, peak, 45);
         const double rms = rmsOf(cap);
         std::printf("  [probe] ice rms %.4f peak %.3f\n", rms, peak);
@@ -8319,9 +8319,9 @@ static void testNearLayer()
     // ---- the murmur: syllables at a syllable's pace, and a radio that is a band
     {
         std::vector<float> dry, radio; double p1 = 0.0, p2 = 0.0;
-        Knobs k; k.force = 0.5f; k.speed = 0.5f; k.pos = 0.0f; k.posDrift = 0.4f; k.bright = 0.5f;
+        Knobs k; k.m_force = 0.5f; k.m_speed = 0.5f; k.m_pos = 0.0f; k.m_posDrift = 0.4f; k.m_bright = 0.5f;
         capture(11.0f, k, dry, p1, 45, 1200, 200);
-        k.pos = 1.0f;
+        k.m_pos = 1.0f;
         capture(11.0f, k, radio, p2, 45, 1200, 200);
         const double rms = rmsOf(dry);
         const double levelDb = 20.0 * std::log10((rms + 1e-12) / (refRms + 1e-12));
@@ -8338,7 +8338,7 @@ static void testNearLayer()
     // ---- the drops: drops at Density, each a rising bubble
     {
         std::vector<float> cap; double peak = 0.0;
-        Knobs k; k.density = 4.0f; k.pos = 0.5f; k.bright = 0.5f; k.posDrift = 0.4f;
+        Knobs k; k.m_density = 4.0f; k.m_pos = 0.5f; k.m_bright = 0.5f; k.m_posDrift = 0.4f;
         capture(14.0f, k, cap, peak, 60, 1200, 200);
         const double rms = rmsOf(cap);
         const int drops = peaksOf(envelope(cap), 0.2);
@@ -8350,7 +8350,7 @@ static void testNearLayer()
     // ---- the cicadas: a noise colour that lives in the top
     {
         std::vector<float> cap; double peak = 0.0;
-        Knobs k; k.noise = 10; k.pos = 0.5f; k.density = 12.0f;
+        Knobs k; k.m_noise = 10; k.m_pos = 0.5f; k.m_density = 12.0f;
         capture(4.0f, k, cap, peak, 60, 1200, 200);
         const double rms = rmsOf(cap);
         std::printf("  [probe] cicada rms %.4f peak %.3f high share %.3f\n", rms, peak, highShare(cap));
@@ -8364,21 +8364,21 @@ static void testNearLayer()
         auto run = [&](float role, double& before, double& after) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::Src1Type, 2.0f);        // FM
-            e.setParam(ParamId::Src1FmIndex, 0.0f);     // ...at index 0: a sine
-            e.setParam(ParamId::Src1Role, role);
-            e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::FilterOn, 0.0f);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
-            e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::Release, 0.5f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, 2.0f);        // FM
+            e.setParam(ParamIdE::SRC1_FM_INDEX, 0.0f);     // ...at index 0: a sine
+            e.setParam(ParamIdE::SRC1_ROLE, role);
+            e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::FILTER_ON, 0.0f);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::RELEASE, 0.5f);
             e.reset();
             const double fA = e.frequencyOf(57);
             // Goertzel at the lower note's frequency over the last second of a window.
             auto power = [&](const std::vector<float>& v) {
-                const double w = kTwoPi * fA / sr;
+                const double w = TwoPi * fA / sr;
                 const double c = 2.0 * std::cos(w);
                 double s0 = 0.0, s1 = 0.0, s2 = 0.0;
                 for (float x : v) { s0 = x + c * s1 - s2; s2 = s1; s1 = s0; }
@@ -8410,9 +8410,9 @@ static void testNearLayer()
         BrainParams bp;
         auto cons = [&](double fa, double fb) { return bp.consonanceOf(fa, fb); };
         NearParams p;
-        p.level = 1.0f; p.kind = 0; p.rate = 60.0f; p.length = 5.0f; p.chance = 1.0f;
+        p.m_level = 1.0f; p.m_kind = 0; p.m_rate = 60.0f; p.m_length = 5.0f; p.m_chance = 1.0f;
         NearInputs in;
-        in.root = 50; in.cluster[0] = 50; in.cluster[1] = 57; in.cluster[2] = 62; in.count = 3;
+        in.m_root = 50; in.m_cluster[0] = 50; in.m_cluster[1] = 57; in.m_cluster[2] = 62; in.m_count = 3;
         NearEvents ne;
         ne.reset(7);
         std::vector<double> ons, offs;
@@ -8420,17 +8420,17 @@ static void testNearLayer()
         const double dt = 0.005;
         double t = 0.0;
         for (long i = 0; i < static_cast<long>(3600.0 / dt); ++i) {
-            in.silence = t >= 1000.0 && t < 1300.0;
-            in.rootAge = (t >= 2000.0 && t < 2200.0) ? 3.0 : 1.0e9;
+            in.m_silence = t >= 1000.0 && t < 1300.0;
+            in.m_rootAge = (t >= 2000.0 && t < 2200.0) ? 3.0 : 1.0e9;
             ne.update(dt, p, in, freqOf, cons, [&](const NearNote& e) {
-                if (e.type == NearNote::Type::On) {
+                if (e.m_type == NearNote::TypeE::ON) {
                     ons.push_back(t);
                     if (sounding > 0) ++overlaps;
-                    if (in.silence) ++inSilence;
-                    if (in.rootAge < 6.0) ++afterRoot;
+                    if (in.m_silence) ++inSilence;
+                    if (in.m_rootAge < 6.0) ++afterRoot;
                     ++sounding;
-                    CHECK(e.note >= 24 && e.note <= 108, "an event's note is in the playable range");
-                } else if (e.type == NearNote::Type::Off) { offs.push_back(t); --sounding; }
+                    CHECK(e.m_note >= 24 && e.m_note <= 108, "an event's note is in the playable range");
+                } else if (e.m_type == NearNote::TypeE::OFF) { offs.push_back(t); --sounding; }
             });
             t += dt;
         }
@@ -8448,23 +8448,23 @@ static void testNearLayer()
         CHECK(afterRoot == 0, "none just after a root change");
         // The sequence: a ring, mutating; every step's note is answered, the notes stay near the cluster.
         NearParams s = p;
-        s.kind = 2; s.steps = 7; s.stepSeconds = 0.4f; s.mutation = 0.5f; s.length = 60.0f; s.rate = 30.0f; s.scatter = 0.3f; s.approach = 0.25f;
+        s.m_kind = 2; s.m_steps = 7; s.m_stepSeconds = 0.4f; s.m_mutation = 0.5f; s.m_length = 60.0f; s.m_rate = 30.0f; s.m_scatter = 0.3f; s.m_approach = 0.25f;
         NearEvents seq;
         seq.reset(3);
         int onCount = 0, offCount = 0, farAccents = 0, ghosts = 0;
         double first = -1.0, last = 0.0, firstDist = -1.0;
         t = 0.0;
-        in.silence = false; in.rootAge = 1.0e9;
+        in.m_silence = false; in.m_rootAge = 1.0e9;
         for (long i = 0; i < static_cast<long>(200.0 / dt); ++i) {
             seq.update(dt, s, in, freqOf, cons, [&](const NearNote& e) {
-                if (e.type == NearNote::Type::On) {
+                if (e.m_type == NearNote::TypeE::ON) {
                     ++onCount;
-                    if (first < 0.0) { first = t; firstDist = e.distance; }
+                    if (first < 0.0) { first = t; firstDist = e.m_distance; }
                     last = t;
-                    if (e.distance > 0.5f && e.velocity > 0.5f) ++farAccents;
-                    if (e.velocity <= 0.31f) ++ghosts;
-                    CHECK(e.note >= in.root - 12 && e.note <= in.root + 48, "a step stays within the soloist's register over the cluster");
-                } else if (e.type == NearNote::Type::Off) ++offCount;
+                    if (e.m_distance > 0.5f && e.m_velocity > 0.5f) ++farAccents;
+                    if (e.m_velocity <= 0.31f) ++ghosts;
+                    CHECK(e.m_note >= in.m_root - 12 && e.m_note <= in.m_root + 48, "a step stays within the soloist's register over the cluster");
+                } else if (e.m_type == NearNote::TypeE::OFF) ++offCount;
             });
             t += dt;
         }
@@ -8481,25 +8481,25 @@ static void testNearLayer()
     {
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 1.0f);
-        e.setParam(ParamId::BrainRate, 4.0f);
-        e.setParam(ParamId::BrainHoldMin, 6.0f);
-        e.setParam(ParamId::BrainHoldMax, 14.0f);
-        e.setParam(ParamId::ForeLevel, 0.8f);
-        e.setParam(ParamId::ForeType, 10.0f);
-        e.setParam(ParamId::ForeRate, 20.0f);
-        e.setParam(ParamId::ForeLength, 6.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+        e.setParam(ParamIdE::BRAIN_RATE, 4.0f);
+        e.setParam(ParamIdE::BRAIN_HOLD_MIN, 6.0f);
+        e.setParam(ParamIdE::BRAIN_HOLD_MAX, 14.0f);
+        e.setParam(ParamIdE::FORE_LEVEL, 0.8f);
+        e.setParam(ParamIdE::FORE_TYPE, 10.0f);
+        e.setParam(ParamIdE::FORE_RATE, 20.0f);
+        e.setParam(ParamIdE::FORE_LENGTH, 6.0f);
         e.reset();
         std::vector<std::pair<double, double>> nearSpans;   // on, off
         std::vector<double> brainOns, brainOffs;
         double openAt = -1.0;
         e.auditConductor(900.0, 0.005, [&](double t, int which, const BrainEvent& ev) {
             if (which == 3) {
-                if (ev.type == BrainEvent::Type::NoteOn) openAt = t;
+                if (ev.m_type == BrainEvent::TypeE::NOTE_ON) openAt = t;
                 else if (openAt >= 0.0) { nearSpans.emplace_back(openAt, t); openAt = -1.0; }
             } else if (which == 1) {
-                (ev.type == BrainEvent::Type::NoteOn ? brainOns : brainOffs).push_back(t);
+                (ev.m_type == BrainEvent::TypeE::NOTE_ON ? brainOns : brainOffs).push_back(t);
             }
         }, nullptr);
         int onsInside = 0, offsInside = 0;
@@ -8518,16 +8518,16 @@ static void testNearLayer()
     {
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 1.0f);
-        e.setParam(ParamId::BrainRate, 3.0f);
-        e.setParam(ParamId::OscLevel, 0.05f);   // the background quiet, so the near stem is the events' own
-        e.setParam(ParamId::ForeLevel, 0.8f);
-        e.setParam(ParamId::ForeType, 10.0f);   // the flute
-        e.setParam(ParamId::ForeRate, 10.0f);
-        e.setParam(ParamId::ForeLength, 3.0f);
-        e.setParam(ParamId::ForeAttack, 0.2f);
-        e.setParam(ParamId::ForeRelease, 1.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+        e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+        e.setParam(ParamIdE::OSC_LEVEL, 0.05f);   // the background quiet, so the near stem is the events' own
+        e.setParam(ParamIdE::FORE_LEVEL, 0.8f);
+        e.setParam(ParamIdE::FORE_TYPE, 10.0f);   // the flute
+        e.setParam(ParamIdE::FORE_RATE, 10.0f);
+        e.setParam(ParamIdE::FORE_LENGTH, 3.0f);
+        e.setParam(ParamIdE::FORE_ATTACK, 0.2f);
+        e.setParam(ParamIdE::FORE_RELEASE, 1.0f);
         e.reset();
         std::vector<float> L(256), R(256);
         std::vector<float> nl(256), nr(256), fl(256), fr(256), cl(256), cr(256), rl(256), rr(256);
@@ -8555,28 +8555,28 @@ static void testNearLayer()
     {
         Engine e;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-        e.setParam(ParamId::BrainOn, 1.0f);
-        e.setParam(ParamId::BrainRate, 3.0f);
-        e.setParam(ParamId::Src1Type, 0.0f);       // the background as quiet as it gets: the conductor's
-        e.setParam(ParamId::OscLevel, 0.0f);       // notes are needed (the scheduler waits for a cluster), their sound is not
-        e.setParam(ParamId::Air, 0.0f);            // (the air sounds with the source off: a sixth of a voice by default)
-        e.setParam(ParamId::ForeLevel, 0.8f);
-        e.setParam(ParamId::ForeType, 15.0f);      // Clip
-        e.setParam(ParamId::ForeFollow, 0.0f);     // at its own speed
-        e.setParam(ParamId::ForePosition, 0.0f);   // from its start
-        e.setParam(ParamId::ForeRate, 10.0f);
-        e.setParam(ParamId::ForeLength, 6.0f);
-        e.setParam(ParamId::ForeAttack, 0.01f);
-        e.setParam(ParamId::ForeRelease, 0.1f);
-        e.setParam(ParamId::ForeApproach, 0.0f);
-        e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-        e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+        e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+        e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+        e.setParam(ParamIdE::SRC1_TYPE, 0.0f);       // the background as quiet as it gets: the conductor's
+        e.setParam(ParamIdE::OSC_LEVEL, 0.0f);       // notes are needed (the scheduler waits for a cluster), their sound is not
+        e.setParam(ParamIdE::AIR, 0.0f);            // (the air sounds with the source off: a sixth of a voice by default)
+        e.setParam(ParamIdE::FORE_LEVEL, 0.8f);
+        e.setParam(ParamIdE::FORE_TYPE, 15.0f);      // Clip
+        e.setParam(ParamIdE::FORE_FOLLOW, 0.0f);     // at its own speed
+        e.setParam(ParamIdE::FORE_POSITION, 0.0f);   // from its start
+        e.setParam(ParamIdE::FORE_RATE, 10.0f);
+        e.setParam(ParamIdE::FORE_LENGTH, 6.0f);
+        e.setParam(ParamIdE::FORE_ATTACK, 0.01f);
+        e.setParam(ParamIdE::FORE_RELEASE, 0.1f);
+        e.setParam(ParamIdE::FORE_APPROACH, 0.0f);
+        e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+        e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
         e.reset();
         const double clipHz = 1000.0;
         const int clipLen = static_cast<int>(2.0 * sr);
         std::vector<float> clip(static_cast<size_t>(clipLen));
-        for (int i = 0; i < clipLen; ++i) clip[static_cast<size_t>(i)] = 0.5f * std::sin(static_cast<float>(kTwoPi * clipHz * i / sr));
+        for (int i = 0; i < clipLen; ++i) clip[static_cast<size_t>(i)] = 0.5f * std::sin(static_cast<float>(TwoPi * clipHz * i / sr));
         e.setNearTexture(clip.data(), nullptr, clipLen, sr);
         CHECK(e.hasNearTexture() && !e.hasTexture(3), "the near source has its clip, Source 4 has none");
         std::vector<float> L(256), R(256);
@@ -8589,7 +8589,7 @@ static void testNearLayer()
         // was: the first version of this test heard the background come up under a 6-second
         // attack and called it a looping clip.
         auto powerAt = [&](const float* x, int n, double hz) {
-            const double w = kTwoPi * hz / sr, c = 2.0 * std::cos(w);
+            const double w = TwoPi * hz / sr, c = 2.0 * std::cos(w);
             double s0 = 0.0, s1 = 0.0, s2 = 0.0;
             for (int i = 0; i < n; ++i) { s0 = x[i] + c * s1 - s2; s2 = s1; s1 = s0; }
             return (s1 * s1 + s2 * s2 - c * s1 * s2) / (n * n);
@@ -8624,7 +8624,7 @@ static void testNearLayer()
             std::vector<Texture> pool;
             for (double h : hzs) {
                 std::vector<float> c(static_cast<size_t>(clipLen));
-                for (int i = 0; i < clipLen; ++i) c[static_cast<size_t>(i)] = 0.5f * std::sin(static_cast<float>(kTwoPi * h * i / sr));
+                for (int i = 0; i < clipLen; ++i) c[static_cast<size_t>(i)] = 0.5f * std::sin(static_cast<float>(TwoPi * h * i / sr));
                 pool.push_back(Engine::makeTexture(c.data(), nullptr, clipLen, sr));
             }
             e.setNearTextures(std::move(pool));
@@ -8667,20 +8667,20 @@ static void testNearLayer()
     // for four seconds, is heard at a level in the same league as the others, stays finite, and
     // shows the one thing it is for.
     {
-        struct Sig { SourceType type; const char* name; };
+        struct Sig { SourceTypeE m_type; const char* m_name; };
         const Sig sigs[] = {
-            { SourceType::Whistler, "whistler" }, { SourceType::Shaker, "shaker" }, { SourceType::Chime, "chime" },
-            { SourceType::Geiger, "geiger" }, { SourceType::Tube, "tube" }, { SourceType::Krell, "krell" },
-            { SourceType::Beacon, "beacon" }, { SourceType::Morse, "morse" }, { SourceType::Dial, "dial" },
+            { SourceTypeE::WHISTLER, "whistler" }, { SourceTypeE::SHAKER, "shaker" }, { SourceTypeE::CHIME, "chime" },
+            { SourceTypeE::GEIGER, "geiger" }, { SourceTypeE::TUBE, "tube" }, { SourceTypeE::KRELL, "krell" },
+            { SourceTypeE::BEACON, "beacon" }, { SourceTypeE::MORSE, "morse" }, { SourceTypeE::DIAL, "dial" },
         };
-        auto renderSig = [&](SourceType type, double hz, std::vector<float>& v, float density, float force, float speed) {
+        auto renderSig = [&](SourceTypeE type, double hz, std::vector<float>& v, float density, float force, float speed) {
             auto slotBox = std::make_unique<SourceSlot>();
             SourceSlot& slot = *slotBox;
             slot.prepare(sr, 7);
             slot.noteOn(true);
             SlotParams sp;
-            sp.type = type; sp.level = 1.0f; sp.density = density; sp.bowForce = force; sp.bowSpeed = speed;
-            sp.position = 0.5f; sp.positionDrift = 0.3f; sp.bright = 0.5f; sp.noiseQ = 0.3f; sp.fmRatio = 1.5f; sp.fmIndex = 1.0f; sp.tilt = 0.5f;
+            sp.m_type = type; sp.m_level = 1.0f; sp.m_density = density; sp.m_bowForce = force; sp.m_bowSpeed = speed;
+            sp.m_position = 0.5f; sp.m_positionDrift = 0.3f; sp.m_bright = 0.5f; sp.m_noiseQ = 0.3f; sp.m_fmRatio = 1.5f; sp.m_fmIndex = 1.0f; sp.m_tilt = 0.5f;
             std::vector<float> l(64), r(64);
             const int blocks = static_cast<int>(4.0 * sr / 64.0);
             v.clear(); v.reserve(static_cast<size_t>(blocks) * 64);
@@ -8703,43 +8703,43 @@ static void testNearLayer()
         const size_t s1 = static_cast<size_t>(sr);
         for (const Sig& g : sigs) {
             std::vector<float> v;
-            renderSig(g.type, g.type == SourceType::Chime ? 2400.0 : 800.0, v, g.type == SourceType::Geiger ? 8.0f : 2.0f, 0.5f, 0.4f);
+            renderSig(g.m_type, g.m_type == SourceTypeE::CHIME ? 2400.0 : 800.0, v, g.m_type == SourceTypeE::GEIGER ? 8.0f : 2.0f, 0.5f, 0.4f);
             bool finite = true; float peak = 0.0f;
             for (float x : v) { if (!std::isfinite(x)) finite = false; peak = std::max(peak, std::fabs(x)); }
             const double rms = rmsOf(v, 0, v.size());
-            std::printf("  [probe] %-9s rms %.4f peak %.3f (%+.1f dB against the table's 0.10)\n", g.name, rms, peak, 20.0 * std::log10(rms / 0.10 + 1e-12));
+            std::printf("  [probe] %-9s rms %.4f peak %.3f (%+.1f dB against the table's 0.10)\n", g.m_name, rms, peak, 20.0 * std::log10(rms / 0.10 + 1e-12));
             CHECK(finite, "the signal stays finite");
             CHECK(peak < 1.0f, "and under full scale");
             CHECK(rms > 0.01 && rms < 0.4, "and in the league of the other sources");
         }
         {   // The whistler falls: its zero-crossing rate in the first tenth of a second is far above that in the last second.
-            std::vector<float> v; renderSig(SourceType::Whistler, 400.0, v, 2.0f, 0.5f, 0.3f);
+            std::vector<float> v; renderSig(SourceTypeE::WHISTLER, 400.0, v, 2.0f, 0.5f, 0.3f);
             const double early = zcPerSec(v, 0, s1 / 10), late = zcPerSec(v, 3 * s1, 4 * s1);
             std::printf("  [probe] whistler: %.0f Hz in its first tenth, %.0f Hz in its last second\n", early, late);
             CHECK(early > 4.0 * late, "the whistle falls with time");
             CHECK(late > 300.0 && late < 600.0, "and ends near the note");
         }
         {   // The shaker's energy decays between shakes: a shake every two seconds at Density 0.5, the second half of each gap quieter than the first.
-            std::vector<float> v; renderSig(SourceType::Shaker, 800.0, v, 0.5f, 0.3f, 0.4f);
+            std::vector<float> v; renderSig(SourceTypeE::SHAKER, 800.0, v, 0.5f, 0.3f, 0.4f);
             const double a = rmsOf(v, 0, s1 / 4), b = rmsOf(v, s1, s1 + s1 / 2);
             std::printf("  [probe] shaker: first quarter second %.4f, a second later %.5f\n", a, b);
             CHECK(a > 4.0 * b, "the beans settle between the shakes");
         }
         {   // The chime rings and beats: level after three seconds is still there (T60 long), and the envelope of the prime pair rises and falls.
-            std::vector<float> v; renderSig(SourceType::Chime, 2400.0, v, 2.0f, 0.85f, 0.4f);
+            std::vector<float> v; renderSig(SourceTypeE::CHIME, 2400.0, v, 2.0f, 0.85f, 0.4f);
             const double a = rmsOf(v, s1 / 10, s1 / 2), b = rmsOf(v, 3 * s1, 4 * s1);
             std::printf("  [probe] chime: %.4f in its first half second, %.4f in its fourth second\n", a, b);
             CHECK(b > 0.15 * a, "the bronze still rings after three seconds");
         }
         {   // The Geiger clicks are countable: at Density 8 with the clusters, dozens of them in four seconds.
-            std::vector<float> v; renderSig(SourceType::Geiger, 800.0, v, 8.0f, 0.4f, 0.4f);
+            std::vector<float> v; renderSig(SourceTypeE::GEIGER, 800.0, v, 8.0f, 0.4f, 0.4f);
             int clicks = 0; int quiet = 0;
             for (size_t i = 0; i < v.size(); ++i) { if (std::fabs(v[i]) > 0.15f && quiet > static_cast<int>(sr * 0.004)) { ++clicks; quiet = 0; } else ++quiet; }
             std::printf("  [probe] geiger: %d clicks in four seconds at Density 8\n", clicks);
             CHECK(clicks >= 16 && clicks <= 120, "a Poisson shower, not a tone and not silence");
         }
         {   // The Morse is keyed: a fair share of silence, and tone at the note.
-            std::vector<float> v; renderSig(SourceType::Morse, 700.0, v, 2.0f, 0.5f, 0.35f);
+            std::vector<float> v; renderSig(SourceTypeE::MORSE, 700.0, v, 2.0f, 0.5f, 0.35f);
             int silent = 0; const int win = static_cast<int>(sr * 0.02);
             int wins = 0;
             for (size_t i = s1; i + static_cast<size_t>(win) <= v.size(); i += static_cast<size_t>(win)) { ++wins; if (rmsOf(v, i, i + static_cast<size_t>(win)) < 0.005) ++silent; }
@@ -8748,7 +8748,7 @@ static void testNearLayer()
             CHECK(share > 0.25 && share < 0.85, "dits, dahs and the gaps between them");
         }
         {   // The beacon repeats its packet: energy in bursts of about a quarter second every two seconds at Density 0.5.
-            std::vector<float> v; renderSig(SourceType::Beacon, 1200.0, v, 0.5f, 0.5f, 0.4f);
+            std::vector<float> v; renderSig(SourceTypeE::BEACON, 1200.0, v, 0.5f, 0.5f, 0.4f);
             const double p1 = rmsOf(v, 0, s1 / 4), gap = rmsOf(v, s1 / 2, s1 + s1 / 2), p2 = rmsOf(v, 2 * s1, 2 * s1 + s1 / 4);
             std::printf("  [probe] beacon: packet %.4f, gap %.5f, next packet %.4f\n", p1, gap, p2);
             CHECK(p1 > 0.05 && p2 > 0.05 && gap < 0.01 * p1, "a packet, silence, a packet");
@@ -8763,12 +8763,12 @@ static void testNearLayer()
             "Somnus Vigil | 4:00 | 0:20 | near=Quiet, Please\n"
             "Glacier Bloom | 1:00:00-1:30:00 | 45 | near=keep\n";
         CHECK(j.parse(text), "a journey's text parses");
-        CHECK(j.name == "First Night" && j.cyclic && j.steps.size() == 3, "with its name, its cycle and its three steps");
-        CHECK(j.steps[0].dwellLo == 300.0 && j.steps[0].dwellHi == 600.0 && j.steps[0].fadeLo == 30.0 && j.steps[0].fadeHi == 90.0, "a range as two times");
-        CHECK(j.steps[1].dwellLo == 240.0 && j.steps[1].dwellHi == 240.0 && j.steps[1].nearPreset == "Quiet, Please", "one time as a fixed value, and the near preset named");
-        CHECK(j.steps[2].dwellLo == 3600.0 && j.steps[2].dwellHi == 5400.0 && j.steps[2].fadeLo == 45.0 && j.steps[2].nearPreset == "keep", "hours and plain seconds");
+        CHECK(j.m_name == "First Night" && j.m_cyclic && j.m_steps.size() == 3, "with its name, its cycle and its three steps");
+        CHECK(j.m_steps[0].m_dwellLo == 300.0 && j.m_steps[0].m_dwellHi == 600.0 && j.m_steps[0].m_fadeLo == 30.0 && j.m_steps[0].m_fadeHi == 90.0, "a range as two times");
+        CHECK(j.m_steps[1].m_dwellLo == 240.0 && j.m_steps[1].m_dwellHi == 240.0 && j.m_steps[1].m_nearPreset == "Quiet, Please", "one time as a fixed value, and the near preset named");
+        CHECK(j.m_steps[2].m_dwellLo == 3600.0 && j.m_steps[2].m_dwellHi == 5400.0 && j.m_steps[2].m_fadeLo == 45.0 && j.m_steps[2].m_nearPreset == "keep", "hours and plain seconds");
         Journey back;
-        CHECK(back.parse(j.text().c_str()) && back.text() == j.text() && back.steps.size() == 3 && back.steps[1].nearPreset == "Quiet, Please", "and writes itself back the same");
+        CHECK(back.parse(j.text().c_str()) && back.text() == j.text() && back.m_steps.size() == 3 && back.m_steps[1].m_nearPreset == "Quiet, Please", "and writes itself back the same");
         Journey bad;
         CHECK(!bad.parse("journey x\nSomnus Bed | five minutes | 0:30\n"), "a time that is not one is refused");
         // The player: every step in turn, dwell inside its range, the fade inside its range, round
@@ -8781,12 +8781,12 @@ static void testNearLayer()
         for (int tick = 0; tick < 20000; ++tick) {
             JourneyStep sp, sq; double fp = 0.0, fq = 0.0;
             const bool bp = p.advance(1.0, sp, fp), bq = q.advance(1.0, sq, fq);
-            if (bp != bq || (bp && (sp.preset != sq.preset || fp != fq))) same = false;
+            if (bp != bq || (bp && (sp.m_preset != sq.m_preset || fp != fq))) same = false;
             if (!bp) { t += 1.0; continue; }
             ++begun; order.push_back(p.step());
-            const JourneyStep& st = j.steps[static_cast<size_t>(p.step())];
-            if (p.remaining() < st.dwellLo - 1.0e-9 || p.remaining() > st.dwellHi + 1.0e-9) inRange = false;
-            if (fp < st.fadeLo - 1.0e-9 || fp > st.fadeHi + 1.0e-9) inRange = false;
+            const JourneyStep& st = j.m_steps[static_cast<size_t>(p.step())];
+            if (p.remaining() < st.m_dwellLo - 1.0e-9 || p.remaining() > st.m_dwellHi + 1.0e-9) inRange = false;
+            if (fp < st.m_fadeLo - 1.0e-9 || fp > st.m_fadeHi + 1.0e-9) inRange = false;
         }
         std::printf("  [probe] journey: %d steps begun in 20000 s, order", begun);
         for (size_t i = 0; i < std::min<size_t>(order.size(), 8); ++i) std::printf(" %d", order[i] + 1);
@@ -8795,7 +8795,7 @@ static void testNearLayer()
         CHECK(order.size() >= 6 && order[0] == 0 && order[1] == 1 && order[2] == 2 && order[3] == 0, "in its order, and again from the first");
         CHECK(inRange, "every dwell and every fade inside its range");
         CHECK(same, "and the same run for the same seed");
-        Journey once = j; once.cyclic = false;
+        Journey once = j; once.m_cyclic = false;
         JourneyPlayer o; o.start(once, 3u);
         int n = 0; for (int tick = 0; tick < 20000 && o.running(); ++tick) { JourneyStep s; double f; if (o.advance(1.0, s, f)) ++n; }
         CHECK(n == 3 && !o.running(), "a journey that is not cyclic ends after its last step");
@@ -8851,26 +8851,26 @@ static void testNearLayer()
         auto engineOwned = std::make_unique<Engine>();
         Engine& e = *engineOwned;
         e.prepare(sr, 256);
-        for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
+        for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
         // A foreground chosen for the night, and a sound setting that the preset must overwrite.
-        e.setParam(ParamId::ForeLevel, 0.8f);
-        e.setParam(ParamId::ForeType, 11.0f);      // Flute
-        e.setParam(ParamId::ForeRate, 45.0f);
-        e.setParam(ParamId::ForeAuto, 0.0f);       // the player's switch, not a preset's to make
-        e.setParam(ParamId::Depth, 0.77f);
+        e.setParam(ParamIdE::FORE_LEVEL, 0.8f);
+        e.setParam(ParamIdE::FORE_TYPE, 11.0f);      // Flute
+        e.setParam(ParamIdE::FORE_RATE, 45.0f);
+        e.setParam(ParamIdE::FORE_AUTO, 0.0f);       // the player's switch, not a preset's to make
+        e.setParam(ParamIdE::DEPTH, 0.77f);
         CHECK(e.applyPreset(1), "a full preset applies over a foreground that is playing");
-        CHECK(e.getParam(ParamId::ForeLevel) == 0.8f, "the near layer's level survives it");
-        CHECK(e.getParam(ParamId::ForeType) == 11.0f && e.getParam(ParamId::ForeRate) == 45.0f,
+        CHECK(e.getParam(ParamIdE::FORE_LEVEL) == 0.8f, "the near layer's level survives it");
+        CHECK(e.getParam(ParamIdE::FORE_TYPE) == 11.0f && e.getParam(ParamIdE::FORE_RATE) == 45.0f,
               "and so do its source and its clock");
-        CHECK(e.getParam(ParamId::ForeAuto) == 0.0f, "Auto is the player's switch and is not reset either");
-        CHECK(e.getParam(ParamId::Depth) != 0.77f, "everything outside the layer is still cleared, as it was");
+        CHECK(e.getParam(ParamIdE::FORE_AUTO) == 0.0f, "Auto is the player's switch and is not reset either");
+        CHECK(e.getParam(ParamIdE::DEPTH) != 0.77f, "everything outside the layer is still cleared, as it was");
         // It clears less than it may set: a preset that NAMES a near key still sets it, so this
         // cannot swallow a preset's intent, only its silence.
         const Preset named{ "names a foreground", "fore_level=0.25;fore_rate=90" };
-        CHECK(applyPreset(named, [&](ParamId id, float v) { e.setParam(id, v); }),
+        CHECK(applyPreset(named, [&](ParamIdE id, float v) { e.setParam(id, v); }),
               "a preset that names near keys parses");
-        CHECK(std::fabs(e.getParam(ParamId::ForeLevel) - 0.25f) < 1.0e-6f &&
-              std::fabs(e.getParam(ParamId::ForeRate) - 90.0f) < 1.0e-3f,
+        CHECK(std::fabs(e.getParam(ParamIdE::FORE_LEVEL) - 0.25f) < 1.0e-6f &&
+              std::fabs(e.getParam(ParamIdE::FORE_RATE) - 90.0f) < 1.0e-3f,
               "and a preset that names the near layer still sets it");
     }
     // ---- Gain (14.09.2026): the event's own gain in decibels, after its source. Measured on an
@@ -8883,14 +8883,14 @@ static void testNearLayer()
             auto owned = std::make_unique<Engine>();
             Engine& e = *owned;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 1.0f); e.setParam(ParamId::BrainRate, 3.0f);
-            e.setParam(ParamId::Src1Type, 0.0f); e.setParam(ParamId::OscLevel, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::ForeLevel, 0.3f); e.setParam(ParamId::ForeType, 5.0f); e.setParam(ParamId::ForePartials, 1.0f);   // a sine
-            e.setParam(ParamId::ForeRate, 10.0f); e.setParam(ParamId::ForeLength, 4.0f);
-            e.setParam(ParamId::ForeAttack, 0.01f); e.setParam(ParamId::ForeRelease, 0.1f);
-            e.setParam(ParamId::ForeApproach, 0.0f); e.setParam(ParamId::ForeDistance, 0.0f); e.setParam(ParamId::ForeDry, 1.0f);
-            e.setParam(ParamId::ForeGain, gainDb);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 1.0f); e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, 0.0f); e.setParam(ParamIdE::OSC_LEVEL, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::FORE_LEVEL, 0.3f); e.setParam(ParamIdE::FORE_TYPE, 5.0f); e.setParam(ParamIdE::FORE_PARTIALS, 1.0f);   // a sine
+            e.setParam(ParamIdE::FORE_RATE, 10.0f); e.setParam(ParamIdE::FORE_LENGTH, 4.0f);
+            e.setParam(ParamIdE::FORE_ATTACK, 0.01f); e.setParam(ParamIdE::FORE_RELEASE, 0.1f);
+            e.setParam(ParamIdE::FORE_APPROACH, 0.0f); e.setParam(ParamIdE::FORE_DISTANCE, 0.0f); e.setParam(ParamIdE::FORE_DRY, 1.0f);
+            e.setParam(ParamIdE::FORE_GAIN, gainDb);
             e.reset();
             std::vector<float> L(256), R(256);
             double energy = 0.0;
@@ -8914,15 +8914,15 @@ static void testNearLayer()
         auto planes = [&](float distance, float dry, double& nearE, double& farE, double& mixE) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainOn, 1.0f); e.setParam(ParamId::BrainRate, 3.0f);
-            e.setParam(ParamId::Src1Type, 0.0f); e.setParam(ParamId::OscLevel, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::ForeLevel, 0.8f); e.setParam(ParamId::ForeType, 5.0f); e.setParam(ParamId::ForePartials, 1.0f);   // a sine
-            e.setParam(ParamId::ForeRate, 10.0f); e.setParam(ParamId::ForeLength, 4.0f);
-            e.setParam(ParamId::ForeAttack, 0.01f); e.setParam(ParamId::ForeRelease, 0.1f);
-            e.setParam(ParamId::ForeApproach, 0.0f); e.setParam(ParamId::ForeDistance, distance); e.setParam(ParamId::ForeDry, dry);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);   // the far plane muted: what reaches the mix from there is nothing
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::Delay2Mix, 0.0f);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_ON, 1.0f); e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, 0.0f); e.setParam(ParamIdE::OSC_LEVEL, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::FORE_LEVEL, 0.8f); e.setParam(ParamIdE::FORE_TYPE, 5.0f); e.setParam(ParamIdE::FORE_PARTIALS, 1.0f);   // a sine
+            e.setParam(ParamIdE::FORE_RATE, 10.0f); e.setParam(ParamIdE::FORE_LENGTH, 4.0f);
+            e.setParam(ParamIdE::FORE_ATTACK, 0.01f); e.setParam(ParamIdE::FORE_RELEASE, 0.1f);
+            e.setParam(ParamIdE::FORE_APPROACH, 0.0f); e.setParam(ParamIdE::FORE_DISTANCE, distance); e.setParam(ParamIdE::FORE_DRY, dry);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);   // the far plane muted: what reaches the mix from there is nothing
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::DELAY2_MIX, 0.0f);
             e.reset();
             std::vector<float> L(256), R(256);
             std::vector<float> st[8]; float* stems[8];
@@ -8965,18 +8965,18 @@ static void testNearLayer()
         auto sends = [&](float toDelay2, float toCosmos, float delay2Mix, float cosmosReturn) {
             Engine e;
             e.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) e.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
-            e.setParam(ParamId::BrainRate, 3.0f);
-            e.setParam(ParamId::Src1Type, 0.0f); e.setParam(ParamId::OscLevel, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::ForeLevel, 0.8f); e.setParam(ParamId::ForeType, 5.0f); e.setParam(ParamId::ForePartials, 1.0f);
-            e.setParam(ParamId::ForeRate, 10.0f); e.setParam(ParamId::ForeLength, 3.0f);
-            e.setParam(ParamId::ForeAttack, 0.01f); e.setParam(ParamId::ForeRelease, 0.1f);
-            e.setParam(ParamId::ForeDelay2, toDelay2); e.setParam(ParamId::ForeCosmos, toCosmos);
-            e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::EnsembleMix, 0.0f); e.setParam(ParamId::DelayMix, 0.0f);
-            e.setParam(ParamId::Delay2Mix, delay2Mix); e.setParam(ParamId::Delay2TimeL, 0.5f); e.setParam(ParamId::Delay2TimeR, 0.5f);
-            e.setParam(ParamId::Delay2Feedback, 0.0f);
-            e.setParam(ParamId::CosmosSend, 0.0f); e.setParam(ParamId::CosmosReturn, cosmosReturn);
+            for (int i = 0; i < NumParams; ++i) e.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
+            e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+            e.setParam(ParamIdE::SRC1_TYPE, 0.0f); e.setParam(ParamIdE::OSC_LEVEL, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::FORE_LEVEL, 0.8f); e.setParam(ParamIdE::FORE_TYPE, 5.0f); e.setParam(ParamIdE::FORE_PARTIALS, 1.0f);
+            e.setParam(ParamIdE::FORE_RATE, 10.0f); e.setParam(ParamIdE::FORE_LENGTH, 3.0f);
+            e.setParam(ParamIdE::FORE_ATTACK, 0.01f); e.setParam(ParamIdE::FORE_RELEASE, 0.1f);
+            e.setParam(ParamIdE::FORE_DELAY2, toDelay2); e.setParam(ParamIdE::FORE_COSMOS, toCosmos);
+            e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::ENSEMBLE_MIX, 0.0f); e.setParam(ParamIdE::DELAY_MIX, 0.0f);
+            e.setParam(ParamIdE::DELAY2_MIX, delay2Mix); e.setParam(ParamIdE::DELAY2_TIME_L, 0.5f); e.setParam(ParamIdE::DELAY2_TIME_R, 0.5f);
+            e.setParam(ParamIdE::DELAY2_FEEDBACK, 0.0f);
+            e.setParam(ParamIdE::COSMOS_SEND, 0.0f); e.setParam(ParamIdE::COSMOS_RETURN, cosmosReturn);
             e.reset();
             e.noteOn(45, 0.8f);
             std::vector<float> L(256), R(256);
@@ -9000,24 +9000,24 @@ static void testNearLayer()
 
     // ---- the layer's scope: a sound preset leaves the foreground alone; the bank touches nothing else
     {
-        CHECK(!inScope(ParamId::ForeLevel, PresetScope::Sound) && !inScope(ParamId::ForeType, PresetScope::Sound), "the near layer is not part of a sound preset");
-        CHECK(inScope(ParamId::ForeLevel, PresetScope::Near) && inScope(ParamId::ForeType, PresetScope::Near) && !inScope(ParamId::Attack, PresetScope::Near), "and is exactly what a near preset sets");
+        CHECK(!inScope(ParamIdE::FORE_LEVEL, PresetScopeE::SOUND) && !inScope(ParamIdE::FORE_TYPE, PresetScopeE::SOUND), "the near layer is not part of a sound preset");
+        CHECK(inScope(ParamIdE::FORE_LEVEL, PresetScopeE::NEAR_LAYER) && inScope(ParamIdE::FORE_TYPE, PresetScopeE::NEAR_LAYER) && !inScope(ParamIdE::ATTACK, PresetScopeE::NEAR_LAYER), "and is exactly what a near preset sets");
         Engine e;
         e.prepare(sr, 256);
-        e.setParam(ParamId::ForeLevel, 0.5f);
+        e.setParam(ParamIdE::FORE_LEVEL, 0.5f);
         e.applySoundPreset(0);
-        CHECK(std::fabs(e.getParam(ParamId::ForeLevel) - 0.5f) < 1e-6f, "a sound preset keeps the foreground that was chosen");
+        CHECK(std::fabs(e.getParam(ParamIdE::FORE_LEVEL) - 0.5f) < 1e-6f, "a sound preset keeps the foreground that was chosen");
         int bad = 0;
         for (int p = 1; p < numNearPresets(); ++p) {
             Engine f;
             f.prepare(sr, 256);
-            for (int i = 0; i < kNumParams; ++i) f.setParam(static_cast<ParamId>(i), paramTable()[static_cast<size_t>(i)].def);
+            for (int i = 0; i < NumParams; ++i) f.setParam(static_cast<ParamIdE>(i), paramTable()[static_cast<size_t>(i)].m_def);
             f.applyNearPreset(p);
-            for (int i = 0; i < kNumParams; ++i) {
-                const ParamId id = static_cast<ParamId>(i);
-                if (!isNearParam(id) && std::fabs(f.getParam(id) - paramTable()[static_cast<size_t>(i)].def) > 1e-6f) ++bad;
+            for (int i = 0; i < NumParams; ++i) {
+                const ParamIdE id = static_cast<ParamIdE>(i);
+                if (!isNearParam(id) && std::fabs(f.getParam(id) - paramTable()[static_cast<size_t>(i)].m_def) > 1e-6f) ++bad;
             }
-            if (f.getParam(ParamId::ForeLevel) <= 0.0f) ++bad;
+            if (f.getParam(ParamIdE::FORE_LEVEL) <= 0.0f) ++bad;
         }
         std::printf("  [probe] near bank: %d presets, %d stray settings\n", numNearPresets(), bad);
         CHECK(numNearPresets() >= 20, "the near bank has presets");
@@ -9046,11 +9046,11 @@ void testGuideRound()
     {   // Range: the level law over the plane, through the engine, dry.
         auto rmsAt = [&](float range, float keysDepth) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f); e.setParam(ParamId::Air, 0.0f);
-            e.setParam(ParamId::DelayMix, 0.0f); e.setParam(ParamId::NearMix, 0.0f); e.setParam(ParamId::FarLevel, 0.0f);
-            e.setParam(ParamId::CloudSend, 0.0f); e.setParam(ParamId::Breath, 0.0f);
-            e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::KeysDepth, keysDepth);
-            e.setParam(ParamId::DepthRange, range);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f); e.setParam(ParamIdE::AIR, 0.0f);
+            e.setParam(ParamIdE::DELAY_MIX, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f); e.setParam(ParamIdE::FAR_LEVEL, 0.0f);
+            e.setParam(ParamIdE::CLOUD_SEND, 0.0f); e.setParam(ParamIdE::BREATH, 0.0f);
+            e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::KEYS_DEPTH, keysDepth);
+            e.setParam(ParamIdE::DEPTH_RANGE, range);
             e.prepare(sr, 256);
             e.noteOn(57, 0.8f);
             std::vector<float> cap;
@@ -9070,9 +9070,9 @@ void testGuideRound()
         Voice v;
         v.prepare(sr, 7);
         VoiceParams p;
-        p.slot[0].type = SourceType::Additive;
-        p.attack = 0.005f; p.unison = 1; p.spread = 0.0f; p.itd = 0.0f; p.breath = 0.0f;
-        p.depthPreDelay = 40.0f; p.depthWidth = 1.0f;
+        p.m_slot[0].m_type = SourceTypeE::ADDITIVE;
+        p.m_attack = 0.005f; p.m_unison = 1; p.m_spread = 0.0f; p.m_itd = 0.0f; p.m_breath = 0.0f;
+        p.m_depthPreDelay = 40.0f; p.m_depthWidth = 1.0f;
         v.noteOn(60, 261.63, 0.8f, 0 /* OwnerMidi */, 0.5f, p);
         const int n = sr / 2;
         std::vector<float> nl(static_cast<size_t>(n)), nr(static_cast<size_t>(n)), fl(static_cast<size_t>(n)), fr(static_cast<size_t>(n));
@@ -9111,11 +9111,11 @@ void testGuideRound()
     {   // The Foundation: two octaves under by default, the residue's partials, the beat.
         auto sub = [&](float harmonics, float beat, std::vector<float>& cap) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::SubLevel, 0.8f); e.setParam(ParamId::SubBinaural, 0.0f); e.setParam(ParamId::SubTone, 0.0f);
-            e.setParam(ParamId::SubHarmonics, harmonics); e.setParam(ParamId::SubBeat, beat);
-            e.setParam(ParamId::RootNote, 9.0f);   // A: root 57 = 220 Hz, two octaves under = 55 Hz
-            e.setParam(ParamId::Scale, 0.0f);      // 12-TET
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SUB_LEVEL, 0.8f); e.setParam(ParamIdE::SUB_BINAURAL, 0.0f); e.setParam(ParamIdE::SUB_TONE, 0.0f);
+            e.setParam(ParamIdE::SUB_HARMONICS, harmonics); e.setParam(ParamIdE::SUB_BEAT, beat);
+            e.setParam(ParamIdE::ROOT_NOTE, 9.0f);   // A: root 57 = 220 Hz, two octaves under = 55 Hz
+            e.setParam(ParamIdE::SCALE, 0.0f);      // 12-TET
             e.prepare(sr, 256);
             cap.clear();
             render(e, 10.0, &cap);   // the level glides in over 2 s; the swing is read from 6 s on, where it has settled
@@ -9151,13 +9151,13 @@ void testGuideRound()
         CHECK(breathing > 8.0, "Beat 0.5 Hz: the pair swells and fades by more than eight decibels every two seconds");
     }
     {   // The defaults are the guide's, where the panel shows them.
-        CHECK(paramDesc(ParamId::DepthRange).def == 20.0f && std::string(paramDesc(ParamId::DepthRange).section) == "Space", "Range: 20 dB over the plane, in Space");
-        CHECK(paramDesc(ParamId::DepthPreDelay).def == 40.0f, "Gap: 40 ms at the ear");
-        CHECK(std::fabs(paramDesc(ParamId::DepthWidth).def - 0.35f) < 1e-6f, "Near Width: 0.35 of Spread at the ear");
-        CHECK(paramDesc(ParamId::SendLowcut).def == 150.0f && std::string(paramDesc(ParamId::SendLowcut).section) == "Far Reverb", "Send Low Cut: 150 Hz, beside the far reverb");
-        CHECK(paramDesc(ParamId::SubOctave).def == 1.0f, "Octave: -2 by default");
-        CHECK(paramDesc(ParamId::FarPreDelay).def <= 5.0f, "the far reverb's own pre-delay stands near nought: the horizon has no gap");
-        CHECK(std::fabs(paramDesc(ParamId::SubHarmonics).def - 0.6f) < 1e-6f && paramDesc(ParamId::SubBeat).def == 0.0f, "Harmonics 0.6, Beat off");
+        CHECK(paramDesc(ParamIdE::DEPTH_RANGE).m_def == 20.0f && std::string(paramDesc(ParamIdE::DEPTH_RANGE).m_section) == "Space", "Range: 20 dB over the plane, in Space");
+        CHECK(paramDesc(ParamIdE::DEPTH_PRE_DELAY).m_def == 40.0f, "Gap: 40 ms at the ear");
+        CHECK(std::fabs(paramDesc(ParamIdE::DEPTH_WIDTH).m_def - 0.35f) < 1e-6f, "Near Width: 0.35 of Spread at the ear");
+        CHECK(paramDesc(ParamIdE::SEND_LOWCUT).m_def == 150.0f && std::string(paramDesc(ParamIdE::SEND_LOWCUT).m_section) == "Far Reverb", "Send Low Cut: 150 Hz, beside the far reverb");
+        CHECK(paramDesc(ParamIdE::SUB_OCTAVE).m_def == 1.0f, "Octave: -2 by default");
+        CHECK(paramDesc(ParamIdE::FAR_PRE_DELAY).m_def <= 5.0f, "the far reverb's own pre-delay stands near nought: the horizon has no gap");
+        CHECK(std::fabs(paramDesc(ParamIdE::SUB_HARMONICS).m_def - 0.6f) < 1e-6f && paramDesc(ParamIdE::SUB_BEAT).m_def == 0.0f, "Harmonics 0.6, Beat off");
     }
 }
 
@@ -9193,9 +9193,9 @@ void testReviewRound()
         CHECK(makeBuiltinScale(6, h), "Harmonic 8-16 is built-in scale 6");
         KeyProfile kp;
         scaleKeyProfile(h, 0.0f, 0.0f, kp);
-        std::printf("  [probe] key profile of Harmonic 8-16: fifth %.2f, 7/4 %.2f, 5/4 %.2f, minor third %.2f\n", kp.p[7], kp.p[10], kp.p[4], kp.p[3]);
-        CHECK(kp.p[10] > kp.p[3], "on Harmonic 8-16 the seventh harmonic outranks the minor third the scale does not have");
-        CHECK(kp.p[7] > kp.p[4] && kp.p[0] == 1.0f, "the fifth outranks the third, the tonic stands highest");
+        std::printf("  [probe] key profile of Harmonic 8-16: fifth %.2f, 7/4 %.2f, 5/4 %.2f, minor third %.2f\n", kp.m_p[7], kp.m_p[10], kp.m_p[4], kp.m_p[3]);
+        CHECK(kp.m_p[10] > kp.m_p[3], "on Harmonic 8-16 the seventh harmonic outranks the minor third the scale does not have");
+        CHECK(kp.m_p[7] > kp.m_p[4] && kp.m_p[0] == 1.0f, "the fifth outranks the third, the tonic stands highest");
         FixedScale et;
         makeBuiltinScale(0, et);
         CHECK(isTwelveTet(et) && !isTwelveTet(h), "12-TET is recognised as the place for major and minor");
@@ -9203,7 +9203,7 @@ void testReviewRound()
         const int deg[8] = { 0, 2, 4, 6, 7, 9, 10, 11 };   // 1 9/8 5/4 11/8 3/2 13/8 7/4 15/8 on D
         for (int d : deg) w[(d + 2) % 12] = d == 0 ? 6.0f : (d == 7 ? 4.0f : 2.0f);
         const KeyEstimate k = findKey(w, &kp);
-        CHECK(k.modal && k.tonic() == 2, "and a harmonic series on D is found on D, as the scale's own key");
+        CHECK(k.m_modal && k.tonic() == 2, "and a harmonic series on D is found on D, as the scale's own key");
     }
     {   // F2a and F2b: the prime limit and the undertone mirror.
         const double triad[3] = { 200.0, 250.0, 300.0 }, fifths[3] = { 200.0, 300.0, 400.0 };
@@ -9228,22 +9228,22 @@ void testReviewRound()
         ClusterBrain& brain = keep != nullptr ? *keep : local;
         brain.reset(seed, 48);
         auto freqOf = [&](int n) { return scaleFrequency(s, n, 60, 440.0, snap); };
-        p.scale = &s;
-        p.octavePeriodic = std::fabs(s.period - 2.0) < 1e-9;
-        p.consecutive = !snap || !p.octavePeriodic;
-        p.scaleRootHz = scaleFrequency(s, 60, 60, 440.0, snap);
+        p.m_scale = &s;
+        p.m_octavePeriodic = std::fabs(s.m_period - 2.0) < 1e-9;
+        p.m_consecutive = !snap || !p.m_octavePeriodic;
+        p.m_scaleRootHz = scaleFrequency(s, 60, 60, 440.0, snap);
         int sounding[128] = {};
         int lastRoot = brain.root();
         const int steps = static_cast<int>(minutes * 60.0 / 0.05);
         for (int step = 0; step < steps; ++step) {
             brain.update(0.05, p, -1, freqOf, [&](const BrainEvent& e) {
-                if (e.type == BrainEvent::Type::NoteOn) {
-                    sounding[e.note] = 1;
+                if (e.m_type == BrainEvent::TypeE::NOTE_ON) {
+                    sounding[e.m_note] = 1;
                     std::vector<int> c;
                     for (int i = 0; i < 128; ++i) if (sounding[i]) c.push_back(i);
                     chords.push_back(c);
-                    if (arrivals != nullptr) arrivals->push_back(e.note);   // the note that made this chord
-                } else sounding[e.note] = 0;
+                    if (arrivals != nullptr) arrivals->push_back(e.m_note);   // the note that made this chord
+                } else sounding[e.m_note] = 0;
             });
             if (brain.root() != lastRoot) { roots.push_back(brain.root() - lastRoot); lastRoot = brain.root(); }
         }
@@ -9251,8 +9251,8 @@ void testReviewRound()
     {   // F4: close tritones out below 55, wide ones allowed.
         FixedScale et; makeBuiltinScale(0, et);
         BrainParams p;
-        p.density = 5; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 30; p.high = 72;
-        p.consonance = 0.2f; p.lowSpacing = 1.0f;
+        p.m_density = 5; p.m_rateSeconds = 3.0f; p.m_holdMin = 20.0f; p.m_holdMax = 40.0f; p.m_low = 30; p.m_high = 72;
+        p.m_consonance = 0.2f; p.m_lowSpacing = 1.0f;
         std::vector<std::vector<int>> chords; std::vector<int> roots;
         runBrain(p, et, true, 60.0, 0x71ull, chords, roots);
         int closeLow = 0, wide = 0;
@@ -9270,8 +9270,8 @@ void testReviewRound()
     {   // F6: Bohlen-Pierce, walked degree by degree.
         FixedScale bp; makeBuiltinScale(9, bp);
         BrainParams p;
-        p.density = 4; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 40; p.high = 70;
-        p.key = 1.0f; p.even = 1.0f; p.memory = 10.0f; p.lowSpacing = 1.0f;
+        p.m_density = 4; p.m_rateSeconds = 3.0f; p.m_holdMin = 20.0f; p.m_holdMax = 40.0f; p.m_low = 40; p.m_high = 70;
+        p.m_key = 1.0f; p.m_even = 1.0f; p.m_memory = 10.0f; p.m_lowSpacing = 1.0f;
         ClusterBrain brain;
         std::vector<std::vector<int>> chords; std::vector<int> roots;
         runBrain(p, bp, false, 30.0, 0x42ull, chords, roots, &brain);
@@ -9284,17 +9284,17 @@ void testReviewRound()
                     const double semis = 12.0 * std::log2(hi / lo), pos = 69.0 + 12.0 * std::log2(lo / 440.0);
                     if (pos < 60.0 && semis > 0.5 && semis < 2.5) ++close;
                 }
-        std::printf("  [probe] Bohlen-Pierce: %zu onsets, %d pairs closer than a minor third below MIDI 60, key %d\n", chords.size(), close, brain.estimatedKey().key);
+        std::printf("  [probe] Bohlen-Pierce: %zu onsets, %d pairs closer than a minor third below MIDI 60, key %d\n", chords.size(), close, brain.estimatedKey().m_key);
         CHECK(chords.size() > 50, "the conductor plays on Bohlen-Pierce");
-        CHECK(brain.estimatedKey().key < 0, "and finds no key on a scale that does not repeat at the octave");
+        CHECK(brain.estimatedKey().m_key < 0, "and finds no key on a scale that does not repeat at the octave");
         CHECK(close == 0, "its register rules read cents, not keys: nothing closer than a minor third below MIDI 60");
     }
     {   // F8: the root's targets.
         FixedScale et; makeBuiltinScale(0, et);
         auto wholeTones = [&](int targets, int& total) {
             BrainParams p;
-            p.density = 4; p.rateSeconds = 4.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 36; p.high = 72;
-            p.wander = 1.0f; p.rootTargets = targets;
+            p.m_density = 4; p.m_rateSeconds = 4.0f; p.m_holdMin = 20.0f; p.m_holdMax = 40.0f; p.m_low = 36; p.m_high = 72;
+            p.m_wander = 1.0f; p.m_rootTargets = targets;
             int tones = 0;
             total = 0;
             for (uint64_t seed = 0; seed < 4; ++seed) {
@@ -9314,8 +9314,8 @@ void testReviewRound()
         FixedScale ji; makeBuiltinScale(3, ji);   // JI 7-limit
         auto onSeries = [&](float series) {
             BrainParams p;
-            p.density = 5; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 36; p.high = 84;
-            p.series = series; p.wander = 0.0f;
+            p.m_density = 5; p.m_rateSeconds = 3.0f; p.m_holdMin = 20.0f; p.m_holdMax = 40.0f; p.m_low = 36; p.m_high = 84;
+            p.m_series = series; p.m_wander = 0.0f;
             std::vector<std::vector<int>> chords; std::vector<int> roots, arrived;
             runBrain(p, ji, true, 40.0, 0x51ull, chords, roots, nullptr, &arrived);
             const double root = scaleFrequency(ji, 48, 60, 440.0, true);
@@ -9333,8 +9333,8 @@ void testReviewRound()
         CHECK(full > off + 0.15, "Series draws the notes onto the fundamental's harmonics");
         FixedScale et; makeBuiltinScale(0, et);
         BrainParams p;
-        p.density = 5; p.rateSeconds = 3.0f; p.holdMin = 20.0f; p.holdMax = 40.0f; p.low = 28; p.high = 70;
-        p.consonance = 0.2f; p.lowSpacing = 1.0f;
+        p.m_density = 5; p.m_rateSeconds = 3.0f; p.m_holdMin = 20.0f; p.m_holdMax = 40.0f; p.m_low = 28; p.m_high = 70;
+        p.m_consonance = 0.2f; p.m_lowSpacing = 1.0f;
         std::vector<std::vector<int>> chords; std::vector<int> roots, arrived;
         runBrain(p, et, true, 60.0, 0x99ull, chords, roots, nullptr, &arrived);
         int low = 0, pairs = 0;
@@ -9402,7 +9402,7 @@ void testGuideRound2()
     {   // The filter's drive, oversampled.
         VoiceFilter f;
         f.prepare(sr);
-        f.set(FilterModel::Lp12, 20000.0f, 0.0f, 1.0f);
+        f.set(FilterModelE::LP12, 20000.0f, 0.0f, 1.0f);
         std::vector<float> L(static_cast<size_t>(sr));
         for (int i = 0; i < sr; ++i) {
             float oL, oR;
@@ -9448,14 +9448,14 @@ void testGuideRound2()
     auto farStemRms = [&](float roomLevel, float toFar, float midCut, float sendCut, double& lowMid, double& lowSide) {
         Engine e;
         e.applyPreset(0);
-        e.setParam(ParamId::BrainOn, 0.0f);
-        e.setParam(ParamId::RoomLevel, roomLevel); e.setParam(ParamId::RoomToFar, toFar);
-        e.setParam(ParamId::FarMidLowcut, midCut); e.setParam(ParamId::SendLowcut, sendCut);
-        e.setParam(ParamId::Attack, 0.05f); e.setParam(ParamId::KeysDepth, 0.8f);
+        e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+        e.setParam(ParamIdE::ROOM_LEVEL, roomLevel); e.setParam(ParamIdE::ROOM_TO_FAR, toFar);
+        e.setParam(ParamIdE::FAR_MID_LOWCUT, midCut); e.setParam(ParamIdE::SEND_LOWCUT, sendCut);
+        e.setParam(ParamIdE::ATTACK, 0.05f); e.setParam(ParamIdE::KEYS_DEPTH, 0.8f);
         e.prepare(sr, 256);
-        std::vector<float> st(static_cast<size_t>(Engine::kNumStems) * 2 * 256, 0.0f);
-        float* ptr[Engine::kNumStems * 2];
-        for (int c = 0; c < Engine::kNumStems * 2; ++c) ptr[c] = st.data() + static_cast<size_t>(c) * 256;
+        std::vector<float> st(static_cast<size_t>(Engine::NumStems) * 2 * 256, 0.0f);
+        float* ptr[Engine::NumStems * 2];
+        for (int c = 0; c < Engine::NumStems * 2; ++c) ptr[c] = st.data() + static_cast<size_t>(c) * 256;
         e.setStemBuffers(ptr);
         e.noteOn(45, 0.8f); e.noteOn(52, 0.8f);
         std::vector<float> L(256), R(256), mid, side;
@@ -9497,10 +9497,10 @@ void testGuideRound2()
     {   // The Foundation's ceiling.
         auto subPeak = [&](float ceiling) {
             Engine e;
-            e.setParam(ParamId::BrainOn, 0.0f);
-            e.setParam(ParamId::SubLevel, 1.0f); e.setParam(ParamId::SubBinaural, 0.0f); e.setParam(ParamId::SubBeat, 0.5f);
-            e.setParam(ParamId::SubCeiling, ceiling); e.setParam(ParamId::MasterGain, 6.0f);
-            e.setParam(ParamId::FarLevel, 0.0f); e.setParam(ParamId::NearMix, 0.0f);
+            e.setParam(ParamIdE::BRAIN_ON, 0.0f);
+            e.setParam(ParamIdE::SUB_LEVEL, 1.0f); e.setParam(ParamIdE::SUB_BINAURAL, 0.0f); e.setParam(ParamIdE::SUB_BEAT, 0.5f);
+            e.setParam(ParamIdE::SUB_CEILING, ceiling); e.setParam(ParamIdE::MASTER_GAIN, 6.0f);
+            e.setParam(ParamIdE::FAR_LEVEL, 0.0f); e.setParam(ParamIdE::NEAR_MIX, 0.0f);
             e.prepare(sr, 256);
             std::vector<float> cap;
             render(e, 12.0, &cap);
@@ -9530,15 +9530,15 @@ void testGuideRound2()
             return m.read();
         };
         const LoudnessReading same = corr(0), inverted = corr(1), unrelated = corr(2);
-        CHECK(same.correlation > 0.999f && same.correlationMean > 0.999f, "the correlation meter reads +1 for the same signal in both channels");
-        CHECK(inverted.correlation < -0.999f, "-1 for one channel the other upside down");
-        CHECK(std::fabs(unrelated.correlation) < 0.05f && std::fabs(unrelated.correlationMean) < 0.05f, "and nought for two unrelated signals");
+        CHECK(same.m_correlation > 0.999f && same.m_correlationMean > 0.999f, "the correlation meter reads +1 for the same signal in both channels");
+        CHECK(inverted.m_correlation < -0.999f, "-1 for one channel the other upside down");
+        CHECK(std::fabs(unrelated.m_correlation) < 0.05f && std::fabs(unrelated.m_correlationMean) < 0.05f, "and nought for two unrelated signals");
     }
     {   // The defaults are the guide's.
-        CHECK(std::fabs(paramDesc(ParamId::RoomToFar).def - 0.15f) < 1e-6f && std::string(paramDesc(ParamId::RoomToFar).section) == "Room", "To Far: 0.15, in the room's section");
-        CHECK(paramDesc(ParamId::FarMidLowcut).def == 300.0f && std::string(paramDesc(ParamId::FarMidLowcut).section) == "Far Reverb", "Mid Low Cut: 300 Hz, beside the far reverb");
-        CHECK(paramDesc(ParamId::SubCeiling).def == -6.0f && std::string(paramDesc(ParamId::SubCeiling).section) == "Foundation", "Ceiling: -6 dBFS, with the Foundation");
-        CHECK(std::fabs(paramDesc(ParamId::FarUnmaskReturn).def - 0.5f) < 1e-6f, "Unmask Return: the guide's half second");
+        CHECK(std::fabs(paramDesc(ParamIdE::ROOM_TO_FAR).m_def - 0.15f) < 1e-6f && std::string(paramDesc(ParamIdE::ROOM_TO_FAR).m_section) == "Room", "To Far: 0.15, in the room's section");
+        CHECK(paramDesc(ParamIdE::FAR_MID_LOWCUT).m_def == 300.0f && std::string(paramDesc(ParamIdE::FAR_MID_LOWCUT).m_section) == "Far Reverb", "Mid Low Cut: 300 Hz, beside the far reverb");
+        CHECK(paramDesc(ParamIdE::SUB_CEILING).m_def == -6.0f && std::string(paramDesc(ParamIdE::SUB_CEILING).m_section) == "Foundation", "Ceiling: -6 dBFS, with the Foundation");
+        CHECK(std::fabs(paramDesc(ParamIdE::FAR_UNMASK_RETURN).m_def - 0.5f) < 1e-6f, "Unmask Return: the guide's half second");
     }
 }
 
@@ -9549,8 +9549,8 @@ void testGuideRound2()
 void testJam()
 {
     Engine e;
-    e.setParam(ParamId::BrainOn, 1.0f);
-    e.setParam(ParamId::BrainRate, 3.0f);
+    e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+    e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
     e.prepare(48000.0, 256);
     std::vector<float> L(256), R(256);
     auto play = [&](double seconds) { for (int b = 0; b < static_cast<int>(48000.0 * seconds / 256.0); ++b) e.process(L.data(), R.data(), 256); };
@@ -9579,11 +9579,11 @@ void testJam()
 void testNoteTap()
 {
     Engine e;
-    e.setParam(ParamId::BrainOn, 1.0f);
-    e.setParam(ParamId::BrainRate, 3.0f);
-    e.setParam(ParamId::BrainHoldMin, 2.0f);
-    e.setParam(ParamId::BrainHoldMax, 4.0f);
-    e.setParam(ParamId::BrainDensity, 4.0f);
+    e.setParam(ParamIdE::BRAIN_ON, 1.0f);
+    e.setParam(ParamIdE::BRAIN_RATE, 3.0f);
+    e.setParam(ParamIdE::BRAIN_HOLD_MIN, 2.0f);
+    e.setParam(ParamIdE::BRAIN_HOLD_MAX, 4.0f);
+    e.setParam(ParamIdE::BRAIN_DENSITY, 4.0f);
     e.prepare(48000.0, 256);
     NoteTap tap;
     e.setNoteTap(&tap);
@@ -9591,12 +9591,12 @@ void testNoteTap()
     int ons = 0, offs = 0, unpaired = 0, outside = 0, otherChannel = 0;
     int held[17][128] = {};
     auto take = [&]() {
-        for (int i = 0; i < tap.count; ++i) {
-            const NoteTap::Note& nt = tap.notes[i];
-            if (nt.offset < 0 || nt.offset >= 256) ++outside;
-            if (nt.channel != 1) ++otherChannel;
-            if (nt.velocity > 0) { ++ons; ++held[nt.channel][nt.pitch]; }
-            else { ++offs; if (held[nt.channel][nt.pitch] > 0) --held[nt.channel][nt.pitch]; else ++unpaired; }
+        for (int i = 0; i < tap.m_count; ++i) {
+            const NoteTap::Note& nt = tap.m_notes[i];
+            if (nt.m_offset < 0 || nt.m_offset >= 256) ++outside;
+            if (nt.m_channel != 1) ++otherChannel;
+            if (nt.m_velocity > 0) { ++ons; ++held[nt.m_channel][nt.m_pitch]; }
+            else { ++offs; if (held[nt.m_channel][nt.m_pitch] > 0) --held[nt.m_channel][nt.m_pitch]; else ++unpaired; }
         }
         tap.clear();
     };

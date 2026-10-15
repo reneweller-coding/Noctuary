@@ -53,7 +53,7 @@ namespace {
  * Tools/library/write_builtins.py, which finds it by its opening line and replaces everything up to
  * the closing brace, so nothing inside it is edited by hand; builtinPresetCount() is its length.
  */
-const Preset kPresets[] = {
+const Preset Presets[] = {
 
     // ---------------------------------------------------------------- 0..15 Just Drones
     { "Init", "" },
@@ -12339,9 +12339,9 @@ namespace {
 
 /**
  * @brief How many presets the Near bank holds, the Off entry included.
- * @return the length of kNearPresets (108 at the time of writing)
+ * @return the length of NearPresets (108 at the time of writing)
  */
-int numNearPresets() { return static_cast<int>(sizeof(kNearPresets) / sizeof(kNearPresets[0])); }
+int numNearPresets() { return static_cast<int>(sizeof(NearPresets) / sizeof(NearPresets[0])); }
 /**
  * @brief One preset of the Near bank: the Near Source and Near Events sections, nothing else.
  *
@@ -12352,37 +12352,37 @@ const Preset& nearPreset(int index)
 {
     const int n = numNearPresets();
     if (index < 0 || index >= n) index = 0;
-    return kNearPresets[index];
+    return NearPresets[index];
 }
-int nearPresetCategory(int i) { return (i >= 0 && i < numNearPresets()) ? kNearPresetCategory[i] : 255; }
+int nearPresetCategory(int i) { return (i >= 0 && i < numNearPresets()) ? NearPresetCategory[i] : 255; }
 /**
  * @brief How many families the Near bank's list is divided into.
- * @return the length of kNearPresetsFamilyNames (12 at the time of writing)
+ * @return the length of NearPresetsFamilyNames (12 at the time of writing)
  */
-int numNearPresetFamilies() { return static_cast<int>(sizeof(kNearPresetsFamilyNames) / sizeof(kNearPresetsFamilyNames[0])); }
-const char* nearPresetFamily(int f) { return (f >= 0 && f < numNearPresetFamilies()) ? kNearPresetsFamilyNames[f] : ""; }
+int numNearPresetFamilies() { return static_cast<int>(sizeof(NearPresetsFamilyNames) / sizeof(NearPresetsFamilyNames[0])); }
+const char* nearPresetFamily(int f) { return (f >= 0 && f < numNearPresetFamilies()) ? NearPresetsFamilyNames[f] : ""; }
 
 
 
 /**
  * @brief How many presets the Cosmos bank holds, the Off entry included.
- * @return the length of kCosmosPresets (257 at the time of writing: Off and sixteen families of
+ * @return the length of CosmosPresets (257 at the time of writing: Off and sixteen families of
  *         sixteen)
  */
-int numCosmosPresets() { return static_cast<int>(sizeof(kCosmosPresets) / sizeof(kCosmosPresets[0])); }
-int cosmosPresetCategory(int i) { return (i >= 0 && i < numCosmosPresets()) ? kCosmosPresetCategory[i] : 255; }
+int numCosmosPresets() { return static_cast<int>(sizeof(CosmosPresets) / sizeof(CosmosPresets[0])); }
+int cosmosPresetCategory(int i) { return (i >= 0 && i < numCosmosPresets()) ? CosmosPresetCategory[i] : 255; }
 /**
  * @brief How many families the Cosmos bank's list is divided into.
- * @return the length of kCosmosPresetsFamilyNames (16 at the time of writing)
+ * @return the length of CosmosPresetsFamilyNames (16 at the time of writing)
  */
-int numCosmosPresetFamilies() { return static_cast<int>(sizeof(kCosmosPresetsFamilyNames) / sizeof(kCosmosPresetsFamilyNames[0])); }
-const char* cosmosPresetFamily(int f) { return (f >= 0 && f < numCosmosPresetFamilies()) ? kCosmosPresetsFamilyNames[f] : ""; }
+int numCosmosPresetFamilies() { return static_cast<int>(sizeof(CosmosPresetsFamilyNames) / sizeof(CosmosPresetsFamilyNames[0])); }
+const char* cosmosPresetFamily(int f) { return (f >= 0 && f < numCosmosPresetFamilies()) ? CosmosPresetsFamilyNames[f] : ""; }
 
 /**
  * @brief How many presets the Z-plane bank holds: one per filter shape, plus the Off entry.
- * @return the length of kZPresets (155 at the time of writing)
+ * @return the length of ZPresets (155 at the time of writing)
  */
-int numZPresets() { return static_cast<int>(sizeof(kZPresets) / sizeof(kZPresets[0])); }
+int numZPresets() { return static_cast<int>(sizeof(ZPresets) / sizeof(ZPresets[0])); }
 /**
  * @brief One preset of the Z-plane bank: the ZPlane section set to one filter shape, nothing else.
  *
@@ -12393,15 +12393,15 @@ const Preset& zPreset(int index)
 {
     const int n = numZPresets();
     if (index < 0 || index >= n) index = 0;
-    return kZPresets[index];
+    return ZPresets[index];
 }
-int zPresetCategory(int i) { return (i >= 0 && i < numZPresets()) ? kZPresetCategory[i] : 255; }
+int zPresetCategory(int i) { return (i >= 0 && i < numZPresets()) ? ZPresetCategory[i] : 255; }
 
 /**
  * @brief How many presets the Strike bank holds, the Off entry included.
- * @return the length of kStrikePresets (41 at the time of writing)
+ * @return the length of StrikePresets (41 at the time of writing)
  */
-int numStrikePresets() { return static_cast<int>(sizeof(kStrikePresets) / sizeof(kStrikePresets[0])); }
+int numStrikePresets() { return static_cast<int>(sizeof(StrikePresets) / sizeof(StrikePresets[0])); }
 /**
  * @brief One preset of the Strike bank: the Karplus-Strong pluck's section, nothing else.
  *
@@ -12412,15 +12412,15 @@ const Preset& strikePreset(int index)
 {
     const int n = numStrikePresets();
     if (index < 0 || index >= n) index = 0;
-    return kStrikePresets[index];
+    return StrikePresets[index];
 }
-int strikePresetCategory(int i) { return (i >= 0 && i < numStrikePresets()) ? kStrikePresetCategory[i] : 255; }
+int strikePresetCategory(int i) { return (i >= 0 && i < numStrikePresets()) ? StrikePresetCategory[i] : 255; }
 /**
  * @brief How many families the Strike bank's list is divided into.
- * @return the length of kStrikePresetsFamilyNames (4 at the time of writing)
+ * @return the length of StrikePresetsFamilyNames (4 at the time of writing)
  */
-int numStrikePresetFamilies() { return static_cast<int>(sizeof(kStrikePresetsFamilyNames) / sizeof(kStrikePresetsFamilyNames[0])); }
-const char* strikePresetFamily(int f) { return (f >= 0 && f < numStrikePresetFamilies()) ? kStrikePresetsFamilyNames[f] : ""; }
+int numStrikePresetFamilies() { return static_cast<int>(sizeof(StrikePresetsFamilyNames) / sizeof(StrikePresetsFamilyNames[0])); }
+const char* strikePresetFamily(int f) { return (f >= 0 && f < numStrikePresetFamilies()) ? StrikePresetsFamilyNames[f] : ""; }
 /**
  * @brief One preset of the Cosmos bank: the Cosmos section (the feedback network), nothing else.
  *
@@ -12431,15 +12431,15 @@ const Preset& cosmosPreset(int index)
 {
     const int n = numCosmosPresets();
     if (index < 0 || index >= n) index = 0;
-    return kCosmosPresets[index];
+    return CosmosPresets[index];
 }
 
 /**
- * @brief How many presets are compiled in: the length of kPresets, and the index at which the
+ * @brief How many presets are compiled in: the length of Presets, and the index at which the
  *        loaded packs begin in the list numPresets() counts (PresetPacks.cpp).
  * @return 256 as generated; never depends on what packs are loaded
  */
-int builtinPresetCount() { return static_cast<int>(sizeof(kPresets) / sizeof(kPresets[0])); }
+int builtinPresetCount() { return static_cast<int>(sizeof(Presets) / sizeof(Presets[0])); }
 /**
  * @brief One of the compiled-in presets, by DAW program number.
  *
@@ -12447,13 +12447,13 @@ int builtinPresetCount() { return static_cast<int>(sizeof(kPresets) / sizeof(kPr
  * everything that walks presets goes through preset(), which sees the packs as well.
  *
  * An index outside 0 .. builtinPresetCount() - 1 yields entry 0, "Init". The reference points into
- * kPresets and stays valid for the life of the program.
+ * Presets and stays valid for the life of the program.
  */
 const Preset& builtinPreset(int index)
 {
     const int n = builtinPresetCount();
     if (index < 0 || index >= n) index = 0;
-    return kPresets[index];
+    return Presets[index];
 }
 
 /**
@@ -12472,10 +12472,10 @@ const Preset& builtinPreset(int index)
  */
 float paramValueFromText(const ParamDesc& d, const char* text)
 {
-    if (text == nullptr) return d.def;
-    if (d.kind == ParamKind::Choice)
-        for (int i = 0; i < d.numChoices; ++i) if (std::strcmp(text, d.choices[i]) == 0) return static_cast<float>(i);
-    if (d.kind == ParamKind::Bool) {
+    if (text == nullptr) return d.m_def;
+    if (d.m_kind == ParamKindE::CHOICE)
+        for (int i = 0; i < d.m_numChoices; ++i) if (std::strcmp(text, d.m_choices[i]) == 0) return static_cast<float>(i);
+    if (d.m_kind == ParamKindE::BOOL) {
         if (!std::strcmp(text, "on") || !std::strcmp(text, "true") || !std::strcmp(text, "yes")) return 1.0f;
         if (!std::strcmp(text, "off") || !std::strcmp(text, "false") || !std::strcmp(text, "no")) return 0.0f;
     }
@@ -12483,8 +12483,8 @@ float paramValueFromText(const ParamDesc& d, const char* text)
     // "nan" passes both comparisons below -- every comparison with NaN is false -- and would be
     // stored as the parameter's value. "inf" is caught by them and clamped, which is fine. A
     // value that is not a number at all is the default.
-    if (std::isnan(v)) return d.def;
-    return v < d.min ? d.min : (v > d.max ? d.max : v);
+    if (std::isnan(v)) return d.m_def;
+    return v < d.m_min ? d.m_min : (v > d.m_max ? d.m_max : v);
 }
 
 } // namespace ambient

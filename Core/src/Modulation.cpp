@@ -22,21 +22,21 @@
 
 namespace ambient {
 
-const char* const kLfoShapeNames[kNumLfoShapes] = {
+const char* const LfoShapeNames[NumLfoShapes] = {
     "Sine", "Triangle", "Ramp Up", "Ramp Down", "Square", "Random", "Steps", "Table",
 };
-const char* const kLfoModeNames[kNumLfoModes] = { "Global", "Per Voice", "Retrigger" };
-const char* const kEnvModeNames[kNumEnvModes] = { "One Shot", "Loop", "Sustain Loop" };
+const char* const LfoModeNames[NumLfoModes] = { "Global", "Per Voice", "Retrigger" };
+const char* const EnvModeNames[NumEnvModes] = { "One Shot", "Loop", "Sustain Loop" };
 
 /**
  * Written over about four time units, which the Time knob scales; at Time = 1 that is four
  * seconds. ADSR is first because it is what anybody looks for first.
  */
-const char* const kEnvShapePresetNames[kNumEnvShapePresets] = {
+const char* const EnvShapePresetNames[NumEnvShapePresets] = {
     "ADSR", "AD (percussive)", "AR (swell)", "Ramp up", "Ramp down",
     "Pulse", "Slow swell", "Two peaks", "Stepped", "Bipolar sweep",
 };
-const char* const kEnvShapePresetTexts[kNumEnvShapePresets] = {
+const char* const EnvShapePresetTexts[NumEnvShapePresets] = {
     "0:0/0.4:1:-0.3/1.4:0.6/4:0:-0.3!s2",
     "0:0/0.15:1/2:0:-0.6",
     "0:0/1.5:1:0.2/4:0:-0.2!s1",
@@ -100,18 +100,18 @@ inline float softSquare(float p)
  */
 float tableAt(const Wavetable* table, int frame, float phase01)
 {
-    if (table == nullptr || table->frames <= 0) return std::sin(kTwoPi * phase01);
-    float spec[kTablePartials];
-    const float pos = table->frames > 1
-        ? static_cast<float>(frame % table->frames) / static_cast<float>(table->frames - 1) : 0.0f;
+    if (table == nullptr || table->m_frames <= 0) return std::sin(TwoPi * phase01);
+    float spec[TablePartials];
+    const float pos = table->m_frames > 1
+        ? static_cast<float>(frame % table->m_frames) / static_cast<float>(table->m_frames - 1) : 0.0f;
     table->spectrumAt(pos, spec);
     // The table keeps a spectrum, not samples, so the shape is resynthesised. Thirty-two partials
     // at control rate is nothing, and it means any of the generated wavetables -- or any curve
     // drawn into one -- is an LFO shape without a second mechanism for drawable modulators.
     float v = 0.0f, norm = 0.0f;
-    for (int h = 0; h < kTablePartials; ++h) {
+    for (int h = 0; h < TablePartials; ++h) {
         if (spec[h] <= 1.0e-5f) continue;
-        v += spec[h] * std::sin(kTwoPi * static_cast<float>(h + 1) * phase01);
+        v += spec[h] * std::sin(TwoPi * static_cast<float>(h + 1) * phase01);
         norm += spec[h];
     }
     return norm > 1.0e-6f ? v / norm * 1.6f : 0.0f;
@@ -123,72 +123,72 @@ float tableAt(const Wavetable* table, int frame, float phase01)
 
 void Lfo::reset(uint64_t seed, float phase01)
 {
-    rng_.seed(seed);
-    phase_ = wrap01(phase01);
-    prev_ = rng_.bipolar();
-    next_ = rng_.bipolar();
-    for (float& v : steps_) v = rng_.bipolar();
-    value_ = 0.0f;
+    m_rng.seed(seed);
+    m_phase = wrap01(phase01);
+    m_prev = m_rng.bipolar();
+    m_next = m_rng.bipolar();
+    for (float& v : m_steps) v = m_rng.bipolar();
+    m_value = 0.0f;
 }
 
 float Lfo::shapeAt(const LfoSpec& spec, float phase01, const Wavetable* table, const Lfo* live)
 {
     const float p = wrap01(phase01);
-    switch (spec.shape) {
-    case LfoShape::Sine:      return std::sin(kTwoPi * p);
-    case LfoShape::Triangle:  return p < 0.25f ? 4.0f * p : (p < 0.75f ? 2.0f - 4.0f * p : 4.0f * p - 4.0f);
-    case LfoShape::RampUp:    return 2.0f * p - 1.0f;
-    case LfoShape::RampDown:  return 1.0f - 2.0f * p;
-    case LfoShape::Square:    return softSquare(p);
-    case LfoShape::Random: {  // smoothstep between two random values, one pair per cycle
-        const float a = live ? live->prev_ : -0.5f, b = live ? live->next_ : 0.5f;
+    switch (spec.m_shape) {
+    case LfoShapeE::SINE:      return std::sin(TwoPi * p);
+    case LfoShapeE::TRIANGLE:  return p < 0.25f ? 4.0f * p : (p < 0.75f ? 2.0f - 4.0f * p : 4.0f * p - 4.0f);
+    case LfoShapeE::RAMP_UP:    return 2.0f * p - 1.0f;
+    case LfoShapeE::RAMP_DOWN:  return 1.0f - 2.0f * p;
+    case LfoShapeE::SQUARE:    return softSquare(p);
+    case LfoShapeE::RANDOM: {  // smoothstep between two random values, one pair per cycle
+        const float a = live ? live->m_prev : -0.5f, b = live ? live->m_next : 0.5f;
         return a + (b - a) * smoothstep(p);
     }
-    case LfoShape::StepRandom: {   // four holds a cycle, each reached with a short ramp
-        static const float kFallback[5] = { -0.5f, 0.5f, -0.2f, 0.8f, -0.5f };
-        const float* st = live ? live->steps_ : kFallback;
+    case LfoShapeE::STEP_RANDOM: {   // four holds a cycle, each reached with a short ramp
+        static const float Fallback[5] = { -0.5f, 0.5f, -0.2f, 0.8f, -0.5f };
+        const float* st = live ? live->m_steps : Fallback;
         const float q = p * 4.0f;
         const int   k = std::min(3, static_cast<int>(q));
         const float f = q - static_cast<float>(k);
         return st[k] + (st[k + 1] - st[k]) * smoothstep(f / 0.3f);
     }
-    case LfoShape::Table:     return tableAt(table, spec.table, p);
+    case LfoShapeE::TABLE:     return tableAt(table, spec.m_table, p);
     default:                  return 0.0f;
     }
 }
 
 float Lfo::step(float dt, const LfoSpec& spec, const Wavetable* table)
 {
-    const double inc = static_cast<double>(spec.rateHz) * static_cast<double>(dt);
-    const double before = phase_;
-    phase_ += inc;
-    if (phase_ >= 1.0) {
-        phase_ -= std::floor(phase_);
-        prev_ = next_;
-        next_ = rng_.bipolar();
-        steps_[0] = steps_[4];          // the last hold carries over, so the wrap is not a step
-        for (int i = 1; i < 5; ++i) steps_[i] = rng_.bipolar();
+    const double inc = static_cast<double>(spec.m_rateHz) * static_cast<double>(dt);
+    const double before = m_phase;
+    m_phase += inc;
+    if (m_phase >= 1.0) {
+        m_phase -= std::floor(m_phase);
+        m_prev = m_next;
+        m_next = m_rng.bipolar();
+        m_steps[0] = m_steps[4];          // the last hold carries over, so the wrap is not a step
+        for (int i = 1; i < 5; ++i) m_steps[i] = m_rng.bipolar();
     }
     (void)before;
     // A phase just under one rounds to exactly 1.0f on the cast to float, and wrapping that gives
     // zero -- the shape then jumps back to its start one control block before the cycle ends.
     // Measured on Random: a step of 1.994 out of a range of 2.
-    float p = static_cast<float>(phase_);
+    float p = static_cast<float>(m_phase);
     if (p >= 1.0f) p = 0.99999994f;
-    value_ = shapeAt(spec, p + spec.phase, table, this) * spec.depth;
-    return value_;
+    m_value = shapeAt(spec, p + spec.m_phase, table, this) * spec.m_depth;
+    return m_value;
 }
 
 // ---------------------------------------------------------------- envelope
 
 bool ModEnv::set(const EnvPoint* points, int count)
 {
-    if (points == nullptr || count < 0 || count > kMaxEnvPoints) return false;
-    for (int i = 1; i < count; ++i) if (points[i].time < points[i - 1].time) return false;
-    for (int i = 0; i < count; ++i) points_[i] = points[i];
-    count_ = count;
-    if (sustain_ >= count_) sustain_ = -1;
-    if (loopFrom_ >= count_ || loopTo_ >= count_) { loopFrom_ = loopTo_ = -1; }
+    if (points == nullptr || count < 0 || count > MaxEnvPoints) return false;
+    for (int i = 1; i < count; ++i) if (points[i].m_time < points[i - 1].m_time) return false;
+    for (int i = 0; i < count; ++i) m_points[i] = points[i];
+    m_count = count;
+    if (m_sustain >= m_count) m_sustain = -1;
+    if (m_loopFrom >= m_count || m_loopTo >= m_count) { m_loopFrom = m_loopTo = -1; }
     return true;
 }
 
@@ -208,48 +208,48 @@ float shape(float t, float curve)
 }
 }
 
-float ModEnv::at(float seconds, EnvMode mode, bool held) const
+float ModEnv::at(float seconds, EnvModeE mode, bool held) const
 {
-    if (count_ <= 0) return 0.0f;
-    if (count_ == 1) return points_[0].value;
-    const float end = points_[count_ - 1].time;
+    if (m_count <= 0) return 0.0f;
+    if (m_count == 1) return m_points[0].m_value;
+    const float end = m_points[m_count - 1].m_time;
 
     float t = seconds < 0.0f ? 0.0f : seconds;
-    const bool looping = (mode == EnvMode::Loop) || (mode == EnvMode::SustainLoop && held);
-    if (looping && loopFrom_ >= 0 && loopTo_ > loopFrom_ && loopTo_ < count_) {
-        const float a = points_[loopFrom_].time, b = points_[loopTo_].time;
+    const bool looping = (mode == EnvModeE::LOOP) || (mode == EnvModeE::SUSTAIN_LOOP && held);
+    if (looping && m_loopFrom >= 0 && m_loopTo > m_loopFrom && m_loopTo < m_count) {
+        const float a = m_points[m_loopFrom].m_time, b = m_points[m_loopTo].m_time;
         if (b > a && t > b) t = a + std::fmod(t - a, b - a);
-    } else if (mode == EnvMode::Loop && end > 0.0f && t > end) {
+    } else if (mode == EnvModeE::LOOP && end > 0.0f && t > end) {
         t = std::fmod(t, end);
-    } else if (mode == EnvMode::SustainLoop && held && sustain_ >= 0 && sustain_ < count_) {
-        t = std::min(t, points_[sustain_].time);
+    } else if (mode == EnvModeE::SUSTAIN_LOOP && held && m_sustain >= 0 && m_sustain < m_count) {
+        t = std::min(t, m_points[m_sustain].m_time);
     } else if (t > end) {
-        return points_[count_ - 1].value;
+        return m_points[m_count - 1].m_value;
     }
 
     int i = 0;
-    while (i + 2 < count_ && points_[i + 1].time <= t) ++i;
-    const EnvPoint& a = points_[i];
-    const EnvPoint& b = points_[i + 1];
-    const float span = b.time - a.time;
-    const float u = span > 1.0e-6f ? (t - a.time) / span : 1.0f;
-    return a.value + (b.value - a.value) * shape(u, a.curve);
+    while (i + 2 < m_count && m_points[i + 1].m_time <= t) ++i;
+    const EnvPoint& a = m_points[i];
+    const EnvPoint& b = m_points[i + 1];
+    const float span = b.m_time - a.m_time;
+    const float u = span > 1.0e-6f ? (t - a.m_time) / span : 1.0f;
+    return a.m_value + (b.m_value - a.m_value) * shape(u, a.m_curve);
 }
 
-float ModEnv::readTime(float seconds, EnvMode mode, bool held) const
+float ModEnv::readTime(float seconds, EnvModeE mode, bool held) const
 {
-    if (count_ <= 1) return 0.0f;
-    const float end = points_[count_ - 1].time;
+    if (m_count <= 1) return 0.0f;
+    const float end = m_points[m_count - 1].m_time;
     float t = seconds < 0.0f ? 0.0f : seconds;
     // The branches of at(), in the same order, so the two cannot disagree about which one applies.
-    const bool looping = (mode == EnvMode::Loop) || (mode == EnvMode::SustainLoop && held);
-    if (looping && loopFrom_ >= 0 && loopTo_ > loopFrom_ && loopTo_ < count_) {
-        const float a = points_[loopFrom_].time, b = points_[loopTo_].time;
+    const bool looping = (mode == EnvModeE::LOOP) || (mode == EnvModeE::SUSTAIN_LOOP && held);
+    if (looping && m_loopFrom >= 0 && m_loopTo > m_loopFrom && m_loopTo < m_count) {
+        const float a = m_points[m_loopFrom].m_time, b = m_points[m_loopTo].m_time;
         if (b > a && t > b) t = a + std::fmod(t - a, b - a);
-    } else if (mode == EnvMode::Loop && end > 0.0f && t > end) {
+    } else if (mode == EnvModeE::LOOP && end > 0.0f && t > end) {
         t = std::fmod(t, end);
-    } else if (mode == EnvMode::SustainLoop && held && sustain_ >= 0 && sustain_ < count_) {
-        t = std::min(t, points_[sustain_].time);
+    } else if (mode == EnvModeE::SUSTAIN_LOOP && held && m_sustain >= 0 && m_sustain < m_count) {
+        t = std::min(t, m_points[m_sustain].m_time);
     }
     return std::min(t, end);
 }
@@ -257,23 +257,23 @@ float ModEnv::readTime(float seconds, EnvMode mode, bool held) const
 bool ModEnv::parse(const char* text)
 {
     if (text == nullptr) return false;
-    EnvPoint pts[kMaxEnvPoints];
+    EnvPoint pts[MaxEnvPoints];
     int n = 0, sus = -1, from = -1, to = -1;
     const char* s = text;
     while (*s && *s != '!') {
-        if (n >= kMaxEnvPoints) return false;
+        if (n >= MaxEnvPoints) return false;
         char* endp = nullptr;
-        pts[n].time = static_cast<float>(std::strtod(s, &endp));
-        if (endp == s || *endp != ':' || !std::isfinite(pts[n].time)) return false;
+        pts[n].m_time = static_cast<float>(std::strtod(s, &endp));
+        if (endp == s || *endp != ':' || !std::isfinite(pts[n].m_time)) return false;
         s = endp + 1;
-        pts[n].value = static_cast<float>(std::strtod(s, &endp));
-        if (endp == s || !std::isfinite(pts[n].value)) return false;
+        pts[n].m_value = static_cast<float>(std::strtod(s, &endp));
+        if (endp == s || !std::isfinite(pts[n].m_value)) return false;
         s = endp;
-        pts[n].curve = 0.0f;
+        pts[n].m_curve = 0.0f;
         if (*s == ':') {
             ++s;
-            pts[n].curve = static_cast<float>(std::strtod(s, &endp));
-            if (endp == s || !std::isfinite(pts[n].curve)) return false;
+            pts[n].m_curve = static_cast<float>(std::strtod(s, &endp));
+            if (endp == s || !std::isfinite(pts[n].m_curve)) return false;
             s = endp;
         }
         ++n;
@@ -291,9 +291,9 @@ bool ModEnv::parse(const char* text)
         while (*s && *s != '!') ++s;
     }
     if (!set(pts, n)) return false;
-    sustain_ = (sus >= 0 && sus < count_) ? sus : -1;
-    if (from >= 0 && to > from && to < count_) { loopFrom_ = from; loopTo_ = to; }
-    else { loopFrom_ = loopTo_ = -1; }
+    m_sustain = (sus >= 0 && sus < m_count) ? sus : -1;
+    if (from >= 0 && to > from && to < m_count) { m_loopFrom = from; m_loopTo = to; }
+    else { m_loopFrom = m_loopTo = -1; }
     return true;
 }
 
@@ -301,19 +301,19 @@ int ModEnv::write(char* buf, size_t cap) const
 {
     if (buf == nullptr || cap == 0) return 0;
     int len = 0;
-    for (int i = 0; i < count_; ++i) {
+    for (int i = 0; i < m_count; ++i) {
         const int w = std::snprintf(buf + len, cap - static_cast<size_t>(len), "%s%.4g:%.4g:%.3g",
-                                    i ? "/" : "", points_[i].time, points_[i].value, points_[i].curve);
+                                    i ? "/" : "", m_points[i].m_time, m_points[i].m_value, m_points[i].m_curve);
         if (w < 0 || static_cast<size_t>(len + w) >= cap) return 0;
         len += w;
     }
-    if (sustain_ >= 0) {
-        const int w = std::snprintf(buf + len, cap - static_cast<size_t>(len), "!s%d", sustain_);
+    if (m_sustain >= 0) {
+        const int w = std::snprintf(buf + len, cap - static_cast<size_t>(len), "!s%d", m_sustain);
         if (w < 0 || static_cast<size_t>(len + w) >= cap) return 0;
         len += w;
     }
-    if (loopFrom_ >= 0 && loopTo_ > loopFrom_) {
-        const int w = std::snprintf(buf + len, cap - static_cast<size_t>(len), "!l%d-%d", loopFrom_, loopTo_);
+    if (m_loopFrom >= 0 && m_loopTo > m_loopFrom) {
+        const int w = std::snprintf(buf + len, cap - static_cast<size_t>(len), "!l%d-%d", m_loopFrom, m_loopTo);
         if (w < 0 || static_cast<size_t>(len + w) >= cap) return 0;
         len += w;
     }
@@ -327,7 +327,7 @@ namespace {
  * @brief The text-form names of the sources, in the order of ModSource: modSourceName() and
  * modSourceFromName() read this table both ways, so a row of the matrix survives in a preset string.
  */
-const char* const kSourceNames[kNumModSources] = {
+const char* const SourceNames[NumModSources] = {
     "none",
     "lfo1", "lfo2", "lfo3", "lfo4", "lfo5", "lfo6", "lfo7", "lfo8",
     "env1", "env2", "env3", "env4", "env5", "env6",
@@ -345,38 +345,38 @@ const char* const kSourceNames[kNumModSources] = {
 };
 }
 
-const char* modSourceName(ModSource s)
+const char* modSourceName(ModSourceE s)
 {
     const int i = static_cast<int>(s);
-    return (i >= 0 && i < kNumModSources) ? kSourceNames[i] : "none";
+    return (i >= 0 && i < NumModSources) ? SourceNames[i] : "none";
 }
 
-bool modSourceFromName(const char* name, ModSource& out)
+bool modSourceFromName(const char* name, ModSourceE& out)
 {
     if (name == nullptr) return false;
-    for (int i = 0; i < kNumModSources; ++i)
-        if (std::strcmp(name, kSourceNames[i]) == 0) { out = static_cast<ModSource>(i); return true; }
+    for (int i = 0; i < NumModSources; ++i)
+        if (std::strcmp(name, SourceNames[i]) == 0) { out = static_cast<ModSourceE>(i); return true; }
     return false;
 }
 
 bool ModMatrix::remove(int i)
 {
-    if (i < 0 || i >= count_) return false;
-    for (int k = i; k + 1 < count_; ++k) routes_[k] = routes_[k + 1];
-    --count_;
+    if (i < 0 || i >= m_count) return false;
+    for (int k = i; k + 1 < m_count; ++k) m_routes[k] = m_routes[k + 1];
+    --m_count;
     return true;
 }
 
 bool ModMatrix::parse(const char* text)
 {
     if (text == nullptr) return false;
-    ModRoute rows[kMaxModRoutes];
+    ModRoute rows[MaxModRoutes];
     int n = 0;
     const char* s = text;
     while (*s) {
         while (*s == ' ' || *s == ';') ++s;
         if (!*s) break;
-        if (n >= kMaxModRoutes) return false;
+        if (n >= MaxModRoutes) return false;
         char src[24] = {}, tgt[48] = {};
         int i = 0;
         while (*s && *s != '>' && i < 23) src[i++] = *s++;
@@ -385,14 +385,14 @@ bool ModMatrix::parse(const char* text)
         i = 0;
         while (*s && *s != ':' && *s != ';' && i < 47) tgt[i++] = *s++;
         ModRoute r;
-        if (!modSourceFromName(src, r.source)) return false;
+        if (!modSourceFromName(src, r.m_source)) return false;
         const ParamDesc* d = findParam(tgt);
         if (d == nullptr) return false;
-        r.target = d->id;
+        r.m_target = d->m_id;
         if (*s == ':') {
             char* endp = nullptr;
-            r.depth = static_cast<float>(std::strtod(s + 1, &endp));
-            if (endp == s + 1 || !std::isfinite(r.depth)) return false;   // a NaN depth would poison every target
+            r.m_depth = static_cast<float>(std::strtod(s + 1, &endp));
+            if (endp == s + 1 || !std::isfinite(r.m_depth)) return false;   // a NaN depth would poison every target
             s = endp;
         }
         while (*s == ':') {   // optional via source and the "u" flag, in any order
@@ -400,14 +400,14 @@ bool ModMatrix::parse(const char* text)
             char tok[24] = {};
             i = 0;
             while (*s && *s != ':' && *s != ';' && i < 23) tok[i++] = *s++;
-            if (std::strcmp(tok, "u") == 0) r.unipolar = true;
-            else if (!modSourceFromName(tok, r.via)) return false;
+            if (std::strcmp(tok, "u") == 0) r.m_unipolar = true;
+            else if (!modSourceFromName(tok, r.m_via)) return false;
         }
         rows[n++] = r;
         while (*s && *s != ';') ++s;
     }
-    for (int k = 0; k < n; ++k) routes_[k] = rows[k];
-    count_ = n;
+    for (int k = 0; k < n; ++k) m_routes[k] = rows[k];
+    m_count = n;
     return true;
 }
 
@@ -415,19 +415,19 @@ int ModMatrix::write(char* buf, size_t cap) const
 {
     if (buf == nullptr || cap == 0) return 0;
     int len = 0;
-    for (int i = 0; i < count_; ++i) {
-        const ModRoute& r = routes_[i];
+    for (int i = 0; i < m_count; ++i) {
+        const ModRoute& r = m_routes[i];
         int w = std::snprintf(buf + len, cap - static_cast<size_t>(len), "%s%s>%s:%.4g",
-                              i ? ";" : "", modSourceName(r.source),
-                              paramDesc(r.target).key, r.depth);
+                              i ? ";" : "", modSourceName(r.m_source),
+                              paramDesc(r.m_target).m_key, r.m_depth);
         if (w < 0 || static_cast<size_t>(len + w) >= cap) return 0;
         len += w;
-        if (r.via != ModSource::None) {
-            w = std::snprintf(buf + len, cap - static_cast<size_t>(len), ":%s", modSourceName(r.via));
+        if (r.m_via != ModSourceE::NONE) {
+            w = std::snprintf(buf + len, cap - static_cast<size_t>(len), ":%s", modSourceName(r.m_via));
             if (w < 0 || static_cast<size_t>(len + w) >= cap) return 0;
             len += w;
         }
-        if (r.unipolar) {
+        if (r.m_unipolar) {
             w = std::snprintf(buf + len, cap - static_cast<size_t>(len), ":u");
             if (w < 0 || static_cast<size_t>(len + w) >= cap) return 0;
             len += w;
@@ -439,20 +439,20 @@ int ModMatrix::write(char* buf, size_t cap) const
 void ModMatrix::apply(const float* sourceValues, float* out) const
 {
     if (sourceValues == nullptr || out == nullptr) return;
-    for (int i = 0; i < count_; ++i) {
-        const ModRoute& r = routes_[i];
-        if (r.source == ModSource::None) continue;
-        float v = sourceValues[static_cast<int>(r.source)];
-        if (r.unipolar) v = 0.5f * (v + 1.0f);
-        float depth = r.depth;
-        if (r.via != ModSource::None) {
-            const float a = sourceValues[static_cast<int>(r.via)];
+    for (int i = 0; i < m_count; ++i) {
+        const ModRoute& r = m_routes[i];
+        if (r.m_source == ModSourceE::NONE) continue;
+        float v = sourceValues[static_cast<int>(r.m_source)];
+        if (r.m_unipolar) v = 0.5f * (v + 1.0f);
+        float depth = r.m_depth;
+        if (r.m_via != ModSourceE::NONE) {
+            const float a = sourceValues[static_cast<int>(r.m_via)];
             depth *= 0.5f * (a + 1.0f);       // the via source always acts as an amount, 0..1
         }
         // Depth is a fraction of the target's own range, so one number means the same thing on a
         // cutoff in hertz and on a mix in 0..1.
-        const ParamDesc& d = paramDesc(r.target);
-        out[static_cast<int>(r.target)] += v * depth * (d.max - d.min);
+        const ParamDesc& d = paramDesc(r.m_target);
+        out[static_cast<int>(r.m_target)] += v * depth * (d.m_max - d.m_min);
     }
 }
 

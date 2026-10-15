@@ -3,16 +3,16 @@
  * @brief The help texts: the parameter table, the manual by topic and the tab paragraphs.
  *
  * Help.h declares five lookups; this file is the text behind them, and very little else. Three tables
- * of string pairs in an anonymous namespace: kHelp, one or two sentences per parameter key, in the
- * order of the panel; kTopics, the chapters of the manual as raw string literals, with the
- * bibliography last; and kTabHelp, a paragraph per block of the panel. The one piece of mechanism is
+ * of string pairs in an anonymous namespace: Help, one or two sentences per parameter key, in the
+ * order of the panel; Topics, the chapters of the manual as raw string literals, with the
+ * bibliography last; and TabHelps, a paragraph per block of the panel. The one piece of mechanism is
  * the family lookup: the four source slots, the eight LFOs, the six envelopes and the two delays share
  * one text each, so a key is normalised to its family template (familyKey()) and the answer for every
  * ParamId is resolved once, on first use, into HelpCache. The lookups are then an index into that
  * cache or a linear search over a short table, so any shell -- tooltip, the header line, the Help
  * page, the render tool's --list -- may call them freely on the message thread.
  *
- * Writing a text: a key that appears nowhere in kHelp gives "" and nothing complains here; the self
+ * Writing a text: a key that appears nowhere in Help gives "" and nothing complains here; the self
  * test (Tests/selftest.cpp) walks paramTable() and is where a missing text shows up. The section
  * comments inside the tables follow the panel, and the dates in them say when a family of parameters
  * arrived.
@@ -32,13 +32,13 @@ namespace {
  * key like "src2_pos" is looked up as "srcN_pos", "lfo3_rate" as "lfoN_rate", "dly2_mix" as
  * "dly_mix" -- so the table stays readable and the three slots can never drift apart.
  */
-struct HelpEntry { const char* key; const char* text; };
+struct HelpEntry { const char* m_key; const char* m_text; };
 /**
- * @var const char* HelpEntry::key
+ * @var const char* HelpEntry::m_key
  * @brief The parameter key as Params.h spells it, or a family template with an N in place of the slot digit.
  */
 /**
- * @var const char* HelpEntry::text
+ * @var const char* HelpEntry::m_text
  * @brief The one or two sentences shown for it: a string literal, never null.
  */
 
@@ -46,7 +46,7 @@ struct HelpEntry { const char* key; const char* text; };
  * @brief The parameter texts, in the order of the panel; the section comments name the block each run
  * belongs to. Searched once per parameter when HelpCache is built.
  */
-const HelpEntry kHelp[] = {
+const HelpEntry Help[] = {
     { "master_gain", "Output level after the mid/side stage and before the soft clipper. There is no compressor anywhere in this instrument: what you hear is the dynamics of the drone." },
 
     // ---- sources (shared by the four slots)
@@ -599,16 +599,16 @@ std::string familyKey(const char* key)
  * its family template, so paramHelp() is an index and not a search.
  */
 struct HelpCache {
-    const char* text[kNumParams];   ///< indexed by ParamId; "" where kHelp has nothing for the key or its family
-    /** @brief Walks paramTable() once and fills text[]; the first entry of kHelp that matches, by key or by family, wins. */
+    const char* m_text[NumParams];   ///< indexed by ParamId; "" where Help has nothing for the key or its family
+    /** @brief Walks paramTable() once and fills text[]; the first entry of Help that matches, by key or by family, wins. */
     HelpCache()
     {
         for (const ParamDesc& d : paramTable()) {
             const char* found = "";
-            const std::string fam = familyKey(d.key);
-            for (const HelpEntry& e : kHelp)
-                if (std::strcmp(e.key, d.key) == 0 || fam == e.key) { found = e.text; break; }
-            text[static_cast<int>(d.id)] = found;
+            const std::string fam = familyKey(d.m_key);
+            for (const HelpEntry& e : Help)
+                if (std::strcmp(e.m_key, d.m_key) == 0 || fam == e.m_key) { found = e.m_text; break; }
+            m_text[static_cast<int>(d.m_id)] = found;
         }
     }
 };
@@ -622,13 +622,13 @@ const HelpCache& cache() { static const HelpCache c; return c; }
 // ---------------------------------------------------------------- the manual
 
 /** @brief One chapter of the manual: its title and its text, as the Help page prints them. */
-struct Topic { const char* title; const char* text; };
+struct Topic { const char* m_title; const char* m_text; };
 /**
- * @var const char* Topic::title
+ * @var const char* Topic::m_title
  * @brief The chapter heading, which is also its entry in the Help page's list.
  */
 /**
- * @var const char* Topic::text
+ * @var const char* Topic::m_text
  * @brief The chapter as a raw string literal, its paragraphs separated by blank lines.
  */
 
@@ -636,7 +636,7 @@ struct Topic { const char* title; const char* text; };
  * @brief The manual, chapter by chapter, in the order the Help page lists them: overview and signal
  * flow first, the reading list last. numHelpTopics() counts this table.
  */
-const Topic kTopics[] = {
+const Topic Topics[] = {
     { "Overview and signal flow",
 R"(Noctuary is a drone instrument for slowly breathing clusters: just intonation, additive banks whose partials live their own lives, envelopes measured in minutes, a conductor (the Cluster Brain) that can play a whole night by itself, and a spatial model that treats depth as a landscape rather than an effect.
 
@@ -2042,18 +2042,18 @@ Rich, R.: The sleep concerts, from 1982; the recordings Somnium (2001) and Perpe
  * over the list of that tab's parameters. The parameter texts say what a knob does; these say
  * what the thing the knobs belong to is for, which is the question a reader has first.
  */
-struct TabHelp { const char* name; const char* text; };
+struct TabHelp { const char* m_name; const char* m_text; };
 /**
- * @var const char* TabHelp::name
+ * @var const char* TabHelp::m_name
  * @brief The name as the tab spells it ("SOURCE 2", "MATRIX"), a section without a tab ("SPACE") or
  * a source type ("TYPE Stretch"); tabHelp() compares it exactly.
  */
 /**
- * @var const char* TabHelp::text
+ * @var const char* TabHelp::m_text
  * @brief The paragraph, a string literal.
  */
 /** @brief The tab paragraphs, in the order of the panel; the section comments name each row. */
-const TabHelp kTabHelp[] = {
+const TabHelp TabHelps[] = {
     // ---- the source row
     { "SOURCE 1", "The first of four equal source slots, and the one with a history: set to Additive it is the strand bank -- up to six copies of a partial bank, detuned or placed on pure ratios, fanned across the stereo field -- and the Strands section under its display belongs to it alone. Set to any other type it renders exactly like the other three. Every slot has a Type, a Level, an Octave, a just Ratio to the note and a Pan; the rest of its knobs light up according to the type." },
     { "SOURCE 2", "The second slot. Where Source 1 carries the melody of a patch, the second is most often its body or its shadow: an octave down at a fraction of the level, a wavetable with a slow position drift under an additive bank, a noise floor. Its own Partials, Tilt, Brightness, Odd/Even, Inharmonic and Shimmer apply when it is Additive; Table and Position when it is Harmonic or a Wavetable; FM Ratio and Index for FM; Grain, Density, Pitch and Grains for the Texture and Stretch types; Noise colour and Q for the noise." },
@@ -2117,18 +2117,18 @@ const TabHelp kTabHelp[] = {
 const char* tabHelp(const char* name)
 {
     if (name == nullptr) return "";
-    for (const TabHelp& t : kTabHelp) if (std::strcmp(t.name, name) == 0) return t.text;
+    for (const TabHelp& t : TabHelps) if (std::strcmp(t.m_name, name) == 0) return t.m_text;
     return "";
 }
 
-const char* paramHelp(ParamId id)
+const char* paramHelp(ParamIdE id)
 {
     const int i = static_cast<int>(id);
-    return (i >= 0 && i < kNumParams) ? cache().text[i] : "";
+    return (i >= 0 && i < NumParams) ? cache().m_text[i] : "";
 }
 
-int numHelpTopics() { return static_cast<int>(sizeof(kTopics) / sizeof(kTopics[0])); }
-const char* helpTopicTitle(int index) { return (index >= 0 && index < numHelpTopics()) ? kTopics[index].title : ""; }
-const char* helpTopicText(int index)  { return (index >= 0 && index < numHelpTopics()) ? kTopics[index].text : ""; }
+int numHelpTopics() { return static_cast<int>(sizeof(Topics) / sizeof(Topics[0])); }
+const char* helpTopicTitle(int index) { return (index >= 0 && index < numHelpTopics()) ? Topics[index].m_title : ""; }
+const char* helpTopicText(int index)  { return (index >= 0 && index < numHelpTopics()) ? Topics[index].m_text : ""; }
 
 } // namespace ambient

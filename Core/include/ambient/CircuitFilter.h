@@ -52,71 +52,71 @@ namespace ambient {
 namespace circuit {
 
 #ifndef AMBIENT_CIRCUIT_NEWTON
-/** @brief Newton steps per sample, unless the build sets another number (see kNewton). */
+/** @brief Newton steps per sample, unless the build sets another number (see Newton). */
 #define AMBIENT_CIRCUIT_NEWTON 3
 #endif
-constexpr int kNewton = AMBIENT_CIRCUIT_NEWTON;   ///< Newton steps per sample: fixed, so the sound does not depend on convergence tests
+constexpr int Newton = AMBIENT_CIRCUIT_NEWTON;   ///< Newton steps per sample: fixed, so the sound does not depend on convergence tests
 
 /**
  * @brief Four lanes of floats for the circuits: the left channel in lane 0, the right in lane 1.
  *
  * NEON on arm64 (and on x86 through Tests/neonshim, which is how the Quest's path is tested here),
  * SSE on x86-64 (AVX2 builds use its FMA), four floats anywhere else. Only what the circuits need:
- * the four operations, min, max, a multiply-add, and moving two samples in and out. kLanePath
+ * the four operations, min, max, a multiply-add, and moving two samples in and out. LanePath
  * names the one that was compiled, for Tests/filtertest.cpp, whose scalar variant defines
  * AMBIENT_SCALAR_LANES to reach the last one on an x86 machine.
  */
 #if AMBIENT_HAS_NEON
-constexpr const char* kLanePath = "neon";   ///< the path F4 was compiled with
-struct F4 { float32x4_t v; };
-inline F4 operator+(F4 a, F4 b) { return { vaddq_f32(a.v, b.v) }; }
-inline F4 operator-(F4 a, F4 b) { return { vsubq_f32(a.v, b.v) }; }
-inline F4 operator*(F4 a, F4 b) { return { vmulq_f32(a.v, b.v) }; }
-inline F4 operator/(F4 a, F4 b) { return { vdivq_f32(a.v, b.v) }; }
-inline F4 operator-(F4 a) { return { vnegq_f32(a.v) }; }
-inline F4 vmin(F4 a, F4 b) { return { vminq_f32(a.v, b.v) }; }
-inline F4 vmax(F4 a, F4 b) { return { vmaxq_f32(a.v, b.v) }; }
-inline F4 mad(F4 a, F4 b, F4 c) { return { vmlaq_f32(c.v, a.v, b.v) }; }
+constexpr const char* LanePath = "neon";   ///< the path F4 was compiled with
+struct F4 { float32x4_t m_v; };
+inline F4 operator+(F4 a, F4 b) { return { vaddq_f32(a.m_v, b.m_v) }; }
+inline F4 operator-(F4 a, F4 b) { return { vsubq_f32(a.m_v, b.m_v) }; }
+inline F4 operator*(F4 a, F4 b) { return { vmulq_f32(a.m_v, b.m_v) }; }
+inline F4 operator/(F4 a, F4 b) { return { vdivq_f32(a.m_v, b.m_v) }; }
+inline F4 operator-(F4 a) { return { vnegq_f32(a.m_v) }; }
+inline F4 vmin(F4 a, F4 b) { return { vminq_f32(a.m_v, b.m_v) }; }
+inline F4 vmax(F4 a, F4 b) { return { vmaxq_f32(a.m_v, b.m_v) }; }
+inline F4 mad(F4 a, F4 b, F4 c) { return { vmlaq_f32(c.m_v, a.m_v, b.m_v) }; }
 inline F4 splat(F4*, float x) { return { vdupq_n_f32(x) }; }
 inline F4 pack(float l, float r) { const float t[4] = { l, r, 0.0f, 0.0f }; return { vld1q_f32(t) }; }
-inline void unpack(F4 x, float& l, float& r) { float t[4]; vst1q_f32(t, x.v); l = t[0]; r = t[1]; }
+inline void unpack(F4 x, float& l, float& r) { float t[4]; vst1q_f32(t, x.m_v); l = t[0]; r = t[1]; }
 #elif (defined(_M_X64) || defined(__SSE2__)) && !defined(AMBIENT_SCALAR_LANES)
-constexpr const char* kLanePath = "sse";    ///< the path F4 was compiled with
-struct F4 { __m128 v; };
-inline F4 operator+(F4 a, F4 b) { return { _mm_add_ps(a.v, b.v) }; }   ///< lane by lane
-inline F4 operator-(F4 a, F4 b) { return { _mm_sub_ps(a.v, b.v) }; }   ///< lane by lane
-inline F4 operator*(F4 a, F4 b) { return { _mm_mul_ps(a.v, b.v) }; }   ///< lane by lane
-inline F4 operator/(F4 a, F4 b) { return { _mm_div_ps(a.v, b.v) }; }   ///< lane by lane
-inline F4 operator-(F4 a) { return { _mm_sub_ps(_mm_setzero_ps(), a.v) }; }   ///< negation
-inline F4 vmin(F4 a, F4 b) { return { _mm_min_ps(a.v, b.v) }; }   ///< lane by lane
-inline F4 vmax(F4 a, F4 b) { return { _mm_max_ps(a.v, b.v) }; }   ///< lane by lane
+constexpr const char* LanePath = "sse";    ///< the path F4 was compiled with
+struct F4 { __m128 m_v; };
+inline F4 operator+(F4 a, F4 b) { return { _mm_add_ps(a.m_v, b.m_v) }; }   ///< lane by lane
+inline F4 operator-(F4 a, F4 b) { return { _mm_sub_ps(a.m_v, b.m_v) }; }   ///< lane by lane
+inline F4 operator*(F4 a, F4 b) { return { _mm_mul_ps(a.m_v, b.m_v) }; }   ///< lane by lane
+inline F4 operator/(F4 a, F4 b) { return { _mm_div_ps(a.m_v, b.m_v) }; }   ///< lane by lane
+inline F4 operator-(F4 a) { return { _mm_sub_ps(_mm_setzero_ps(), a.m_v) }; }   ///< negation
+inline F4 vmin(F4 a, F4 b) { return { _mm_min_ps(a.m_v, b.m_v) }; }   ///< lane by lane
+inline F4 vmax(F4 a, F4 b) { return { _mm_max_ps(a.m_v, b.m_v) }; }   ///< lane by lane
 #if AMBIENT_HAS_AVX
-inline F4 mad(F4 a, F4 b, F4 c) { return { _mm_fmadd_ps(a.v, b.v, c.v) }; }   ///< a b + c, fused
+inline F4 mad(F4 a, F4 b, F4 c) { return { _mm_fmadd_ps(a.m_v, b.m_v, c.m_v) }; }   ///< a b + c, fused
 #else
 inline F4 mad(F4 a, F4 b, F4 c) { return { _mm_add_ps(_mm_mul_ps(a.v, b.v), c.v) }; }   ///< a b + c
 #endif
 inline F4 splat(F4*, float x) { return { _mm_set1_ps(x) }; }   ///< one value in every lane (tagged by the pointer's type)
 inline F4 pack(float l, float r) { return { _mm_setr_ps(l, r, 0.0f, 0.0f) }; }   ///< two samples into lanes 0 and 1
 /** @brief Lanes 0 and 1 out again. @param x the lanes @param l receives lane 0 @param r receives lane 1 */
-inline void unpack(F4 x, float& l, float& r) { l = _mm_cvtss_f32(x.v); r = _mm_cvtss_f32(_mm_shuffle_ps(x.v, x.v, 1)); }
+inline void unpack(F4 x, float& l, float& r) { l = _mm_cvtss_f32(x.m_v); r = _mm_cvtss_f32(_mm_shuffle_ps(x.m_v, x.m_v, 1)); }
 #else
-constexpr const char* kLanePath = "scalar"; ///< the path F4 was compiled with
+constexpr const char* LanePath = "scalar"; ///< the path F4 was compiled with
 /** @brief Four lanes as four plain floats (no vector unit, or AMBIENT_SCALAR_LANES). */
 struct F4 {
-    float v[4];   ///< the lanes: left, right, two unused
+    float m_v[4];   ///< the lanes: left, right, two unused
 };
-inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] + b.v[i]; return o; }   ///< lane by lane
-inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] - b.v[i]; return o; }   ///< lane by lane
-inline F4 operator*(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] * b.v[i]; return o; }   ///< lane by lane
-inline F4 operator/(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] / b.v[i]; return o; }   ///< lane by lane
-inline F4 operator-(F4 a) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = -a.v[i]; return o; }   ///< negation
-inline F4 vmin(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = std::min(a.v[i], b.v[i]); return o; }   ///< lane by lane
-inline F4 vmax(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = std::max(a.v[i], b.v[i]); return o; }   ///< lane by lane
-inline F4 mad(F4 a, F4 b, F4 c) { F4 o; for (int i = 0; i < 4; ++i) o.v[i] = a.v[i] * b.v[i] + c.v[i]; return o; }   ///< a b + c
+inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] + b.m_v[i]; return o; }   ///< lane by lane
+inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] - b.m_v[i]; return o; }   ///< lane by lane
+inline F4 operator*(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] * b.m_v[i]; return o; }   ///< lane by lane
+inline F4 operator/(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] / b.m_v[i]; return o; }   ///< lane by lane
+inline F4 operator-(F4 a) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = -a.m_v[i]; return o; }   ///< negation
+inline F4 vmin(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = std::min(a.m_v[i], b.m_v[i]); return o; }   ///< lane by lane
+inline F4 vmax(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = std::max(a.m_v[i], b.m_v[i]); return o; }   ///< lane by lane
+inline F4 mad(F4 a, F4 b, F4 c) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] * b.m_v[i] + c.m_v[i]; return o; }   ///< a b + c
 inline F4 splat(F4*, float x) { return { { x, x, x, x } }; }   ///< one value in every lane (tagged by the pointer's type)
 inline F4 pack(float l, float r) { return { { l, r, 0.0f, 0.0f } }; }   ///< two samples into lanes 0 and 1
 /** @brief Lanes 0 and 1 out again. @param x the lanes @param l receives lane 0 @param r receives lane 1 */
-inline void unpack(F4 x, float& l, float& r) { l = x.v[0]; r = x.v[1]; }
+inline void unpack(F4 x, float& l, float& r) { l = x.m_v[0]; r = x.m_v[1]; }
 #endif
 
 // The same few operations on a plain float, so every model also compiles for one lane.
@@ -125,20 +125,20 @@ inline float vmax(float a, float b) { return std::max(a, b); }         ///< max
 inline float mad(float a, float b, float c) { return a * b + c; }      ///< a b + c
 inline float splat(float*, float x) { return x; }                      ///< the value itself
 /** @brief A constant in every lane of V. @tparam V float or F4 @param x the constant @return it, broadcast */
-template <class V> inline V lanes(float x) { return splat(static_cast<V*>(nullptr), x); }
+template <class VT> inline VT lanes(float x) { return splat(static_cast<VT*>(nullptr), x); }
 
 /**
  * @brief tanh by Lambert's continued fraction (7th order), exact to 1e-7 inside +-4.97 and held there.
  * @param x  the argument
  * @return   tanh(x)
  */
-template <class V>
-inline V ftanh(V x)
+template <class VT>
+inline VT ftanh(VT x)
 {
-    x = vmax(vmin(x, lanes<V>(4.97f)), lanes<V>(-4.97f));
-    const V x2 = x * x;
-    const V num = x * mad(x2, mad(x2, x2 + lanes<V>(378.0f), lanes<V>(17325.0f)), lanes<V>(135135.0f));
-    const V den = mad(x2, mad(x2, mad(x2, lanes<V>(28.0f), lanes<V>(3150.0f)), lanes<V>(62370.0f)), lanes<V>(135135.0f));
+    x = vmax(vmin(x, lanes<VT>(4.97f)), lanes<VT>(-4.97f));
+    const VT x2 = x * x;
+    const VT num = x * mad(x2, mad(x2, x2 + lanes<VT>(378.0f), lanes<VT>(17325.0f)), lanes<VT>(135135.0f));
+    const VT den = mad(x2, mad(x2, mad(x2, lanes<VT>(28.0f), lanes<VT>(3150.0f)), lanes<VT>(62370.0f)), lanes<VT>(135135.0f));
     return num / den;
 }
 
@@ -152,22 +152,22 @@ inline V ftanh(V x)
  * @param k  the resonance feedback (4: self-oscillation)
  * @return   the fourth stage
  */
-template <class V>
-inline V ladderMoog(V* v, V* s, V x, V g, V k)
+template <class VT>
+inline VT ladderMoog(VT* v, VT* s, VT x, VT g, VT k)
 {
-    const V one = lanes<V>(1.0f);
-    for (int it = 0; it < kNewton; ++it) {
-        const V tx = ftanh(x - k * v[3]);
-        const V t0 = ftanh(v[0]), t1 = ftanh(v[1]), t2 = ftanh(v[2]), t3 = ftanh(v[3]);
-        const V F0 = v[0] - s[0] - g * (tx - t0), F1 = v[1] - s[1] - g * (t0 - t1);
-        const V F2 = v[2] - s[2] - g * (t1 - t2), F3 = v[3] - s[3] - g * (t2 - t3);
-        const V d0 = one - t0 * t0, d1 = one - t1 * t1, d2 = one - t2 * t2, d3 = one - t3 * t3, dx = one - tx * tx;
-        const V i1 = one / mad(g, d1, one), i2 = one / mad(g, d2, one), i3 = one / mad(g, d3, one);
-        const V a1 = -F1 * i1, b1 = g * d0 * i1;
-        const V a2 = mad(g * d1, a1, -F2) * i2, b2 = g * d1 * b1 * i2;
-        const V a3 = mad(g * d2, a2, -F3) * i3, b3 = g * d2 * b2 * i3;
-        const V J00 = mad(g, d0, one), J03 = g * dx * k;
-        const V D0 = (-F0 - J03 * a3) / mad(J03, b3, J00);
+    const VT one = lanes<VT>(1.0f);
+    for (int it = 0; it < Newton; ++it) {
+        const VT tx = ftanh(x - k * v[3]);
+        const VT t0 = ftanh(v[0]), t1 = ftanh(v[1]), t2 = ftanh(v[2]), t3 = ftanh(v[3]);
+        const VT F0 = v[0] - s[0] - g * (tx - t0), F1 = v[1] - s[1] - g * (t0 - t1);
+        const VT F2 = v[2] - s[2] - g * (t1 - t2), F3 = v[3] - s[3] - g * (t2 - t3);
+        const VT d0 = one - t0 * t0, d1 = one - t1 * t1, d2 = one - t2 * t2, d3 = one - t3 * t3, dx = one - tx * tx;
+        const VT i1 = one / mad(g, d1, one), i2 = one / mad(g, d2, one), i3 = one / mad(g, d3, one);
+        const VT a1 = -F1 * i1, b1 = g * d0 * i1;
+        const VT a2 = mad(g * d1, a1, -F2) * i2, b2 = g * d1 * b1 * i2;
+        const VT a3 = mad(g * d2, a2, -F3) * i3, b3 = g * d2 * b2 * i3;
+        const VT J00 = mad(g, d0, one), J03 = g * dx * k;
+        const VT D0 = (-F0 - J03 * a3) / mad(J03, b3, J00);
         v[0] = v[0] + D0;
         v[1] = v[1] + mad(b1, D0, a1);
         v[2] = v[2] + mad(b2, D0, a2);
@@ -189,23 +189,23 @@ inline V ladderMoog(V* v, V* s, V x, V g, V k)
  * @param r  the resonance VCA's saturation
  * @return   the fourth stage
  */
-template <class V>
-inline V otaCascade(V* v, V* s, V x, V g, V k, float d, float r)
+template <class VT>
+inline VT otaCascade(VT* v, VT* s, VT x, VT g, VT k, float d, float r)
 {
-    const V one = lanes<V>(1.0f), D = lanes<V>(d), Di = lanes<V>(1.0f / d), R = lanes<V>(r), Ri = lanes<V>(1.0f / r);
-    for (int it = 0; it < kNewton; ++it) {
-        const V tr = ftanh(R * v[3]);
-        const V a0 = x - k * tr * Ri;
-        const V e0 = ftanh(D * (a0 - v[0])), e1 = ftanh(D * (v[0] - v[1])), e2 = ftanh(D * (v[1] - v[2])), e3 = ftanh(D * (v[2] - v[3]));
-        const V F0 = v[0] - s[0] - g * e0 * Di, F1 = v[1] - s[1] - g * e1 * Di;
-        const V F2 = v[2] - s[2] - g * e2 * Di, F3 = v[3] - s[3] - g * e3 * Di;
-        const V q0 = g * (one - e0 * e0), q1 = g * (one - e1 * e1), q2 = g * (one - e2 * e2), q3 = g * (one - e3 * e3);
-        const V i1 = one / (one + q1), i2 = one / (one + q2), i3 = one / (one + q3);
-        const V a1 = -F1 * i1, b1 = q1 * i1;
-        const V a2 = mad(q2, a1, -F2) * i2, b2 = q2 * b1 * i2;
-        const V a3 = mad(q3, a2, -F3) * i3, b3 = q3 * b2 * i3;
-        const V J00 = one + q0, J03 = q0 * k * (one - tr * tr);
-        const V D0 = (-F0 - J03 * a3) / mad(J03, b3, J00);
+    const VT one = lanes<VT>(1.0f), D = lanes<VT>(d), Di = lanes<VT>(1.0f / d), R = lanes<VT>(r), Ri = lanes<VT>(1.0f / r);
+    for (int it = 0; it < Newton; ++it) {
+        const VT tr = ftanh(R * v[3]);
+        const VT a0 = x - k * tr * Ri;
+        const VT e0 = ftanh(D * (a0 - v[0])), e1 = ftanh(D * (v[0] - v[1])), e2 = ftanh(D * (v[1] - v[2])), e3 = ftanh(D * (v[2] - v[3]));
+        const VT F0 = v[0] - s[0] - g * e0 * Di, F1 = v[1] - s[1] - g * e1 * Di;
+        const VT F2 = v[2] - s[2] - g * e2 * Di, F3 = v[3] - s[3] - g * e3 * Di;
+        const VT q0 = g * (one - e0 * e0), q1 = g * (one - e1 * e1), q2 = g * (one - e2 * e2), q3 = g * (one - e3 * e3);
+        const VT i1 = one / (one + q1), i2 = one / (one + q2), i3 = one / (one + q3);
+        const VT a1 = -F1 * i1, b1 = q1 * i1;
+        const VT a2 = mad(q2, a1, -F2) * i2, b2 = q2 * b1 * i2;
+        const VT a3 = mad(q3, a2, -F3) * i3, b3 = q3 * b2 * i3;
+        const VT J00 = one + q0, J03 = q0 * k * (one - tr * tr);
+        const VT D0 = (-F0 - J03 * a3) / mad(J03, b3, J00);
         v[0] = v[0] + D0;
         v[1] = v[1] + mad(b1, D0, a1);
         v[2] = v[2] + mad(b2, D0, a2);
@@ -231,30 +231,30 @@ inline V otaCascade(V* v, V* s, V x, V g, V k, float d, float r)
  * @param morph  0 low pass, 0.5 notch (low pass plus high pass), 1 high pass; the same in every lane
  * @return       the morphed output
  */
-template <class V>
-inline V svfSem(V* v, V* s, V x, V g, V R, float morph)
+template <class VT>
+inline VT svfSem(VT* v, VT* s, VT x, VT g, VT R, float morph)
 {
-    const V one = lanes<V>(1.0f), two = lanes<V>(2.0f), L = lanes<V>(1.5f), Li = lanes<V>(1.0f / 1.5f);
-    const V R2 = two * R;
-    auto damp = [&](V b) { return mad(R2, b, b) - L * ftanh(b * Li); };
-    for (int it = 0; it < kNewton; ++it) {
-        const V tq = ftanh(v[0] * Li);
-        const V h = x - (mad(R2, v[0], v[0]) - L * tq) - v[1];
-        const V th = ftanh(h * Li);
-        const V tb = tq;                                   // N(v0) and the damping's saturation are the same curve
-        const V F0 = v[0] - s[0] - g * L * th, F1 = v[1] - s[1] - g * L * tb;
-        const V nh = g * (one - th * th), nb = g * (one - tb * tb);
-        const V dh = mad(tq, tq, R2);                      // -dh/dv0: 2R + tanh^2(v0 / 1.5)
-        const V det = mad(nh, dh + nb, one);               // 1 + g N'(h) (2R + ...) + g^2 N'(h) N'(v0)
-        const V D0 = mad(F1, nh, -F0) / det;
+    const VT one = lanes<VT>(1.0f), two = lanes<VT>(2.0f), L = lanes<VT>(1.5f), Li = lanes<VT>(1.0f / 1.5f);
+    const VT R2 = two * R;
+    auto damp = [&](VT b) { return mad(R2, b, b) - L * ftanh(b * Li); };
+    for (int it = 0; it < Newton; ++it) {
+        const VT tq = ftanh(v[0] * Li);
+        const VT h = x - (mad(R2, v[0], v[0]) - L * tq) - v[1];
+        const VT th = ftanh(h * Li);
+        const VT tb = tq;                                   // N(v0) and the damping's saturation are the same curve
+        const VT F0 = v[0] - s[0] - g * L * th, F1 = v[1] - s[1] - g * L * tb;
+        const VT nh = g * (one - th * th), nb = g * (one - tb * tb);
+        const VT dh = mad(tq, tq, R2);                      // -dh/dv0: 2R + tanh^2(v0 / 1.5)
+        const VT det = mad(nh, dh + nb, one);               // 1 + g N'(h) (2R + ...) + g^2 N'(h) N'(v0)
+        const VT D0 = mad(F1, nh, -F0) / det;
         v[0] = v[0] + D0;
         v[1] = v[1] + mad(nb, D0, -F1);
     }
     s[0] = v[0] + v[0] - s[0];
     s[1] = v[1] + v[1] - s[1];
-    const V hp = x - damp(v[0]) - v[1];
+    const VT hp = x - damp(v[0]) - v[1];
     const float m2 = morph + morph;
-    return morph < 0.5f ? mad(lanes<V>(m2), hp, v[1]) : mad(lanes<V>(2.0f - m2), v[1], hp);
+    return morph < 0.5f ? mad(lanes<VT>(m2), hp, v[1]) : mad(lanes<VT>(2.0f - m2), v[1], hp);
 }
 
 /**
@@ -270,36 +270,36 @@ inline V svfSem(V* v, V* s, V x, V g, V R, float morph)
  * @param k  the feedback (17: self-oscillation)
  * @return   the last node
  */
-template <class V>
-inline V diodeLadder(V* v, V* s, V x, V g, V k)
+template <class VT>
+inline VT diodeLadder(VT* v, VT* s, VT x, VT g, VT k)
 {
-    const V one = lanes<V>(1.0f), g2 = g + g;
-    for (int it = 0; it < kNewton; ++it) {
-        const V u = x - k * v[3];
-        const V ti = ftanh(u - v[0]), t01 = ftanh(v[0] - v[1]), t12 = ftanh(v[1] - v[2]), t23 = ftanh(v[2] - v[3]);
-        const V r0 = -(v[0] - s[0] - g * (ti - t01)), r1 = -(v[1] - s[1] - g * (t01 - t12));
-        const V r2 = -(v[2] - s[2] - g * (t12 - t23)), r3 = -(v[3] - s[3] - g2 * t23);
-        const V di = one - ti * ti, d01 = one - t01 * t01, d12 = one - t12 * t12, d23 = one - t23 * t23;
+    const VT one = lanes<VT>(1.0f), g2 = g + g;
+    for (int it = 0; it < Newton; ++it) {
+        const VT u = x - k * v[3];
+        const VT ti = ftanh(u - v[0]), t01 = ftanh(v[0] - v[1]), t12 = ftanh(v[1] - v[2]), t23 = ftanh(v[2] - v[3]);
+        const VT r0 = -(v[0] - s[0] - g * (ti - t01)), r1 = -(v[1] - s[1] - g * (t01 - t12));
+        const VT r2 = -(v[2] - s[2] - g * (t12 - t23)), r3 = -(v[3] - s[3] - g2 * t23);
+        const VT di = one - ti * ti, d01 = one - t01 * t01, d12 = one - t12 * t12, d23 = one - t23 * t23;
         // The tridiagonal part.
-        const V T00 = mad(g, di + d01, one), T01 = -g * d01;
-        const V T10 = T01, T11 = mad(g, d01 + d12, one), T12 = -g * d12;
-        const V T21 = T12, T22 = mad(g, d12 + d23, one), T23 = -g * d23;
-        const V T32 = -g2 * d23, T33 = mad(g2, d23, one);
-        const V J03 = g * di * k;   // the corner: the feedback into the first node
+        const VT T00 = mad(g, di + d01, one), T01 = -g * d01;
+        const VT T10 = T01, T11 = mad(g, d01 + d12, one), T12 = -g * d12;
+        const VT T21 = T12, T22 = mad(g, d12 + d23, one), T23 = -g * d23;
+        const VT T32 = -g2 * d23, T33 = mad(g2, d23, one);
+        const VT J03 = g * di * k;   // the corner: the feedback into the first node
         // Thomas, for the residual and for the unit vector e0 at once.
-        const V z0 = one / T00;
-        const V c0 = T01 * z0, x0 = r0 * z0;
-        const V n1 = one / (T11 - T10 * c0);
-        const V c1 = T12 * n1, x1 = (r1 - T10 * x0) * n1, z1 = -(T10 * z0) * n1;
-        const V n2 = one / (T22 - T21 * c1);
-        const V c2 = T23 * n2, x2 = (r2 - T21 * x1) * n2, z2 = -(T21 * z1) * n2;
-        const V n3 = one / (T33 - T32 * c2);
-        const V X3 = (r3 - T32 * x2) * n3, Z3 = -(T32 * z2) * n3;
-        const V X2 = x2 - c2 * X3, Z2 = z2 - c2 * Z3;
-        const V X1 = x1 - c1 * X2, Z1 = z1 - c1 * Z2;
-        const V X0 = x0 - c0 * X1, Z0 = z0 - c0 * Z1;
+        const VT z0 = one / T00;
+        const VT c0 = T01 * z0, x0 = r0 * z0;
+        const VT n1 = one / (T11 - T10 * c0);
+        const VT c1 = T12 * n1, x1 = (r1 - T10 * x0) * n1, z1 = -(T10 * z0) * n1;
+        const VT n2 = one / (T22 - T21 * c1);
+        const VT c2 = T23 * n2, x2 = (r2 - T21 * x1) * n2, z2 = -(T21 * z1) * n2;
+        const VT n3 = one / (T33 - T32 * c2);
+        const VT X3 = (r3 - T32 * x2) * n3, Z3 = -(T32 * z2) * n3;
+        const VT X2 = x2 - c2 * X3, Z2 = z2 - c2 * Z3;
+        const VT X1 = x1 - c1 * X2, Z1 = z1 - c1 * Z2;
+        const VT X0 = x0 - c0 * X1, Z0 = z0 - c0 * Z1;
         // Sherman-Morrison: J = T + J03 e0 e3^T.
-        const V f = J03 * X3 / mad(J03, Z3, one);
+        const VT f = J03 * X3 / mad(J03, Z3, one);
         v[0] = v[0] + (X0 - f * Z0);
         v[1] = v[1] + (X1 - f * Z1);
         v[2] = v[2] + (X2 - f * Z2);

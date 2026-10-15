@@ -19,7 +19,7 @@ namespace ambient {
 
 namespace {
 /** @brief The names of the built-in families, indexed by PresetMeta::family; a pack's presets take a family appended after these. */
-const char* const kFamilies[] = {
+const char* const Families[] = {
     "Just Drones",
     "Glass and Bells",
     "Choirs and Vowels",
@@ -38,14 +38,14 @@ const char* const kFamilies[] = {
     "Strike and Modal",
 };
 /** @brief One name per PresetTag bit, in bit order, for the browser's tag filter. */
-const char* const kTagNames[kNumPresetTags] = {
+const char* const TagNames[NumPresetTags] = {
     "Dark", "Bright", "Calm", "Moving", "Tonal", "Noisy", "Wide", "Bass", "Dense", "Sparse", "Keys", "Generative", "Cosmos", "Feedback", "Sources", "JustIntonation", "Sub", "Stack", "Air", "Still", "Evolving", "Smooth", "Rough", "Near", "Far"
 };
 /**
  * @brief The measured metadata of every built-in preset, one row per preset in the order of
  *        Presets.cpp; the comment beside each row is the preset's name.
  */
-const PresetMeta kMeta[] = {
+const PresetMeta Meta[] = {
     { 0.8595f, 0.6663f, 0.740f, 0.464f, 0.961f, 0.869f, 0.197f, 0.794f, 0, 0x8962u, -18.4f, 0.421f, 0.675f, 0.491f, { 69, 11 }, 12 },   // Init
     { 0.1620f, 0.7259f, 0.285f, 0.190f, 0.149f, 0.747f, 0.881f, 0.846f, 0, 0x3c9a5u, -18.5f, 0.465f, 0.637f, 0.575f, { 51, 63 }, 6 },   // Consonant Expanse
     { 0.7816f, 0.7938f, 0.983f, 0.138f, 0.743f, 0.581f, 0.059f, 0.662f, 0, 0x8ac846u, -23.4f, 0.221f, 0.455f, 0.125f, { 30, 84 }, 2 },   // Somnus Field
@@ -305,10 +305,10 @@ const PresetMeta kMeta[] = {
 };
 }
 
-int builtinPresetMetaCount() { return static_cast<int>(sizeof(kMeta) / sizeof(kMeta[0])); }
-const PresetMeta& builtinPresetMeta(int index) { static const PresetMeta none = { 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 }; return (index >= 0 && index < builtinPresetMetaCount()) ? kMeta[index] : none; }
-int builtinPresetFamilyCount() { return static_cast<int>(sizeof(kFamilies) / sizeof(kFamilies[0])); }
-const char* builtinPresetFamilyName(int family) { return (family >= 0 && family < builtinPresetFamilyCount()) ? kFamilies[family] : ""; }
-const char* presetTagName(int bit) { return (bit >= 0 && bit < kNumPresetTags) ? kTagNames[bit] : ""; }
+int builtinPresetMetaCount() { return static_cast<int>(sizeof(Meta) / sizeof(Meta[0])); }
+const PresetMeta& builtinPresetMeta(int index) { static const PresetMeta none = { 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 }; return (index >= 0 && index < builtinPresetMetaCount()) ? Meta[index] : none; }
+int builtinPresetFamilyCount() { return static_cast<int>(sizeof(Families) / sizeof(Families[0])); }
+const char* builtinPresetFamilyName(int family) { return (family >= 0 && family < builtinPresetFamilyCount()) ? Families[family] : ""; }
+const char* presetTagName(int bit) { return (bit >= 0 && bit < NumPresetTags) ? TagNames[bit] : ""; }
 
 } // namespace ambient

@@ -700,12 +700,12 @@ def write_bank(path, array, cat_array, off_name, off_settings, families, what):
 
 
 def main():
-    n = write_bank(COSMOS_OUT, "kCosmosPresets", "kCosmosPresetCategory", "Cosmos Off", "",
+    n = write_bank(COSMOS_OUT, "CosmosPresets", "CosmosPresetCategory", "Cosmos Off", "",
                    COSMOS, "%d presets in %d families, touching only the Cosmos section."
                    % (sum(len(p) for _, p in COSMOS) + 1, len(COSMOS)))
     print("wrote %s: %d presets in %d families" % (COSMOS_OUT, n, len(COSMOS)))
     fams = [(f, [(nm, fmt(**kw)) for nm, kw in ps]) for f, ps in STRIKE]
-    n = write_bank(STRIKE_OUT, "kStrikePresets", "kStrikePresetCategory", "Strike Off",
+    n = write_bank(STRIKE_OUT, "StrikePresets", "StrikePresetCategory", "Strike Off",
                    "strike_level=0", fams,
                    "%d presets in %d families, touching only the Strike section."
                    % (sum(len(p) for _, p in fams) + 1, len(fams)))
@@ -746,7 +746,7 @@ def main():
     unmeasured = [nm for _, ps in NEAR for nm, _ in ps if nm not in gains]
     if gains and unmeasured:
         print("near bank: %d preset(s) without a measured gain, left at 0 dB: %s" % (len(unmeasured), ", ".join(unmeasured[:8])))
-    n = write_bank(NEAR_OUT, "kNearPresets", "kNearPresetCategory", "Near Off",
+    n = write_bank(NEAR_OUT, "NearPresets", "NearPresetCategory", "Near Off",
                    "fore_level=0", fams,
                    "%d presets in %d families, touching only the Near Source and Near Events sections."
                    % (sum(len(p) for _, p in fams) + 1, len(fams)))

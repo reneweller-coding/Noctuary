@@ -4,9 +4,9 @@
  *
  * The instrument does not assume twelve equal steps to the octave. A scale is a fixed-size table
  * of ratios over a repeating period (FixedScale), filled either from one of the built-in
- * just-intonation tables (makeBuiltinScale; their names are kScaleNames in Params.h, and the two
+ * just-intonation tables (makeBuiltinScale; their names are ScaleNames in Params.h, and the two
  * are kept in step by a static_assert in Tuning.cpp) or from the text of a Scala .scl file
- * (parseScala, the user slot kUserScaleIndex). scaleFrequency turns a MIDI note into hertz against
+ * (parseScala, the user slot UserScaleIndex). scaleFrequency turns a MIDI note into hertz against
  * such a scale, and intervalConsonance ranks a ratio by the simplicity of the nearest just interval
  * -- the yardstick the conductor, the portamento gravity and the near events judge intervals by.
  * Everything here is framework-free and allocation-free once a FixedScale exists, so a scale can be
@@ -19,21 +19,21 @@ namespace ambient {
 
 /** @brief Fixed-size scale so it can be swapped into the audio thread without allocation. */
 struct FixedScale {
-    static constexpr int kMax = 64;   ///< the most degrees a scale may hold (Scala files with more are refused)
-    int    count  = 12;        ///< degrees per period (octave), excluding the period itself
-    double period = 2.0;       ///< ratio of the repeating interval (2 = octave, 3 = tritave)
-    double ratios[kMax] = {};  ///< ratios[0] == 1.0, ascending, all < period
-    char   name[64] = "";      ///< display name, NUL-terminated: the built-in table's, or the Scala file's description line
+    static constexpr int Max = 64;   ///< the most degrees a scale may hold (Scala files with more are refused)
+    int    m_count  = 12;        ///< degrees per period (octave), excluding the period itself
+    double m_period = 2.0;       ///< ratio of the repeating interval (2 = octave, 3 = tritave)
+    double m_ratios[Max] = {};  ///< ratios[0] == 1.0, ascending, all < period
+    char   m_name[64] = "";      ///< display name, NUL-terminated: the built-in table's, or the Scala file's description line
 };
 
 /**
- * @brief Fill `out` with built-in scale `index` (0 .. kNumScaleChoices-2). Returns false if unknown.
+ * @brief Fill `out` with built-in scale `index` (0 .. NumScaleChoices-2). Returns false if unknown.
  *
  * Index 0 is 12-TET, computed as 2^(i/12); the others copy their just-ratio table. Message thread
  * (it only writes into @p out, never allocates).
  *
- * @param index  which built-in table, in the order of kScaleNames (Params.h); the user and timbre
- *               slots (kUserScaleIndex and above) are not tables and give false
+ * @param index  which built-in table, in the order of ScaleNames (Params.h); the user and timbre
+ *               slots (UserScaleIndex and above) are not tables and give false
  * @param out    receives count, period, ratios and name; untouched when the index is unknown
  * @return       true when @p out was filled
  */
@@ -50,7 +50,7 @@ bool makeBuiltinScale(int index, FixedScale& out);
  *
  * @param text  the whole file as a NUL-terminated string; nullptr is refused
  * @param out   receives the scale (name "Scala" when the description line is empty)
- * @return      true when @p out holds a valid scale with 1 .. kMax degrees and a period above 1
+ * @return      true when @p out holds a valid scale with 1 .. Max degrees and a period above 1
  */
 bool parseScala(const char* text, FixedScale& out);
 

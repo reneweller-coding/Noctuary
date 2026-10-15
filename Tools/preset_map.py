@@ -156,19 +156,19 @@ def write_cpp(rows, fams, stub=False):
              " */",
              '#include "ambient/PresetMeta.h"', '#include "ambient/Presets.h"', "", "namespace ambient {", "", "namespace {",
              "/** @brief The names of the built-in families, indexed by PresetMeta::family; a pack's presets take a family appended after these. */",
-             "const char* const kFamilies[] = {"]
+             "const char* const Families[] = {"]
     for _, name in fams:
         lines.append(f'    "{name}",')
     lines += ["};",
               "/** @brief One name per PresetTag bit, in bit order, for the browser's tag filter. */",
-              "const char* const kTagNames[kNumPresetTags] = {"]
+              "const char* const TagNames[NumPresetTags] = {"]
     lines.append("    " + ", ".join(f'"{t}"' for t in TAGS))
     lines += ["};",
               "/**",
               " * @brief The measured metadata of every built-in preset, one row per preset in the order of",
               " *        Presets.cpp; the comment beside each row is the preset's name.",
               " */",
-              "const PresetMeta kMeta[] = {"]
+              "const PresetMeta Meta[] = {"]
     for r in rows:
         lines.append("    { %.4ff, %.4ff, %.3ff, %.3ff, %.3ff, %.3ff, %.3ff, %.3ff, %d, 0x%xu, %.1ff, %.3ff, %.3ff, %.3ff, { %d, %d }, %d },   // %s" %
                      (r["x"], r["y"], r["bright"], r["motion"], r["width"], r["noisy"], r["bass"], r["density"],
@@ -177,12 +177,12 @@ def write_cpp(rows, fams, stub=False):
                       r.get("phrase", [-1, -1])[0], r.get("phrase", [-1, -1])[1],
                       r.get("cluster", -1), r["name"]))
     lines += ["};", "}", "",
-              "int builtinPresetMetaCount() { return %s; }" % ("0" if stub else "static_cast<int>(sizeof(kMeta) / sizeof(kMeta[0]))"),
+              "int builtinPresetMetaCount() { return %s; }" % ("0" if stub else "static_cast<int>(sizeof(Meta) / sizeof(Meta[0]))"),
               "const PresetMeta& builtinPresetMeta(int index) { static const PresetMeta none = { 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0, 0, 0.0f, 0.5f, 0.5f, 0.5f, { -1, -1 }, -1 };"
-              " return (index >= 0 && index < builtinPresetMetaCount()) ? kMeta[index] : none; }",
-              "int builtinPresetFamilyCount() { return static_cast<int>(sizeof(kFamilies) / sizeof(kFamilies[0])); }",
-              "const char* builtinPresetFamilyName(int family) { return (family >= 0 && family < builtinPresetFamilyCount()) ? kFamilies[family] : \"\"; }",
-              "const char* presetTagName(int bit) { return (bit >= 0 && bit < kNumPresetTags) ? kTagNames[bit] : \"\"; }",
+              " return (index >= 0 && index < builtinPresetMetaCount()) ? Meta[index] : none; }",
+              "int builtinPresetFamilyCount() { return static_cast<int>(sizeof(Families) / sizeof(Families[0])); }",
+              "const char* builtinPresetFamilyName(int family) { return (family >= 0 && family < builtinPresetFamilyCount()) ? Families[family] : \"\"; }",
+              "const char* presetTagName(int bit) { return (bit >= 0 && bit < NumPresetTags) ? TagNames[bit] : \"\"; }",
               "", "} // namespace ambient", ""]
     with open(OUT_CPP, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

@@ -67,7 +67,7 @@ def builtins():
     """[(name, settings, matrix)] over Core/src/Presets.cpp."""
     with open(PRESETS, encoding="utf-8") as f:
         text = strip_line_comments(f.read())
-    body = text[text.index("const Preset kPresets[]"):text.index("int numCosmosPresets")]
+    body = text[text.index("const Preset Presets[]"):text.index("int numCosmosPresets")]
     out = []
     # Two forms live side by side: { "name", "settings" } and the six-field one an enriched
     # preset carries, { "name", "settings", nullptr, nullptr, nullptr, "matrix" }.

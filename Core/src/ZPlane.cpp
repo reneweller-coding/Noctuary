@@ -26,71 +26,71 @@
 
 namespace ambient {
 
-const char* const kZModeNames[4] = { "Off", "Series", "Replace", "Modal" };
+const char* const ZModeNames[4] = { "Off", "Series", "Replace", "Modal" };
 
 // ---------------------------------------------------------------- modal bank
 
 void ZModal::reset()
 {
-    for (Mode& m : modes_) { m.z1[0] = m.z1[1] = 0.0f; m.z2[0] = m.z2[1] = 0.0f; }
+    for (Mode& m : m_modes) { m.m_z1[0] = m.m_z1[1] = 0.0f; m.m_z2[0] = m.m_z2[1] = 0.0f; }
 }
 
 void ZModal::set(const ZFrame& f, float decaySeconds, float damp)
 {
-    used_ = 0;
-    const float nyq = sr_ * 0.49f;
+    m_used = 0;
+    const float nyq = m_sr * 0.49f;
     const float d = clampv(decaySeconds, 0.02f, 40.0f);
     const float dp = clampv(damp, 0.0f, 1.0f);
     // The lowest mode sets the reference: with damp = 1 every other mode's decay is shortened in
     // proportion to how far above it sits, which is what makes a bright object sound short and a
     // heavy one long without touching two knobs.
     float lowest = 1.0e9f;
-    for (int i = 0; i < f.used; ++i) if (f.s[i].poleHz > 0.0f) lowest = std::min(lowest, f.s[i].poleHz);
+    for (int i = 0; i < f.m_used; ++i) if (f.m_s[i].m_poleHz > 0.0f) lowest = std::min(lowest, f.m_s[i].m_poleHz);
     if (lowest > 1.0e8f) lowest = 100.0f;
 
     float power = 0.0f;
-    for (int i = 0; i < f.used && used_ < kZSections; ++i) {
-        const float hz = f.s[i].poleHz;
+    for (int i = 0; i < f.m_used && m_used < ZSections; ++i) {
+        const float hz = f.m_s[i].m_poleHz;
         if (hz <= 5.0f || hz >= nyq) continue;               // nothing above Nyquist can ring
-        Mode& m = modes_[used_];
+        Mode& m = m_modes[m_used];
         const float t60 = std::max(0.01f, d * std::pow(lowest / hz, dp));
         // T60 to pole radius: 60 dB is a factor of 1000, so r^(t60*sr) = 1e-3.
-        const float r = std::exp(-6.907755f / (t60 * sr_));
-        const float w = 2.0f * kPi * hz / sr_;
-        m.hz = hz;
-        m.r  = std::min(r, 0.9999995f);                      // strictly inside the unit circle
-        m.a1 = 2.0f * m.r * std::cos(w);
-        m.a2 = -(m.r * m.r);
+        const float r = std::exp(-6.907755f / (t60 * m_sr));
+        const float w = 2.0f * Pi * hz / m_sr;
+        m.m_hz = hz;
+        m.m_r  = std::min(r, 0.9999995f);                      // strictly inside the unit circle
+        m.m_a1 = 2.0f * m.m_r * std::cos(w);
+        m.m_a2 = -(m.m_r * m.m_r);
         // Unity gain at the mode's own frequency: |H| = b0 / |1 - a1 e^-jw - a2 e^-2jw|.
         const float c1 = std::cos(w), s1 = std::sin(w), c2 = std::cos(2.0f * w), s2 = std::sin(2.0f * w);
-        const float dr = 1.0f - m.a1 * c1 - m.a2 * c2, di = m.a1 * s1 + m.a2 * s2;
-        m.b0 = std::sqrt(dr * dr + di * di);
-        m.gain = f.s[i].gain;
-        power += m.gain * m.gain;
-        ++used_;
+        const float dr = 1.0f - m.m_a1 * c1 - m.m_a2 * c2, di = m.m_a1 * s1 + m.m_a2 * s2;
+        m.m_b0 = std::sqrt(dr * dr + di * di);
+        m.m_gain = f.m_s[i].m_gain;
+        power += m.m_gain * m.m_gain;
+        ++m_used;
     }
     // Normalised on expected power rather than on the sum of the peaks. The modes are at
     // different frequencies and almost never in phase, so adding their peaks would leave a bank
     // of six far quieter than a bank of two; adding their powers keeps the level even.
-    norm_ = power > 0.0f ? 1.0f / std::sqrt(power) : 0.0f;
+    m_norm = power > 0.0f ? 1.0f / std::sqrt(power) : 0.0f;
 }
 
 float ZModal::magnitudeAt(float hz) const
 {
     // The modes add. |H| of the bank is the magnitude of the sum, and the phases matter, so this
     // sums the complex responses rather than the magnitudes.
-    const float w = 2.0f * kPi * clampv(hz, 1.0f, sr_ * 0.5f) / sr_;
+    const float w = 2.0f * Pi * clampv(hz, 1.0f, m_sr * 0.5f) / m_sr;
     const float c1 = std::cos(w), s1 = std::sin(w), c2 = std::cos(2.0f * w), s2 = std::sin(2.0f * w);
     float re = 0.0f, im = 0.0f;
-    for (int i = 0; i < used_; ++i) {
-        const Mode& m = modes_[i];
-        const float dr = 1.0f - m.a1 * c1 - m.a2 * c2, di = m.a1 * s1 + m.a2 * s2;
+    for (int i = 0; i < m_used; ++i) {
+        const Mode& m = m_modes[i];
+        const float dr = 1.0f - m.m_a1 * c1 - m.m_a2 * c2, di = m.m_a1 * s1 + m.m_a2 * s2;
         const float den = std::max(dr * dr + di * di, 1e-20f);
         // b0 / (dr + j di) = b0 (dr - j di) / |den|
-        re += m.gain * m.b0 * dr / den;
-        im -= m.gain * m.b0 * di / den;
+        re += m.m_gain * m.m_b0 * dr / den;
+        im -= m.m_gain * m.m_b0 * di / den;
     }
-    return std::sqrt(re * re + im * im) * norm_;
+    return std::sqrt(re * re + im * im) * m_norm;
 }
 
 
@@ -99,15 +99,15 @@ float ZModal::magnitudeAt(float hz) const
 ZFrame zFrameFromSpec(const ZCornerSpec& c)
 {
     ZFrame f;
-    for (int i = 0; i < kZSections; ++i) {
-        if (c.hz[i] <= 0.0f) break;
-        ZSection& s = f.s[i];
-        s.poleHz = c.hz[i];
-        s.poleBw = std::max(c.hz[i] * c.bwRatio, 0.5f);
-        s.zeroHz = c.zeroRatio > 0.0f ? c.hz[i] * c.zeroRatio : 0.0f;
-        s.zeroBw = s.zeroHz * c.zeroBwRatio;
-        s.gain   = std::pow(c.tilt, static_cast<float>(i));
-        f.used = i + 1;
+    for (int i = 0; i < ZSections; ++i) {
+        if (c.m_hz[i] <= 0.0f) break;
+        ZSection& s = f.m_s[i];
+        s.m_poleHz = c.m_hz[i];
+        s.m_poleBw = std::max(c.m_hz[i] * c.m_bwRatio, 0.5f);
+        s.m_zeroHz = c.m_zeroRatio > 0.0f ? c.m_hz[i] * c.m_zeroRatio : 0.0f;
+        s.m_zeroBw = s.m_zeroHz * c.m_zeroBwRatio;
+        s.m_gain   = std::pow(c.m_tilt, static_cast<float>(i));
+        f.m_used = i + 1;
     }
     return f;
 }
@@ -129,7 +129,7 @@ namespace {
  * numbers to the last bit; only the arithmetic that had no reason to be repeated is gone.
  */
 struct ShapeCorners {
-    int  used = 0;   ///< sections every one of the eight corners has; the interpolated frame has as many
+    int  m_used = 0;   ///< sections every one of the eight corners has; the interpolated frame has as many
     /**
      * @brief One section as seen from all eight corners: the values the interpolation blends,
      *        corner by corner.
@@ -138,45 +138,45 @@ struct ShapeCorners {
      * exactly as zInterpolate used to take them on every call.
      */
     struct Sec {
-        float lPole[8] = {},     ///< log2 of the pole frequency in Hz
-              lBw[8] = {},       ///< log2 of the pole bandwidth in Hz
-              lZeroHz[8] = {},   ///< log2 of the zero frequency in Hz (meaningful only when `zeros`)
-              lZeroBw[8] = {},   ///< log2 of the zero bandwidth in Hz
-              gain[8] = {};      ///< the section gain, blended linearly
-        bool  zeros = false;   ///< a zero in every corner, or none at all
-    } s[kZSections];   ///< the sections, the first `used` of them meaningful
+        float m_lPole[8] = {},     ///< log2 of the pole frequency in Hz
+              m_lBw[8] = {},       ///< log2 of the pole bandwidth in Hz
+              m_lZeroHz[8] = {},   ///< log2 of the zero frequency in Hz (meaningful only when `zeros`)
+              m_lZeroBw[8] = {},   ///< log2 of the zero bandwidth in Hz
+              m_gain[8] = {};      ///< the section gain, blended linearly
+        bool  m_zeros = false;   ///< a zero in every corner, or none at all
+    } m_s[ZSections];   ///< the sections, the first `used` of them meaningful
 };
 
 /**
  * @brief The cached corners of a shape, built for every shape on the first call.
  *
  * The whole table is a function-local static, so the first caller builds it -- all shapes at once,
- * from kZCorners through zFrameFromSpec -- under the guard the language puts around the static.
+ * from ZCorners through zFrameFromSpec -- under the guard the language puts around the static.
  * zWarmShapes() makes sure that first caller is the message thread.
  *
- * @param shape  a valid shape index, 0 .. kZShapes - 1 (zInterpolate clamps before asking)
+ * @param shape  a valid shape index, 0 .. ZShapes - 1 (zInterpolate clamps before asking)
  * @return       the corners and their logarithms for that shape
  */
 const ShapeCorners& shapeCorners(int shape)
 {
     static const std::vector<ShapeCorners> all = [] {
-        std::vector<ShapeCorners> v(static_cast<size_t>(kZShapes));
-        for (int sh = 0; sh < kZShapes; ++sh) {
+        std::vector<ShapeCorners> v(static_cast<size_t>(ZShapes));
+        for (int sh = 0; sh < ZShapes; ++sh) {
             ZFrame c[8];
-            for (int k = 0; k < 8; ++k) c[k] = zFrameFromSpec(kZCorners[sh][k]);
+            for (int k = 0; k < 8; ++k) c[k] = zFrameFromSpec(ZCorners[sh][k]);
             ShapeCorners& out = v[static_cast<size_t>(sh)];
-            out.used = c[0].used;
-            for (int k = 1; k < 8; ++k) out.used = std::min(out.used, c[k].used);
-            for (int i = 0; i < out.used; ++i) {
-                ShapeCorners::Sec& d = out.s[i];
-                d.zeros = true;
-                for (int k = 0; k < 8; ++k) if (c[k].s[i].zeroHz <= 0.0f) d.zeros = false;
+            out.m_used = c[0].m_used;
+            for (int k = 1; k < 8; ++k) out.m_used = std::min(out.m_used, c[k].m_used);
+            for (int i = 0; i < out.m_used; ++i) {
+                ShapeCorners::Sec& d = out.m_s[i];
+                d.m_zeros = true;
+                for (int k = 0; k < 8; ++k) if (c[k].m_s[i].m_zeroHz <= 0.0f) d.m_zeros = false;
                 for (int k = 0; k < 8; ++k) {
-                    d.lPole[k]   = std::log2(std::max(c[k].s[i].poleHz, 1e-3f));
-                    d.lBw[k]     = std::log2(std::max(c[k].s[i].poleBw, 1e-3f));
-                    d.lZeroHz[k] = std::log2(std::max(c[k].s[i].zeroHz, 1e-3f));
-                    d.lZeroBw[k] = std::log2(std::max(c[k].s[i].zeroBw, 1e-3f));
-                    d.gain[k]    = c[k].s[i].gain;
+                    d.m_lPole[k]   = std::log2(std::max(c[k].m_s[i].m_poleHz, 1e-3f));
+                    d.m_lBw[k]     = std::log2(std::max(c[k].m_s[i].m_poleBw, 1e-3f));
+                    d.m_lZeroHz[k] = std::log2(std::max(c[k].m_s[i].m_zeroHz, 1e-3f));
+                    d.m_lZeroBw[k] = std::log2(std::max(c[k].m_s[i].m_zeroBw, 1e-3f));
+                    d.m_gain[k]    = c[k].m_s[i].m_gain;
                 }
             }
         }
@@ -194,11 +194,11 @@ void zWarmShapes() { (void)shapeCorners(0); }
 
 ZFrame zInterpolate(int shape, float x, float y, float z)
 {
-    shape = clampv(shape, 0, kZShapes - 1);
+    shape = clampv(shape, 0, ZShapes - 1);
     x = clampv(x, 0.0f, 1.0f); y = clampv(y, 0.0f, 1.0f); z = clampv(z, 0.0f, 1.0f);
     const ShapeCorners& c = shapeCorners(shape);
     ZFrame out;
-    out.used = c.used;
+    out.m_used = c.m_used;
     // Trilinear. At z = 0 only the first four terms have any weight, so this is exactly the
     // bilinear interpolation it replaces -- which is what makes the third axis free to add.
     auto lerp3 = [&](const float* v) {
@@ -206,15 +206,15 @@ ZFrame zInterpolate(int shape, float x, float y, float z)
         const float f1 = (v[4] * (1 - x) + v[5] * x) * (1 - y) + (v[6] * (1 - x) + v[7] * x) * y;
         return f0 * (1 - z) + f1 * z;
     };
-    for (int i = 0; i < out.used; ++i) {
-        ZSection& s = out.s[i];
-        const ShapeCorners::Sec& d = c.s[i];
-        s.poleHz = std::exp2(lerp3(d.lPole));
-        s.poleBw = std::exp2(lerp3(d.lBw));
+    for (int i = 0; i < out.m_used; ++i) {
+        ZSection& s = out.m_s[i];
+        const ShapeCorners::Sec& d = c.m_s[i];
+        s.m_poleHz = std::exp2(lerp3(d.m_lPole));
+        s.m_poleBw = std::exp2(lerp3(d.m_lBw));
         // A zero that exists in every corner is interpolated; if any corner has none, there is none.
-        s.zeroHz = d.zeros ? std::exp2(lerp3(d.lZeroHz)) : 0.0f;
-        s.zeroBw = d.zeros ? std::exp2(lerp3(d.lZeroBw)) : 0.0f;
-        s.gain   = lerp3(d.gain);
+        s.m_zeroHz = d.m_zeros ? std::exp2(lerp3(d.m_lZeroHz)) : 0.0f;
+        s.m_zeroBw = d.m_zeros ? std::exp2(lerp3(d.m_lZeroBw)) : 0.0f;
+        s.m_gain   = lerp3(d.m_gain);
     }
     return out;
 }
@@ -224,7 +224,7 @@ namespace {
  * @brief The normalisation grid: 16 logarithmically spaced points in normalised frequency (about
  *        24 Hz to 21 kHz at 48 kHz), with cos/sin of w and 2w precomputed once.
  */
-constexpr int kGrid = 16;
+constexpr int Grid = 16;
 /**
  * @brief The precomputed trigonometry of the normalisation grid, one set per grid point.
  *
@@ -233,17 +233,17 @@ constexpr int kGrid = 16;
  * exactly what ZBiquad::magSqAt() takes, so a magnitude on the grid costs no transcendental call.
  */
 struct NormGrid {
-    float c1[kGrid],   ///< cos(w) at each grid point
-          s1[kGrid],   ///< sin(w)
-          c2[kGrid],   ///< cos(2w)
-          s2[kGrid];   ///< sin(2w)
+    float m_c1[Grid],   ///< cos(w) at each grid point
+          m_s1[Grid],   ///< sin(w)
+          m_c2[Grid],   ///< cos(2w)
+          m_s2[Grid];   ///< sin(2w)
     /** @brief Fills the four tables; run once, when grid() is first called. */
     NormGrid()
     {
-        for (int k = 0; k < kGrid; ++k) {
-            const float w = kPi * 0.001f * std::pow(900.0f, static_cast<float>(k) / (kGrid - 1));
-            c1[k] = std::cos(w); s1[k] = std::sin(w);
-            c2[k] = std::cos(2.0f * w); s2[k] = std::sin(2.0f * w);
+        for (int k = 0; k < Grid; ++k) {
+            const float w = Pi * 0.001f * std::pow(900.0f, static_cast<float>(k) / (Grid - 1));
+            m_c1[k] = std::cos(w); m_s1[k] = std::sin(w);
+            m_c2[k] = std::cos(2.0f * w); m_s2[k] = std::sin(2.0f * w);
         }
     }
 };
@@ -267,27 +267,27 @@ namespace {
 float zBuildCascade(const ZFrame& f, ZBiquad* ch, float sr)
 {
     const NormGrid& g = grid();
-    const int n = clampv(f.used, 0, kZSections);
+    const int n = clampv(f.m_used, 0, ZSections);
     if (n == 0) return 1.0f;
     // The probe points: the fixed grid plus every pole and zero angle of this frame. A needle-
     // sharp resonance has its maximum at its own pole angle, which no fixed grid would catch.
-    constexpr int kMaxPoints = kGrid + 2 * kZSections;
-    float c1[kMaxPoints], s1[kMaxPoints], c2[kMaxPoints], s2[kMaxPoints];
-    for (int k = 0; k < kGrid; ++k) { c1[k] = g.c1[k]; s1[k] = g.s1[k]; c2[k] = g.c2[k]; s2[k] = g.s2[k]; }
-    int points = kGrid;
+    constexpr int MaxPoints = Grid + 2 * ZSections;
+    float c1[MaxPoints], s1[MaxPoints], c2[MaxPoints], s2[MaxPoints];
+    for (int k = 0; k < Grid; ++k) { c1[k] = g.m_c1[k]; s1[k] = g.m_s1[k]; c2[k] = g.m_c2[k]; s2[k] = g.m_s2[k]; }
+    int points = Grid;
     auto addAngle = [&](float hz) {
-        if (hz <= 0.0f || points >= kMaxPoints) return;
-        const float w = kTwoPi * clampv(hz, 10.0f, sr * 0.48f) / sr;
+        if (hz <= 0.0f || points >= MaxPoints) return;
+        const float w = TwoPi * clampv(hz, 10.0f, sr * 0.48f) / sr;
         c1[points] = std::cos(w); s1[points] = std::sin(w);
         c2[points] = std::cos(2.0f * w); s2[points] = std::sin(2.0f * w);
         ++points;
     };
-    for (int i = 0; i < n; ++i) { addAngle(f.s[i].poleHz); addAngle(f.s[i].zeroHz); }
+    for (int i = 0; i < n; ++i) { addAngle(f.m_s[i].m_poleHz); addAngle(f.m_s[i].m_zeroHz); }
     // One pass gives both normalisations: the row maximum per section, and the product down
     // each column for the finished cascade.
-    float mag[kZSections][kMaxPoints];
+    float mag[ZSections][MaxPoints];
     for (int i = 0; i < n; ++i) {
-        ch[i].set(f.s[i], sr);
+        ch[i].set(f.m_s[i], sr);
         float rowMax = 1e-20f, logSum = 0.0f;
         for (int k = 0; k < points; ++k) {
             mag[i][k] = std::max(ch[i].magSqAt(c1[k], s1[k], c2[k], s2[k]), 1e-20f);
@@ -299,8 +299,8 @@ float zBuildCascade(const ZFrame& f, ZBiquad* ch, float sr)
         // six of them in series shape a spectrum instead of cancelling each other out. The
         // boost is capped at 30 dB per section so the cascade cannot overflow.
         const float gmean = std::exp(0.5f * logSum / static_cast<float>(points));
-        const float scale = std::min(f.s[i].gain / gmean, 32.0f / std::sqrt(rowMax));
-        ch[i].b0 *= scale; ch[i].b1 *= scale; ch[i].b2 *= scale;
+        const float scale = std::min(f.m_s[i].m_gain / gmean, 32.0f / std::sqrt(rowMax));
+        ch[i].m_b0 *= scale; ch[i].m_b1 *= scale; ch[i].m_b2 *= scale;
         const float sq = scale * scale;
         for (int k = 0; k < points; ++k) mag[i][k] *= sq;
     }
@@ -317,18 +317,18 @@ void ZBiquad::set(const ZSection& s, float sr)
 {
     // Poles: radius from the bandwidth, angle from the centre frequency. The radius is capped
     // well inside the unit circle (about 0.4 s of ringing), so no interpolated point can blow up.
-    const float f = clampv(s.poleHz, 20.0f, sr * 0.45f);
-    const float r = std::min(std::exp(-kPi * std::max(s.poleBw, 0.5f) / sr), 0.99995f);
-    const float th = kTwoPi * f / sr;
-    a1 = -2.0f * r * std::cos(th);
-    a2 = r * r;
-    if (s.zeroHz > 0.0f) {
-        const float fz = clampv(s.zeroHz, 20.0f, sr * 0.48f);
-        const float rz = std::min(std::exp(-kPi * std::max(s.zeroBw, 0.5f) / sr), 0.9999f);
-        const float tz = kTwoPi * fz / sr;
-        b0 = 1.0f; b1 = -2.0f * rz * std::cos(tz); b2 = rz * rz;
+    const float f = clampv(s.m_poleHz, 20.0f, sr * 0.45f);
+    const float r = std::min(std::exp(-Pi * std::max(s.m_poleBw, 0.5f) / sr), 0.99995f);
+    const float th = TwoPi * f / sr;
+    m_a1 = -2.0f * r * std::cos(th);
+    m_a2 = r * r;
+    if (s.m_zeroHz > 0.0f) {
+        const float fz = clampv(s.m_zeroHz, 20.0f, sr * 0.48f);
+        const float rz = std::min(std::exp(-Pi * std::max(s.m_zeroBw, 0.5f) / sr), 0.9999f);
+        const float tz = TwoPi * fz / sr;
+        m_b0 = 1.0f; m_b1 = -2.0f * rz * std::cos(tz); m_b2 = rz * rz;
     } else {
-        b0 = 1.0f; b1 = 0.0f; b2 = 0.0f;
+        m_b0 = 1.0f; m_b1 = 0.0f; m_b2 = 0.0f;
     }
     // The gain is applied by zBuildCascade, which normalises the section over the whole grid.
 }
@@ -337,8 +337,8 @@ float ZBiquad::magnitudeAt(float w) const
 {
     const float c1 = std::cos(w), s1 = std::sin(w);
     const float c2 = std::cos(2.0f * w), s2 = std::sin(2.0f * w);
-    const float nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
-    const float dr = 1.0f + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
+    const float nr = m_b0 + m_b1 * c1 + m_b2 * c2, ni = -(m_b1 * s1 + m_b2 * s2);
+    const float dr = 1.0f + m_a1 * c1 + m_a2 * c2, di = -(m_a1 * s1 + m_a2 * s2);
     const float den = dr * dr + di * di;
     return std::sqrt((nr * nr + ni * ni) / std::max(den, 1e-20f));
 }

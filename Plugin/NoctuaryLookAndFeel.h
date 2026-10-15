@@ -19,32 +19,32 @@ namespace ui {
 
 /** @name Ground and surfaces
  *  @{ */
-const juce::Colour bg0        { 0xff080b12 };   ///< window, top
-const juce::Colour bg1        { 0xff0e1220 };   ///< window, bottom
-const juce::Colour card       { 0xff141a29 };   ///< section card
-const juce::Colour cardEdge   { 0xff1f2739 };   ///< the one-pixel edge of a card, a box or a button
-const juce::Colour group      { 0xff10151f };   ///< group panel behind the cards
-const juce::Colour track      { 0xff232c41 };   ///< unfilled part of an arc
+const juce::Colour Bg0        { 0xff080b12 };   ///< window, top
+const juce::Colour Bg1        { 0xff0e1220 };   ///< window, bottom
+const juce::Colour CardColour       { 0xff141a29 };   ///< section card
+const juce::Colour CardEdge   { 0xff1f2739 };   ///< the one-pixel edge of a card, a box or a button
+const juce::Colour GroupColour      { 0xff10151f };   ///< group panel behind the cards
+const juce::Colour Track      { 0xff232c41 };   ///< unfilled part of an arc
 /** @} */
 
 /** @name Type
  *  @{ */
-const juce::Colour text       { 0xffcfd7e6 };   ///< primary text: values, names, button labels
-const juce::Colour dim        { 0xff6d7a92 };   ///< secondary text and the box chevron
-const juce::Colour faint      { 0xff3d4658 };   ///< the faintest: axis labels, disabled controls, scrollbar thumbs
+const juce::Colour Text       { 0xffcfd7e6 };   ///< primary text: values, names, button labels
+const juce::Colour Dim        { 0xff6d7a92 };   ///< secondary text and the box chevron
+const juce::Colour Faint      { 0xff3d4658 };   ///< the faintest: axis labels, disabled controls, scrollbar thumbs
 /** @} */
 
 /** @name Accents
  *  @{ */
-const juce::Colour accent     { 0xff6fd8d2 };   ///< the instrument's own colour: cold, wide
-const juce::Colour live       { 0xffe8a45c };   ///< warm: something is sounding or moving now
-const juce::Colour voiceCol   { 0xff74b6e0 };   ///< the Voice group
-const juce::Colour foreCol    { 0xff86d3a6 };   ///< the near (foreground) layer
-const juce::Colour backCol    { 0xffb197e8 };   ///< the background layer
-const juce::Colour cosmosCol  { 0xffe8a45c };   ///< the Cosmos chain (the same warm hue as live)
-const juce::Colour condCol    { 0xff6fd8d2 };   ///< the conductor (the same hue as accent)
-const juce::Colour morphCol   { 0xffe07fb0 };   ///< Morph
-const juce::Colour masterCol  { 0xff9aa7bd };   ///< the master section
+const juce::Colour Accent     { 0xff6fd8d2 };   ///< the instrument's own colour: cold, wide
+const juce::Colour Live       { 0xffe8a45c };   ///< warm: something is sounding or moving now
+const juce::Colour VoiceCol   { 0xff74b6e0 };   ///< the Voice group
+const juce::Colour ForeCol    { 0xff86d3a6 };   ///< the near (foreground) layer
+const juce::Colour BackCol    { 0xffb197e8 };   ///< the background layer
+const juce::Colour CosmosCol  { 0xffe8a45c };   ///< the Cosmos chain (the same warm hue as live)
+const juce::Colour CondCol    { 0xff6fd8d2 };   ///< the conductor (the same hue as accent)
+const juce::Colour MorphCol   { 0xffe07fb0 };   ///< Morph
+const juce::Colour MasterCol  { 0xff9aa7bd };   ///< the master section
 /** @} */
 
 /**

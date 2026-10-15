@@ -19,18 +19,18 @@ namespace ambient {
 
 /** @brief One point of a route: where the cursor goes, how long it takes to get there and how long it stays. */
 struct Waypoint {
-    float x = 0.5f,         ///< @brief map position, 0 .. 1
-          y = 0.5f,         ///< @brief map position, 0 .. 1
-          radius = 0.08f;   ///< blend radius (0.02 .. 0.4) at this point
-    float travel = 60.0f;   ///< seconds to glide here from the previous point (or from where the cursor was)
-    float hold = 60.0f;     ///< seconds to stay
-    int   preset = -1;      ///< resolved preset index when the point was given by name, else -1
+    float m_x = 0.5f,         ///< @brief map position, 0 .. 1
+          m_y = 0.5f,         ///< @brief map position, 0 .. 1
+          m_radius = 0.08f;   ///< blend radius (0.02 .. 0.4) at this point
+    float m_travel = 60.0f;   ///< seconds to glide here from the previous point (or from where the cursor was)
+    float m_hold = 60.0f;     ///< seconds to stay
+    int   m_preset = -1;      ///< resolved preset index when the point was given by name, else -1
 };
 
 /** @brief A built-in route: its name and its text form (see the file comment), parsed by Route::parse. */
 struct RoutePreset {
-    const char* name;     ///< @brief the name shown in the list
-    const char* points;   ///< @brief the route in the text form (see the file comment)
+    const char* m_name;     ///< @brief the name shown in the list
+    const char* m_points;   ///< @brief the route in the text form (see the file comment)
 };
 /** @return how many built-in routes there are (twelve, Route.cpp) */
 int numRoutePresets();
@@ -42,31 +42,31 @@ int numRoutePresets();
 const RoutePreset& routePreset(int index);
 
 /**
- * @brief The route itself: up to kMaxPoints waypoints and the walk along them.
+ * @brief The route itself: up to MaxPoints waypoints and the walk along them.
  *
  * No allocation anywhere, so parse() may replace a route while the engine is running and
  * update() runs at control rate on the audio thread.
  */
 class Route {
 public:
-    static constexpr int kMaxPoints = 32;   ///< the most waypoints a route may hold
+    static constexpr int MaxPoints = 32;   ///< the most waypoints a route may hold
 
     /** @return how many waypoints the route has */
-    int  count() const { return count_; }
+    int  count() const { return m_count; }
     /**
      * @brief One waypoint.
      * @param i  0 .. count()-1, unchecked
      * @return   the point
      */
-    const Waypoint& point(int i) const { return points_[i]; }
+    const Waypoint& point(int i) const { return m_points[i]; }
     /** @brief Removes every waypoint and stops the walk. */
-    void clear() { count_ = 0; stop(); }
+    void clear() { m_count = 0; stop(); }
     /**
      * @brief Appends a waypoint.
      * @param w  the point
-     * @return   false when the route is full (kMaxPoints)
+     * @return   false when the route is full (MaxPoints)
      */
-    bool add(const Waypoint& w) { if (count_ >= kMaxPoints) return false; points_[count_++] = w; return true; }
+    bool add(const Waypoint& w) { if (m_count >= MaxPoints) return false; m_points[m_count++] = w; return true; }
     /**
      * @brief Parses the text form (see the file comment): replaces the route; false if a point is malformed or a name unknown.
      *
@@ -98,13 +98,13 @@ public:
      */
     void start(float fromX, float fromY, float fromRadius, bool loop);
     /** @brief Stops the walk; the cursor stays where it is. */
-    void stop() { running_ = false; }
+    void stop() { m_running = false; }
     /** @return whether the route is being walked */
-    bool running() const { return running_; }
+    bool running() const { return m_running; }
     /** @return index of the point being approached or held */
-    int  segment() const { return seg_; }
+    int  segment() const { return m_seg; }
     /** @return 0..1 within the current travel or hold */
-    float progress() const { return prog_; }
+    float progress() const { return m_prog; }
 
     /**
      * @brief Advances by dt (already multiplied by the speed). Writes the cursor; returns false when the
@@ -123,20 +123,20 @@ public:
     bool update(float dt, float& x, float& y, float& radius);
 
 private:
-    Waypoint points_[kMaxPoints];                  ///< the route
-    int   count_ = 0;                              ///< how many of points_ are in use
-    bool  running_ = false,   ///< @brief the route is being walked
-          loop_ = false,      ///< @brief start over after the last point
-          holding_ = false;   ///< in the hold of seg_ rather than travelling to it
-    int   seg_ = 0;                                ///< the waypoint being approached or held
-    float prog_ = 0.0f,      ///< @brief progress 0..1 of the current travel or hold
-          elapsed_ = 0.0f;   ///< seconds spent in the current travel or hold
-    float fromX_ = 0.5f,    ///< @brief x where the current travel started (the previous point, or the cursor at start())
-          fromY_ = 0.5f,    ///< @brief y where the current travel started
-          fromR_ = 0.08f;   ///< radius where the current travel started
-    float curX_ = 0.5f,    ///< @brief the cursor's x now, as update() last wrote it
-          curY_ = 0.5f,    ///< @brief the cursor's y now
-          curR_ = 0.08f;   ///< the blend radius now
+    Waypoint m_points[MaxPoints];                  ///< the route
+    int   m_count = 0;                              ///< how many of m_points are in use
+    bool  m_running = false,   ///< @brief the route is being walked
+          m_loop = false,      ///< @brief start over after the last point
+          m_holding = false;   ///< in the hold of m_seg rather than travelling to it
+    int   m_seg = 0;                                ///< the waypoint being approached or held
+    float m_prog = 0.0f,      ///< @brief progress 0..1 of the current travel or hold
+          m_elapsed = 0.0f;   ///< seconds spent in the current travel or hold
+    float m_fromX = 0.5f,    ///< @brief x where the current travel started (the previous point, or the cursor at start())
+          m_fromY = 0.5f,    ///< @brief y where the current travel started
+          m_fromR = 0.08f;   ///< radius where the current travel started
+    float m_curX = 0.5f,    ///< @brief the cursor's x now, as update() last wrote it
+          m_curY = 0.5f,    ///< @brief the cursor's y now
+          m_curR = 0.08f;   ///< the blend radius now
 };
 
 } // namespace ambient

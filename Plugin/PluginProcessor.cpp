@@ -38,16 +38,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout NoctuaryProcessor::createLay
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     for (const ParamDesc& d : paramTable()) {
-        const juce::ParameterID id(d.key, 1);
-        switch (d.kind) {
-        case ParamKind::Float: {
-            juce::NormalisableRange<float> range(d.min, d.max, 0.0f, d.skew);
-            const float span = d.max - d.min;
+        const juce::ParameterID id(d.m_key, 1);
+        switch (d.m_kind) {
+        case ParamKindE::FLOAT: {
+            juce::NormalisableRange<float> range(d.m_min, d.m_max, 0.0f, d.m_skew);
+            const float span = d.m_max - d.m_min;
             const int decimals = span >= 100.0f ? 0 : (span >= 5.0f ? 1 : 2);
             layout.add(std::make_unique<juce::AudioParameterFloat>(
-                id, d.name, range, d.def,
+                id, d.m_name, range, d.m_def,
                 juce::AudioParameterFloatAttributes()
-                    .withLabel(d.unit)
+                    .withLabel(d.m_unit)
                     // A rate of 0.004 Hz printed with one decimal is "0.0": below one, show enough
                     // digits that the number means something.
                     .withStringFromValueFunction([decimals](float v, int) {
@@ -56,18 +56,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout NoctuaryProcessor::createLay
                     })));
             break;
         }
-        case ParamKind::Int:
+        case ParamKindE::INT:
             layout.add(std::make_unique<juce::AudioParameterInt>(
-                id, d.name, static_cast<int>(d.min), static_cast<int>(d.max), static_cast<int>(d.def),
-                juce::AudioParameterIntAttributes().withLabel(d.unit)));
+                id, d.m_name, static_cast<int>(d.m_min), static_cast<int>(d.m_max), static_cast<int>(d.m_def),
+                juce::AudioParameterIntAttributes().withLabel(d.m_unit)));
             break;
-        case ParamKind::Bool:
-            layout.add(std::make_unique<juce::AudioParameterBool>(id, d.name, d.def >= 0.5f));
+        case ParamKindE::BOOL:
+            layout.add(std::make_unique<juce::AudioParameterBool>(id, d.m_name, d.m_def >= 0.5f));
             break;
-        case ParamKind::Choice: {
+        case ParamKindE::CHOICE: {
             juce::StringArray names;
-            for (int i = 0; i < d.numChoices; ++i) names.add(d.choices[i]);
-            layout.add(std::make_unique<juce::AudioParameterChoice>(id, d.name, names, static_cast<int>(d.def)));
+            for (int i = 0; i < d.m_numChoices; ++i) names.add(d.m_choices[i]);
+            layout.add(std::make_unique<juce::AudioParameterChoice>(id, d.m_name, names, static_cast<int>(d.m_def)));
             break;
         }
         }
@@ -129,15 +129,15 @@ static void installCrashLog()
 
 NoctuaryProcessor::NoctuaryProcessor()
     : AudioProcessor(busLayout()),
-      apvts(*this, nullptr, "Noctuary", createLayout())
+      m_apvts(*this, nullptr, "Noctuary", createLayout())
 {
     installCrashLog();
-    engines_[0] = std::make_unique<ambient::Engine>();   // the instrument; the second is built on demand
-    engines_[0]->setNoteTap(&noteTap_);   // MIDI out (02.10.2026)
-    for (int i = 0; i < kNumParams; ++i)
-        raw_[static_cast<size_t>(i)] = apvts.getRawParameterValue(paramTable()[static_cast<size_t>(i)].key);
-    for (auto* p : getParameters()) p->addListener(&paramWatch_);
-    for (auto& c : ccMap_) c.store(-1);
+    m_engines[0] = std::make_unique<ambient::Engine>();   // the instrument; the second is built on demand
+    m_engines[0]->setNoteTap(&m_noteTap);   // MIDI out (02.10.2026)
+    for (int i = 0; i < NumParams; ++i)
+        m_raw[static_cast<size_t>(i)] = m_apvts.getRawParameterValue(paramTable()[static_cast<size_t>(i)].m_key);
+    for (auto* p : getParameters()) p->addListener(&m_paramWatch);
+    for (auto& c : m_ccMap) c.store(-1);
     // Preset packs (thousands of presets as text files) before anything reads the preset list.
     loadDefaultPresetPacks();
     loadFavourites();   // by name, so after the packs: the names have to be there to be found
@@ -146,15 +146,15 @@ NoctuaryProcessor::NoctuaryProcessor()
     PresetMap::warmupAsync();
     // The pump runs for the life of the instrument: it carries out the preset changes OSC asks
     // for and finishes a transition that had to wait for an engine. Two atomic reads at 30 Hz.
-    presetPump_.startTimerHz(30);
+    m_presetPump.startTimerHz(30);
     // OSC on 9000; a second instance in a DAW simply reports the port as taken.
-    osc_.start(9000, *this, gestures_);
+    m_osc.start(9000, *this, m_gestures);
     // Session recall. The switch lives in the same settings file as the state, so turning it off
     // survives a restart; off also drops the stored state, before JUCE can read it back -- this
     // constructor runs from the holder's, ahead of its reloadPluginState().
     if (auto* settings = standaloneSettings()) {
-        sessionRecall_ = settings->getBoolValue("sessionRecall", true);
-        if (!sessionRecall_) settings->removeValue("filterState");
+        m_sessionRecall = settings->getBoolValue("sessionRecall", true);
+        if (!m_sessionRecall) settings->removeValue("filterState");
         else startTimer(15000);
     }
 }
@@ -164,10 +164,10 @@ NoctuaryProcessor::~NoctuaryProcessor()
     // The OSC thread first: it calls event() on this object, and the queue it pushes into is
     // declared after it, so it would be destroyed first. Then the warmup thread, which would be
     // executing code this library is about to give back.
-    osc_.stop();
+    m_osc.stop();
     ambient::PresetMap::shutdown();
-    for (auto* p : getParameters()) p->removeListener(&paramWatch_);
-    presetPump_.stopTimer();
+    for (auto* p : getParameters()) p->removeListener(&m_paramWatch);
+    m_presetPump.stopTimer();
     stopTimer();
     saveSession();
 }
@@ -187,14 +187,14 @@ juce::PropertySet* NoctuaryProcessor::standaloneSettings()
 
 void NoctuaryProcessor::linkTick()
 {
-    link_.setEnabled(wrapperType == wrapperType_Standalone && (frame::Settings::of("Noctuary").link() || frame::LinkClock::forcedOn()));
-    link_.tick();
+    m_link.setEnabled(wrapperType == wrapperType_Standalone && (frame::Settings::of("Noctuary").link() || frame::LinkClock::forcedOn()));
+    m_link.tick();
     // The family jam (02.10.2026, Jam.h): the role from the settings.
-    jam_.setRole(frame::Settings::of("Noctuary").jamRole());
+    m_jam.setRole(frame::Settings::of("Noctuary").jamRole());
     if (const char* logFile = std::getenv("FAMILY_JAM_LOG")) {   // a test aid: what the jam does, whenever it changes
-        const juce::String line = jam_.status() + "; root " + juce::String(live().brainRoot() % 12);
-        if (line != jamLogged_) {
-            jamLogged_ = line;
+        const juce::String line = m_jam.status() + "; root " + juce::String(live().brainRoot() % 12);
+        if (line != m_jamLogged) {
+            m_jamLogged = line;
             juce::File(logFile).appendText(juce::Time::getCurrentTime().toString(false, true, true, true) + "  " + line + "\n");
         }
     }
@@ -202,44 +202,44 @@ void NoctuaryProcessor::linkTick()
 
 juce::String NoctuaryProcessor::cueStatus() const
 {
-    if (cuePortOpen_ == 0) return frame::Settings::of("Noctuary").cues() ? "no socket" : "off";
-    return juce::String(cuesSent_) + " sent";
+    if (m_cuePortOpen == 0) return frame::Settings::of("Noctuary").cues() ? "no socket" : "off";
+    return juce::String(m_cuesSent) + " sent";
 }
 
 void NoctuaryProcessor::cueTick()
 {
     const frame::Settings& s = frame::Settings::of("Noctuary");
     const int want = s.cues() ? s.cuePort() : 0;
-    if (want != cuePortOpen_) {
-        cueOut_.disconnect();
-        cuePortOpen_ = (want > 0 && cueOut_.connect("127.0.0.1", want)) ? want : 0;
-        cueBar_ = cueRoot_ = cueScene_ = -1;
-        cuesSent_ = 0;
+    if (want != m_cuePortOpen) {
+        m_cueOut.disconnect();
+        m_cuePortOpen = (want > 0 && m_cueOut.connect("127.0.0.1", want)) ? want : 0;
+        m_cueBar = m_cueRoot = m_cueScene = -1;
+        m_cuesSent = 0;
     }
-    if (cuePortOpen_ == 0) return;
+    if (m_cuePortOpen == 0) return;
     ambient::Engine& e = live();
     if (e.clockRunning()) {
         const int bar = static_cast<int>(std::floor(e.beatPosition() / 4.0));
-        if (bar != cueBar_ && cueOut_.send("/noct/bar", static_cast<juce::int32>(bar))) { cueBar_ = bar; ++cuesSent_; }
+        if (bar != m_cueBar && m_cueOut.send("/noct/bar", static_cast<juce::int32>(bar))) { m_cueBar = bar; ++m_cuesSent; }
     }
     const int pc = ((e.brainRoot() % 12) + 12) % 12;
-    const int tuning = juce::jlimit(0, ambient::kNumScaleChoices - 1, static_cast<int>(e.getParam(ParamId::Scale)));
-    if (pc * 16 + tuning != cueRoot_
-        && cueOut_.send("/noct/key", juce::String(ambient::kRootNames[pc]) + " " + ambient::kScaleNames[tuning])) {
-        cueRoot_ = pc * 16 + tuning;
-        ++cuesSent_;
+    const int tuning = juce::jlimit(0, ambient::NumScaleChoices - 1, static_cast<int>(e.getParam(ParamIdE::SCALE)));
+    if (pc * 16 + tuning != m_cueRoot
+        && m_cueOut.send("/noct/key", juce::String(ambient::RootNames[pc]) + " " + ambient::ScaleNames[tuning])) {
+        m_cueRoot = pc * 16 + tuning;
+        ++m_cuesSent;
     }
-    if (currentProgram_ != cueScene_ && currentProgram_ >= 0 && currentProgram_ < ambient::numPresets()
-        && cueOut_.send("/noct/scene", juce::String(ambient::preset(currentProgram_).name), 0.35f)) {
-        cueScene_ = currentProgram_;
-        ++cuesSent_;
+    if (m_currentProgram != m_cueScene && m_currentProgram >= 0 && m_currentProgram < ambient::numPresets()
+        && m_cueOut.send("/noct/scene", juce::String(ambient::preset(m_currentProgram).m_name), 0.35f)) {
+        m_cueScene = m_currentProgram;
+        ++m_cuesSent;
     }
 }
 
 juce::String NoctuaryProcessor::linkStatus() const
 {
-    if (!link_.enabled()) return "off";
-    const int n = link_.peers();
+    if (!m_link.enabled()) return "off";
+    const int n = m_link.peers();
     return n == 0 ? "alone in the session" : juce::String(n) + (n == 1 ? " other app; Clock > Source: Host follows it"
                                                                        : " other apps; Clock > Source: Host follows them");
 }
@@ -248,11 +248,11 @@ bool NoctuaryProcessor::sessionRecallAvailable() { return standaloneSettings() !
 
 void NoctuaryProcessor::setSessionRecall(bool on)
 {
-    sessionRecall_ = on;
+    m_sessionRecall = on;
     auto* settings = standaloneSettings();
     if (settings == nullptr) return;
     settings->setValue("sessionRecall", on);
-    if (on) { savedStateHash_ = 0; startTimer(15000); saveSession(); }
+    if (on) { m_savedStateHash = 0; startTimer(15000); saveSession(); }
     else    { stopTimer(); settings->removeValue("filterState"); }
     if (auto* file = dynamic_cast<juce::PropertiesFile*>(settings)) file->saveIfNeeded();
 }
@@ -265,15 +265,15 @@ void NoctuaryProcessor::setSessionRecall(bool on)
 void NoctuaryProcessor::saveSession()
 {
     auto* settings = standaloneSettings();
-    if (settings == nullptr || !sessionRecall_) return;
+    if (settings == nullptr || !m_sessionRecall) return;
     juce::MemoryBlock data;
     getStateInformation(data);
     if (data.getSize() == 0) return;
     juce::uint32 hash = 2166136261u;                     // FNV-1a over the block
     for (const auto* b = static_cast<const juce::uint8*>(data.getData()), *e = b + data.getSize(); b != e; ++b)
         hash = (hash ^ *b) * 16777619u;
-    if (hash == savedStateHash_) return;
-    savedStateHash_ = hash;
+    if (hash == m_savedStateHash) return;
+    m_savedStateHash = hash;
     settings->setValue("filterState", data.toBase64Encoding());
     if (auto* file = dynamic_cast<juce::PropertiesFile*>(settings)) file->saveIfNeeded();
 }
@@ -282,15 +282,15 @@ void NoctuaryProcessor::timerCallback() { saveSession(); }
 
 // ---------------------------------------------------------------- OSC sink + gestures
 
-void NoctuaryProcessor::setParam(ParamId id, float value)
+void NoctuaryProcessor::setParam(ParamIdE id, float value)
 {
-    if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
+    if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(id)].m_key))
         p->setValueNotifyingHost(p->convertTo0to1(value));
 }
 
-void NoctuaryProcessor::setParamNormalised(ParamId id, float norm)
+void NoctuaryProcessor::setParamNormalised(ParamIdE id, float norm)
 {
-    if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
+    if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(id)].m_key))
         p->setValueNotifyingHost(juce::jlimit(0.0f, 1.0f, norm));
 }
 
@@ -298,8 +298,8 @@ void NoctuaryProcessor::event(const ControlEvent& e)
 {
     // Notes to the audio thread, preset changes to the message thread: one is a handful of
     // atomics, the other opens files.
-    if (e.type == ControlEvent::Type::NoteOn || e.type == ControlEvent::Type::NoteOff) events_.push(e);
-    else presetEvents_.push(e);
+    if (e.m_type == ControlEvent::TypeE::NOTE_ON || e.m_type == ControlEvent::TypeE::NOTE_OFF) m_events.push(e);
+    else m_presetEvents.push(e);
 }
 
 /**
@@ -308,26 +308,26 @@ void NoctuaryProcessor::event(const ControlEvent& e)
  */
 void NoctuaryProcessor::servePresetRequests()
 {
-    if (mapExit_.exchange(false, std::memory_order_acq_rel)
-        && juce::Time::getMillisecondCounterHiRes() >= mapExitDiscardUntil_) {   // not the exit a journey asked for
+    if (m_mapExit.exchange(false, std::memory_order_acq_rel)
+        && juce::Time::getMillisecondCounterHiRes() >= m_mapExitDiscardUntil) {   // not the exit a journey asked for
         for (const ParamDesc& d : paramTable()) {
-            if (isMapParam(d.id) || isMorphParam(d.id) || isMacroParam(d.id)) continue;
-            if (auto* p = apvts.getParameter(d.key)) p->setValueNotifyingHost(p->convertTo0to1(live().blendValue(d.id)));
+            if (isMapParam(d.m_id) || isMorphParam(d.m_id) || isMacroParam(d.m_id)) continue;
+            if (auto* p = m_apvts.getParameter(d.m_key)) p->setValueNotifyingHost(p->convertTo0to1(live().blendValue(d.m_id)));
         }
     }
     // A program sweep that has come to rest: read the files of the one that is left standing.
     // Held back until it is quiet, so a sweep that is still moving reads nothing at all.
-    if (const int want = pendingFiles_.load(std::memory_order_acquire); want >= 0
-        && juce::Time::getMillisecondCounterHiRes() - lastProgramAt_ > 250.0) {
-        pendingFiles_.store(-1, std::memory_order_release);
-        if (want == currentProgram_) loadPresetFiles(want);
+    if (const int want = m_pendingFiles.load(std::memory_order_acquire); want >= 0
+        && juce::Time::getMillisecondCounterHiRes() - m_lastProgramAt > 250.0) {
+        m_pendingFiles.store(-1, std::memory_order_release);
+        if (want == m_currentProgram) loadPresetFiles(want);
     }
     ControlEvent ev;
-    while (presetEvents_.pop(ev)) {
-        switch (ev.type) {
-        case ControlEvent::Type::Preset:       setCurrentProgram(ev.a); break;
-        case ControlEvent::Type::SoundPreset:  applySoundPreset(ev.a); break;
-        case ControlEvent::Type::CosmosPreset: applyCosmosPreset(ev.a); break;
+    while (m_presetEvents.pop(ev)) {
+        switch (ev.m_type) {
+        case ControlEvent::TypeE::PRESET:       setCurrentProgram(ev.m_a); break;
+        case ControlEvent::TypeE::SOUND_PRESET:  applySoundPreset(ev.m_a); break;
+        case ControlEvent::TypeE::COSMOS_PRESET: applyCosmosPreset(ev.m_a); break;
         default: break;
         }
     }
@@ -335,48 +335,48 @@ void NoctuaryProcessor::servePresetRequests()
 
 bool NoctuaryProcessor::setGestureMappings(const juce::String& text)
 {
-    if (!gestures_.parseMappings(text.toRawUTF8())) return false;
-    mappingText_ = text;
+    if (!m_gestures.parseMappings(text.toRawUTF8())) return false;
+    m_mappingText = text;
     return true;
 }
 
 juce::String NoctuaryProcessor::gestureMappings() const
 {
     char buf[4096];
-    const int n = gestures_.writeMappings(buf, sizeof(buf));
+    const int n = m_gestures.writeMappings(buf, sizeof(buf));
     return juce::String(juce::CharPointer_UTF8(buf), static_cast<size_t>(juce::jmax(0, n)));
 }
 
 void NoctuaryProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    lastSampleRate_ = sampleRate > 0.0 ? sampleRate : 48000.0;
-    lastBlockSize_ = samplesPerBlock;
-    for (auto& e : engines_) {
+    m_lastSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_lastBlockSize = samplesPerBlock;
+    for (auto& e : m_engines) {
         if (e == nullptr) continue;
-        for (int i = 0; i < kNumParams; ++i)
-            e->setParam(static_cast<ParamId>(i), raw_[static_cast<size_t>(i)]->load());
+        for (int i = 0; i < NumParams; ++i)
+            e->setParam(static_cast<ParamIdE>(i), m_raw[static_cast<size_t>(i)]->load());
         e->prepare(sampleRate, samplesPerBlock);
     }
-    scratch_.setSize(2, samplesPerBlock);
-    fadeBuf_.setSize(2, samplesPerBlock);
-    planeBuf_.setSize(2 * ambient::Engine::kNumStems, juce::jmax(1, samplesPerBlock));   // the planes' outputs (02.10.2026)
-    for (int c = 0; c < 2 * ambient::Engine::kNumStems; ++c) planePtr_[static_cast<size_t>(c)] = planeBuf_.getWritePointer(c);
-    for (auto& e : engines_) if (e != nullptr) e->setStemBuffers(nullptr);
-    planesOn_ = false;
-    sampleRate_ = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_scratch.setSize(2, samplesPerBlock);
+    m_fadeBuf.setSize(2, samplesPerBlock);
+    m_planeBuf.setSize(2 * ambient::Engine::NumStems, juce::jmax(1, samplesPerBlock));   // the planes' outputs (02.10.2026)
+    for (int c = 0; c < 2 * ambient::Engine::NumStems; ++c) m_planePtr[static_cast<size_t>(c)] = m_planeBuf.getWritePointer(c);
+    for (auto& e : m_engines) if (e != nullptr) e->setStemBuffers(nullptr);
+    m_planesOn = false;
+    m_sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
     // Both engines have just had their buffers cleared, so a transition that was in flight has
     // nothing left to fade out of: it ends here rather than crossfading from silence.
-    fading_.store(-1, std::memory_order_relaxed);
-    swapTo_.store(-1, std::memory_order_relaxed);
-    paramTarget_.store(-1, std::memory_order_relaxed);
-    fadePos_.store(1.0f, std::memory_order_relaxed);
-    fadeHead_ = 0.0f;
+    m_fading.store(-1, std::memory_order_relaxed);
+    m_swapTo.store(-1, std::memory_order_relaxed);
+    m_paramTarget.store(-1, std::memory_order_relaxed);
+    m_fadePos.store(1.0f, std::memory_order_relaxed);
+    m_fadeHead = 0.0f;
 }
 
 juce::AudioProcessor::BusesProperties NoctuaryProcessor::busLayout()
 {
     BusesProperties b = BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true);
-    for (int s = 0; s < ambient::Engine::kNumStems; ++s) {
+    for (int s = 0; s < ambient::Engine::NumStems; ++s) {
         const juce::String name(ambient::Engine::stemName(s));
         b = b.withOutput(name.substring(0, 1).toUpperCase() + name.substring(1), juce::AudioChannelSet::stereo(), false);
     }
@@ -397,41 +397,41 @@ bool NoctuaryProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
-    noteTap_.clear();   // MIDI out (02.10.2026): what the conductors play in this block, written out at its end
+    m_noteTap.clear();   // MIDI out (02.10.2026): what the conductors play in this block, written out at its end
 
     // Which engine is the instrument is decided here and nowhere else, at a block boundary, so
     // that the message thread can build the next preset on the other one without ever writing to
     // an engine that is being rendered.
-    if (endFade_.exchange(false, std::memory_order_acq_rel)) {
-        const int f = fading_.load(std::memory_order_relaxed);
-        if (f >= 0) { engines_[f]->allNotesOff(); fading_.store(-1, std::memory_order_release); }
+    if (m_endFade.exchange(false, std::memory_order_acq_rel)) {
+        const int f = m_fading.load(std::memory_order_relaxed);
+        if (f >= 0) { m_engines[f]->allNotesOff(); m_fading.store(-1, std::memory_order_release); }
     }
-    if (const int sw = swapTo_.load(std::memory_order_acquire); sw >= 0) {
-        fading_.store(live_.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        live_.store(sw, std::memory_order_release);
+    if (const int sw = m_swapTo.load(std::memory_order_acquire); sw >= 0) {
+        m_fading.store(m_live.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        m_live.store(sw, std::memory_order_release);
         // Where the volume stood at the change, on both sides: the leaving engine's own level, and
         // the parameter as the arriving preset left it. What the player turns from here on is the
         // difference between the two readings of the parameter, and it goes to both engines.
-        fadeGainFrom_ = engines_[fading_.load(std::memory_order_relaxed)]->getParam(ParamId::MasterGain);
-        fadeGainBase_ = raw_[static_cast<size_t>(ParamId::MasterGain)]->load();
-        fadePos_.store(0.0f, std::memory_order_relaxed);
-        fadeHead_ = 0.0f;
-        paramTarget_.store(-1, std::memory_order_release);
+        m_fadeGainFrom = m_engines[m_fading.load(std::memory_order_relaxed)]->getParam(ParamIdE::MASTER_GAIN);
+        m_fadeGainBase = m_raw[static_cast<size_t>(ParamIdE::MASTER_GAIN)]->load();
+        m_fadePos.store(0.0f, std::memory_order_relaxed);
+        m_fadeHead = 0.0f;
+        m_paramTarget.store(-1, std::memory_order_release);
         // Cleared LAST. The message thread gives an idle engine back when nothing is fading and
         // no change is on its way; clearing this first opened a window in which both were true
         // while the swap had not happened yet, and it freed the very engine about to be made
         // live. That is a crash a few seconds into every transition.
-        swapTo_.store(-1, std::memory_order_release);
+        m_swapTo.store(-1, std::memory_order_release);
     }
 
     // Macros are gesture inputs Custom0..7: one knob, several parameters.
     for (int m = 0; m < 8; ++m)
-        gestures_.setInput(static_cast<GestureInput>(static_cast<int>(GestureInput::Custom0) + m),
-                           raw_[static_cast<size_t>(static_cast<int>(ParamId::MacroA) + m)]->load());
+        m_gestures.setInput(static_cast<GestureInputE>(static_cast<int>(GestureInputE::CUSTOM0) + m),
+                           m_raw[static_cast<size_t>(static_cast<int>(ParamIdE::MACRO_A) + m)]->load());
 
     // Gestures write through the host's parameter system, like a MIDI controller would.
-    gestures_.update(buffer.getNumSamples() / getSampleRate(), [this](ParamId id, float v) {
-        if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
+    m_gestures.update(buffer.getNumSamples() / getSampleRate(), [this](ParamIdE id, float v) {
+        if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(id)].m_key))
             p->setValueNotifyingHost(p->convertTo0to1(v));
     });
     // Notes from OSC arrive on the audio thread through the queue, where they belong. Preset
@@ -441,10 +441,10 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     // for -- file I/O and allocation on the thread that must not wait for anything. They go to
     // the message thread now (see servePresetRequests).
     ControlEvent ev;
-    while (events_.pop(ev)) {
-        switch (ev.type) {
-        case ControlEvent::Type::NoteOn:       noteOn(ev.a, ev.b); break;
-        case ControlEvent::Type::NoteOff:      noteOff(ev.a); break;
+    while (m_events.pop(ev)) {
+        switch (ev.m_type) {
+        case ControlEvent::TypeE::NOTE_ON:       noteOn(ev.m_a, ev.m_b); break;
+        case ControlEvent::TypeE::NOTE_OFF:      noteOff(ev.m_a); break;
         default: break;
         }
     }
@@ -454,20 +454,20 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     // is not work for the audio thread -- it is exactly what was moved off it for OSC preset
     // changes -- so the audio thread only notices that the map has been switched off and the
     // message thread does the writing a few milliseconds later. The blended values stay where they
-    // are in the meantime: switching the map off leaves blendCur_ alone.
+    // are in the meantime: switching the map off leaves m_blendCur alone.
     //
     // (The block that used to sit here for the arrival of a travelling preset change is gone with
     // it. Nothing has set morphTarget_ since a preset change became a crossfade of two engines,
     // so it applied a preset from the audio thread that was never on its way.)
-    if (raw_[static_cast<size_t>(ParamId::MapActive)]->load() < 0.5f && live().mapActive())
-        mapExit_.store(true, std::memory_order_release);
+    if (m_raw[static_cast<size_t>(ParamIdE::MAP_ACTIVE)]->load() < 0.5f && live().mapActive())
+        m_mapExit.store(true, std::memory_order_release);
 
     {   // Into the instrument -- or, while a transition is being built, into the engine that is
         // about to become it, so that the new preset's values do not also land on the old sound.
-        const int pt = paramTarget_.load(std::memory_order_acquire);
-        ambient::Engine& dst = *engines_[pt >= 0 ? pt : live_.load(std::memory_order_relaxed)];
-        for (int i = 0; i < kNumParams; ++i)
-            dst.setParam(static_cast<ParamId>(i), raw_[static_cast<size_t>(i)]->load());
+        const int pt = m_paramTarget.load(std::memory_order_acquire);
+        ambient::Engine& dst = *m_engines[pt >= 0 ? pt : m_live.load(std::memory_order_relaxed)];
+        for (int i = 0; i < NumParams; ++i)
+            dst.setParam(static_cast<ParamIdE>(i), m_raw[static_cast<size_t>(i)]->load());
     }
 
     // The host's play head, when there is one (the standalone has none and the engine then runs
@@ -481,89 +481,89 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     }
     // Ableton Link (02.10.2026, LinkClock.h), the standalone only: with other apps in the session its tempo, beat and
     // start/stop reach the engine as a host's clock does -- Clock > Source: Host follows it. Alone in it, nothing changes.
-    if (wrapperType == wrapperType_Standalone && link_.enabled() && link_.peers() > 0) {
-        const frame::LinkClock::Now ln = link_.capture(static_cast<double>(buffer.getNumSamples()) / getSampleRate(), 4.0);
-        live().setHostClock(ln.bpm, ln.beat, ln.playing);
+    if (wrapperType == wrapperType_Standalone && m_link.enabled() && m_link.peers() > 0) {
+        const frame::LinkClock::Now ln = m_link.capture(static_cast<double>(buffer.getNumSamples()) / getSampleRate(), 4.0);
+        live().setHostClock(ln.m_bpm, ln.m_beat, ln.m_playing);
     }
 
     // Route: the engine walks it and moves the cursor; mirror the cursor (and the switches the
     // route flips) into the host parameters so the GUI and automation see it.
     {
         float rx, ry, rr;
-        const bool wasActive = raw_[static_cast<size_t>(ParamId::RouteActive)]->load() >= 0.5f;
+        const bool wasActive = m_raw[static_cast<size_t>(ParamIdE::ROUTE_ACTIVE)]->load() >= 0.5f;
         live().routeStep(buffer.getNumSamples() / getSampleRate(), rx, ry, rr);
         // Telling the host about a parameter is what a plugin does when it moves one itself, and
         // it is how the map cursor reaches the display and the automation lane. But a route walks
         // it continuously, so at a 64-sample buffer this was five parameter changes seven hundred
         // and fifty times a second -- for a cursor that crosses the plane over minutes. Thirty
         // times a second is finer than any lane records and finer than any eye sees.
-        routeMirrorLeft_ -= buffer.getNumSamples();
-        if (wasActive && routeMirrorLeft_ <= 0) {
-            routeMirrorLeft_ = static_cast<int>(getSampleRate() / 30.0);
-            auto mirror = [this](ParamId id) {
-                if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key)) {
+        m_routeMirrorLeft -= buffer.getNumSamples();
+        if (wasActive && m_routeMirrorLeft <= 0) {
+            m_routeMirrorLeft = static_cast<int>(getSampleRate() / 30.0);
+            auto mirror = [this](ParamIdE id) {
+                if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(id)].m_key)) {
                     const float v = live().getParam(id);
                     if (std::fabs(p->convertFrom0to1(p->getValue()) - v) > 1e-6f) p->setValueNotifyingHost(p->convertTo0to1(v));
                 }
             };
-            mirror(ParamId::MapX); mirror(ParamId::MapY); mirror(ParamId::MapRadius); mirror(ParamId::MapActive); mirror(ParamId::RouteActive);
+            mirror(ParamIdE::MAP_X); mirror(ParamIdE::MAP_Y); mirror(ParamIdE::MAP_RADIUS); mirror(ParamIdE::MAP_ACTIVE); mirror(ParamIdE::ROUTE_ACTIVE);
         }
     }
 
     // Set timeline: playback feeds parameters (through the host) and notes; recording logs what
     // changed since the last block plus the notes, at the block's time.
     const double blockSeconds = buffer.getNumSamples() / getSampleRate();
-    if (setPlaying_.load()) {
-        setPlayBusy_.store(true, std::memory_order_release);
-        const double t0 = setClock_, t1 = setClock_ + blockSeconds;
-        setPlay_.step(t0, t1, [this](const TimelineEvent& e) {
-            switch (e.type) {
-            case TimelineEvent::Type::Param:
-                if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(e.a)].key)) p->setValueNotifyingHost(p->convertTo0to1(e.v));
-                live().setParam(static_cast<ParamId>(e.a), e.v);
+    if (m_setPlaying.load()) {
+        m_setPlayBusy.store(true, std::memory_order_release);
+        const double t0 = m_setClock, t1 = m_setClock + blockSeconds;
+        m_setPlay.step(t0, t1, [this](const TimelineEvent& e) {
+            switch (e.m_type) {
+            case TimelineEvent::TypeE::PARAM:
+                if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(e.m_a)].m_key)) p->setValueNotifyingHost(p->convertTo0to1(e.m_v));
+                live().setParam(static_cast<ParamIdE>(e.m_a), e.m_v);
                 break;
-            case TimelineEvent::Type::NoteOn:  noteOn(e.a, e.v); break;
-            case TimelineEvent::Type::NoteOff: noteOff(e.a); break;
+            case TimelineEvent::TypeE::NOTE_ON:  noteOn(e.m_a, e.m_v); break;
+            case TimelineEvent::TypeE::NOTE_OFF: noteOff(e.m_a); break;
             }
         });
-        setClock_ = t1;
-        setTime_.store(setClock_);
-        if (setPlay_.finished() && setClock_ > setPlay_.length() + 1.0) setPlaying_.store(false);
-        setPlayBusy_.store(false, std::memory_order_release);
+        m_setClock = t1;
+        m_setTime.store(m_setClock);
+        if (m_setPlay.finished() && m_setClock > m_setPlay.length() + 1.0) m_setPlaying.store(false);
+        m_setPlayBusy.store(false, std::memory_order_release);
     }
-    if (setRecording_.load()) {
-        setRecBusy_.store(true, std::memory_order_release);
-        for (int i = 0; i < kNumParams; ++i) {
-            const float v = raw_[static_cast<size_t>(i)]->load();
-            if (v != setLast_[i]) { setRec_.add({ setClock_, TimelineEvent::Type::Param, i, v }); setLast_[i] = v; }
+    if (m_setRecording.load()) {
+        m_setRecBusy.store(true, std::memory_order_release);
+        for (int i = 0; i < NumParams; ++i) {
+            const float v = m_raw[static_cast<size_t>(i)]->load();
+            if (v != m_setLast[i]) { m_setRec.add({ m_setClock, TimelineEvent::TypeE::PARAM, i, v }); m_setLast[i] = v; }
         }
         for (const auto meta : midi) {
             const auto m = meta.getMessage();
-            if (m.isNoteOn()) setRec_.add({ setClock_ + meta.samplePosition / getSampleRate(), TimelineEvent::Type::NoteOn, m.getNoteNumber(), m.getFloatVelocity() });
-            else if (m.isNoteOff()) setRec_.add({ setClock_ + meta.samplePosition / getSampleRate(), TimelineEvent::Type::NoteOff, m.getNoteNumber(), 0.0f });
+            if (m.isNoteOn()) m_setRec.add({ m_setClock + meta.samplePosition / getSampleRate(), TimelineEvent::TypeE::NOTE_ON, m.getNoteNumber(), m.getFloatVelocity() });
+            else if (m.isNoteOff()) m_setRec.add({ m_setClock + meta.samplePosition / getSampleRate(), TimelineEvent::TypeE::NOTE_OFF, m.getNoteNumber(), 0.0f });
         }
-        setClock_ += blockSeconds;
-        setTime_.store(setClock_);
-        setRecBusy_.store(false, std::memory_order_release);
+        m_setClock += blockSeconds;
+        m_setTime.store(m_setClock);
+        m_setRecBusy.store(false, std::memory_order_release);
     }
 
-    const bool mpe = raw_[static_cast<size_t>(ParamId::MpeOn)]->load() >= 0.5f;
+    const bool mpe = m_raw[static_cast<size_t>(ParamIdE::MPE_ON)]->load() >= 0.5f;
     for (const auto meta : midi) {
         const auto m = meta.getMessage();
         const int ch = juce::jlimit(1, 16, m.getChannel()) - 1;
         // With MPE every finger has its own channel; without it, expression addresses every
         // sounding voice, which is what channel pressure and the wheel mean on a plain keyboard.
-        const int expressed = mpe ? mpeNote_[ch] : -1;
-        if (m.isNoteOn())            { if (mpe) mpeNote_[ch] = m.getNoteNumber(); noteOn(m.getNoteNumber(), m.getFloatVelocity()); }
-        else if (m.isNoteOff())      { if (mpe && mpeNote_[ch] == m.getNoteNumber()) mpeNote_[ch] = -1; noteOff(m.getNoteNumber()); }
+        const int expressed = mpe ? m_mpeNote[ch] : -1;
+        if (m.isNoteOn())            { if (mpe) m_mpeNote[ch] = m.getNoteNumber(); noteOn(m.getNoteNumber(), m.getFloatVelocity()); }
+        else if (m.isNoteOff())      { if (mpe && m_mpeNote[ch] == m.getNoteNumber()) m_mpeNote[ch] = -1; noteOff(m.getNoteNumber()); }
         else if (m.isPitchWheel())   live().setBend(expressed, (m.getPitchWheelValue() - 8192) / 8192.0f);
         else if (m.isChannelPressure()) live().setPressure(expressed, m.getChannelPressureValue() / 127.0f);
         else if (m.isAftertouch())   live().setPressure(m.getNoteNumber(), m.getAfterTouchValue() / 127.0f);
         else if (m.isAllNotesOff() || m.isAllSoundOff()) allNotesOff();
         else if (m.isMidiClock()) {   // 24 a quarter; the interval between two carries the tempo
-            const double t = clockSamples_ + meta.samplePosition;
-            live().midiClockTick(lastClockSample_ >= 0.0 ? (t - lastClockSample_) / getSampleRate() : 0.0);
-            lastClockSample_ = t;
+            const double t = m_clockSamples + meta.samplePosition;
+            live().midiClockTick(m_lastClockSample >= 0.0 ? (t - m_lastClockSample) / getSampleRate() : 0.0);
+            m_lastClockSample = t;
         }
         else if (m.isMidiStart())    live().midiClockStart();
         else if (m.isMidiContinue()) live().midiClockContinue();
@@ -577,64 +577,64 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
             // Slide (CC 74, the MPE third dimension) the same way: it used to be its own branch
             // ahead of this one, which meant CC 74 could never be learned onto a knob.
             if (cc == 74) live().setSlide(expressed, m.getControllerValue() / 127.0f);
-            const int learn = learnTarget_.exchange(-1);
+            const int learn = m_learnTarget.exchange(-1);
             if (learn >= 0) {
-                for (auto& c : ccMap_) if (c.load() == learn) c.store(-1);   // one controller per parameter
-                ccMap_[static_cast<size_t>(cc)].store(learn);
+                for (auto& c : m_ccMap) if (c.load() == learn) c.store(-1);   // one controller per parameter
+                m_ccMap[static_cast<size_t>(cc)].store(learn);
             }
-            const int target = ccMap_[static_cast<size_t>(cc)].load();
+            const int target = m_ccMap[static_cast<size_t>(cc)].load();
             if (target >= 0)
-                if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(target)].key))
+                if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(target)].m_key))
                     p->setValueNotifyingHost(static_cast<float>(m.getControllerValue()) / 127.0f);
         }
     }
     midi.clear();
-    clockSamples_ += buffer.getNumSamples();
+    m_clockSamples += buffer.getNumSamples();
 
     const int n = buffer.getNumSamples();
-    if (scratch_.getNumSamples() < n) scratch_.setSize(2, n, false, false, true);
-    if (fadeBuf_.getNumSamples() < n) fadeBuf_.setSize(2, n, false, false, true);
+    if (m_scratch.getNumSamples() < n) m_scratch.setSize(2, n, false, false, true);
+    if (m_fadeBuf.getNumSamples() < n) m_fadeBuf.setSize(2, n, false, false, true);
     {   // The planes' outputs (02.10.2026): the instrument's engine writes them while the host has one of their buses on.
         bool want = false;
         for (int b = 1; b < getBusCount(false) && !want; ++b)
             if (const auto* bus = getBus(false, b)) want = bus->isEnabled();
-        want = want && n <= planeBuf_.getNumSamples();
-        for (auto& e : engines_) if (e != nullptr) e->setStemBuffers(nullptr);
-        if (want) live().setStemBuffers(planePtr_.data());
-        planesOn_ = want;
+        want = want && n <= m_planeBuf.getNumSamples();
+        for (auto& e : m_engines) if (e != nullptr) e->setStemBuffers(nullptr);
+        if (want) live().setStemBuffers(m_planePtr.data());
+        m_planesOn = want;
     }
-    // Always into scratch_, so the two-engine mix and the mono fold-down read the same place.
+    // Always into m_scratch, so the two-engine mix and the mono fold-down read the same place.
     // The family jam (02.10.2026, Jam.h): a follower's conductor holds the leader's root and its filters take the
     // leader's energy; a leader says its root and its tuning when they change (its sections are scenes, not breaks).
     {
         ambient::Engine& e = live();
-        if (jam_.role() == frame::Settings::JamRole::Follow) {
-            const frame::JamState js = jam_.stateAt(-1.0);
-            e.setJam(js.root, js.root >= 0 ? js.energy : -1.0f);
+        if (m_jam.role() == frame::Settings::JamRoleE::FOLLOW) {
+            const frame::JamState js = m_jam.stateAt(-1.0);
+            e.setJam(js.m_root, js.m_root >= 0 ? js.m_energy : -1.0f);
         } else {
             e.setJam(-1, -1.0f);
-            if (jam_.role() == frame::Settings::JamRole::Lead) {
+            if (m_jam.role() == frame::Settings::JamRoleE::LEAD) {
                 const int pc = ((e.brainRoot() % 12) + 12) % 12;
-                const int tuning = juce::jlimit(0, ambient::kNumScaleChoices - 1, static_cast<int>(e.getParam(ParamId::Scale)));
-                if (pc * 16 + tuning != jamLeadKey_) {
-                    jamLeadKey_ = pc * 16 + tuning;
-                    jam_.postKey(pc, ambient::kScaleNames[tuning]);
+                const int tuning = juce::jlimit(0, ambient::NumScaleChoices - 1, static_cast<int>(e.getParam(ParamIdE::SCALE)));
+                if (pc * 16 + tuning != m_jamLeadKey) {
+                    m_jamLeadKey = pc * 16 + tuning;
+                    m_jam.postKey(pc, ambient::ScaleNames[tuning]);
                 }
             } else {
-                jamLeadKey_ = -1;
+                m_jamLeadKey = -1;
             }
         }
     }
-    live().process(scratch_.getWritePointer(0), scratch_.getWritePointer(1), n);
-    if (fading_ >= 0) {
+    live().process(m_scratch.getWritePointer(0), m_scratch.getWritePointer(1), n);
+    if (m_fading >= 0) {
         // A preset transition: the preset that is leaving is still playing, on its own engine,
         // with every parameter it had -- nothing in it moves. It goes out under a cosine and the
         // new one comes in under a sine, so the sum keeps its power the whole way and there is
         // no dip in the middle and no moment where anything switches. A parameter morph between
         // two unrelated presets cannot do this: its ninety-three switches all flipped at half way
         // and every source restarted, and that is what it sounded like -- a cut in the middle.
-        const float secs = std::max(morphSelectSeconds_.load(std::memory_order_relaxed), 0.25f);
-        const float t0 = fadePos_;
+        const float secs = std::max(m_morphSelectSeconds.load(std::memory_order_relaxed), 0.25f);
+        const float t0 = m_fadePos;
         // The ramp does not start before there is something to ramp in. Measured on the incoming
         // engine's own output, before any gain: -60 dBFS is audible, and a brain that has not
         // played its first note yet is not. The head start is capped, so a preset that is silent
@@ -643,13 +643,13 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         if (!ramping) {
             float e = 0.0f;
             for (int ch = 0; ch < 2; ++ch) {
-                const float* s = scratch_.getReadPointer(ch);
+                const float* s = m_scratch.getReadPointer(ch);
                 for (int i = 0; i < n; ++i) e += s[i] * s[i];
             }
-            fadeHead_ += static_cast<float>(n / sampleRate_);
-            ramping = std::sqrt(e / static_cast<float>(2 * n)) > 1e-3f || fadeHead_ >= kFadeHeadStart;
+            m_fadeHead += static_cast<float>(n / m_sampleRate);
+            ramping = std::sqrt(e / static_cast<float>(2 * n)) > 1e-3f || m_fadeHead >= FadeHeadStart;
         }
-        const float t1 = ramping ? std::min(1.0f, t0 + static_cast<float>(n) / static_cast<float>(sampleRate_ * secs)) : 0.0f;
+        const float t1 = ramping ? std::min(1.0f, t0 + static_cast<float>(n) / static_cast<float>(m_sampleRate * secs)) : 0.0f;
         // The volume reaches the leaving preset too. Everything else of it stands still on
         // purpose -- it is a sound on its way out -- but the volume is the listener's, not the
         // preset's, and a journey fades for up to a minute and a half after a head start of up to
@@ -658,64 +658,64 @@ void NoctuaryProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         // As a difference, not a value: the arriving preset's own level would make the leaving one
         // jump the moment the fade began.
         {
-            const float moved = raw_[static_cast<size_t>(ParamId::MasterGain)]->load() - fadeGainBase_;
-            engines_[fading_]->setParam(ParamId::MasterGain, juce::jlimit(-40.0f, 12.0f, fadeGainFrom_ + moved));
+            const float moved = m_raw[static_cast<size_t>(ParamIdE::MASTER_GAIN)]->load() - m_fadeGainBase;
+            m_engines[m_fading]->setParam(ParamIdE::MASTER_GAIN, juce::jlimit(-40.0f, 12.0f, m_fadeGainFrom + moved));
         }
-        engines_[fading_]->process(fadeBuf_.getWritePointer(0), fadeBuf_.getWritePointer(1), n);
+        m_engines[m_fading]->process(m_fadeBuf.getWritePointer(0), m_fadeBuf.getWritePointer(1), n);
         const float inA = std::sin(juce::MathConstants<float>::halfPi * t0), inB = std::sin(juce::MathConstants<float>::halfPi * t1);
         const float outA = std::cos(juce::MathConstants<float>::halfPi * t0), outB = std::cos(juce::MathConstants<float>::halfPi * t1);
         for (int ch = 0; ch < 2; ++ch) {
-            scratch_.applyGainRamp(ch, 0, n, inA, inB);
-            scratch_.addFromWithRamp(ch, 0, fadeBuf_.getReadPointer(ch), n, outA, outB);
+            m_scratch.applyGainRamp(ch, 0, n, inA, inB);
+            m_scratch.addFromWithRamp(ch, 0, m_fadeBuf.getReadPointer(ch), n, outA, outB);
         }
-        fadePos_ = t1;
+        m_fadePos = t1;
         if (t1 >= 1.0f) {   // arrived: the old one is silent by now and goes to sleep
-            engines_[fading_]->allNotesOff();
-            engines_[fading_]->reset();
-            fading_ = -1;
+            m_engines[m_fading]->allNotesOff();
+            m_engines[m_fading]->reset();
+            m_fading = -1;
         }
     }
     // MIDI out (02.10.2026): the conductors' notes of this block -- channel 1 the first, 2 the second, 3 the near events.
-    for (int i = 0; i < noteTap_.count; ++i) {
-        const ambient::NoteTap::Note& nt = noteTap_.notes[i];
-        const int at = juce::jlimit(0, juce::jmax(0, n - 1), nt.offset);
-        if (nt.velocity == 0) midi.addEvent(juce::MidiMessage::noteOff(nt.channel, nt.pitch), at);
-        else midi.addEvent(juce::MidiMessage::noteOn(nt.channel, nt.pitch, static_cast<juce::uint8>(nt.velocity)), at);
+    for (int i = 0; i < m_noteTap.m_count; ++i) {
+        const ambient::NoteTap::Note& nt = m_noteTap.m_notes[i];
+        const int at = juce::jlimit(0, juce::jmax(0, n - 1), nt.m_offset);
+        if (nt.m_velocity == 0) midi.addEvent(juce::MidiMessage::noteOff(nt.m_channel, nt.m_pitch), at);
+        else midi.addEvent(juce::MidiMessage::noteOn(nt.m_channel, nt.m_pitch, static_cast<juce::uint8>(nt.m_velocity)), at);
     }
     // The main bus only: with the planes' outputs on, the channels after it are theirs (02.10.2026).
     const auto* mainBus = getBus(false, 0);
     const int mainChannels = mainBus != nullptr ? mainBus->getNumberOfChannels() : buffer.getNumChannels();
     if (mainChannels >= 2) {
-        buffer.copyFrom(0, 0, scratch_, 0, 0, n);
-        buffer.copyFrom(1, 0, scratch_, 1, 0, n);
+        buffer.copyFrom(0, 0, m_scratch, 0, 0, n);
+        buffer.copyFrom(1, 0, m_scratch, 1, 0, n);
     } else if (mainChannels == 1) {
-        buffer.copyFrom(0, 0, scratch_, 0, 0, n);
-        buffer.addFrom(0, 0, scratch_, 1, 0, n);
+        buffer.copyFrom(0, 0, m_scratch, 0, 0, n);
+        buffer.addFrom(0, 0, m_scratch, 1, 0, n);
         buffer.applyGain(0, 0, n, 0.5f);
     }
     for (int ch = mainChannels; ch < buffer.getNumChannels(); ++ch) buffer.clear(ch, 0, n);
-    if (planesOn_)
-        for (int b = 1; b < getBusCount(false) && b - 1 < ambient::Engine::kNumStems; ++b) {
+    if (m_planesOn)
+        for (int b = 1; b < getBusCount(false) && b - 1 < ambient::Engine::NumStems; ++b) {
             const auto* bus = getBus(false, b);
             if (bus == nullptr || !bus->isEnabled()) continue;
             auto out = getBusBuffer(buffer, false, b);
             if (out.getNumChannels() < 2) continue;
-            out.copyFrom(0, 0, planeBuf_, 2 * (b - 1), 0, n);
-            out.copyFrom(1, 0, planeBuf_, 2 * (b - 1) + 1, 0, n);
+            out.copyFrom(0, 0, m_planeBuf, 2 * (b - 1), 0, n);
+            out.copyFrom(1, 0, m_planeBuf, 2 * (b - 1) + 1, 0, n);
         }
 
-    if (recording_.load(std::memory_order_relaxed)) {
-        const juce::ScopedTryLock sl(recordLock_);
-        if (sl.isLocked() && recordWriter_ != nullptr) {
+    if (m_recording.load(std::memory_order_relaxed)) {
+        const juce::ScopedTryLock sl(m_recordLock);
+        if (sl.isLocked() && m_recordWriter != nullptr) {
             const float* chans[2] = { buffer.getReadPointer(0), buffer.getNumChannels() > 1 ? buffer.getReadPointer(1) : buffer.getReadPointer(0) };
-            recordWriter_->write(chans, n);
-            recordedSamples_.fetch_add(n, std::memory_order_relaxed);
+            m_recordWriter->write(chans, n);
+            m_recordedSamples.fetch_add(n, std::memory_order_relaxed);
         }
     }
     // Muted: everything above has run -- the engine, its meters and taps, the recorder -- and
     // only what reaches the device is silenced. For the manual export, which plays a chord for
     // its pictures, and for any start meant as a test rather than as music (AMBIENT_MUTE=1).
-    if (muteOutput_) buffer.clear();
+    if (m_muteOutput) buffer.clear();
 }
 
 bool NoctuaryProcessor::startRecording(const juce::File& file)
@@ -728,31 +728,31 @@ bool NoctuaryProcessor::startRecording(const juce::File& file)
     std::unique_ptr<juce::AudioFormatWriter> writer(wav.createWriterFor(stream.get(), getSampleRate(), 2, 32, {}, 0));
     if (writer == nullptr) return false;
     stream.release();   // the writer owns the stream now
-    recordThread_.startThread();
+    m_recordThread.startThread();
     {
-        const juce::ScopedLock sl(recordLock_);
-        recordWriter_ = std::make_unique<juce::AudioFormatWriter::ThreadedWriter>(writer.release(), recordThread_, 1 << 18);
-        recordedSamples_.store(0);
+        const juce::ScopedLock sl(m_recordLock);
+        m_recordWriter = std::make_unique<juce::AudioFormatWriter::ThreadedWriter>(writer.release(), m_recordThread, 1 << 18);
+        m_recordedSamples.store(0);
     }
-    recording_.store(true);
+    m_recording.store(true);
     return true;
 }
 
 void NoctuaryProcessor::stopRecording()
 {
-    recording_.store(false);
+    m_recording.store(false);
     {
-        const juce::ScopedLock sl(recordLock_);
-        recordWriter_.reset();
+        const juce::ScopedLock sl(m_recordLock);
+        m_recordWriter.reset();
     }
-    recordThread_.stopThread(2000);
+    m_recordThread.stopThread(2000);
 }
 
 int NoctuaryProcessor::getNumPrograms() { return numPresets(); }
 
 const juce::String NoctuaryProcessor::getProgramName(int index)
 {
-    return (index >= 0 && index < numPresets()) ? juce::String(preset(index).name) : juce::String();
+    return (index >= 0 && index < numPresets()) ? juce::String(preset(index).m_name) : juce::String();
 }
 
 void NoctuaryProcessor::loadPresetFiles(int index)
@@ -780,11 +780,11 @@ void NoctuaryProcessor::loadPresetFiles(int index)
             if (f != juce::File()) loadTextureFile(f);
         } else {
             const juce::StringArray parts = juce::StringArray::fromTokens(tex, ";", "");
-            for (int k = 0; k < ambient::kSlots; ++k) {
+            for (int k = 0; k < ambient::Slots; ++k) {
                 const juce::String p = k < parts.size() ? parts[k].trim() : juce::String();
                 const juce::File f = p.isNotEmpty() ? onDisk(p) : juce::File();
                 if (f != juce::File()) loadTextureFile(k, f);
-                else { target().clearTexture(k); textureFile_[k] = juce::File(); }
+                else { target().clearTexture(k); m_textureFile[k] = juce::File(); }
             }
         }
     }
@@ -802,26 +802,26 @@ void NoctuaryProcessor::loadPresetFiles(int index)
     }
 }
 
-void NoctuaryProcessor::applyScoped(const Preset& pr, PresetScope scope)
+void NoctuaryProcessor::applyScoped(const Preset& pr, PresetScopeE scope)
 {
-    applyPreset(pr, [this](ParamId id, float v) {
-        if (auto* p = apvts.getParameter(paramTable()[static_cast<size_t>(id)].key))
+    applyPreset(pr, [this](ParamIdE id, float v) {
+        if (auto* p = m_apvts.getParameter(paramTable()[static_cast<size_t>(id)].m_key))
             p->setValueNotifyingHost(p->convertTo0to1(v));
     }, scope);
     // The matrix rows and the envelope shapes are data, not parameters, so they do not travel
     // through the parameter tree: the engine takes them straight from the preset.
-    if (scope != PresetScope::Cosmos && scope != PresetScope::Near) target().applyPresetModulation(pr);
+    if (scope != PresetScopeE::COSMOS && scope != PresetScopeE::NEAR_LAYER) target().applyPresetModulation(pr);
 }
 
 void NoctuaryProcessor::setCurrentProgram(int index)
 {
     if (index < 0 || index >= numPresets()) return;
-    currentProgram_ = index;
-    soundIndex_ = index;
-    soundName_ = preset(index).name;
-    zIndex_ = -1; strikeIndex_ = -1;
-    cosmosIndex_ = -1;   // the program brought its own Cosmos layer
-    applyScoped(preset(index), PresetScope::Full);
+    m_currentProgram = index;
+    m_soundIndex = index;
+    m_soundName = preset(index).m_name;
+    m_zIndex = -1; m_strikeIndex = -1;
+    m_cosmosIndex = -1;   // the program brought its own Cosmos layer
+    applyScoped(preset(index), PresetScopeE::FULL);
     // The foreground the pack's artist table gives this preset, on this path as well. Until
     // 13.09.2026 the call stood only at the end of applySoundPreset -- the box's and the
     // browser's way in -- while this is the way a host's program change comes, and the way every
@@ -840,28 +840,28 @@ void NoctuaryProcessor::setCurrentProgram(int index)
     // once the sweep has stopped. Nothing is lost by it: a preset that lived a millisecond was
     // never heard, and only the one still standing at the end has files worth reading.
     const double now = juce::Time::getMillisecondCounterHiRes();
-    const bool burst = now - lastProgramAt_ < 300.0;
-    lastProgramAt_ = now;
-    if (burst) { pendingFiles_.store(index, std::memory_order_release); return; }
-    pendingFiles_.store(-1, std::memory_order_release);
+    const bool burst = now - m_lastProgramAt < 300.0;
+    m_lastProgramAt = now;
+    if (burst) { m_pendingFiles.store(index, std::memory_order_release); return; }
+    m_pendingFiles.store(-1, std::memory_order_release);
     loadPresetFiles(index);
 }
 
 void NoctuaryProcessor::applySoundPreset(int index)
 {
     if (index < 0 || index >= numPresets()) return;
-    soundIndex_ = index;
+    m_soundIndex = index;
     // ...and the program number with it. Only setCurrentProgram used to move this, which is the
     // DAW's way in -- so picking a preset in the box or in the browser left it at 0, and every
     // view that asks "what is playing" (the map's ring, the host's program display) answered
     // "Init" however long you had been playing something else.
-    currentProgram_ = index;
-    soundName_ = preset(index).name;
+    m_currentProgram = index;
+    m_soundName = preset(index).m_name;
     // A sound preset brings its own Z-plane and its own Strike with it, so whatever layer preset
     // was picked before is no longer what is loaded. Cleared rather than left standing: a box
     // that names a filter the sound preset has just overwritten is worse than an empty one.
-    zIndex_ = -1; strikeIndex_ = -1;
-    applyScoped(preset(index), PresetScope::Sound);
+    m_zIndex = -1; m_strikeIndex = -1;
+    applyScoped(preset(index), PresetScopeE::SOUND);
     loadPresetFiles(index);
     applyLevelMatch(index);
     applyNearAuto(index);
@@ -875,11 +875,11 @@ void NoctuaryProcessor::applySoundPreset(int index)
 void NoctuaryProcessor::applyNearAuto(int soundIndex)
 {
     if (soundIndex < 0 || soundIndex >= numPresets()) return;
-    if (live().getParam(ParamId::ForeAuto) < 0.5f) return;
+    if (live().getParam(ParamIdE::FORE_AUTO) < 0.5f) return;
     const int pack = presetPack(soundIndex);
     if (pack < 0) return;
     float factor = 1.0f;
-    const int pick = nearAutoPick(presetPackName(pack), preset(soundIndex).name, factor);
+    const int pick = nearAutoPick(presetPackName(pack), preset(soundIndex).m_name, factor);
     if (pick < 0) return;
     applyNearPreset(pick);
     if (pick > 0) {
@@ -888,8 +888,8 @@ void NoctuaryProcessor::applyNearAuto(int soundIndex)
         // Every that was there BEFORE -- the default on a fresh instrument, and after that the
         // result of the last scaling, compounding with every preset change until the ceiling
         // (13.09.2026: Whistler's 200 s at a factor of 1.18 came out as 142 instead of 236).
-        const float own = raw_[static_cast<size_t>(ParamId::ForeRate)]->load();
-        setParam(ParamId::ForeRate, juce::jlimit(10.0f, 900.0f, own * factor));
+        const float own = m_raw[static_cast<size_t>(ParamIdE::FORE_RATE)]->load();
+        setParam(ParamIdE::FORE_RATE, juce::jlimit(10.0f, 900.0f, own * factor));
     }
 }
 
@@ -901,13 +901,13 @@ void NoctuaryProcessor::applyNearAuto(int soundIndex)
  */
 void NoctuaryProcessor::applyLevelMatch(int index)
 {
-    if (!levelMatch_ || index < 0 || index >= numPresetMeta()) return;
-    const float loud = presetMeta(index).loudDb;
+    if (!m_levelMatch || index < 0 || index >= numPresetMeta()) return;
+    const float loud = presetMeta(index).m_loudDb;
     if (loud >= -0.5f || loud < -80.0f) return;         // 0 means "never measured"
-    constexpr float kTarget = -20.5f;                   // the measured median of the built-in presets
-    if (auto* p = apvts.getParameter(paramDesc(ParamId::MasterGain).key)) {
-        const float now = live().getParam(ParamId::MasterGain);
-        const float want = juce::jlimit(-40.0f, 12.0f, now + juce::jlimit(-12.0f, 12.0f, kTarget - loud));
+    constexpr float Target = -20.5f;                   // the measured median of the built-in presets
+    if (auto* p = m_apvts.getParameter(paramDesc(ParamIdE::MASTER_GAIN).m_key)) {
+        const float now = live().getParam(ParamIdE::MASTER_GAIN);
+        const float want = juce::jlimit(-40.0f, 12.0f, now + juce::jlimit(-12.0f, 12.0f, Target - loud));
         p->setValueNotifyingHost(p->convertTo0to1(want));
     }
 }
@@ -915,37 +915,37 @@ void NoctuaryProcessor::applyLevelMatch(int index)
 void NoctuaryProcessor::applyCosmosPreset(int index)
 {
     if (index < 0 || index >= numCosmosPresets()) return;
-    cosmosIndex_ = index;
-    cosmosName_ = cosmosPreset(index).name;
-    applyScoped(cosmosPreset(index), PresetScope::Cosmos);
+    m_cosmosIndex = index;
+    m_cosmosName = cosmosPreset(index).m_name;
+    applyScoped(cosmosPreset(index), PresetScopeE::COSMOS);
 }
 
 void NoctuaryProcessor::applyZPreset(int index)
 {
     if (index < 0 || index >= numZPresets()) return;
-    zIndex_ = index;
-    applyScoped(zPreset(index), PresetScope::ZPlane);
+    m_zIndex = index;
+    applyScoped(zPreset(index), PresetScopeE::Z_PLANE);
 }
 
 void NoctuaryProcessor::applyStrikePreset(int index)
 {
     if (index < 0 || index >= numStrikePresets()) return;
-    strikeIndex_ = index;
-    applyScoped(strikePreset(index), PresetScope::Strike);
+    m_strikeIndex = index;
+    applyScoped(strikePreset(index), PresetScopeE::STRIKE);
 }
 
 void NoctuaryProcessor::applyNearPreset(int index)
 {
     if (index < 0 || index >= numNearPresets()) return;
-    nearIndex_ = index;
+    m_nearIndex = index;
     const Preset& pr = nearPreset(index);
-    nearName_ = pr.name;
-    applyScoped(pr, PresetScope::Near);
+    m_nearName = pr.m_name;
+    applyScoped(pr, PresetScopeE::NEAR_LAYER);
     // The preset's clip, named relative to the library's root, or none: a preset that names no
     // clip takes the one that was loaded away, so the flute preset after the radio preset does
     // not find a voice in its slot.
-    if (pr.texture != nullptr && *pr.texture != 0) {
-        const std::string got = ambient::resolveLibraryFile(pr.texture);
+    if (pr.m_texture != nullptr && *pr.m_texture != 0) {
+        const std::string got = ambient::resolveLibraryFile(pr.m_texture);
         const juce::File f(juce::String(juce::CharPointer_UTF8(got.c_str())));
         // A folder is a pool of recordings, a file one clip; nothing found leaves no clip.
         if (got.empty() || !(f.isDirectory() ? loadNearClipFolder(f) : loadNearClipFile(f))) clearNearClip();
@@ -959,14 +959,14 @@ bool NoctuaryProcessor::loadNearClipFile(const juce::File& file)
     const double base = baseHzFromName(file.getFileName().toRawUTF8());
     target().setNearTexture(l.data(), r.empty() ? nullptr : r.data(), static_cast<int>(l.size()), rate,
                            base > 0.0 ? base : 261.6256, ambient::loopFromName(file.getFileName().toRawUTF8()));
-    nearClipFile_ = file;
-    nearClipCount_ = 1;
+    m_nearClipFile = file;
+    m_nearClipCount = 1;
     return true;
 }
 
 bool NoctuaryProcessor::loadNearClipFolder(const juce::File& dir)
 {
-    // A folder of recordings: up to kNearPoolMax of them, sorted by name so the same folder gives
+    // A folder of recordings: up to NearPoolMax of them, sorted by name so the same folder gives
     // the same pool, each kept to twenty seconds -- these are phrases, not beds. Which of them an
     // event plays is the engine's draw.
     juce::Array<juce::File> all = dir.findChildFiles(juce::File::findFiles, false, "*.flac;*.wav;*.aif;*.aiff;*.ogg;*.mp3");
@@ -974,8 +974,8 @@ bool NoctuaryProcessor::loadNearClipFolder(const juce::File& dir)
     // More than the pool holds: every k-th of them rather than the first forty-eight, so a folder
     // of twelve episodes' phrases is heard from all twelve and not from the first five.
     juce::Array<juce::File> files;
-    if (all.size() <= kNearPoolMax) files = all;
-    else for (int i = 0; i < kNearPoolMax; ++i) files.add(all[static_cast<int>(std::lround(i * (all.size() - 1.0) / (kNearPoolMax - 1.0)))]);
+    if (all.size() <= NearPoolMax) files = all;
+    else for (int i = 0; i < NearPoolMax; ++i) files.add(all[static_cast<int>(std::lround(i * (all.size() - 1.0) / (NearPoolMax - 1.0)))]);
     std::vector<ambient::Texture> pool;
     for (const juce::File& f : files) {
         std::vector<float> l, r; double rate = 0.0;
@@ -988,16 +988,16 @@ bool NoctuaryProcessor::loadNearClipFolder(const juce::File& dir)
     if (pool.empty()) return false;
     const int n = static_cast<int>(pool.size());
     target().setNearTextures(std::move(pool));
-    nearClipFile_ = dir;
-    nearClipCount_ = n;
+    m_nearClipFile = dir;
+    m_nearClipCount = n;
     return true;
 }
 
 void NoctuaryProcessor::clearNearClip()
 {
     target().clearNearTexture();
-    nearClipFile_ = juce::File();
-    nearClipCount_ = 0;
+    m_nearClipFile = juce::File();
+    m_nearClipCount = 0;
 }
 
 juce::AudioProcessorEditor* NoctuaryProcessor::createEditor()
@@ -1010,10 +1010,10 @@ bool NoctuaryProcessor::loadScalaText(const juce::String& text, const juce::Stri
     FixedScale s;
     if (!parseScala(text.toRawUTF8(), s)) return false;
     live().setUserScale(s);
-    scalaText_ = text;
-    userScaleName_ = displayName.isNotEmpty() ? displayName : juce::String(s.name);
-    if (auto* p = apvts.getParameter("scale")) {
-        const float norm = p->convertTo0to1(static_cast<float>(kUserScaleIndex));
+    m_scalaText = text;
+    m_userScaleName = displayName.isNotEmpty() ? displayName : juce::String(s.m_name);
+    if (auto* p = m_apvts.getParameter("scale")) {
+        const float norm = p->convertTo0to1(static_cast<float>(UserScaleIndex));
         p->beginChangeGesture();
         p->setValueNotifyingHost(norm);
         p->endChangeGesture();
@@ -1079,13 +1079,13 @@ bool NoctuaryProcessor::readStereo(const juce::File& file, std::vector<float>& l
 
 bool NoctuaryProcessor::loadTextureFile(int slot, const juce::File& file)
 {
-    if (slot < 0 || slot >= ambient::kSlots) return false;
+    if (slot < 0 || slot >= ambient::Slots) return false;
     std::vector<float> l, r; double rate = 0.0;
     if (!readStereo(file, l, r, rate)) return false;
     const double base = baseHzFromName(file.getFileName().toRawUTF8());   // "_A3" suffix from TextureGen
     target().setTexture(slot, l.data(), r.empty() ? nullptr : r.data(), static_cast<int>(l.size()), rate,
                        base > 0.0 ? base : 261.6256, ambient::loopFromName(file.getFileName().toRawUTF8()));
-    textureFile_[slot] = file;
+    m_textureFile[slot] = file;
     return true;
 }
 
@@ -1096,7 +1096,7 @@ bool NoctuaryProcessor::loadTextureFile(const juce::File& file)
     const double base = baseHzFromName(file.getFileName().toRawUTF8());
     target().setTexture(l.data(), r.empty() ? nullptr : r.data(), static_cast<int>(l.size()), rate,
                        base > 0.0 ? base : 261.6256, ambient::loopFromName(file.getFileName().toRawUTF8()));
-    for (auto& f : textureFile_) f = file;
+    for (auto& f : m_textureFile) f = file;
     return true;
 }
 
@@ -1116,15 +1116,15 @@ bool NoctuaryProcessor::loadImpulseFile(const juce::File& file, bool second)
     if (!reader->read(&buf, 0, n, 0, true, true)) return false;
     const float* L = buf.getReadPointer(0);
     const float* R = buf.getNumChannels() > 1 ? buf.getReadPointer(1) : nullptr;
-    if (second) { target().setImpulseB(L, R, n, reader->sampleRate); impulseBFile_ = file; }
-    else        { target().setImpulse(L, R, n, reader->sampleRate);  impulseFile_ = file; }
+    if (second) { target().setImpulseB(L, R, n, reader->sampleRate); m_impulseBFile = file; }
+    else        { target().setImpulse(L, R, n, reader->sampleRate);  m_impulseFile = file; }
     return true;
 }
 
 void NoctuaryProcessor::clearImpulseB()
 {
     target().clearImpulseB();
-    impulseBFile_ = juce::File();
+    m_impulseBFile = juce::File();
 }
 
 bool NoctuaryProcessor::loadWavetableFile(const juce::File& file)
@@ -1140,28 +1140,28 @@ bool NoctuaryProcessor::loadWavetableFile(const juce::File& file)
         cycle = ambient::detectCycleLength(mono.data(), static_cast<int>(mono.size()));
     }
     if (!target().loadUserWavetable(mono.data(), static_cast<int>(mono.size()), cycle)) return false;
-    wavetableFile_ = file;
+    m_wavetableFile = file;
     return true;
 }
 
 void NoctuaryProcessor::startSetRecording()
 {
-    setPlaying_.store(false);
-    setRec_.clear();
+    m_setPlaying.store(false);
+    m_setRec.clear();
     // All the room it will ever need, taken here on the message thread: from now on the audio
     // thread only writes into it, and it must not allocate while doing so. A quarter of a million
     // events is hours of playing -- past that the recording stops growing instead of stopping the
     // audio.
-    setRec_.reserve(1u << 18);
+    m_setRec.reserve(1u << 18);
     // The starting state goes in at t = 0 so playback begins from the same sound.
-    for (int i = 0; i < kNumParams; ++i) {
-        const float v = raw_[static_cast<size_t>(i)]->load();
-        setLast_[i] = v;
-        setRec_.add({ 0.0, TimelineEvent::Type::Param, i, v });
+    for (int i = 0; i < NumParams; ++i) {
+        const float v = m_raw[static_cast<size_t>(i)]->load();
+        m_setLast[i] = v;
+        m_setRec.add({ 0.0, TimelineEvent::TypeE::PARAM, i, v });
     }
-    setClock_ = 0.0;
-    setTime_.store(0.0);
-    setRecording_.store(true);
+    m_setClock = 0.0;
+    m_setTime.store(0.0);
+    m_setRecording.store(true);
 }
 
 bool NoctuaryProcessor::stopSetRecording(const juce::File& saveTo)
@@ -1169,23 +1169,23 @@ bool NoctuaryProcessor::stopSetRecording(const juce::File& saveTo)
     // Stop, then wait for the audio thread to finish the block it may be writing into the
     // timeline. Without this the message thread walked the event list while the audio thread was
     // still appending to it -- and if the vector had grown at that moment, it walked freed memory.
-    setRecording_.store(false, std::memory_order_release);
-    for (int spin = 0; spin < 2000000 && setRecBusy_.load(std::memory_order_acquire); ++spin) { }
+    m_setRecording.store(false, std::memory_order_release);
+    for (int spin = 0; spin < 2000000 && m_setRecBusy.load(std::memory_order_acquire); ++spin) { }
     if (saveTo == juce::File()) return true;
-    return setRec_.save(saveTo.getFullPathName().toRawUTF8());
+    return m_setRec.save(saveTo.getFullPathName().toRawUTF8());
 }
 
 bool NoctuaryProcessor::playSetFile(const juce::File& file)
 {
-    setPlaying_.store(false);
-    setRecording_.store(false);
+    m_setPlaying.store(false);
+    m_setRecording.store(false);
     // The audio thread may be inside step() over the very events load() is about to replace.
-    for (int spin = 0; spin < 2000000 && setPlayBusy_.load(std::memory_order_acquire); ++spin) { }
-    if (!setPlay_.load(file.getFullPathName().toRawUTF8())) return false;
-    setPlay_.seek(0.0);
-    setClock_ = 0.0;
-    setTime_.store(0.0);
-    setPlaying_.store(true);
+    for (int spin = 0; spin < 2000000 && m_setPlayBusy.load(std::memory_order_acquire); ++spin) { }
+    if (!m_setPlay.load(file.getFullPathName().toRawUTF8())) return false;
+    m_setPlay.seek(0.0);
+    m_setClock = 0.0;
+    m_setTime.store(0.0);
+    m_setPlaying.store(true);
     return true;
 }
 
@@ -1201,7 +1201,7 @@ bool NoctuaryProcessor::savePresetFile(const juce::File& file)
 bool NoctuaryProcessor::loadPresetFile(const juce::File& file)
 {
     auto xml = juce::XmlDocument::parse(file);
-    if (xml == nullptr || !xml->hasTagName(apvts.state.getType())) return false;
+    if (xml == nullptr || !xml->hasTagName(m_apvts.state.getType())) return false;
     juce::MemoryBlock block;
     copyXmlToBinary(*xml, block);
     setStateInformation(block.getData(), static_cast<int>(block.getSize()));
@@ -1215,10 +1215,10 @@ bool NoctuaryProcessor::loadPresetFile(const juce::File& file)
 void NoctuaryProcessor::selectPreset(int index, bool viaMorph)
 {
     if (index < 0 || index >= numPresets()) return;
-    if (!viaMorph || !morphOnSelect_) { endFade_.store(true, std::memory_order_release); setCurrentProgram(index); return; }
+    if (!viaMorph || !m_morphOnSelect) { m_endFade.store(true, std::memory_order_release); setCurrentProgram(index); return; }
     // A transition, not a morph. The preset that is playing keeps playing, untouched, on the
     // engine it is on; the new one is built on the other engine and only then made the
-    // instrument, and the two are crossfaded in processBlock over morphSelectSeconds_. Nothing is
+    // instrument, and the two are crossfaded in processBlock over m_morphSelectSeconds. Nothing is
     // interpolated, so nothing has to be interpolable: the two presets may share nothing at all
     // and still meet in the air.
     //
@@ -1227,8 +1227,8 @@ void NoctuaryProcessor::selectPreset(int index, bool viaMorph)
     // It is served a few milliseconds later, by the pump. What must never happen is what this
     // used to do: reset an engine, hand it notes and switch it live from the message thread while
     // the audio thread was rendering it.
-    pendingPreset_ = index;
-    if (fading_.load(std::memory_order_acquire) >= 0) endFade_.store(true, std::memory_order_release);
+    m_pendingPreset = index;
+    if (m_fading.load(std::memory_order_acquire) >= 0) m_endFade.store(true, std::memory_order_release);
     servePendingPreset();
 }
 
@@ -1237,72 +1237,72 @@ void NoctuaryProcessor::selectPreset(int index, bool viaMorph)
 bool NoctuaryProcessor::startJourney(const juce::File& file)
 {
     ambient::Journey j;
-    if (!j.load(file.getFullPathName().toRawUTF8()) || j.steps.empty()) return false;
-    if (j.name.empty()) j.name = file.getFileNameWithoutExtension().toStdString();
+    if (!j.load(file.getFullPathName().toRawUTF8()) || j.m_steps.empty()) return false;
+    if (j.m_name.empty()) j.m_name = file.getFileNameWithoutExtension().toStdString();
     return startJourney(j);
 }
 
 bool NoctuaryProcessor::startJourney(const ambient::Journey& j)
 {
-    if (j.steps.empty()) return false;
-    journey_ = j;
+    if (j.m_steps.empty()) return false;
+    m_journey = j;
     // A journey is presets in a row, and Morph is the instrument held between two chosen ones:
     // with both on, every preset the journey loaded was overruled by the blend and the journey
     // appeared to do nothing. Starting one means playing its presets, so Morph lets go.
-    setParam(ParamId::MorphActive, 0.0f);
+    setParam(ParamIdE::MORPH_ACTIVE, 0.0f);
     // The map blend is the same kind of hold, measured the same day: the engine plays the blend of
     // the presets around the cursor and nothing the journey loads. A route plays through the map
     // and switches it back on, so the route goes first. Leaving the map normally writes its blend
     // into the parameters so the sound stays where it was -- here that write would land over the
     // journey's first preset, so it is let go of instead, for a few seconds only, lest a later
     // exit by hand lose its blend to a flag that was set for this one.
-    if (raw_[static_cast<size_t>(ParamId::MapActive)]->load() >= 0.5f || raw_[static_cast<size_t>(ParamId::RouteActive)]->load() >= 0.5f) {
-        mapExitDiscardUntil_ = juce::Time::getMillisecondCounterHiRes() + 3000.0;
-        setParam(ParamId::RouteActive, 0.0f);
-        setParam(ParamId::MapActive, 0.0f);
+    if (m_raw[static_cast<size_t>(ParamIdE::MAP_ACTIVE)]->load() >= 0.5f || m_raw[static_cast<size_t>(ParamIdE::ROUTE_ACTIVE)]->load() >= 0.5f) {
+        m_mapExitDiscardUntil = juce::Time::getMillisecondCounterHiRes() + 3000.0;
+        setParam(ParamIdE::ROUTE_ACTIVE, 0.0f);
+        setParam(ParamIdE::MAP_ACTIVE, 0.0f);
     }
     // Seeded from the clock: the same journey runs differently every evening. A render that
     // wants it repeatable seeds the player itself (ambient_render --journey-seed).
-    journeyPlayer_.start(journey_, static_cast<uint64_t>(juce::Time::currentTimeMillis()) | 1ull, 0);
-    journeyLastTick_ = 0.0;
+    m_journeyPlayer.start(m_journey, static_cast<uint64_t>(juce::Time::currentTimeMillis()) | 1ull, 0);
+    m_journeyLastTick = 0.0;
     journeyTick();   // the first step begins now
     return true;
 }
 
-void NoctuaryProcessor::stopJourney() { journeyPlayer_.stop(); }
+void NoctuaryProcessor::stopJourney() { m_journeyPlayer.stop(); }
 
 void NoctuaryProcessor::skipJourneyTo(int step)
 {
-    if (!journeyPlayer_.running()) return;
-    const ambient::Journey j = journeyPlayer_.journey();
-    journeyPlayer_.start(j, static_cast<uint64_t>(juce::Time::currentTimeMillis()) | 1ull, step);
-    journeyLastTick_ = 0.0;
+    if (!m_journeyPlayer.running()) return;
+    const ambient::Journey j = m_journeyPlayer.journey();
+    m_journeyPlayer.start(j, static_cast<uint64_t>(juce::Time::currentTimeMillis()) | 1ull, step);
+    m_journeyLastTick = 0.0;
     journeyTick();   // that step begins now
 }
 
 juce::String NoctuaryProcessor::journeyStatus() const
 {
-    if (!journeyPlayer_.running()) return {};
-    const int n = static_cast<int>(journey_.steps.size());
-    return juce::String(journey_.name) + "  " + juce::String(journeyPlayer_.step() + 1) + "/" + juce::String(n)
-         + "  " + juce::String(ambient::Journey::timeText(std::max(0.0, journeyPlayer_.remaining())));
+    if (!m_journeyPlayer.running()) return {};
+    const int n = static_cast<int>(m_journey.m_steps.size());
+    return juce::String(m_journey.m_name) + "  " + juce::String(m_journeyPlayer.step() + 1) + "/" + juce::String(n)
+         + "  " + juce::String(ambient::Journey::timeText(std::max(0.0, m_journeyPlayer.remaining())));
 }
 
 void NoctuaryProcessor::journeyAddCurrent(double dwellLo, double dwellHi, double fadeLo, double fadeHi)
 {
-    if (soundIndex_ < 0 || soundIndex_ >= numPresets()) return;
+    if (m_soundIndex < 0 || m_soundIndex >= numPresets()) return;
     ambient::JourneyStep st;
-    st.preset = preset(soundIndex_).name;
-    st.dwellLo = dwellLo; st.dwellHi = dwellHi; st.fadeLo = fadeLo; st.fadeHi = fadeHi;
-    journey_.steps.push_back(st);
+    st.m_preset = preset(m_soundIndex).m_name;
+    st.m_dwellLo = dwellLo; st.m_dwellHi = dwellHi; st.m_fadeLo = fadeLo; st.m_fadeHi = fadeHi;
+    m_journey.m_steps.push_back(st);
 }
 
 bool NoctuaryProcessor::saveJourney(const juce::File& file)
 {
-    if (journey_.steps.empty()) return false;
-    if (journey_.name.empty()) journey_.name = file.getFileNameWithoutExtension().toStdString();
+    if (m_journey.m_steps.empty()) return false;
+    if (m_journey.m_name.empty()) m_journey.m_name = file.getFileNameWithoutExtension().toStdString();
     file.getParentDirectory().createDirectory();
-    return journey_.save(file.getFullPathName().toRawUTF8());
+    return m_journey.save(file.getFullPathName().toRawUTF8());
 }
 
 // ---------------------------------------------------------------- favourites
@@ -1316,24 +1316,24 @@ juce::File NoctuaryProcessor::favouritesFile()
 
 void NoctuaryProcessor::loadFavourites()
 {
-    favourites_.clear();
-    favouriteNames_.clear();
-    favouritesFirst_ = false;
+    m_favourites.clear();
+    m_favouriteNames.clear();
+    m_favouritesFirst = false;
     const juce::File f = favouritesFile();
     if (!f.existsAsFile()) return;
     // Name to index once, not a scan of fourteen thousand names per line. The first preset of a
     // name wins, which is what the preset boxes do with a name as well.
     std::unordered_map<std::string, int> index;
-    for (int i = 0; i < numPresets(); ++i) index.emplace(preset(i).name, i);
+    for (int i = 0; i < numPresets(); ++i) index.emplace(preset(i).m_name, i);
     juce::StringArray lines;
     f.readLines(lines);
     for (const juce::String& raw : lines) {
         const juce::String line = raw.trim();
         if (line.isEmpty() || line.startsWith("#")) continue;
-        if (line.startsWithIgnoreCase("first ")) { favouritesFirst_ = line.substring(6).trim().equalsIgnoreCase("on"); continue; }
-        favouriteNames_.addIfNotAlreadyThere(line);
+        if (line.startsWithIgnoreCase("first ")) { m_favouritesFirst = line.substring(6).trim().equalsIgnoreCase("on"); continue; }
+        m_favouriteNames.addIfNotAlreadyThere(line);
         const auto it = index.find(line.toStdString());
-        if (it != index.end()) favourites_.setBit(it->second, true);
+        if (it != index.end()) m_favourites.setBit(it->second, true);
     }
 }
 
@@ -1341,18 +1341,18 @@ void NoctuaryProcessor::saveFavourites() const
 {
     juce::String text;
     text << "# Noctuary favourites: one preset name a line. A name whose preset is not installed is kept.\n"
-         << "first " << (favouritesFirst_ ? "on" : "off") << "\n";
-    for (const juce::String& n : favouriteNames_) text << n << "\n";
+         << "first " << (m_favouritesFirst ? "on" : "off") << "\n";
+    for (const juce::String& n : m_favouriteNames) text << n << "\n";
     favouritesFile().replaceWithText(text);
 }
 
 void NoctuaryProcessor::setFavourite(int index, bool on)
 {
     if (index < 0 || index >= numPresets()) return;
-    favourites_.setBit(index, on);
-    const juce::String name(preset(index).name);
-    if (on) favouriteNames_.addIfNotAlreadyThere(name);
-    else    favouriteNames_.removeString(name);
+    m_favourites.setBit(index, on);
+    const juce::String name(preset(index).m_name);
+    if (on) m_favouriteNames.addIfNotAlreadyThere(name);
+    else    m_favouriteNames.removeString(name);
     saveFavourites();
 }
 
@@ -1393,24 +1393,24 @@ juce::Array<juce::File> NoctuaryProcessor::journeyFiles()
 void NoctuaryProcessor::journeyTick()
 {
     const double now = juce::Time::getMillisecondCounterHiRes() * 0.001;
-    if (journeyLastTick_ <= 0.0) journeyLastTick_ = now;
-    const double dt = juce::jlimit(0.0, 5.0, now - journeyLastTick_);
-    journeyLastTick_ = now;
-    if (!journeyPlayer_.running()) return;
+    if (m_journeyLastTick <= 0.0) m_journeyLastTick = now;
+    const double dt = juce::jlimit(0.0, 5.0, now - m_journeyLastTick);
+    m_journeyLastTick = now;
+    if (!m_journeyPlayer.running()) return;
     ambient::JourneyStep st;
     double fade = 30.0;
-    if (!journeyPlayer_.advance(dt, st, fade)) return;
+    if (!m_journeyPlayer.advance(dt, st, fade)) return;
     int index = -1;
-    for (int i = 0; i < numPresets(); ++i) if (st.preset == preset(i).name) { index = i; break; }
+    for (int i = 0; i < numPresets(); ++i) if (st.m_preset == preset(i).m_name) { index = i; break; }
     if (index < 0) return;   // a name the library no longer has: nothing changes until the next step
     // near=keep pins what is playing (Auto off) before the sound preset could bring its own;
     // a name pins that one; nothing, or auto, leaves it to the sound preset's Auto.
-    if (st.nearPreset == "keep") setNearAuto(false);
+    if (st.m_nearPreset == "keep") setNearAuto(false);
     setMorphSelectSeconds(static_cast<float>(fade));
     selectPreset(index, true);
-    if (!st.nearPreset.empty() && st.nearPreset != "auto" && st.nearPreset != "keep")
+    if (!st.m_nearPreset.empty() && st.m_nearPreset != "auto" && st.m_nearPreset != "keep")
         for (int i = 0; i < numNearPresets(); ++i)
-            if (st.nearPreset == nearPreset(i).name) { setNearAuto(false); applyNearPreset(i); break; }
+            if (st.m_nearPreset == nearPreset(i).m_name) { setNearAuto(false); applyNearPreset(i); break; }
 }
 
 /**
@@ -1419,16 +1419,16 @@ void NoctuaryProcessor::journeyTick()
  */
 ambient::Engine& NoctuaryProcessor::ensureEngine(int i)
 {
-    if (engines_[i] == nullptr) {
+    if (m_engines[i] == nullptr) {
         auto e = std::make_unique<ambient::Engine>();
-        for (int k = 0; k < kNumParams; ++k)
-            e->setParam(static_cast<ParamId>(k), raw_[static_cast<size_t>(k)]->load());
-        e->prepare(lastSampleRate_, lastBlockSize_);
-        e->setNoteTap(&noteTap_);   // MIDI out (02.10.2026)
-        engines_[i] = std::move(e);
-        carryUserData(*engines_[i]);
+        for (int k = 0; k < NumParams; ++k)
+            e->setParam(static_cast<ParamIdE>(k), m_raw[static_cast<size_t>(k)]->load());
+        e->prepare(m_lastSampleRate, m_lastBlockSize);
+        e->setNoteTap(&m_noteTap);   // MIDI out (02.10.2026)
+        m_engines[i] = std::move(e);
+        carryUserData(*m_engines[i]);
     }
-    return *engines_[i];
+    return *m_engines[i];
 }
 
 /**
@@ -1442,13 +1442,13 @@ ambient::Engine& NoctuaryProcessor::ensureEngine(int i)
 void NoctuaryProcessor::carryUserData(ambient::Engine& e)
 {
     ambient::Engine& from = live();
-    if (scalaText_.isNotEmpty()) {
+    if (m_scalaText.isNotEmpty()) {
         FixedScale sc;
-        if (parseScala(scalaText_.toRawUTF8(), sc)) e.setUserScale(sc);
+        if (parseScala(m_scalaText.toRawUTF8(), sc)) e.setUserScale(sc);
     }
     if (const ambient::Wavetable* wt = from.userWavetable()) e.setUserWavetable(*wt);
     if (const ambient::CycleTable* ct = from.userCycles()) e.setUserCycles(*ct);
-    for (int k = 0; k < ambient::kSlots; ++k)
+    for (int k = 0; k < ambient::Slots; ++k)
         if (const ambient::Texture* t = from.displayTexture(k))
             if (!t->empty())
                 e.setTexture(k, *t);
@@ -1457,12 +1457,12 @@ void NoctuaryProcessor::carryUserData(ambient::Engine& e)
     // The impulse responses are the one thing the engine cannot hand over -- it keeps them as
     // spectra, not as samples -- so a room the player opened is read from its file again. A
     // generated room needs nothing: a new engine makes its own.
-    if (from.hasUserImpulse() && impulseFile_.existsAsFile()) {
-        ambient::Engine* was = prepareTarget_;
-        prepareTarget_ = &e;
-        loadImpulseFile(impulseFile_, false);
-        if (impulseBFile_.existsAsFile()) loadImpulseFile(impulseBFile_, true);
-        prepareTarget_ = was;
+    if (from.hasUserImpulse() && m_impulseFile.existsAsFile()) {
+        ambient::Engine* was = m_prepareTarget;
+        m_prepareTarget = &e;
+        loadImpulseFile(m_impulseFile, false);
+        if (m_impulseBFile.existsAsFile()) loadImpulseFile(m_impulseBFile, true);
+        m_prepareTarget = was;
     }
 }
 
@@ -1472,15 +1472,15 @@ void NoctuaryProcessor::carryUserData(ambient::Engine& e)
  */
 void NoctuaryProcessor::releaseIdleEngine()
 {
-    // swapTo_ FIRST, then fading_. The audio thread writes fading_ before it clears swapTo_, so
-    // a reader that sees swapTo_ cleared is guaranteed to see fading_ set. Read the other way
-    // round there was a two-load window -- fading_ still -1, swapTo_ already -1 -- in which a
+    // m_swapTo FIRST, then m_fading. The audio thread writes m_fading before it clears m_swapTo, so
+    // a reader that sees m_swapTo cleared is guaranteed to see m_fading set. Read the other way
+    // round there was a two-load window -- m_fading still -1, m_swapTo already -1 -- in which a
     // crossfade that had just begun looked like nothing at all, and the engine freed here was the
     // one the audio thread was rendering.
-    if (swapTo_.load(std::memory_order_acquire) >= 0) return;
-    if (fading_.load(std::memory_order_acquire) >= 0) return;
-    if (pendingPreset_ >= 0 || prepareTarget_ != nullptr) return;
-    engines_[live_.load(std::memory_order_relaxed) ^ 1].reset();
+    if (m_swapTo.load(std::memory_order_acquire) >= 0) return;
+    if (m_fading.load(std::memory_order_acquire) >= 0) return;
+    if (m_pendingPreset >= 0 || m_prepareTarget != nullptr) return;
+    m_engines[m_live.load(std::memory_order_relaxed) ^ 1].reset();
 }
 
 /**
@@ -1489,36 +1489,36 @@ void NoctuaryProcessor::releaseIdleEngine()
  */
 void NoctuaryProcessor::servePendingPreset()
 {
-    if (pendingPreset_ < 0) { releaseIdleEngine(); return; }
+    if (m_pendingPreset < 0) { releaseIdleEngine(); return; }
     // Still busy: a fade in flight (both engines rendered), or a swap already published and not
     // yet taken up. Come back in a moment.
-    if (swapTo_.load(std::memory_order_acquire) >= 0 || fading_.load(std::memory_order_acquire) >= 0) return;   // this order, see releaseIdleEngine
-    const int index = pendingPreset_;
-    pendingPreset_ = -1;
+    if (m_swapTo.load(std::memory_order_acquire) >= 0 || m_fading.load(std::memory_order_acquire) >= 0) return;   // this order, see releaseIdleEngine
+    const int index = m_pendingPreset;
+    m_pendingPreset = -1;
     beginTransition(index);
 }
 
 void NoctuaryProcessor::beginTransition(int index)
 {
-    const int incoming = live_.load(std::memory_order_relaxed) ^ 1;
+    const int incoming = m_live.load(std::memory_order_relaxed) ^ 1;
     // Where the sound is leaving from, for the map's line.
-    fadingFrom_ = currentProgram_;
-    // The engine has to exist before anything is pointed at it. Publishing paramTarget_ first
+    m_fadingFrom = m_currentProgram;
+    // The engine has to exist before anything is pointed at it. Publishing m_paramTarget first
     // told the audio thread to push the parameter tree into an engine that was built on the very
     // next line -- a null dereference in processBlock, a second into every transition.
     ambient::Engine& in = ensureEngine(incoming);
     // From here until the swap, everything about the new preset goes to the incoming engine and
-    // nothing to the one that is still playing: the parameter tree's next push (paramTarget_),
-    // the modulation matrix and the sample files (prepareTarget_), the notes.
-    paramTarget_.store(incoming, std::memory_order_release);
-    prepareTarget_ = &in;
+    // nothing to the one that is still playing: the parameter tree's next push (m_paramTarget),
+    // the modulation matrix and the sample files (m_prepareTarget), the notes.
+    m_paramTarget.store(incoming, std::memory_order_release);
+    m_prepareTarget = &in;
     in.allNotesOff();
     in.reset();
     setCurrentProgram(index);
     // The parameter tree reaches the engine once a block; this one has to be complete before it
     // is heard, so it is filled in here as well.
-    for (int i = 0; i < kNumParams; ++i)
-        in.setParam(static_cast<ParamId>(i), raw_[static_cast<size_t>(i)]->load());
+    for (int i = 0; i < NumParams; ++i)
+        in.setParam(static_cast<ParamIdE>(i), m_raw[static_cast<size_t>(i)]->load());
     // A change that came within the burst window of the one before it had its files put off to
     // the pump (see setCurrentProgram). A transition cannot have that: the engine is built here
     // and only then made the instrument, and its samples are part of the build. Put off, they
@@ -1526,7 +1526,7 @@ void NoctuaryProcessor::beginTransition(int index)
     // one when the audio thread had already swapped, the one on its way out when it had not (a
     // host with the transport stopped, the host test's two changes 0.2 s of wall time apart) --
     // and a preset made of textures arrived with nothing to play.
-    if (pendingFiles_.exchange(-1, std::memory_order_acq_rel) == index) loadPresetFiles(index);
+    if (m_pendingFiles.exchange(-1, std::memory_order_acq_rel) == index) loadPresetFiles(index);
     // The conductor takes the chord over from the one it is replacing. A crossfade is meant to
     // change the instrument and not the music: picking its own notes made it two pieces of music
     // at once for the length of the fade, and picking them at its own event rate -- ninety-nine
@@ -1535,7 +1535,7 @@ void NoctuaryProcessor::beginTransition(int index)
     // With nothing to inherit, from silence or from a preset whose conductor was off, it fills
     // instead, so a change never lands on an empty instrument either.
     {
-        // The CONDUCTOR's cluster, which is twelve notes -- not ambient::kSlots, which is the four
+        // The CONDUCTOR's cluster, which is twelve notes -- not ambient::Slots, which is the four
         // source slots. Two constants of the same name, and these arrays had the wrong one: a
         // conductor holding more than four notes wrote up to eight ints and eight floats past the
         // end of them. /GS answers that with __report_gsfailure and int 29h, which kills the
@@ -1544,7 +1544,7 @@ void NoctuaryProcessor::beginTransition(int index)
         // picked" this file's crash log was written for; it takes a preset whose conductor is
         // holding a full chord, which is why a change made a second after the last one never
         // showed it.
-        int notes[ambient::ClusterBrain::kSlots]; float vels[ambient::ClusterBrain::kSlots];
+        int notes[ambient::ClusterBrain::Slots]; float vels[ambient::ClusterBrain::Slots];
         for (int which = 0; which < 2; ++which) {
             const bool second = which == 1;
             const int n = live().soundingCluster(notes, vels, second);
@@ -1560,7 +1560,7 @@ void NoctuaryProcessor::beginTransition(int index)
         // went on showing its name over the new engine's own, which were the defaults (13.09.2026).
         for (int slot = 0; slot < 2; ++slot) {
             if (live().morphSlotSet(slot)) {
-                float v[kNumParams];
+                float v[NumParams];
                 live().morphSlot(slot, v);
                 in.setMorphSlot(slot, v);
             } else {
@@ -1572,10 +1572,10 @@ void NoctuaryProcessor::beginTransition(int index)
     // holding a chord through a preset change heard it die with the old preset and nothing take
     // its place -- the notes had gone to an engine that was on its way out.
     for (int i = 0; i < 128; ++i)
-        if (heldVel_[static_cast<size_t>(i)] > 0.0f) in.noteOn(i, heldVel_[static_cast<size_t>(i)]);
-    prepareTarget_ = nullptr;
-    fadePos_.store(0.0f, std::memory_order_relaxed);      // nothing is fading yet: the map reads this
-    swapTo_.store(incoming, std::memory_order_release);   // the audio thread takes it from here
+        if (m_heldVel[static_cast<size_t>(i)] > 0.0f) in.noteOn(i, m_heldVel[static_cast<size_t>(i)]);
+    m_prepareTarget = nullptr;
+    m_fadePos.store(0.0f, std::memory_order_relaxed);      // nothing is fading yet: the map reads this
+    m_swapTo.store(incoming, std::memory_order_release);   // the audio thread takes it from here
 }
 
 /**
@@ -1584,69 +1584,69 @@ void NoctuaryProcessor::beginTransition(int index)
 void NoctuaryProcessor::noteOn(int note, float vel)
 {
     if (note < 0 || note >= 128) return;
-    heldVel_[static_cast<size_t>(note)] = std::max(vel, 1.0f / 127.0f);
+    m_heldVel[static_cast<size_t>(note)] = std::max(vel, 1.0f / 127.0f);
     live().noteOn(note, vel);
 }
 
 void NoctuaryProcessor::noteOff(int note)
 {
     if (note < 0 || note >= 128) return;
-    heldVel_[static_cast<size_t>(note)] = 0.0f;
+    m_heldVel[static_cast<size_t>(note)] = 0.0f;
     live().noteOff(note);
 }
 
 void NoctuaryProcessor::allNotesOff()
 {
-    for (auto& h : heldVel_) h.store(0.0f, std::memory_order_relaxed);
+    for (auto& h : m_heldVel) h.store(0.0f, std::memory_order_relaxed);
     live().allNotesOff();
 }
 
 void NoctuaryProcessor::setMorphSlotFromPreset(int slot, int presetIndex)
 {
     if (presetIndex < 0 || presetIndex >= numPresets()) return;
-    float values[kNumParams];
-    for (int i = 0; i < kNumParams; ++i) values[i] = raw_[static_cast<size_t>(i)]->load();
-    applyPreset(preset(presetIndex), [&](ParamId id, float v) { values[static_cast<int>(id)] = v; });
+    float values[NumParams];
+    for (int i = 0; i < NumParams; ++i) values[i] = m_raw[static_cast<size_t>(i)]->load();
+    applyPreset(preset(presetIndex), [&](ParamIdE id, float v) { values[static_cast<int>(id)] = v; });
     live().setMorphSlot(slot, values);
-    slotName_[slot & 1] = preset(presetIndex).name;
+    m_slotName[slot & 1] = preset(presetIndex).m_name;
 }
 
 void NoctuaryProcessor::setMorphSlotFromCurrent(int slot)
 {
-    float values[kNumParams];
-    for (int i = 0; i < kNumParams; ++i) values[i] = raw_[static_cast<size_t>(i)]->load();
+    float values[NumParams];
+    for (int i = 0; i < NumParams; ++i) values[i] = m_raw[static_cast<size_t>(i)]->load();
     live().setMorphSlot(slot, values);
-    slotName_[slot & 1] = "(captured)";
+    m_slotName[slot & 1] = "(captured)";
 }
 
-void NoctuaryProcessor::clearMidiLearn(ParamId id)
+void NoctuaryProcessor::clearMidiLearn(ParamIdE id)
 {
-    for (auto& c : ccMap_) if (c.load() == static_cast<int>(id)) c.store(-1);
-    if (learnTarget_.load() == static_cast<int>(id)) learnTarget_.store(-1);
+    for (auto& c : m_ccMap) if (c.load() == static_cast<int>(id)) c.store(-1);
+    if (m_learnTarget.load() == static_cast<int>(id)) m_learnTarget.store(-1);
 }
 
-int NoctuaryProcessor::midiCcFor(ParamId id) const
+int NoctuaryProcessor::midiCcFor(ParamIdE id) const
 {
-    for (int cc = 0; cc < 128; ++cc) if (ccMap_[static_cast<size_t>(cc)].load() == static_cast<int>(id)) return cc;
+    for (int cc = 0; cc < 128; ++cc) if (m_ccMap[static_cast<size_t>(cc)].load() == static_cast<int>(id)) return cc;
     return -1;
 }
 
 void NoctuaryProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto state = apvts.copyState();
-    if (scalaText_.isNotEmpty()) {
-        state.setProperty("scalaText", scalaText_, nullptr);
-        state.setProperty("scalaName", userScaleName_, nullptr);
+    auto state = m_apvts.copyState();
+    if (m_scalaText.isNotEmpty()) {
+        state.setProperty("scalaText", m_scalaText, nullptr);
+        state.setProperty("scalaName", m_userScaleName, nullptr);
     }
     state.setProperty("gestureMappings", gestureMappings(), nullptr);
     {   // modulation: the matrix, the six envelope shapes and the four sources' own (see ambient/Modulation.h)
         char buf[4096];
         if (live().writeModMatrix(buf, sizeof(buf)) > 0) state.setProperty("modMatrix", juce::String(buf), nullptr);
         juce::String envs;
-        const int shapes = ambient::kNumModEnvs + ambient::kSlots;
+        const int shapes = ambient::NumModEnvs + ambient::Slots;
         for (int i = 0; i < shapes; ++i) {
-            const int n = i < ambient::kNumModEnvs ? live().writeEnvShape(i, buf, sizeof(buf))
-                                                   : live().writeSrcEnvShape(i - ambient::kNumModEnvs, buf, sizeof(buf));
+            const int n = i < ambient::NumModEnvs ? live().writeEnvShape(i, buf, sizeof(buf))
+                                                   : live().writeSrcEnvShape(i - ambient::NumModEnvs, buf, sizeof(buf));
             if (n > 0) envs += juce::String(buf);
             if (i + 1 < shapes) envs += "~";
         }
@@ -1654,35 +1654,35 @@ void NoctuaryProcessor::getStateInformation(juce::MemoryBlock& destData)
     }
     // The favourites are no longer in the state (by index, which a regenerated library renumbers);
     // they live by name in the player's own file. An old state's property is read no more.
-    if (routeText_.isNotEmpty()) state.setProperty("route", routeText_, nullptr);
+    if (m_routeText.isNotEmpty()) state.setProperty("route", m_routeText, nullptr);
     // One property per slot. An older state carries a single "textureFile", which is read below
     // as "the same clip in every slot" -- the only thing it could have meant at the time.
-    for (int k = 0; k < ambient::kSlots; ++k)
-        if (textureFile_[k].existsAsFile())
-            state.setProperty("textureFile" + juce::String(k + 1), textureFile_[k].getFullPathName(), nullptr);
-    if (wavetableFile_.existsAsFile()) state.setProperty("wavetableFile", wavetableFile_.getFullPathName(), nullptr);
-    if (impulseFile_.existsAsFile())   state.setProperty("impulseFile", impulseFile_.getFullPathName(), nullptr);
-    if (impulseBFile_.existsAsFile())  state.setProperty("impulseBFile", impulseBFile_.getFullPathName(), nullptr);
+    for (int k = 0; k < ambient::Slots; ++k)
+        if (m_textureFile[k].existsAsFile())
+            state.setProperty("textureFile" + juce::String(k + 1), m_textureFile[k].getFullPathName(), nullptr);
+    if (m_wavetableFile.existsAsFile()) state.setProperty("wavetableFile", m_wavetableFile.getFullPathName(), nullptr);
+    if (m_impulseFile.existsAsFile())   state.setProperty("impulseFile", m_impulseFile.getFullPathName(), nullptr);
+    if (m_impulseBFile.existsAsFile())  state.setProperty("impulseBFile", m_impulseBFile.getFullPathName(), nullptr);
     // The names of the two loaded presets, so the boxes still say what is loaded after a restart.
-    if (soundName_.isNotEmpty())  state.setProperty("soundPreset", soundName_, nullptr);
-    if (cosmosName_.isNotEmpty()) state.setProperty("cosmosPreset", cosmosName_, nullptr);
-    if (nearName_.isNotEmpty())   state.setProperty("nearPreset", nearName_, nullptr);
-    if (compact_) state.setProperty("compact", 1, nullptr);          // how the editor is laid out
-    if (layoutMode_ != 0) state.setProperty("layout", layoutMode_, nullptr);
-    if (levelMatch_) state.setProperty("levelMatch", 1, nullptr);
+    if (m_soundName.isNotEmpty())  state.setProperty("soundPreset", m_soundName, nullptr);
+    if (m_cosmosName.isNotEmpty()) state.setProperty("cosmosPreset", m_cosmosName, nullptr);
+    if (m_nearName.isNotEmpty())   state.setProperty("nearPreset", m_nearName, nullptr);
+    if (m_compact) state.setProperty("compact", 1, nullptr);          // how the editor is laid out
+    if (m_layoutMode != 0) state.setProperty("layout", m_layoutMode, nullptr);
+    if (m_levelMatch) state.setProperty("levelMatch", 1, nullptr);
     juce::ValueTree midi("midi");
     for (int cc = 0; cc < 128; ++cc) {
-        const int target = ccMap_[static_cast<size_t>(cc)].load();
-        if (target >= 0) midi.setProperty("cc" + juce::String(cc), paramTable()[static_cast<size_t>(target)].key, nullptr);
+        const int target = m_ccMap[static_cast<size_t>(cc)].load();
+        if (target >= 0) midi.setProperty("cc" + juce::String(cc), paramTable()[static_cast<size_t>(target)].m_key, nullptr);
     }
     state.addChild(midi, -1, nullptr);
     for (int slot = 0; slot < 2; ++slot) {
         juce::ValueTree m(slot == 0 ? "morphA" : "morphB");
-        m.setProperty("name", slotName_[slot], nullptr);
+        m.setProperty("name", m_slotName[slot], nullptr);
         m.setProperty("set", live().morphSlotSet(slot), nullptr);   // a slot nobody chose is not a snapshot
-        float values[kNumParams];
+        float values[NumParams];
         live().morphSlot(slot, values);
-        for (int i = 0; i < kNumParams; ++i) m.setProperty(paramTable()[static_cast<size_t>(i)].key, values[i], nullptr);
+        for (int i = 0; i < NumParams; ++i) m.setProperty(paramTable()[static_cast<size_t>(i)].m_key, values[i], nullptr);
         state.addChild(m, -1, nullptr);
     }
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destData);
@@ -1691,26 +1691,26 @@ void NoctuaryProcessor::getStateInformation(juce::MemoryBlock& destData)
 void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary(data, sizeInBytes)) {
-        if (xml->hasTagName(apvts.state.getType())) {
+        if (xml->hasTagName(m_apvts.state.getType())) {
             auto tree = juce::ValueTree::fromXml(*xml);
             const juce::String text = tree.getProperty("scalaText").toString();
             const juce::String name = tree.getProperty("scalaName").toString();
-            for (auto& c : ccMap_) c.store(-1);
+            for (auto& c : m_ccMap) c.store(-1);
             const juce::String mappings = tree.getProperty("gestureMappings").toString();
             if (mappings.isNotEmpty()) setGestureMappings(mappings);
             auto midi = tree.getChildWithName("midi");
             if (midi.isValid())
                 for (int cc = 0; cc < 128; ++cc) {
                     const juce::String key = midi.getProperty("cc" + juce::String(cc)).toString();
-                    if (const ParamDesc* d = findParam(key.toRawUTF8())) ccMap_[static_cast<size_t>(cc)].store(static_cast<int>(d->id));
+                    if (const ParamDesc* d = findParam(key.toRawUTF8())) m_ccMap[static_cast<size_t>(cc)].store(static_cast<int>(d->m_id));
                 }
             for (int slot = 0; slot < 2; ++slot) {
                 auto m = tree.getChildWithName(slot == 0 ? "morphA" : "morphB");
                 if (!m.isValid()) continue;
-                float values[kNumParams];
-                for (int i = 0; i < kNumParams; ++i) {
+                float values[NumParams];
+                for (int i = 0; i < NumParams; ++i) {
                     const ParamDesc& d = paramTable()[static_cast<size_t>(i)];
-                    values[i] = m.hasProperty(d.key) ? static_cast<float>(static_cast<double>(m.getProperty(d.key))) : d.def;
+                    values[i] = m.hasProperty(d.m_key) ? static_cast<float>(static_cast<double>(m.getProperty(d.m_key))) : d.m_def;
                 }
                 // Whether the slot was chosen. A state from before 2.0.2 does not say, and wrote both
                 // slots every time -- so every one of them read back as a snapshot of the defaults,
@@ -1718,45 +1718,45 @@ void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
                 // decides: "Init" is what an untouched slot was called, so it counts as not chosen.
                 const juce::String nm = m.getProperty("name").toString();
                 const bool chosen = m.hasProperty("set") ? static_cast<bool>(m.getProperty("set")) : (nm.isNotEmpty() && nm != "Init");
-                if (chosen) { live().setMorphSlot(slot, values); slotName_[slot] = nm; }
-                else        { live().clearMorphSlot(slot);       slotName_[slot] = {}; }
+                if (chosen) { live().setMorphSlot(slot, values); m_slotName[slot] = nm; }
+                else        { live().clearMorphSlot(slot);       m_slotName[slot] = {}; }
             }
             tree.removeChild(tree.getChildWithName("midi"), nullptr);
             tree.removeChild(tree.getChildWithName("morphA"), nullptr);
             tree.removeChild(tree.getChildWithName("morphB"), nullptr);
             const juce::String texPath = tree.getProperty("textureFile").toString();
-            juce::String texPaths[ambient::kSlots];
-            for (int k = 0; k < ambient::kSlots; ++k) texPaths[k] = tree.getProperty("textureFile" + juce::String(k + 1)).toString();
+            juce::String texPaths[ambient::Slots];
+            for (int k = 0; k < ambient::Slots; ++k) texPaths[k] = tree.getProperty("textureFile" + juce::String(k + 1)).toString();
             const juce::String tabPath = tree.getProperty("wavetableFile").toString();
             const juce::String irPath = tree.getProperty("impulseFile").toString();
             const juce::String irBPath = tree.getProperty("impulseBFile").toString();
             // Which presets the two boxes should say are loaded. Looked up by name, and simply
             // not selected when the pack that held it is gone -- the sound is in the state
             // either way, only the label would have been a lie.
-            soundName_  = tree.getProperty("soundPreset").toString();
-            cosmosName_ = tree.getProperty("cosmosPreset").toString();
+            m_soundName  = tree.getProperty("soundPreset").toString();
+            m_cosmosName = tree.getProperty("cosmosPreset").toString();
             // A whole state came in: the layer boxes have no name to show, because the state is
             // the parameters themselves and not the presets they may once have come from.
-            zIndex_ = -1; strikeIndex_ = -1;
-            if (soundName_.isNotEmpty()) {
-                soundIndex_ = -1;
-                for (int i = 0; i < numPresets(); ++i) if (soundName_ == preset(i).name) { soundIndex_ = i; break; }
+            m_zIndex = -1; m_strikeIndex = -1;
+            if (m_soundName.isNotEmpty()) {
+                m_soundIndex = -1;
+                for (int i = 0; i < numPresets(); ++i) if (m_soundName == preset(i).m_name) { m_soundIndex = i; break; }
                 // The host's program index and the map's ring follow the same name; without this
                 // they kept showing whatever was loaded before the state came in.
-                if (soundIndex_ >= 0) currentProgram_ = soundIndex_;
+                if (m_soundIndex >= 0) m_currentProgram = m_soundIndex;
             }
-            if (cosmosName_.isNotEmpty()) {
-                cosmosIndex_ = -1;
-                for (int i = 0; i < numCosmosPresets(); ++i) if (cosmosName_ == cosmosPreset(i).name) { cosmosIndex_ = i; break; }
+            if (m_cosmosName.isNotEmpty()) {
+                m_cosmosIndex = -1;
+                for (int i = 0; i < numCosmosPresets(); ++i) if (m_cosmosName == cosmosPreset(i).m_name) { m_cosmosIndex = i; break; }
             }
-            nearName_ = tree.getProperty("nearPreset").toString();
-            nearIndex_ = -1;
-            if (nearName_.isNotEmpty())
-                for (int i = 0; i < numNearPresets(); ++i) if (nearName_ == nearPreset(i).name) { nearIndex_ = i; break; }
-            compact_ = static_cast<int>(tree.getProperty("compact", 0)) != 0;
-            layoutMode_ = static_cast<int>(tree.getProperty("layout", compact_ ? 1 : 0));
-            compact_ = layoutMode_ == 1;
-            levelMatch_ = static_cast<int>(tree.getProperty("levelMatch", 0)) != 0;
+            m_nearName = tree.getProperty("nearPreset").toString();
+            m_nearIndex = -1;
+            if (m_nearName.isNotEmpty())
+                for (int i = 0; i < numNearPresets(); ++i) if (m_nearName == nearPreset(i).m_name) { m_nearIndex = i; break; }
+            m_compact = static_cast<int>(tree.getProperty("compact", 0)) != 0;
+            m_layoutMode = static_cast<int>(tree.getProperty("layout", m_compact ? 1 : 0));
+            m_compact = m_layoutMode == 1;
+            m_levelMatch = static_cast<int>(tree.getProperty("levelMatch", 0)) != 0;
             const juce::String route = tree.getProperty("route").toString();
             const juce::String modMatrix = tree.getProperty("modMatrix").toString();
             const juce::String modEnvs = tree.getProperty("modEnvs").toString();
@@ -1764,22 +1764,22 @@ void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
             if (modEnvs.isNotEmpty()) {
                 const juce::StringArray parts = juce::StringArray::fromTokens(modEnvs, "~", "");
                 // The six, then the sources' own; a state saved before those existed has six.
-                for (int i = 0; i < juce::jmin(parts.size(), ambient::kNumModEnvs + ambient::kSlots); ++i) {
+                for (int i = 0; i < juce::jmin(parts.size(), ambient::NumModEnvs + ambient::Slots); ++i) {
                     if (parts[i].isEmpty()) continue;
-                    if (i < ambient::kNumModEnvs) live().setEnvShape(i, parts[i].toRawUTF8());
-                    else live().setSrcEnvShape(i - ambient::kNumModEnvs, parts[i].toRawUTF8());
+                    if (i < ambient::NumModEnvs) live().setEnvShape(i, parts[i].toRawUTF8());
+                    else live().setSrcEnvShape(i - ambient::NumModEnvs, parts[i].toRawUTF8());
                 }
             }
             if (route.isNotEmpty()) setRouteText(route);
             tree.removeProperty("route", nullptr);
             tree.removeProperty("textureFile", nullptr);
-            for (int k = 0; k < ambient::kSlots; ++k) tree.removeProperty("textureFile" + juce::String(k + 1), nullptr);
+            for (int k = 0; k < ambient::Slots; ++k) tree.removeProperty("textureFile" + juce::String(k + 1), nullptr);
             tree.removeProperty("wavetableFile", nullptr);
             tree.removeProperty("impulseFile", nullptr);
             tree.removeProperty("favourites", nullptr);
             tree.removeProperty("soundPreset", nullptr);
             tree.removeProperty("cosmosPreset", nullptr);
-            apvts.replaceState(tree);
+            m_apvts.replaceState(tree);
             // Make the parameter objects agree with the state that was just restored. Replacing
             // the state moves a parameter only where the value IN THE TREE changes, and a switch
             // puts only 0 or 1 there while the object keeps whatever raw number the host set it
@@ -1788,8 +1788,8 @@ void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
             // saved as 1.0. The sound was right either way, because the engine reads the
             // switched value and not the raw one, so nothing here ever heard it. pluginval did.
             for (const ParamDesc& d : paramTable()) {
-                auto* par = apvts.getParameter(d.key);
-                const auto* raw = apvts.getRawParameterValue(d.key);
+                auto* par = m_apvts.getParameter(d.m_key);
+                const auto* raw = m_apvts.getRawParameterValue(d.m_key);
                 if (par == nullptr || raw == nullptr) continue;
                 const float norm = par->convertTo0to1(raw->load());
                 if (std::fabs(par->getValue() - norm) > 1.0e-6f) par->setValueNotifyingHost(norm);
@@ -1802,7 +1802,7 @@ void NoctuaryProcessor::setStateInformation(const void* data, int sizeInBytes)
                 return got.empty() ? juce::File() : juce::File(juce::String(juce::CharPointer_UTF8(got.c_str())));
             };
             if (texPath.isNotEmpty()) { const juce::File f = onDisk(texPath); if (f != juce::File()) loadTextureFile(f); }
-            for (int k = 0; k < ambient::kSlots; ++k)
+            for (int k = 0; k < ambient::Slots; ++k)
                 if (texPaths[k].isNotEmpty()) { const juce::File f = onDisk(texPaths[k]); if (f != juce::File()) loadTextureFile(k, f); }
             if (tabPath.isNotEmpty()) { const juce::File f = onDisk(tabPath); if (f != juce::File()) loadWavetableFile(f); }
             if (irPath.isNotEmpty())  { const juce::File f = onDisk(irPath);  if (f != juce::File()) loadImpulseFile(f); }

@@ -23,11 +23,11 @@ namespace ambient {
 /** @brief One event of a set: a parameter written, a note begun or a note let go, at a time. */
 struct TimelineEvent {
     /** @brief What happened: Param is a parameter change (a the ParamId, v the value in its real range), NoteOn a note begun (a the MIDI note, v the velocity 0..1), NoteOff a note let go (a the MIDI note). */
-    enum class Type : int { Param = 0, NoteOn = 1, NoteOff = 2 };
-    double t = 0.0;     ///< seconds from the start of the set
-    Type   type = Type::Param;   ///< which of the three
-    int    a = 0;       ///< ParamId or note
-    float  v = 0.0f;    ///< value or velocity
+    enum class TypeE : int { PARAM = 0, NOTE_ON = 1, NOTE_OFF = 2 };
+    double m_t = 0.0;     ///< seconds from the start of the set
+    TypeE   m_type = TypeE::PARAM;   ///< which of the three
+    int    m_a = 0;       ///< ParamId or note
+    float  m_v = 0.0f;    ///< value or velocity
 };
 
 /**
@@ -40,17 +40,17 @@ struct TimelineEvent {
 class SetTimeline {
 public:
     /** @brief Forgets every event and rewinds the cursor; the reserved room stays. */
-    void clear() { events_.clear(); cursor_ = 0; }
+    void clear() { m_events.clear(); m_cursor = 0; }
     /** @return how many events are recorded */
-    size_t size() const { return events_.size(); }
+    size_t size() const { return m_events.size(); }
     /** @return the time of the last event in seconds, 0 when empty */
-    double length() const { return events_.empty() ? 0.0 : events_.back().t; }
+    double length() const { return m_events.empty() ? 0.0 : m_events.back().m_t; }
     /**
      * @brief One event, in time order.
      * @param i  0 .. size()-1, unchecked
      * @return   the event
      */
-    const TimelineEvent& event(size_t i) const { return events_[i]; }
+    const TimelineEvent& event(size_t i) const { return m_events[i]; }
 
     /**
      * @brief Recording. Called from the audio thread while a set is being recorded, so it must not
@@ -64,9 +64,9 @@ public:
      *
      * @param events  how many events to make room for; add() never goes past it
      */
-    void reserve(size_t events) { events_.reserve(events); capacity_ = events; }
+    void reserve(size_t events) { m_events.reserve(events); m_capacity = events; }
     /** @return whether the reserved room is used up, so add() would drop the next event */
-    bool full() const { return events_.size() >= capacity_; }
+    bool full() const { return m_events.size() >= m_capacity; }
     /**
      * @brief Records one event, keeping the list sorted by time.
      *
@@ -97,15 +97,15 @@ public:
      * @param to     end of the interval in seconds (exclusive)
      * @param sink   receives each event
      */
-    template <class Sink> void step(double from, double to, Sink&& sink)
+    template <class SinkT> void step(double from, double to, SinkT&& sink)
     {
-        while (cursor_ < events_.size() && events_[cursor_].t < to) {
-            if (events_[cursor_].t >= from) sink(events_[cursor_]);
-            ++cursor_;
+        while (m_cursor < m_events.size() && m_events[m_cursor].m_t < to) {
+            if (m_events[m_cursor].m_t >= from) sink(m_events[m_cursor]);
+            ++m_cursor;
         }
     }
     /** @return whether the cursor has passed the last event */
-    bool finished() const { return cursor_ >= events_.size(); }
+    bool finished() const { return m_cursor >= m_events.size(); }
 
     /**
      * @brief Text form. save/load allocate (message thread); parse/write work on memory.
@@ -137,9 +137,9 @@ public:
     bool load(const char* path);
 
 private:
-    std::vector<TimelineEvent> events_;   ///< the events, sorted by time
-    size_t capacity_ = 0;   ///< what reserve() promised; add() never goes past it
-    size_t cursor_ = 0;     ///< playback position: the next event step() will look at
+    std::vector<TimelineEvent> m_events;   ///< the events, sorted by time
+    size_t m_capacity = 0;   ///< what reserve() promised; add() never goes past it
+    size_t m_cursor = 0;     ///< playback position: the next event step() will look at
 };
 
 } // namespace ambient

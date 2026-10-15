@@ -18,22 +18,22 @@ namespace ambient {
 struct NoteTap {
     /** @brief One note-on or note-off as a conductor played it. */
     struct Note {
-        int offset;         ///< samples into the block (the start of the chunk it was played in)
-        uint8_t channel;    ///< MIDI channel 1..16 (1 the first conductor, 2 the second, 3 the near events)
-        uint8_t pitch;      ///< MIDI note number
-        uint8_t velocity;   ///< 1..127 for an on, 0 for an off
+        int m_offset;         ///< samples into the block (the start of the chunk it was played in)
+        uint8_t m_channel;    ///< MIDI channel 1..16 (1 the first conductor, 2 the second, 3 the near events)
+        uint8_t m_pitch;      ///< MIDI note number
+        uint8_t m_velocity;   ///< 1..127 for an on, 0 for an off
     };
-    static constexpr int kCapacity = 1024;   ///< more notes than any block plays
-    Note notes[kCapacity];                   ///< the notes, in the order they were played
-    int count = 0;                           ///< how many of notes[] are valid
+    static constexpr int Capacity = 1024;   ///< more notes than any block plays
+    Note m_notes[Capacity];                   ///< the notes, in the order they were played
+    int m_count = 0;                           ///< how many of notes[] are valid
     /** @brief Forgets the notes of the last block. */
-    void clear() { count = 0; }
+    void clear() { m_count = 0; }
     /** @brief Adds a note (dropped when full). */
     void add(int offset, int channel, int pitch, float velocity, bool on)
     {
-        if (count >= kCapacity || pitch < 0 || pitch > 127) return;
+        if (m_count >= Capacity || pitch < 0 || pitch > 127) return;
         const int v = on ? (velocity <= 0.0f ? 1 : velocity >= 1.0f ? 127 : 1 + static_cast<int>(velocity * 126.0f + 0.5f)) : 0;
-        notes[count++] = Note{ offset < 0 ? 0 : offset, static_cast<uint8_t>(channel), static_cast<uint8_t>(pitch), static_cast<uint8_t>(v) };
+        m_notes[m_count++] = Note{ offset < 0 ? 0 : offset, static_cast<uint8_t>(channel), static_cast<uint8_t>(pitch), static_cast<uint8_t>(v) };
     }
 };
 

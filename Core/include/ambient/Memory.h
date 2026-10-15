@@ -46,8 +46,8 @@
  * lines re-divides the same material rather than emptying it. Buffers are allocated in prepare() only.
  *
  * In the engine it is a parallel send off the near bus, returned to both planes like the Cosmos
- * (Engine.h: memory_ and its three sends); readParams() hands it the Mem* parameters once per block
- * and process() runs on the audio thread in control blocks of kSub samples.
+ * (Engine.h: m_memory and its three sends); readParams() hands it the Mem* parameters once per block
+ * and process() runs on the audio thread in control blocks of Sub samples.
  */
 #pragma once
 #include "Dsp.h"
@@ -71,14 +71,14 @@ namespace ambient {
  */
 class Memory {
 public:
-    static constexpr int kMaxLines = 8;          ///< lines the pool can be divided into at most (2, 4 or 8 are used)
-    static constexpr int kMaxGrains = 32;        ///< recall grains alive at once
-    static constexpr int kSegBits = 12;          ///< log2 of kSeg
-    static constexpr int kSeg = 1 << kSegBits;   ///< the stretch of tape one pitch-class fingerprint covers
-    static constexpr int kSub = 64;              ///< control block, in samples
+    static constexpr int MaxLines = 8;          ///< lines the pool can be divided into at most (2, 4 or 8 are used)
+    static constexpr int MaxGrains = 32;        ///< recall grains alive at once
+    static constexpr int SegBits = 12;          ///< log2 of Seg
+    static constexpr int Seg = 1 << SegBits;   ///< the stretch of tape one pitch-class fingerprint covers
+    static constexpr int Sub = 64;              ///< control block, in samples
 
     /**
-     * @brief Allocates the pool (90 s, capped at kPoolMaxCells), the all-pass rings, the reading
+     * @brief Allocates the pool (90 s, capped at PoolMaxCells), the all-pass rings, the reading
      *        interpolator, the fingerprint tables and the FFT scratch; lays the lines out and puts every
      *        state at rest. Message thread, before any process().
      * @param sampleRate  Hz
@@ -135,7 +135,7 @@ public:
     /**
      * @brief In place: the send in, the memory's voice out.
      *
-     * Audio thread. In control blocks of kSub samples: the control step, the recall grains, then
+     * Audio thread. In control blocks of Sub samples: the control step, the recall grains, then
      * every sample through the lines -- read through the sinc, all-pass, absorption and DC blocker
      * in the loop, the butterfly, gain, limiter and drive, the input added, and the tape written.
      *
@@ -148,7 +148,7 @@ public:
      * @brief Nothing in and nothing out for longer than two passes of the longest line.
      * @return true when the engine may skip the memory without losing a tail
      */
-    bool quiet() const { return quietFor_ > quietAfter_; }
+    bool quiet() const { return m_quietFor > m_quietAfter; }
 
     /**
      * @name For the self test.
@@ -159,59 +159,59 @@ public:
      */
     double    energy() const;                    ///< what circulates: the lines' spans and their all-passes
     /** @brief How many lines the pool is divided into right now. @return 2, 4 or 8 */
-    int       lineCount() const { return lines_; }
+    int       lineCount() const { return m_lines; }
     /** @brief One line's repeat at normal speed. @param k the line @return seconds, the all-pass included */
-    double    lineSeconds(int k) const { return (line_[k].lenTarget + apLen_[k]) / sr_; }
+    double    lineSeconds(int k) const { return (m_line[k].m_lenTarget + m_apLen[k]) / m_sr; }
     /** @brief Recall grains started since prepare(). @return the count */
-    long long grainsStarted() const { return started_; }
+    long long grainsStarted() const { return m_started; }
     /** @brief The tape's speed. @return 1 forwards, -1 backwards, 0.5 at half speed, in between while it glides */
-    double    velocity() const { return v_; }
+    double    velocity() const { return m_v; }
     /** @} */
 private:
-    /** @var static constexpr int kTaps
+    /** @var static constexpr int Taps
      *  @brief taps of the reading interpolator */
-    static constexpr int kTaps = 8, kPhases = 256;   ///< kPhases: fractional phases the interpolator is tabulated at
+    static constexpr int Taps = 8, Phases = 256;   ///< Phases: fractional phases the interpolator is tabulated at
     /**
      * @brief One delay line: its write head with the two cells it is splatting into, its read
      *        distance and slide, its pan, and the state of the filters and the saturation in its loop.
      */
     struct Line {
-        double   w = 0.0;                    ///< the write head, in cells, in [0, cap)
-        int      base = 0;                   ///< the cell it was in when the two pending cells were set up
-        /** @var float acc0
+        double   m_w = 0.0;                    ///< the write head, in cells, in [0, cap)
+        int      m_base = 0;                   ///< the cell it was in when the two pending cells were set up
+        /** @var float m_acc0
          *  @brief the weighted sum splatted into cell base so far */
-        float    acc0 = 0.0f, wt0 = 0.0f;    ///< what the head has splatted into that cell ...
-        /** @var float acc1
+        float    m_acc0 = 0.0f, m_wt0 = 0.0f;    ///< what the head has splatted into that cell ...
+        /** @var float m_acc1
          *  @brief the weighted sum splatted into the cell after base */
-        float    acc1 = 0.0f, wt1 = 0.0f;    ///< ... and into the one after it
-        double   lenTarget = 0.0;            ///< the read head's distance behind the write head, in cells
-        double   lenBase = 0.0;              ///< the same, glided towards the target
-        /** @var double lenPrev
+        float    m_acc1 = 0.0f, m_wt1 = 0.0f;    ///< ... and into the one after it
+        double   m_lenTarget = 0.0;            ///< the read head's distance behind the write head, in cells
+        double   m_lenBase = 0.0;              ///< the same, glided towards the target
+        /** @var double m_lenPrev
          *  @brief the read distance at the start of the sub-block, slide included */
-        double   lenPrev = 0.0, lenNext = 0.0;   ///< at the start and at the end of the sub-block
-        /** @var double driftPh
+        double   m_lenPrev = 0.0, m_lenNext = 0.0;   ///< at the start and at the end of the sub-block
+        /** @var double m_driftPh
          *  @brief phase of the slide's sine, radians */
-        double   driftPh = 0.0, panPh = 0.0;   ///< panPh: phase of the pan's sine, radians
-        float    driftAmp = 0.0f;            ///< cells, glided
-        /** @var float gain
+        double   m_driftPh = 0.0, m_panPh = 0.0;   ///< panPh: phase of the pan's sine, radians
+        float    m_driftAmp = 0.0f;            ///< cells, glided
+        /** @var float m_gain
          *  @brief the loop gain per pass that gives Hold its decay */
-        /** @var float absA
+        /** @var float m_absA
          *  @brief the absorption one-pole's coefficient for Age */
-        float    gain = 1.0f, absA = 0.0f, absZ = 0.0f;   ///< absZ: the absorption filter's state
-        /** @var float dcX
+        float    m_gain = 1.0f, m_absA = 0.0f, m_absZ = 0.0f;   ///< absZ: the absorption filter's state
+        /** @var float m_dcX
          *  @brief the loop's DC blocker: the previous input */
-        float    dcX = 0.0f, dcY = 0.0f;   ///< dcY: the previous output
-        float    env = 0.0f;                 ///< the limiter's envelope follower
-        TanhAdaa sat;                        ///< the drive's saturation, antialiased (Adaa.h)
-        Svf      aa;                         ///< the slow tape's anti-alias low-pass
-        /** @var float glPrev
+        float    m_dcX = 0.0f, m_dcY = 0.0f;   ///< dcY: the previous output
+        float    m_env = 0.0f;                 ///< the limiter's envelope follower
+        TanhAdaa m_sat;                        ///< the drive's saturation, antialiased (Adaa.h)
+        Svf      m_aa;                         ///< the slow tape's anti-alias low-pass
+        /** @var float m_glPrev
          *  @brief left gain at the start of the sub-block */
-        /** @var float grPrev
+        /** @var float m_grPrev
          *  @brief right gain at the start of the sub-block */
-        /** @var float glNext
+        /** @var float m_glNext
          *  @brief left gain at its end */
-        float    glPrev = 0.7f, grPrev = 0.7f, glNext = 0.7f, grNext = 0.7f;   ///< grNext: right gain at the end of the sub-block (an equal-power pan)
-        int      seg = -1;                   ///< the pool segment the write head is in
+        float    m_glPrev = 0.7f, m_grPrev = 0.7f, m_glNext = 0.7f, m_grNext = 0.7f;   ///< grNext: right gain at the end of the sub-block (an equal-power pan)
+        int      m_seg = -1;                   ///< the pool segment the write head is in
     };
     /**
      * @brief Divides the pool between `lines` lines and folds every write head into the new capacity;
@@ -227,7 +227,7 @@ private:
      * @brief The control step at the head of every sub-block: line-count and erase fades, the Lorenz
      *        step, the tape speed glide, the butterfly angle and scattering, the recall, drive and
      *        input gains, and every line's slide, pan and anti-alias filter.
-     * @param m  samples in this sub-block (kSub, or the remainder)
+     * @param m  samples in this sub-block (Sub, or the remainder)
      */
     void   stepControl(int m);
     /**
@@ -247,9 +247,9 @@ private:
     /** @brief One fingerprint per control block at most: the last seconds of input when a window is full, otherwise the next finished stretch of tape from the queue. */
     void   analyse();
     /**
-     * @brief The pitch-class profile of kSeg samples: a Hann-windowed FFT, the bins between 55 Hz and
+     * @brief The pitch-class profile of Seg samples: a Hann-windowed FFT, the bins between 55 Hz and
      *        5 kHz summed into their pitch classes, the twelve normalised.
-     * @param x       kSeg samples
+     * @param x       Seg samples
      * @param chroma  receives the twelve values (all zero for silence)
      * @param rms     receives the stretch's RMS
      */
@@ -257,130 +257,130 @@ private:
     /** @brief Clears every line's splat sums, filter states and saturation (after an erase). */
     void   resetLines();
 
-    std::vector<float> pool_;                ///< the tape: poolCells_ mono cells, cap_ per line
-    std::vector<float> sinc_;                ///< the reading interpolator: (kPhases + 1) rows of kTaps
-    /** @var int poolCells_
+    std::vector<float> m_pool;                ///< the tape: m_poolCells mono cells, m_cap per line
+    std::vector<float> m_sinc;                ///< the reading interpolator: (Phases + 1) rows of Taps
+    /** @var int m_poolCells
      *  @brief cells in the pool: 90 s of sample rate, capped */
-    /** @var int lines_
+    /** @var int m_lines
      *  @brief lines the pool is divided into right now */
-    int       poolCells_ = 0, lines_ = 4, cap_ = 0;   ///< cap_: cells per line, a multiple of kSeg
-    Line      line_[kMaxLines];              ///< the lines; the first lines_ are in use
-    std::vector<float> ap_;                  ///< the scattering all-passes' rings, apSize_ cells per line
-    /** @var int apSize_
+    int       m_poolCells = 0, m_lines = 4, m_cap = 0;   ///< m_cap: cells per line, a multiple of Seg
+    Line      m_line[MaxLines];              ///< the lines; the first m_lines are in use
+    std::vector<float> m_ap;                  ///< the scattering all-passes' rings, m_apSize cells per line
+    /** @var int m_apSize
      *  @brief cells per all-pass ring, a power of two */
-    /** @var int apMask_
-     *  @brief apSize_ - 1 */
-    int       apSize_ = 0, apMask_ = 0, apW_ = 0;   ///< apW_: the all-passes' shared write position
-    int       apLen_[kMaxLines] = {};        ///< each all-pass's delay in cells (kApMs in Memory.cpp)
-    double    sr_ = 48000.0;                 ///< the sample rate prepare() was given
-    Rng       rng_;                          ///< the memory's own stream: grain places, lengths and pans
+    /** @var int m_apMask
+     *  @brief m_apSize - 1 */
+    int       m_apSize = 0, m_apMask = 0, m_apW = 0;   ///< m_apW: the all-passes' shared write position
+    int       m_apLen[MaxLines] = {};        ///< each all-pass's delay in cells (ApMs in Memory.cpp)
+    double    m_sr = 48000.0;                 ///< the sample rate prepare() was given
+    Rng       m_rng;                          ///< the memory's own stream: grain places, lengths and pans
     /**
      * @name settings
      * What the setters last stored; process() glides towards them.
      * @{ */
-    int       linesWant_ = 4;                ///< the line count asked for; taken up once the output has faded
-    /** @var float size_
+    int       m_linesWant = 4;                ///< the line count asked for; taken up once the output has faded
+    /** @var float m_size
      *  @brief the longest line's repeat in seconds */
-    /** @var float blur_
+    /** @var float m_blur
      *  @brief 0..1, the butterfly's angle and the scattering */
-    float     size_ = 9.0f, blur_ = 0.25f, drift_ = 0.3f;   ///< drift_: 0..1, the slides and the pans
-    /** @var float hold_
+    float     m_size = 9.0f, m_blur = 0.25f, m_drift = 0.3f;   ///< m_drift: 0..1, the slides and the pans
+    /** @var float m_hold
      *  @brief 0..1, how long a memory lasts */
-    /** @var float age_
+    /** @var float m_age
      *  @brief 0..1, how much darker it grows */
-    /** @var float renew_
+    /** @var float m_renew
      *  @brief 0..1, the suppressor */
-    float     hold_ = 0.8f, age_ = 0.3f, renew_ = 0.0f, drive_ = 0.0f;   ///< drive_: 0..1, the saturation in the loop
-    /** @var float recall_
+    float     m_hold = 0.8f, m_age = 0.3f, m_renew = 0.0f, m_drive = 0.0f;   ///< m_drive: 0..1, the saturation in the loop
+    /** @var float m_recall
      *  @brief 0..1, the grains' share of the output */
-    /** @var float seek_
+    /** @var float m_seek
      *  @brief 0..1, harmony against chance in the grains' choice */
-    float     recall_ = 0.0f, seek_ = 0.5f, grainMs_ = 220.0f;   ///< grainMs_: the grains' length in milliseconds
-    /** @var bool reverse_
+    float     m_recall = 0.0f, m_seek = 0.5f, m_grainMs = 220.0f;   ///< m_grainMs: the grains' length in milliseconds
+    /** @var bool m_reverse
      *  @brief the tape runs backwards */
-    /** @var bool half_
+    /** @var bool m_half
      *  @brief the tape runs at half speed */
-    /** @var bool freeze_
+    /** @var bool m_freeze
      *  @brief nothing written, nothing decays */
-    bool      reverse_ = false, half_ = false, freeze_ = false, erase_ = false;   ///< erase_: the pool is being emptied
+    bool      m_reverse = false, m_half = false, m_freeze = false, m_erase = false;   ///< m_erase: the pool is being emptied
     /** @} */
     /**
      * @name state
      * What process() carries from one control block to the next.
      * @{ */
-    /** @var double v_
+    /** @var double m_v
      *  @brief the tape's speed in cells per sample, glided towards the switches' target */
-    double    v_ = 1.0, vPrev_ = 1.0;        ///< vPrev_: the speed at the previous control block, for the ramp across the sub-block
-    bool      gliding_ = false;              ///< the speed is on its way; when it arrives at full speed the heads are put back on whole cells
-    /** @var float angle_
+    double    m_v = 1.0, m_vPrev = 1.0;        ///< m_vPrev: the speed at the previous control block, for the ramp across the sub-block
+    bool      m_gliding = false;              ///< the speed is on its way; when it arrives at full speed the heads are put back on whole cells
+    /** @var float m_angle
      *  @brief the butterfly's angle in radians, 0 .. pi/4, glided */
-    float     angle_ = 0.0f, apCoef_ = 0.0f;   ///< apCoef_: the scattering all-passes' coefficient, 0 below Blur 0.45, up to 0.6
-    double    stagePh_[3] = {};              ///< each butterfly stage's slow sine, radians, leaning its angle off the common one
-    /** @var float stageC_[3]
+    float     m_angle = 0.0f, m_apCoef = 0.0f;   ///< m_apCoef: the scattering all-passes' coefficient, 0 below Blur 0.45, up to 0.6
+    double    m_stagePh[3] = {};              ///< each butterfly stage's slow sine, radians, leaning its angle off the common one
+    /** @var float m_stageC[3]
      *  @brief cosine of each stage's angle this block */
-    float     stageC_[3] = { 1.0f, 1.0f, 1.0f }, stageS_[3] = {};   ///< stageS_: its sine
-    /** @var float recallCur_
+    float     m_stageC[3] = { 1.0f, 1.0f, 1.0f }, m_stageS[3] = {};   ///< m_stageS: its sine
+    /** @var float m_recallCur
      *  @brief the recall share, glided */
-    /** @var float driveCur_
+    /** @var float m_driveCur
      *  @brief the drive, glided */
-    /** @var float inGainCur_
+    /** @var float m_inGainCur
      *  @brief the input gain, 1 or (frozen, erasing) 0, ramped over 20 ms */
-    float     recallCur_ = 0.0f, driveCur_ = 0.0f, inGainCur_ = 1.0f, outGainCur_ = 1.0f;   ///< outGainCur_: the output gain, faded out over 60 ms for a line-count change or an erase
-    /** @var float inEnv_
+    float     m_recallCur = 0.0f, m_driveCur = 0.0f, m_inGainCur = 1.0f, m_outGainCur = 1.0f;   ///< m_outGainCur: the output gain, faded out over 60 ms for a line-count change or an erase
+    /** @var float m_inEnv
      *  @brief the input's envelope for Renew: 10 ms attack, 300 ms release */
-    /** @var float envAtk_
+    /** @var float m_envAtk
      *  @brief that envelope's attack coefficient */
-    /** @var float envRel_
+    /** @var float m_envRel
      *  @brief its release coefficient */
-    /** @var float limAtk_
+    /** @var float m_limAtk
      *  @brief the per-line limiter's attack coefficient (1 ms) */
-    /** @var float limRel_
+    /** @var float m_limRel
      *  @brief its release coefficient (400 ms) */
-    float     inEnv_ = 0.0f, envAtk_ = 0.0f, envRel_ = 0.0f, limAtk_ = 0.0f, limRel_ = 0.0f, dcR_ = 0.999f;   ///< dcR_: the loop DC blocker's pole, 3 Hz
-    double    lorenz_[3] = { 0.1, 0.0, 20.0 };   ///< the Lorenz attractor's state, one time unit to eight seconds
-    float     chaos_[3] = {};                ///< its three coordinates scaled to -1..1, bending the slides and the pans
-    bool      pendingLines_ = false;         ///< a new line count is waiting for the output to fade
-    int       clearPos_ = -1;                ///< how far the erase has emptied the pool, -1 when not erasing
-    bool      cleared_ = false;              ///< the erase has finished; nothing more to empty until Erase is released
-    /** @var float sizeDone_
+    float     m_inEnv = 0.0f, m_envAtk = 0.0f, m_envRel = 0.0f, m_limAtk = 0.0f, m_limRel = 0.0f, m_dcR = 0.999f;   ///< m_dcR: the loop DC blocker's pole, 3 Hz
+    double    m_lorenz[3] = { 0.1, 0.0, 20.0 };   ///< the Lorenz attractor's state, one time unit to eight seconds
+    float     m_chaos[3] = {};                ///< its three coordinates scaled to -1..1, bending the slides and the pans
+    bool      m_pendingLines = false;         ///< a new line count is waiting for the output to fade
+    int       m_clearPos = -1;                ///< how far the erase has emptied the pool, -1 when not erasing
+    bool      m_cleared = false;              ///< the erase has finished; nothing more to empty until Erase is released
+    /** @var float m_sizeDone
      *  @brief the size the lengths were last computed for */
-    /** @var float holdDone_
+    /** @var float m_holdDone
      *  @brief the hold the gains were last computed for */
-    float     sizeDone_ = -1.0f, holdDone_ = -1.0f, ageDone_ = -1.0f;   ///< ageDone_: the age the gains were last computed for
-    /** @var long long quietFor_
+    float     m_sizeDone = -1.0f, m_holdDone = -1.0f, m_ageDone = -1.0f;   ///< m_ageDone: the age the gains were last computed for
+    /** @var long long m_quietFor
      *  @brief samples with nothing in and nothing out */
-    long long quietFor_ = 0, quietAfter_ = 0;   ///< quietAfter_: two passes of the longest line plus a second, in samples; quiet() past it
+    long long m_quietFor = 0, m_quietAfter = 0;   ///< m_quietAfter: two passes of the longest line plus a second, in samples; quiet() past it
     /** @} */
     /**
      * @name recall
      * The grains and the fingerprints they choose their places by.
      * @{ */
-    RingGrain grains_[kMaxGrains];           ///< the live grains, the first live_ of them
-    int       live_ = 0;                     ///< grains playing
-    long long started_ = 0;                  ///< grains started since prepare()
-    /** @var double hazard_
+    RingGrain m_grains[MaxGrains];           ///< the live grains, the first m_live of them
+    int       m_live = 0;                     ///< grains playing
+    long long m_started = 0;                  ///< grains started since prepare()
+    /** @var double m_hazard
      *  @brief the Poisson clock's accumulated hazard */
-    double    hazard_ = 0.0, nextHazard_ = 0.0;   ///< nextHazard_: the exponential draw the next grain starts at
-    std::vector<float> chroma_;             ///< twelve per segment of the pool
-    std::vector<float> segRms_;             ///< each segment's RMS, so silence is never chosen while anything else is there
-    std::vector<int>   queue_;              ///< segments the write heads have finished, waiting to be fingerprinted (a ring of kQueueMask + 1)
-    /** @var int qHead_
+    double    m_hazard = 0.0, m_nextHazard = 0.0;   ///< m_nextHazard: the exponential draw the next grain starts at
+    std::vector<float> m_chroma;             ///< twelve per segment of the pool
+    std::vector<float> m_segRms;             ///< each segment's RMS, so silence is never chosen while anything else is there
+    std::vector<int>   m_queue;              ///< segments the write heads have finished, waiting to be fingerprinted (a ring of QueueMask + 1)
+    /** @var int m_qHead
      *  @brief the queue's read position */
-    int       qHead_ = 0, qTail_ = 0;       ///< qTail_: its write position
-    /** @var std::vector<float> fftRe_
+    int       m_qHead = 0, m_qTail = 0;       ///< m_qTail: its write position
+    /** @var std::vector<float> m_fftRe
      *  @brief the fingerprint transform's real part */
-    /** @var std::vector<float> fftIm_
+    /** @var std::vector<float> m_fftIm
      *  @brief its imaginary part */
-    std::vector<float> fftRe_, fftIm_, window_;   ///< window_: the Hann window of kSeg
-    std::vector<signed char> binPc_;        ///< each FFT bin's pitch class, -1 outside what is listened to
-    RealFft   fft_{ kSeg };                 ///< the transform of one segment
-    /** @var float scaleChroma_[12]
+    std::vector<float> m_fftRe, m_fftIm, m_window;   ///< m_window: the Hann window of Seg
+    std::vector<signed char> m_binPc;        ///< each FFT bin's pitch class, -1 outside what is listened to
+    RealFft   m_fft{ Seg };                 ///< the transform of one segment
+    /** @var float m_scaleChroma[12]
      *  @brief the scale's pitch-class profile from setHarmony(), normalised */
-    float     scaleChroma_[12] = {}, inputChroma_[12] = {};   ///< inputChroma_: the last seconds of input as a profile, a few seconds of memory
-    float     inputLevel_ = 0.0f;           ///< the input's RMS, smoothed like inputChroma_; weights the input into what the grains listen for
-    std::vector<float> inBuf_;              ///< kSeg samples of the mono input being gathered for the next fingerprint
-    int       inPos_ = 0;                   ///< samples gathered so far
-    double    harmonySig_ = -1.0;           ///< a signature of the scale and tonic the profile was built for, so setHarmony() only rebuilds on a change
+    float     m_scaleChroma[12] = {}, m_inputChroma[12] = {};   ///< m_inputChroma: the last seconds of input as a profile, a few seconds of memory
+    float     m_inputLevel = 0.0f;           ///< the input's RMS, smoothed like m_inputChroma; weights the input into what the grains listen for
+    std::vector<float> m_inBuf;              ///< Seg samples of the mono input being gathered for the next fingerprint
+    int       m_inPos = 0;                   ///< samples gathered so far
+    double    m_harmonySig = -1.0;           ///< a signature of the scale and tonic the profile was built for, so setHarmony() only rebuilds on a change
     /** @} */
 };
 

@@ -62,22 +62,22 @@ int main(int argc, char** argv)
     engine->prepare(48000.0, 256);
     int presetIndex = -1;
     if (!presetName.empty()) {
-        for (int p = 0; p < numPresets(); ++p) if (presetName == preset(p).name) presetIndex = p;
+        for (int p = 0; p < numPresets(); ++p) if (presetName == preset(p).m_name) presetIndex = p;
         if (presetIndex < 0) { std::fprintf(stderr, "unknown preset '%s'\n", presetName.c_str()); return 2; }
         engine->applyPreset(presetIndex);
     }
     for (const auto& kv : sets) {
         const ParamDesc* d = findParam(kv.first.c_str());
         if (!d) { std::fprintf(stderr, "unknown parameter '%s'\n", kv.first.c_str()); return 2; }
-        engine->setParam(d->id, paramValueFromText(*d, kv.second.c_str()));
+        engine->setParam(d->m_id, paramValueFromText(*d, kv.second.c_str()));
     }
-    if (seed >= 0) engine->setParam(ParamId::Seed, static_cast<float>(seed));
-    std::printf("# preset %s\n", presetIndex >= 0 ? preset(presetIndex).name : "(defaults)");
+    if (seed >= 0) engine->setParam(ParamIdE::SEED, static_cast<float>(seed));
+    std::printf("# preset %s\n", presetIndex >= 0 ? preset(presetIndex).m_name : "(defaults)");
     // With AMBIENT_BRAIN_TRACE set, every stamp of the constellation memory and every verdict it
     // gives is printed as T,<seconds>,<what>,<note>,<key>: how a repeat is traced to its cause.
     static double now = 0.0;
     if (std::getenv("AMBIENT_BRAIN_TRACE"))
-        ClusterBrain::trace = [](const char* what, int note, uint32_t key) { std::printf("T,%.4f,%s,%d,%u\n", now, what, note, key); };
+        ClusterBrain::M_Trace = [](const char* what, int note, uint32_t key) { std::printf("T,%.4f,%s,%d,%u\n", now, what, note, key); };
     // The pitch class is the one the conductor itself hears -- from the note's frequency in the
     // instrument's own tuning, which is what the constellation memory keys -- not the MIDI number's.
     // With a just scale on D the two differ for some keys, and an audit that counted MIDI numbers
@@ -86,8 +86,8 @@ int main(int argc, char** argv)
     engine->auditConductor(hours * 3600.0, dt,
         [eng](double t, int which, const BrainEvent& e) {
             now = t;
-            const int pc = pitchClassOf(eng->frequencyOf(e.note));
-            std::printf("E,%.4f,%d,%d,%d,%.3f,%d\n", t, which, e.type == BrainEvent::Type::NoteOn ? 1 : 0, e.note, static_cast<double>(e.velocity), pc);
+            const int pc = pitchClassOf(eng->frequencyOf(e.m_note));
+            std::printf("E,%.4f,%d,%d,%d,%.3f,%d\n", t, which, e.m_type == BrainEvent::TypeE::NOTE_ON ? 1 : 0, e.m_note, static_cast<double>(e.m_velocity), pc);
         },
         [](double t, int root) { now = t; std::printf("R,%.4f,%d\n", t, root); });
     return 0;

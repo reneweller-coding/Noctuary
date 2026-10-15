@@ -72,7 +72,7 @@ def retrofit_pack(text, family, counts, moves, measured=None):
 
 
 def retrofit_builtins(text, counts, moves, measured=None):
-    start = text.index("const Preset kPresets[] = {")
+    start = text.index("const Preset Presets[] = {")
     end = text.index("\n};", start)
     head, body, tail = text[:start], text[start:end], text[end:]
     sections = [(m.start(), m.group(1).strip()) for m in SECTION.finditer(body)]

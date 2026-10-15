@@ -132,7 +132,7 @@ int main()
         juce::Random rng(1234);
         // Move every parameter somewhere unusual, so a state that silently drops one shows up.
         for (const ParamDesc& d : paramTable())
-            if (auto* par = a->apvts.getParameter(d.key)) par->setValueNotifyingHost(0.15f + 0.7f * rng.nextFloat());
+            if (auto* par = a->m_apvts.getParameter(d.m_key)) par->setValueNotifyingHost(0.15f + 0.7f * rng.nextFloat());
         a->setMorphSlotFromCurrent(0);
         a->engine().setModMatrixText("lfo2>cutoff:0.4;env3>z_x:-0.2:macro_a");
         a->engine().setEnvShape(1, "0:0/2:1/5:-0.5!s1");
@@ -145,8 +145,8 @@ int main()
         b->setStateInformation(blob.getData(), static_cast<int>(blob.getSize()));
         int wrong = 0;
         for (const ParamDesc& d : paramTable()) {
-            const float x = a->engine().getParam(d.id), y = b->engine().getParam(d.id);
-            if (std::fabs(x - y) > 1.0e-4f * juce::jmax(1.0f, std::fabs(x))) { ++wrong; if (wrong < 4) std::printf("  state differs: %s %g vs %g\n", d.key, x, y); }
+            const float x = a->engine().getParam(d.m_id), y = b->engine().getParam(d.m_id);
+            if (std::fabs(x - y) > 1.0e-4f * juce::jmax(1.0f, std::fabs(x))) { ++wrong; if (wrong < 4) std::printf("  state differs: %s %g vs %g\n", d.m_key, x, y); }
         }
         check(wrong == 0, "every parameter survives a state round trip");
         char m1[4096], m2[4096];
@@ -161,11 +161,11 @@ int main()
         a->engine().writeSrcEnvShape(2, s1, sizeof(s1));
         b->engine().writeSrcEnvShape(2, s2, sizeof(s2));
         check(juce::String(s1) == juce::String(s2) && juce::String(s1).contains("!s1"), "a source's own envelope survives a state round trip");
-        float va[kNumParams], vb[kNumParams];
+        float va[NumParams], vb[NumParams];
         a->engine().morphSlot(0, va);
         b->engine().morphSlot(0, vb);
         int mw = 0;
-        for (int i = 0; i < kNumParams; ++i) if (std::fabs(va[i] - vb[i]) > 1.0e-4f * juce::jmax(1.0f, std::fabs(va[i]))) ++mw;
+        for (int i = 0; i < NumParams; ++i) if (std::fabs(va[i] - vb[i]) > 1.0e-4f * juce::jmax(1.0f, std::fabs(va[i]))) ++mw;
         check(mw == 0, "a morph snapshot survives a state round trip");
     }
 
@@ -234,7 +234,7 @@ int main()
             std::vector<juce::AudioProcessorParameter*> pick;
             int i = 0;
             for (auto* par : p->getParameters()) {
-                if (section == nullptr || std::strcmp(paramTable()[static_cast<size_t>(i)].section, section) == 0) pick.push_back(par);
+                if (section == nullptr || std::strcmp(paramTable()[static_cast<size_t>(i)].m_section, section) == 0) pick.push_back(par);
                 ++i;
             }
             std::atomic<bool> stop { false };
@@ -262,8 +262,8 @@ int main()
         std::vector<const char*> sections;
         for (const ParamDesc& d : paramTable()) {
             bool have = false;
-            for (const char* s2 : sections) if (std::strcmp(s2, d.section) == 0) { have = true; break; }
-            if (!have) sections.push_back(d.section);
+            for (const char* s2 : sections) if (std::strcmp(s2, d.m_section) == 0) { have = true; break; }
+            if (!have) sections.push_back(d.m_section);
         }
         for (const char* sec : sections) {
             bool ok = true;
@@ -283,11 +283,11 @@ int main()
         p->prepareToPlay(48000.0, 256);
         int withClip = -1;
         for (int i = 0; i < p->getNumPrograms() && withClip < 0; ++i)
-            if (preset(i).texture != nullptr && *preset(i).texture != 0) withClip = i;
+            if (preset(i).m_texture != nullptr && *preset(i).m_texture != 0) withClip = i;
         if (withClip >= 0) {
             p->setCurrentProgram(withClip);
             bool any = false;
-            for (int k = 0; k < ambient::kSlots; ++k) {
+            for (int k = 0; k < ambient::Slots; ++k) {
                 const ambient::Texture* t = p->engine().displayTexture(k);
                 if (t != nullptr && !t->empty()) any = true;
             }
@@ -310,7 +310,7 @@ int main()
             const int pack = presetPack(i);
             if (pack < 0) continue;
             float f = 1.0f;
-            if (nearAutoPick(presetPackName(pack), preset(i).name, f) > 0) withNear = i;
+            if (nearAutoPick(presetPackName(pack), preset(i).m_name, f) > 0) withNear = i;
         }
         if (withNear < 0) {
             std::printf("  (no pack preset with a foreground in reach -- near auto not measured)\n");
@@ -322,13 +322,13 @@ int main()
             auto settle = [&] { for (int k = 0; k < 4; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); } };
             p->setCurrentProgram(withNear);
             settle();
-            const float brought = p->engine().getParam(ParamId::ForeLevel);
+            const float brought = p->engine().getParam(ParamIdE::FORE_LEVEL);
             check(brought > 0.0f, "a program change brings the foreground its pack gives the preset");
             // A built-in belongs to no pack, so Auto has nothing to say about it and must leave
             // the layer alone. This is the half that was silently wrong: the apply cleared it.
             p->setCurrentProgram(0);
             settle();
-            check(p->engine().getParam(ParamId::ForeLevel) == brought,
+            check(p->engine().getParam(ParamIdE::FORE_LEVEL) == brought,
                   "and a program that brings none leaves the one that is playing alone");
         }
     }
@@ -351,12 +351,12 @@ int main()
             const int pack = presetPack(i);
             if (pack < 0) continue;
             float f = 1.0f;
-            const int pick = nearAutoPick(presetPackName(pack), preset(i).name, f);
+            const int pick = nearAutoPick(presetPackName(pack), preset(i).m_name, f);
             if (pick <= 0) continue;
-            float v[kNumParams];
-            for (int k = 0; k < kNumParams; ++k) v[k] = paramTable()[static_cast<size_t>(k)].def;
-            applyPreset(nearPreset(pick), [&](ParamId id, float x) { v[static_cast<int>(id)] = x; }, PresetScope::Near);
-            const float r = v[static_cast<int>(ParamId::ForeRate)];
+            float v[NumParams];
+            for (int k = 0; k < NumParams; ++k) v[k] = paramTable()[static_cast<size_t>(k)].m_def;
+            applyPreset(nearPreset(pick), [&](ParamIdE id, float x) { v[static_cast<int>(id)] = x; }, PresetScopeE::NEAR_LAYER);
+            const float r = v[static_cast<int>(ParamIdE::FORE_RATE)];
             // One whose own Every is not the default and whose result is under the ceiling, so a
             // wrong base cannot give the right answer by accident.
             if (std::fabs(r - 120.0f) > 1.0f && r * f < 890.0f && std::fabs(f - 1.0f) > 0.05f) { chosen = i; nearIdx = pick; factor = f; nearRate = r; }
@@ -368,13 +368,13 @@ int main()
             auto settle = [&] { for (int k = 0; k < 4; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); } };
             p->setCurrentProgram(chosen);
             settle();
-            const float got = p->engine().getParam(ParamId::ForeRate);
+            const float got = p->engine().getParam(ParamIdE::FORE_RATE);
             std::printf("  [probe] Auto's Every: %s at %.0f s, factor %.2f -> want %.0f s, got %.0f s\n",
-                        nearPreset(nearIdx).name, nearRate, factor, want, got);
+                        nearPreset(nearIdx).m_name, nearRate, factor, want, got);
             check(std::fabs(got - want) < 1.0f, "Auto scales the near preset's own Every, not what the engine held before");
             p->setCurrentProgram(chosen);   // the same preset again
             settle();
-            check(std::fabs(p->engine().getParam(ParamId::ForeRate) - want) < 1.0f,
+            check(std::fabs(p->engine().getParam(ParamIdE::FORE_RATE) - want) < 1.0f,
                   "and the same preset again brings the same Every, not a compounded one");
         }
     }
@@ -394,12 +394,12 @@ int main()
         juce::AudioBuffer<float> buf(2, 256);
         juce::MidiBuffer midi;
         auto settle = [&] { for (int k = 0; k < 4; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); } };
-        auto knob = [&](ParamId id, float v) {
-            if (auto* prm = p->apvts.getParameter(paramDesc(id).key)) prm->setValueNotifyingHost(prm->convertTo0to1(v));
+        auto knob = [&](ParamIdE id, float v) {
+            if (auto* prm = p->m_apvts.getParameter(paramDesc(id).m_key)) prm->setValueNotifyingHost(prm->convertTo0to1(v));
         };
         int texPreset = -1, other = -1;
         for (int i = 0; i < p->getNumPrograms() && (texPreset < 0 || other < 0); ++i) {
-            const char* s = preset(i).settings;
+            const char* s = preset(i).m_settings;
             if (s == nullptr) continue;
             if (texPreset < 0 && std::strstr(s, "src1_type=Texture") != nullptr) texPreset = i;
             else if (texPreset >= 0 && other < 0) other = i;
@@ -407,52 +407,52 @@ int main()
         if (texPreset < 0 || other < 0) {
             std::printf("  (no texture preset in reach -- Morph over a journey not measured)\n");
         } else {
-            const float texture = static_cast<float>(static_cast<int>(SourceType::Texture));
+            const float texture = static_cast<float>(static_cast<int>(SourceTypeE::TEXTURE));
             p->setCurrentProgram(texPreset);
             settle();
-            knob(ParamId::MorphActive, 1.0f);   // what reaching the Journey row took
+            knob(ParamIdE::MORPH_ACTIVE, 1.0f);   // what reaching the Journey row took
             settle();
-            check(p->engine().effectiveParam(ParamId::Src1Type) == texture,
+            check(p->engine().effectiveParam(ParamIdE::SRC1_TYPE) == texture,
                   "Morph switched on with no snapshot chosen leaves the texture source playing");
-            knob(ParamId::MasterGain, -18.0f);
+            knob(ParamIdE::MASTER_GAIN, -18.0f);
             settle();
-            check(std::fabs(p->engine().effectiveParam(ParamId::MasterGain) + 18.0f) < 0.05f,
+            check(std::fabs(p->engine().effectiveParam(ParamIdE::MASTER_GAIN) + 18.0f) < 0.05f,
                   "and the volume knob still reaches the sound");
-            knob(ParamId::ForeLevel, 0.7f);
+            knob(ParamIdE::FORE_LEVEL, 0.7f);
             settle();
-            check(std::fabs(p->engine().effectiveParam(ParamId::ForeLevel) - 0.7f) < 1.0e-4f,
+            check(std::fabs(p->engine().effectiveParam(ParamIdE::FORE_LEVEL) - 0.7f) < 1.0e-4f,
                   "and so does the near layer's level");
             // A snapshot that was chosen has to survive the crossfade a journey step makes.
-            knob(ParamId::MorphActive, 0.0f);
-            knob(ParamId::Depth, 0.77f);
+            knob(ParamIdE::MORPH_ACTIVE, 0.0f);
+            knob(ParamIdE::DEPTH, 0.77f);
             settle();
             p->setMorphSlotFromCurrent(0);
             p->selectPreset(other, true);         // a crossfade, which is what a journey step is
             settle();
-            float a[kNumParams];
+            float a[NumParams];
             p->engine().morphSlot(0, a);
-            check(std::fabs(a[static_cast<int>(ParamId::Depth)] - 0.77f) < 1.0e-4f,
+            check(std::fabs(a[static_cast<int>(ParamIdE::DEPTH)] - 0.77f) < 1.0e-4f,
                   "a snapshot chosen before a crossfade is still there after it");
             // The map blend is the same kind of hold: while it is on, the engine plays the blend of
             // the presets around the cursor and nothing a journey loads. Measured, not assumed.
-            knob(ParamId::MapX, 0.3f);
-            knob(ParamId::MapY, 0.6f);
-            knob(ParamId::MapActive, 1.0f);
+            knob(ParamIdE::MAP_X, 0.3f);
+            knob(ParamIdE::MAP_Y, 0.6f);
+            knob(ParamIdE::MAP_ACTIVE, 1.0f);
             for (int k = 0; k < 40; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); }
             if (!p->engine().mapActive()) {
                 std::printf("  (the map is not ready in this run -- a journey over the map blend not measured)\n");
             } else {
                 Journey j;
-                j.name = "probe";
-                JourneyStep s1; s1.preset = preset(texPreset).name; s1.dwellLo = s1.dwellHi = 600.0; s1.fadeLo = s1.fadeHi = 1.0;
-                JourneyStep s2 = s1; s2.preset = preset(other).name;
-                j.steps = { s1, s2 };
+                j.m_name = "probe";
+                JourneyStep s1; s1.m_preset = preset(texPreset).m_name; s1.m_dwellLo = s1.m_dwellHi = 600.0; s1.m_fadeLo = s1.m_fadeHi = 1.0;
+                JourneyStep s2 = s1; s2.m_preset = preset(other).m_name;
+                j.m_steps = { s1, s2 };
                 p->startJourney(j);
                 for (int k = 0; k < 40; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); }
-                check(p->apvts.getRawParameterValue(paramDesc(ParamId::MapActive).key)->load() < 0.5f,
+                check(p->m_apvts.getRawParameterValue(paramDesc(ParamIdE::MAP_ACTIVE).m_key)->load() < 0.5f,
                       "starting a journey takes the map blend off");
                 check(!p->engine().mapActive() &&
-                      p->engine().effectiveParam(ParamId::Depth) == p->engine().getParam(ParamId::Depth),
+                      p->engine().effectiveParam(ParamIdE::DEPTH) == p->engine().getParam(ParamIdE::DEPTH),
                       "so the engine that plays the journey plays its preset, not the blend");
                 p->stopJourney();
             }
@@ -464,12 +464,12 @@ int main()
             p->selectPreset(texPreset, true);
             for (int k = 0; k < 3; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); p->servePendingPreset(); }
             if (const ambient::Engine* leaving = p->leavingEngine()) {
-                const float before = leaving->getParam(ParamId::MasterGain);
-                const float knobNow = p->apvts.getRawParameterValue(paramDesc(ParamId::MasterGain).key)->load();
-                knob(ParamId::MasterGain, knobNow - 12.0f);
+                const float before = leaving->getParam(ParamIdE::MASTER_GAIN);
+                const float knobNow = p->m_apvts.getRawParameterValue(paramDesc(ParamIdE::MASTER_GAIN).m_key)->load();
+                knob(ParamIdE::MASTER_GAIN, knobNow - 12.0f);
                 for (int k = 0; k < 2; ++k) { buf.clear(); midi.clear(); p->processBlock(buf, midi); }
                 const ambient::Engine* still = p->leavingEngine();
-                check(still != nullptr && std::fabs(still->getParam(ParamId::MasterGain) - (before - 12.0f)) < 0.05f,
+                check(still != nullptr && std::fabs(still->getParam(ParamIdE::MASTER_GAIN) - (before - 12.0f)) < 0.05f,
                       "the volume turned during a fade reaches the preset that is leaving, by as much");
             } else {
                 check(false, "a crossfade is in flight to measure the volume across");
@@ -520,8 +520,8 @@ int main()
         check(ambient::loadPresetPack(dir.getChildFile("RoomTest.ambientpack").getFullPathName().toRawUTF8()), "a pack with two rooms loads");
         int both = -1, one = -1;
         for (int i = 0; i < ambient::numPresets(); ++i) {
-            if (std::strcmp(preset(i).name, "Room Test Both") == 0) both = i;
-            if (std::strcmp(preset(i).name, "Room Test One") == 0) one = i;
+            if (std::strcmp(preset(i).m_name, "Room Test Both") == 0) both = i;
+            if (std::strcmp(preset(i).m_name, "Room Test One") == 0) one = i;
         }
         check(both >= 0 && one >= 0, "its presets are in the list");
         auto p = std::make_unique<NoctuaryProcessor>();
@@ -596,7 +596,7 @@ int main()
         // library that is regenerated whole -- and what is under test here is the name, not which
         // preset carries it.
         const int which = numPresets() / 2;
-        check(which > 0 && preset(which).name[0] != 0, "the preset the round trip is built on exists");
+        check(which > 0 && preset(which).m_name[0] != 0, "the preset the round trip is built on exists");
         a->applySoundPreset(which);
         a->applyCosmosPreset(3);
         juce::MemoryBlock blob;
@@ -660,8 +660,8 @@ int main()
         });
         juce::Random rng(99);
         for (int i = 0; i < 400; ++i) {
-            const ParamDesc& d = paramTable()[static_cast<size_t>(rng.nextInt(kNumParams))];
-            if (auto* par = p->apvts.getParameter(d.key)) par->setValueNotifyingHost(rng.nextFloat());
+            const ParamDesc& d = paramTable()[static_cast<size_t>(rng.nextInt(NumParams))];
+            if (auto* par = p->m_apvts.getParameter(d.m_key)) par->setValueNotifyingHost(rng.nextFloat());
         }
         {   // An editor opened and thrown away twice while the audio thread keeps going.
             for (int i = 0; i < 2; ++i) {
@@ -698,7 +698,7 @@ int main()
         // pack preset with a grain texture in its first slot if a library is loaded.
         int a = 1, b = -1;
         for (int i = 0; i < numPresets() && b < 0; ++i) {
-            const char* st = preset(i).settings;
+            const char* st = preset(i).m_settings;
             if (st != nullptr && std::strstr(st, "src1_type=Texture") != nullptr) b = i;
         }
         if (b < 0) b = 2;
@@ -777,7 +777,7 @@ int main()
         // and wavetable; a Scala scale and a table opened from a file live in the engine and
         // nowhere else, and a transition builds a fresh one.
         check(p->engine().userWavetable() != nullptr, "a wavetable the player loaded survives a transition");
-        check(std::strstr(p->engine().userScale().name, "Test") != nullptr, "and so does the scale they tuned it to");
+        check(std::strstr(p->engine().userScale().m_name, "Test") != nullptr, "and so does the scale they tuned it to");
         // The conductor arrives having already made up its mind. Growing an empty chord one note
         // per event is an entrance from silence and a failure here: the preset being faded out was
         // sounding a full cluster. At the library's slower rates -- Interior Bloom asks six voices
@@ -789,7 +789,7 @@ int main()
             q->setMorphSelectSeconds(2.0f);
             int slow = -1;
             for (int i = 0; i < numPresets() && slow < 0; ++i) {
-                const char* st = preset(i).settings;
+                const char* st = preset(i).m_settings;
                 if (st != nullptr && std::strstr(st, "brain_rate=9") != nullptr && std::strstr(st, "brain_density=") != nullptr)
                     slow = i;
             }
@@ -800,15 +800,15 @@ int main()
                 q->selectPreset(slow, true);
                 q->servePresetRequests();
                 feed(*q, buf, static_cast<int>(4.0 * sr / block), false);   // four seconds
-                const int want = static_cast<int>(q->engine().getParam(ParamId::BrainDensity));
+                const int want = static_cast<int>(q->engine().getParam(ParamIdE::BRAIN_DENSITY));
                 const int got = q->engine().activeVoices();
                 // The conductor's own count beside the voices: they answer different questions.
                 // Notes it holds but that never became voices mean the voices were the problem;
                 // one note held means the filling itself never ran.
-                int cn[ambient::ClusterBrain::kSlots]; float cv[ambient::ClusterBrain::kSlots];
+                int cn[ambient::ClusterBrain::Slots]; float cv[ambient::ClusterBrain::Slots];
                 const int cluster = q->engine().soundingCluster(cn, cv);
                 std::printf("  [probe] four seconds after a change into %s: %d of %d voices, conductor holds %d\n",
-                            preset(slow).name, got, want, cluster);
+                            preset(slow).m_name, got, want, cluster);
                 check(got >= juce::jmin(want, 3), "the conductor fills its cluster when it takes over from one that was sounding");
             }
         }
@@ -826,7 +826,7 @@ int main()
             q->setMorphSelectSeconds(1.0f);
             q->selectPreset(1, false);
             auto set = [&](const char* key, float v) {
-                if (auto* p = q->apvts.getParameter(key)) p->setValueNotifyingHost(p->convertTo0to1(v));
+                if (auto* p = q->m_apvts.getParameter(key)) p->setValueNotifyingHost(p->convertTo0to1(v));
             };
             set("brain_density", 10.0f);     // a wide cluster...
             set("brain_rate", 2.0f);         // ...filled quickly, so the test is seconds and not minutes
@@ -864,13 +864,13 @@ int main()
         // each carries its plane while the main output plays on.
         auto p = std::make_unique<NoctuaryProcessor>();
         juce::AudioProcessor::BusesLayout layout = p->getBusesLayout();
-        check(layout.outputBuses.size() == 1 + ambient::Engine::kNumStems, "the four planes have outputs of their own");
+        check(layout.outputBuses.size() == 1 + ambient::Engine::NumStems, "the four planes have outputs of their own");
         for (int b = 1; b < layout.outputBuses.size(); ++b) layout.outputBuses.getReference(b) = juce::AudioChannelSet::stereo();
         check(p->setBusesLayout(layout), "the host can switch every plane's output on");
         p->prepareToPlay(48000.0, 512);
         juce::AudioBuffer<float> buf(p->getTotalNumOutputChannels(), 512);
         juce::MidiBuffer midi;
-        double peak[1 + ambient::Engine::kNumStems] = {};
+        double peak[1 + ambient::Engine::NumStems] = {};
         bool ok = true;
         for (int b = 0; b < 48000 * 6 / 512; ++b) {
             midi.clear();
@@ -878,7 +878,7 @@ int main()
                 for (int note : { 48, 55, 60, 67 }) midi.addEvent(juce::MidiMessage::noteOn(1, note, 0.8f), 0);
             buf.clear();
             p->processBlock(buf, midi);
-            for (int k = 0; k <= ambient::Engine::kNumStems; ++k) {
+            for (int k = 0; k <= ambient::Engine::NumStems; ++k) {
                 auto bus = p->getBusBuffer(buf, false, k);
                 for (int c = 0; c < bus.getNumChannels(); ++c)
                     for (int s = 0; s < bus.getNumSamples(); ++s) {
@@ -889,7 +889,7 @@ int main()
             }
         }
         int planes = 0;
-        for (int k = 1; k <= ambient::Engine::kNumStems; ++k) if (peak[k] > 1.0e-4) ++planes;
+        for (int k = 1; k <= ambient::Engine::NumStems; ++k) if (peak[k] > 1.0e-4) ++planes;
         check(ok && peak[0] > 0.01, "with every plane's output on, the main output plays on");
         check(planes >= 2, "and the planes' outputs carry their planes");
         p->releaseResources();

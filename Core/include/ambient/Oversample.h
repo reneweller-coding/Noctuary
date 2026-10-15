@@ -49,23 +49,23 @@ namespace ambient {
  */
 namespace halfband {
 
-constexpr int kPad = 8;   ///< the vector width the taps and the sums are padded to
+constexpr int Pad = 8;   ///< the vector width the taps and the sums are padded to
 
 /// The path dot() was compiled with, for Tests/filtertest.cpp.
 #if AMBIENT_HAS_AVX
-constexpr const char* kDotPath = "avx2";
+constexpr const char* DotPath = "avx2";
 #elif AMBIENT_HAS_NEON
-constexpr const char* kDotPath = "neon";
+constexpr const char* DotPath = "neon";
 #else
-constexpr const char* kDotPath = "scalar";
+constexpr const char* DotPath = "scalar";
 #endif
 
 /**
  * @brief A length rounded up to whole vectors.
  * @param n  the length
- * @return   n rounded up to a multiple of kPad
+ * @return   n rounded up to a multiple of Pad
  */
-constexpr int padded(int n) { return (n + kPad - 1) / kPad * kPad; }
+constexpr int padded(int n) { return (n + Pad - 1) / Pad * Pad; }
 
 /**
  * @brief The modified Bessel function of the first kind, order zero, by its power series.
@@ -96,7 +96,7 @@ inline double besselI0(double x)
  */
 inline void design(float* out, int n)
 {
-    constexpr double kPiD = 3.14159265358979323846;
+    constexpr double PiD = 3.14159265358979323846;
     const double beta = 7.857;   // Kaiser, 80 dB of stop-band attenuation
     const double c = 0.5 * (n - 1);
     double sum = 0.0;
@@ -104,7 +104,7 @@ inline void design(float* out, int n)
     int j = 0;
     for (int i = 0; i < n; i += 2) {
         const double t = (i - c) * 0.5;   // odd-half values: the sinc's non-zero samples
-        const double sinc = std::sin(kPiD * t) / (kPiD * t);
+        const double sinc = std::sin(PiD * t) / (PiD * t);
         const double r = (i - c) / c;
         const double w = besselI0(beta * std::sqrt(std::fmax(0.0, 1.0 - r * r))) / besselI0(beta);
         tmp[j] = 0.5 * sinc * w;
@@ -118,7 +118,7 @@ inline void design(float* out, int n)
  * @brief The sum of h[k] v[k] over a padded length, as a vector sum.
  * @param h  the taps, n of them (zero past the real ones)
  * @param v  the history, n readable floats
- * @param n  a multiple of kPad
+ * @param n  a multiple of Pad
  * @return   the sum
  */
 inline float dot(const float* h, const float* v, int n)
@@ -145,29 +145,29 @@ inline float dot(const float* h, const float* v, int n)
 
 /**
  * @brief A sample history that a vector sum can read without waiting for the newest store: the
- *        samples run down a buffer, and every kCap samples the last P of them are copied back to
+ *        samples run down a buffer, and every Cap samples the last P of them are copied back to
  *        its top.
- * @tparam P  how many samples before the newest a sum reads (a multiple of kPad)
+ * @tparam P  how many samples before the newest a sum reads (a multiple of Pad)
  */
 template <int P>
 struct Line {
-    static constexpr int kCap = 64;       ///< samples between two jumps back to the top
-    float buf[kCap + 1 + P] = {};         ///< the history, newest at buf[pos]
-    int   pos = kCap;                     ///< where the newest sample is
+    static constexpr int Cap = 64;       ///< samples between two jumps back to the top
+    float m_buf[Cap + 1 + P] = {};         ///< the history, newest at buf[pos]
+    int   m_pos = Cap;                     ///< where the newest sample is
 
     /** @brief Silence. */
-    void reset() { std::memset(buf, 0, sizeof(buf)); pos = kCap; }
+    void reset() { std::memset(m_buf, 0, sizeof(m_buf)); m_pos = Cap; }
     /** @brief Takes the newest sample. @param x the sample */
     void push(float x)
     {
-        if (pos == 0) { std::memcpy(buf + kCap + 1, buf, P * sizeof(float)); pos = kCap; }
-        else --pos;
-        buf[pos] = x;
+        if (m_pos == 0) { std::memcpy(m_buf + Cap + 1, m_buf, P * sizeof(float)); m_pos = Cap; }
+        else --m_pos;
+        m_buf[m_pos] = x;
     }
     /** @brief A sample of the history. @param k how many samples ago, 0 .. P @return it */
-    float at(int k) const { return buf[pos + k]; }
+    float at(int k) const { return m_buf[m_pos + k]; }
     /** @brief The P samples before the newest, oldest last: what a sum reads. @return their start */
-    const float* older() const { return buf + pos + 1; }
+    const float* older() const { return m_buf + m_pos + 1; }
 };
 
 /**
@@ -176,54 +176,54 @@ struct Line {
  */
 template <int Taps>
 struct Stage {
-    static constexpr int kSide = (Taps + 1) / 2;   ///< non-zero taps of the filtering branch (the even-indexed ones)
-    static constexpr int kM = (Taps - 3) / 4;      ///< the pure-delay branch's delay in input samples
-    static constexpr int kP = padded(kSide - 1);   ///< the taps after the first, padded: what the vector sum reads
-    using History = Line<kP>;                      ///< the history one direction of the stage keeps
+    static constexpr int Side = (Taps + 1) / 2;   ///< non-zero taps of the filtering branch (the even-indexed ones)
+    static constexpr int M = (Taps - 3) / 4;      ///< the pure-delay branch's delay in input samples
+    static constexpr int P = padded(Side - 1);   ///< the taps after the first, padded: what the vector sum reads
+    using HistoryT = Line<P>;                      ///< the history one direction of the stage keeps
 
-    float h0 = 0.0f;       ///< the first even-indexed tap, the newest sample's
-    float hv[kP] = {};     ///< the rest, zero past kSide - 1
+    float m_h0 = 0.0f;       ///< the first even-indexed tap, the newest sample's
+    float m_hv[P] = {};     ///< the rest, zero past Side - 1
 
     /** @brief Designs the stage. Allocation-free. */
     Stage()
     {
         float t[26];
         design(t, Taps);
-        h0 = t[0];
-        for (int k = 1; k < kSide; ++k) hv[k - 1] = t[k];
+        m_h0 = t[0];
+        for (int k = 1; k < Side; ++k) m_hv[k - 1] = t[k];
     }
     /**
      * @brief One sample in, two out at twice the rate: y[2n] from the filtering branch, y[2n+1]
-     *        the input delayed by kM samples (the centre tap, one half, times the gain of two).
+     *        the input delayed by M samples (the centre tap, one half, times the gain of two).
      * @param line  the input's history
      * @param x     the input sample
      * @param y     receives the two output samples, in time order
      */
-    void up(History& line, float x, float* y) const
+    void up(HistoryT& line, float x, float* y) const
     {
         line.push(x);
-        y[0] = 2.0f * (h0 * x + dot(hv, line.older(), kP));
-        y[1] = line.at(kM);
+        y[0] = 2.0f * (m_h0 * x + dot(m_hv, line.older(), P));
+        y[1] = line.at(M);
     }
     /**
      * @brief Two samples in at twice the rate, one out: the even one through the filtering branch,
-     *        the odd one through the centre tap, kM + 1 samples late.
+     *        the odd one through the centre tap, M + 1 samples late.
      * @param e     the even samples' history
      * @param o     the odd samples' history
      * @param even  the first sample of the pair, v[2n]
      * @param odd   the second, v[2n + 1]
-     * @return      w[n] = sum h[2j] v[2n - 2j] + 0.5 v[2(n - kM - 1) + 1]
+     * @return      w[n] = sum h[2j] v[2n - 2j] + 0.5 v[2(n - M - 1) + 1]
      */
-    float down(History& e, History& o, float even, float odd) const
+    float down(HistoryT& e, HistoryT& o, float even, float odd) const
     {
         e.push(even);
         o.push(odd);
-        return h0 * even + dot(hv, e.older(), kP) + 0.5f * o.at(kM + 1);
+        return m_h0 * even + dot(m_hv, e.older(), P) + 0.5f * o.at(M + 1);
     }
 };
 
-using Stage1 = Stage<51>;   ///< 4m + 3 with m = 12: 80 dB, transition 0.2 .. 0.3 of its rate
-using Stage2 = Stage<19>;   ///< 4m + 3 with m = 4: the images are an octave away
+using Stage1T = Stage<51>;   ///< 4m + 3 with m = 12: 80 dB, transition 0.2 .. 0.3 of its rate
+using Stage2T = Stage<19>;   ///< 4m + 3 with m = 4: the images are an octave away
 
 } // namespace halfband
 
@@ -233,13 +233,13 @@ using Stage2 = Stage<19>;   ///< 4m + 3 with m = 4: the images are an octave awa
 class Oversampler4 {
 public:
     /** @brief The delay the round trip adds, in samples at the base rate: (51 - 1) / 2 + (19 - 1) / 4. */
-    static constexpr float kLatency = 29.5f;
+    static constexpr float Latency = 29.5f;
 
     /** @brief Clears the four filters' histories: the next sample starts from silence. */
     void reset()
     {
-        up1_.reset(); up2_.reset(); dn2e_.reset(); dn2o_.reset(); dn1e_.reset(); dn1o_.reset();
-        evenHeld_ = 0.0f;
+        m_up1.reset(); m_up2.reset(); m_dn2e.reset(); m_dn2o.reset(); m_dn1e.reset(); m_dn1o.reset();
+        m_evenHeld = 0.0f;
     }
 
     /**
@@ -248,35 +248,35 @@ public:
      * @tparam F  callable `float(float)`: the memoryless curve, evaluated four times per call
      * @param x   the input sample at the base rate
      * @param f   the curve
-     * @return    f(x), band-limited and kLatency samples late
+     * @return    f(x), band-limited and Latency samples late
      */
-    template <class F>
-    float process(float x, F&& f)
+    template <class FT>
+    float process(float x, FT&& f)
     {
         float a[2];
-        s1_.up(up1_, x, a);
+        m_s1.up(m_up1, x, a);
         float out = 0.0f;
         for (int k = 0; k < 2; ++k) {
             float b[2];
-            s2_.up(up2_, a[k], b);
-            const float c = s2_.down(dn2e_, dn2o_, f(b[0]), f(b[1]));
+            m_s2.up(m_up2, a[k], b);
+            const float c = m_s2.down(m_dn2e, m_dn2o, f(b[0]), f(b[1]));
             // Stage one comes down from the pair of stage-two outputs, the first even, the second odd.
-            if (k == 0) evenHeld_ = c;
-            else out = s1_.down(dn1e_, dn1o_, evenHeld_, c);
+            if (k == 0) m_evenHeld = c;
+            else out = m_s1.down(m_dn1e, m_dn1o, m_evenHeld, c);
         }
         return out;
     }
 
 private:
-    halfband::Stage1 s1_;   ///< stage one's taps (designed in the constructor)
-    halfband::Stage2 s2_;   ///< stage two's
-    halfband::Stage1::History up1_,    ///< stage one's upsampler history
-                              dn1e_,   ///< stage one's downsampler history, even samples
-                              dn1o_;   ///< and odd ones
-    halfband::Stage2::History up2_,    ///< stage two's upsampler history
-                              dn2e_,   ///< stage two's downsampler history, even samples
-                              dn2o_;   ///< and odd ones
-    float evenHeld_ = 0.0f;   ///< the first stage-two output of a pair, waiting for its partner
+    halfband::Stage1T m_s1;   ///< stage one's taps (designed in the constructor)
+    halfband::Stage2T m_s2;   ///< stage two's
+    halfband::Stage1T::HistoryT m_up1,    ///< stage one's upsampler history
+                              m_dn1e,   ///< stage one's downsampler history, even samples
+                              m_dn1o;   ///< and odd ones
+    halfband::Stage2T::HistoryT m_up2,    ///< stage two's upsampler history
+                              m_dn2e,   ///< stage two's downsampler history, even samples
+                              m_dn2o;   ///< and odd ones
+    float m_evenHeld = 0.0f;   ///< the first stage-two output of a pair, waiting for its partner
 };
 
 /**
@@ -286,12 +286,12 @@ private:
 class StereoOversampler2 {
 public:
     /** @brief The delay the round trip adds, in samples at the base rate: (51 - 1) / 2. */
-    static constexpr float kLatency = 25.0f;
+    static constexpr float Latency = 25.0f;
 
     /** @brief Clears both channels' histories. */
     void reset()
     {
-        for (int c = 0; c < 2; ++c) { up_[c].reset(); dnE_[c].reset(); dnO_[c].reset(); }
+        for (int c = 0; c < 2; ++c) { m_up[c].reset(); m_dnE[c].reset(); m_dnO[c].reset(); }
     }
 
     /**
@@ -299,27 +299,27 @@ public:
      *
      * @tparam F  callable `void(float l, float r, float& yl, float& yr)`, called twice per call, in
      *            time order: the process, which keeps its own state
-     * @param l   the left sample at the base rate, replaced by the process's output, kLatency late
+     * @param l   the left sample at the base rate, replaced by the process's output, Latency late
      * @param r   the right sample, the same
      * @param f   the process
      */
-    template <class F>
-    void process(float& l, float& r, F&& f)
+    template <class FT>
+    void process(float& l, float& r, FT&& f)
     {
         float a[2], b[2], y0[2], y1[2];
-        s_.up(up_[0], l, a);
-        s_.up(up_[1], r, b);
+        m_s.up(m_up[0], l, a);
+        m_s.up(m_up[1], r, b);
         f(a[0], b[0], y0[0], y0[1]);
         f(a[1], b[1], y1[0], y1[1]);
-        l = s_.down(dnE_[0], dnO_[0], y0[0], y1[0]);
-        r = s_.down(dnE_[1], dnO_[1], y0[1], y1[1]);
+        l = m_s.down(m_dnE[0], m_dnO[0], y0[0], y1[0]);
+        r = m_s.down(m_dnE[1], m_dnO[1], y0[1], y1[1]);
     }
 
 private:
-    halfband::Stage1 s_;   ///< the stage's taps
-    halfband::Stage1::History up_[2],    ///< the upsamplers' histories, per channel
-                              dnE_[2],   ///< the downsamplers' histories, even samples
-                              dnO_[2];   ///< and odd ones
+    halfband::Stage1T m_s;   ///< the stage's taps
+    halfband::Stage1T::HistoryT m_up[2],    ///< the upsamplers' histories, per channel
+                              m_dnE[2],   ///< the downsamplers' histories, even samples
+                              m_dnO[2];   ///< and odd ones
 };
 
 } // namespace ambient

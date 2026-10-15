@@ -19,84 +19,84 @@ using namespace ambient;
 
 void NoctuaryEditor::DragOverlay::paint(juce::Graphics& g)
 {
-    if (!active) return;
+    if (!m_active) return;
     // The knob it would land on: a ring in the modulator's colour, and the parameter's name.
-    if (!target.isEmpty()) {
-        g.setColour(colour.withAlpha(0.22f));
-        g.fillRoundedRectangle(target.expanded(5.0f), 6.0f);
-        g.setColour(colour.withAlpha(0.95f));
-        g.drawRoundedRectangle(target.expanded(5.0f), 6.0f, 2.0f);
-        if (targetName.isNotEmpty()) {
+    if (!m_target.isEmpty()) {
+        g.setColour(m_colour.withAlpha(0.22f));
+        g.fillRoundedRectangle(m_target.expanded(5.0f), 6.0f);
+        g.setColour(m_colour.withAlpha(0.95f));
+        g.drawRoundedRectangle(m_target.expanded(5.0f), 6.0f, 2.0f);
+        if (m_targetName.isNotEmpty()) {
             g.setFont(ui::title(11.0f));
-            g.setColour(colour.brighter(0.4f));
-            g.drawText(targetName, juce::Rectangle<float>(target.getCentreX() - 90.0f, target.getY() - 20.0f, 180.0f, 16.0f),
+            g.setColour(m_colour.brighter(0.4f));
+            g.drawText(m_targetName, juce::Rectangle<float>(m_target.getCentreX() - 90.0f, m_target.getY() - 20.0f, 180.0f, 16.0f),
                        juce::Justification::centred, false);
         }
     }
     // The line, from the card to the hand. Slightly curved, so it reads as a lead and not as a
     // border of something.
     juce::Path p;
-    p.startNewSubPath(from);
-    const float dx = to.x - from.x, dy = to.y - from.y;
-    p.quadraticTo(from.x + dx * 0.5f - dy * 0.12f, from.y + dy * 0.5f + dx * 0.12f, to.x, to.y);
-    g.setColour(colour.withAlpha(0.85f));
+    p.startNewSubPath(m_from);
+    const float dx = m_to.x - m_from.x, dy = m_to.y - m_from.y;
+    p.quadraticTo(m_from.x + dx * 0.5f - dy * 0.12f, m_from.y + dy * 0.5f + dx * 0.12f, m_to.x, m_to.y);
+    g.setColour(m_colour.withAlpha(0.85f));
     g.strokePath(p, juce::PathStrokeType(2.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-    g.setColour(colour.withAlpha(0.55f));
-    g.fillEllipse(from.x - 4.0f, from.y - 4.0f, 8.0f, 8.0f);
+    g.setColour(m_colour.withAlpha(0.55f));
+    g.fillEllipse(m_from.x - 4.0f, m_from.y - 4.0f, 8.0f, 8.0f);
 
     // The card itself, under the cursor: the same shape the lane draws, so what is in the hand is
     // recognisably the thing that was picked up.
     const float w = 74.0f, h = 26.0f;
-    const juce::Rectangle<float> card(to.x + 12.0f, to.y - h * 0.5f, w, h);
-    g.setColour(ui::card.withAlpha(0.96f));
-    g.fillRoundedRectangle(card, 5.0f);
-    g.setColour(colour.withAlpha(0.9f));
-    g.drawRoundedRectangle(card.reduced(0.5f), 5.0f, 1.4f);
-    g.setColour(colour.brighter(0.5f));
+    const juce::Rectangle<float> CardColour(m_to.x + 12.0f, m_to.y - h * 0.5f, w, h);
+    g.setColour(ui::CardColour.withAlpha(0.96f));
+    g.fillRoundedRectangle(CardColour, 5.0f);
+    g.setColour(m_colour.withAlpha(0.9f));
+    g.drawRoundedRectangle(CardColour.reduced(0.5f), 5.0f, 1.4f);
+    g.setColour(m_colour.brighter(0.5f));
     g.setFont(ui::title(10.5f));
-    g.drawText(name, card, juce::Justification::centred, false);
+    g.drawText(m_name, CardColour, juce::Justification::centred, false);
 }
 
 void NoctuaryEditor::showModDrag(juce::Point<int> screenFrom, juce::Point<int> screenTo,
                                      const juce::String& name, juce::Colour c)
 {
-    dragOverlay_.active = true;
-    dragOverlay_.from = dragOverlay_.getLocalPoint(nullptr, screenFrom.toFloat());
-    dragOverlay_.to = dragOverlay_.getLocalPoint(nullptr, screenTo.toFloat());
-    dragOverlay_.name = name;
-    dragOverlay_.colour = c;
-    dragOverlay_.target = {};
-    dragOverlay_.targetName = {};
+    m_dragOverlay.m_active = true;
+    m_dragOverlay.m_from = m_dragOverlay.getLocalPoint(nullptr, screenFrom.toFloat());
+    m_dragOverlay.m_to = m_dragOverlay.getLocalPoint(nullptr, screenTo.toFloat());
+    m_dragOverlay.m_name = name;
+    m_dragOverlay.m_colour = c;
+    m_dragOverlay.m_target = {};
+    m_dragOverlay.m_targetName = {};
     const int param = cellParamAt(screenTo);
     if (param >= 0) {
-        const int ci = cellForParam(static_cast<ParamId>(param));
+        const int ci = cellForParam(static_cast<ParamIdE>(param));
         const juce::Rectangle<int> b = cellScreenBounds(ci);
         if (!b.isEmpty()) {
-            const auto tl = dragOverlay_.getLocalPoint(nullptr, b.getTopLeft().toFloat());
-            const auto br = dragOverlay_.getLocalPoint(nullptr, b.getBottomRight().toFloat());
-            dragOverlay_.target = juce::Rectangle<float>(tl, br);
-            dragOverlay_.targetName = paramDesc(static_cast<ParamId>(param)).name;
+            const auto tl = m_dragOverlay.getLocalPoint(nullptr, b.getTopLeft().toFloat());
+            const auto br = m_dragOverlay.getLocalPoint(nullptr, b.getBottomRight().toFloat());
+            m_dragOverlay.m_target = juce::Rectangle<float>(tl, br);
+            m_dragOverlay.m_targetName = paramDesc(static_cast<ParamIdE>(param)).m_name;
         }
     }
-    dragOverlay_.setVisible(true);
-    dragOverlay_.toFront(false);
-    dragOverlay_.repaint();
+    m_dragOverlay.setVisible(true);
+    m_dragOverlay.toFront(false);
+    m_dragOverlay.repaint();
 }
 
 void NoctuaryEditor::hideModDrag()
 {
-    if (!dragOverlay_.active) return;
-    dragOverlay_.active = false;
-    dragOverlay_.repaint();
+    if (!m_dragOverlay.m_active) return;
+    m_dragOverlay.m_active = false;
+    m_dragOverlay.repaint();
 }
 
 // ---------------------------------------------------------------- the route's depth, as text
 
-float NoctuaryEditor::routeDepth(ModSource src, ParamId target) const
+float NoctuaryEditor::routeDepth(ModSourceE src, ParamIdE target) const
 {
-    const ModMatrix& m = proc_.engine().modMatrix();
+    const ModMatrix& m = m_proc.engine().modMatrix();
     for (int i = 0; i < m.count(); ++i)
-        if (m.route(i).source == src && m.route(i).target == target) return m.route(i).depth;
+        if (m.route(i).m_source == src && m.route(i).m_target == target) return m.route(i).m_depth;
     return 0.0f;
 }
 
@@ -115,60 +115,60 @@ float NoctuaryEditor::routeDepth(ModSource src, ParamId target) const
  * @return        the whole matrix as `source>target:depth[:via][:u]` rows joined with ';', in the
  *                form Engine::setModMatrixText parses
  */
-static juce::String matrixTextWith(const ModMatrix& m, ModSource src, ParamId target, const float* depth, bool drop)
+static juce::String matrixTextWith(const ModMatrix& m, ModSourceE src, ParamIdE target, const float* depth, bool drop)
 {
     juce::String t;
     for (int i = 0; i < m.count(); ++i) {
         const ModRoute& r = m.route(i);
-        const bool hit = r.source == src && r.target == target;
+        const bool hit = r.m_source == src && r.m_target == target;
         if (hit && drop) continue;
         if (t.isNotEmpty()) t += ";";
-        t += juce::String(modSourceName(r.source)) + ">" + paramDesc(r.target).key + ":"
-           + juce::String(hit && depth != nullptr ? *depth : r.depth, 3);
-        if (r.via != ModSource::None) t += ":" + juce::String(modSourceName(r.via));
-        if (r.unipolar) t += r.via != ModSource::None ? ":u" : ":none:u";
+        t += juce::String(modSourceName(r.m_source)) + ">" + paramDesc(r.m_target).m_key + ":"
+           + juce::String(hit && depth != nullptr ? *depth : r.m_depth, 3);
+        if (r.m_via != ModSourceE::NONE) t += ":" + juce::String(modSourceName(r.m_via));
+        if (r.m_unipolar) t += r.m_via != ModSourceE::NONE ? ":u" : ":none:u";
     }
     return t;
 }
 
-bool NoctuaryEditor::setRouteDepth(ModSource src, ParamId target, float depth)
+bool NoctuaryEditor::setRouteDepth(ModSourceE src, ParamIdE target, float depth)
 {
-    const juce::String t = matrixTextWith(proc_.engine().modMatrix(), src, target, &depth, false);
-    const bool ok = proc_.engine().setModMatrixText(t.toRawUTF8());
-    if (ok) { if (mod_) mod_->pullMatrix(); repaint(); }
+    const juce::String t = matrixTextWith(m_proc.engine().modMatrix(), src, target, &depth, false);
+    const bool ok = m_proc.engine().setModMatrixText(t.toRawUTF8());
+    if (ok) { if (m_mod) m_mod->pullMatrix(); repaint(); }
     return ok;
 }
 
-bool NoctuaryEditor::removeRoute(ModSource src, ParamId target)
+bool NoctuaryEditor::removeRoute(ModSourceE src, ParamIdE target)
 {
-    const juce::String t = matrixTextWith(proc_.engine().modMatrix(), src, target, nullptr, true);
-    const bool ok = proc_.engine().setModMatrixText(t.toRawUTF8());
-    if (ok) { if (mod_) mod_->pullMatrix(); repaint(); }
+    const juce::String t = matrixTextWith(m_proc.engine().modMatrix(), src, target, nullptr, true);
+    const bool ok = m_proc.engine().setModMatrixText(t.toRawUTF8());
+    if (ok) { if (m_mod) m_mod->pullMatrix(); repaint(); }
     return ok;
 }
 
 // ---------------------------------------------------------------- the depth popup
 
-NoctuaryEditor::DepthPopup::DepthPopup(NoctuaryEditor& o, ModSource s, ParamId t, juce::Colour c)
-    : owner(o), source(s), target(t), colour(c)
+NoctuaryEditor::DepthPopup::DepthPopup(NoctuaryEditor& o, ModSourceE s, ParamIdE t, juce::Colour c)
+    : m_owner(o), m_source(s), m_target(t), m_colour(c)
 {
-    depth.setSliderStyle(juce::Slider::LinearHorizontal);
-    depth.setRange(-1.0, 1.0, 0.001);
-    depth.setValue(owner.routeDepth(s, t), juce::dontSendNotification);
-    depth.setTextBoxStyle(juce::Slider::TextBoxRight, false, 46, 18);
-    depth.setNumDecimalPlacesToDisplay(2);
-    depth.setDoubleClickReturnValue(true, 0.25);
-    depth.setColour(juce::Slider::trackColourId, colour.withAlpha(0.85f));
-    depth.setColour(juce::Slider::thumbColourId, colour.brighter(0.3f));
-    depth.setTooltip("How much of the target's range this modulator moves. Negative turns it the other way.");
-    depth.onValueChange = [this] { owner.setRouteDepth(source, target, static_cast<float>(depth.getValue())); };
-    addAndMakeVisible(depth);
-    remove.setTooltip("Take this route away again");
-    remove.onClick = [this] {
-        owner.removeRoute(source, target);
-        owner.hideDepthPopup();      // deletes this: nothing may touch it afterwards
+    m_depth.setSliderStyle(juce::Slider::LinearHorizontal);
+    m_depth.setRange(-1.0, 1.0, 0.001);
+    m_depth.setValue(m_owner.routeDepth(s, t), juce::dontSendNotification);
+    m_depth.setTextBoxStyle(juce::Slider::TextBoxRight, false, 46, 18);
+    m_depth.setNumDecimalPlacesToDisplay(2);
+    m_depth.setDoubleClickReturnValue(true, 0.25);
+    m_depth.setColour(juce::Slider::trackColourId, m_colour.withAlpha(0.85f));
+    m_depth.setColour(juce::Slider::thumbColourId, m_colour.brighter(0.3f));
+    m_depth.setTooltip("How much of the target's range this modulator moves. Negative turns it the other way.");
+    m_depth.onValueChange = [this] { m_owner.setRouteDepth(m_source, m_target, static_cast<float>(m_depth.getValue())); };
+    addAndMakeVisible(m_depth);
+    m_remove.setTooltip("Take this route away again");
+    m_remove.onClick = [this] {
+        m_owner.removeRoute(m_source, m_target);
+        m_owner.hideDepthPopup();      // deletes this: nothing may touch it afterwards
     };
-    addAndMakeVisible(remove);
+    addAndMakeVisible(m_remove);
     setSize(232, 46);
     // The next click anywhere but in here puts it away, which is what makes it a popup and not
     // another panel to tidy up after.
@@ -183,14 +183,14 @@ NoctuaryEditor::DepthPopup::~DepthPopup()
 void NoctuaryEditor::DepthPopup::paint(juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat().reduced(0.5f);
-    g.setColour(ui::card.withAlpha(0.97f));
+    g.setColour(ui::CardColour.withAlpha(0.97f));
     g.fillRoundedRectangle(r, 6.0f);
-    g.setColour(colour.withAlpha(0.9f));
+    g.setColour(m_colour.withAlpha(0.9f));
     g.drawRoundedRectangle(r, 6.0f, 1.4f);
-    g.setColour(colour.brighter(0.45f));
+    g.setColour(m_colour.brighter(0.45f));
     g.setFont(ui::title(10.5f));
-    g.drawText(juce::String(modSourceName(source)).toUpperCase() + "  " + juce::String(juce::CharPointer_UTF8("\xe2\x86\x92")) + "  "
-                   + paramDesc(target).name,
+    g.drawText(juce::String(modSourceName(m_source)).toUpperCase() + "  " + juce::String(juce::CharPointer_UTF8("\xe2\x86\x92")) + "  "
+                   + paramDesc(m_target).m_name,
                getLocalBounds().removeFromTop(18).reduced(8, 0), juce::Justification::centredLeft, false);
 }
 
@@ -198,29 +198,29 @@ void NoctuaryEditor::DepthPopup::resized()
 {
     auto r = getLocalBounds().reduced(8, 6);
     r.removeFromTop(16);
-    remove.setBounds(r.removeFromRight(22));
+    m_remove.setBounds(r.removeFromRight(22));
     r.removeFromRight(4);
-    depth.setBounds(r);
+    m_depth.setBounds(r);
 }
 
-void NoctuaryEditor::showDepthPopup(ModSource src, ParamId target, juce::Colour c, juce::Point<int> screenAt)
+void NoctuaryEditor::showDepthPopup(ModSourceE src, ParamIdE target, juce::Colour c, juce::Point<int> screenAt)
 {
     hideDepthPopup();
-    depthPopup_ = std::make_unique<DepthPopup>(*this, src, target, c);
-    addAndMakeVisible(*depthPopup_);
-    depthPopup_->setTransform(juce::AffineTransform::scale(scale_));
-    const auto at = depthPopup_->getLocalPoint(nullptr, screenAt.toFloat());
+    m_depthPopup = std::make_unique<DepthPopup>(*this, src, target, c);
+    addAndMakeVisible(*m_depthPopup);
+    m_depthPopup->setTransform(juce::AffineTransform::scale(m_scale));
+    const auto at = m_depthPopup->getLocalPoint(nullptr, screenAt.toFloat());
     // Beside the knob, and inside the panel: a popup half off the edge is worse than none.
-    const int w = depthPopup_->getWidth(), h = depthPopup_->getHeight();
+    const int w = m_depthPopup->getWidth(), h = m_depthPopup->getHeight();
     int x = juce::roundToInt(at.x) + 14, y = juce::roundToInt(at.y) - h / 2;
-    x = juce::jlimit(4, juce::jmax(4, designW_ - w - 4), x);
-    y = juce::jlimit(4, juce::jmax(4, designH_ - h - 4), y);
-    depthPopup_->setTopLeftPosition(x, y);
-    depthPopup_->toFront(false);
+    x = juce::jlimit(4, juce::jmax(4, m_designW - w - 4), x);
+    y = juce::jlimit(4, juce::jmax(4, m_designH - h - 4), y);
+    m_depthPopup->setTopLeftPosition(x, y);
+    m_depthPopup->toFront(false);
 }
 
 void NoctuaryEditor::hideDepthPopup()
 {
-    depthPopup_.reset();
+    m_depthPopup.reset();
 }
 

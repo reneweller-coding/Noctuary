@@ -2,7 +2,7 @@
 // 155 shapes in 12 families. The ratios and the acoustics behind every one of them,
 // and the reason this is generated rather than typed, are in that file.
 
-const char* const kZCategoryNames[kZCategories] = {
+const char* const ZCategoryNames[ZCategories] = {
     "Voice",
     "Sweeps",
     "Combs & Phasers",
@@ -17,7 +17,7 @@ const char* const kZCategoryNames[kZCategories] = {
     "EQ & Speakers",
 };
 
-const char* const kZShapeNames[kZShapes] = {
+const char* const ZShapeNames[ZShapes] = {
     "Vowel Morph",
     "Choir",
     "Nasal",
@@ -177,7 +177,7 @@ const char* const kZShapeNames[kZShapes] = {
 
 // Which family each shape belongs to. Display only: the parameter's numbering is
 // historical and frozen, the editor sorts the list into families for the eye.
-const unsigned char kZShapeCategory[kZShapes] = {
+const unsigned char ZShapeCategory[ZShapes] = {
     0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 3, 4,
     3, 4, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 4,
@@ -196,7 +196,7 @@ const unsigned char kZShapeCategory[kZShapes] = {
 // Eight corners of a cube: (0,0) (1,0) (0,1) (1,1) at Transform 0, then the same
 // four at Transform 1.  { frequencies... }, bandwidth ratio, zero ratio, zero
 // bandwidth ratio, tilt
-const ZCornerSpec kZCorners[kZShapes][8] = {
+const ZCornerSpec ZCorners[ZShapes][8] = {
     {   // Vowel Morph: a -> e across X, o -> i up Y; pure resonators, so the vowel takes the sound over  [Transform: res]
         { { 700, 1150, 2900 }, 0.1200f, 0.0000f, 0.0000f, 0.700f },
         { { 400, 1600, 2700 }, 0.1200f, 0.0000f, 0.0000f, 0.700f },

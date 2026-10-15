@@ -64,8 +64,8 @@ std::vector<float> signal(int n, unsigned seed, float level)
  * @param model  a generic callable `V(V* v, V* s, V x)` running one circuit, called with F4 and with float
  * @return       the largest difference between a lane and its float, relative to the largest output
  */
-template <class Model>
-float lanesAgainstFloat(Model&& model)
+template <class ModelT>
+float lanesAgainstFloat(ModelT&& model)
 {
     using circuit::F4;
     const int n = 9600;
@@ -135,7 +135,7 @@ double freqOf(const std::vector<float>& y, double sr)
 int main()
 {
     char path[64];
-    std::snprintf(path, sizeof(path), "%s/%s", circuit::kLanePath, halfband::kDotPath);
+    std::snprintf(path, sizeof(path), "%s/%s", circuit::LanePath, halfband::DotPath);
     std::printf("circuit lanes / oversampler sums: %s\n", path);
 #ifdef AMBIENT_EXPECT_PATH
     CHECK(std::strcmp(path, AMBIENT_EXPECT_PATH) == 0, "the build runs the vector paths it was made for");
@@ -144,7 +144,7 @@ int main()
     // The lanes against one float, every model; g for 1 kHz at twice 48 kHz, a resonance near the top.
     using circuit::F4;
     const float g = std::tan(3.14159265f * 1000.0f / 96000.0f);
-    struct { const char* name; float err; } lanes[] = {
+    struct { const char* m_name; float m_err; } lanes[] = {
         { "Moog", lanesAgainstFloat([g](auto* v, auto* s, auto x) { using V = std::remove_reference_t<decltype(x)>;
             return circuit::ladderMoog(v, s, x, circuit::lanes<V>(g), circuit::lanes<V>(3.5f)); }) },
         { "Prophet", lanesAgainstFloat([g](auto* v, auto* s, auto x) { using V = std::remove_reference_t<decltype(x)>;
@@ -155,15 +155,15 @@ int main()
             return circuit::diodeLadder(v, s, x, circuit::lanes<V>(g * 0.70710678f), circuit::lanes<V>(15.0f)); }) },
     };
     for (const auto& l : lanes) {
-        std::printf("  %-8s lanes against one float: %.2e of the peak\n", l.name, l.err);
-        CHECK(l.err < 1e-4f, (std::string(l.name) + ": the lanes compute what one float computes").c_str());
+        std::printf("  %-8s lanes against one float: %.2e of the peak\n", l.m_name, l.m_err);
+        CHECK(l.m_err < 1e-4f, (std::string(l.m_name) + ": the lanes compute what one float computes").c_str());
     }
 
     // The sound, through VoiceFilter.
     {
         VoiceFilter f;
         f.prepare(48000.0);
-        f.set(FilterModel::Prophet, 440.0f, 1.0f, 0.0f);
+        f.set(FilterModelE::PROPHET, 440.0f, 1.0f, 0.0f);
         std::vector<float> tail;
         for (int i = 0; i < 120000; ++i) {
             const float x = i < 4 ? 0.5f : 0.0f;
@@ -176,7 +176,7 @@ int main()
         CHECK(std::fabs(hz / 440.0 - 1.0) < 0.04, "the Prophet sings on its own on Cutoff");
         VoiceFilter sem;
         sem.prepare(48000.0);
-        sem.set(FilterModel::Sem, 1000.0f, 0.0f, 0.0f, 0.5f);
+        sem.set(FilterModelE::SEM, 1000.0f, 0.0f, 0.0f, 0.5f);
         const float notch = gainDb(sem, 1000.0f, 0.1f);
         std::printf("  SEM at Morph 0.5: %.1f dB on Cutoff\n", notch);
         CHECK(notch < -20.0f, "the SEM at Morph 0.5 is a notch on Cutoff");
