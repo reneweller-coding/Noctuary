@@ -23,6 +23,7 @@
  * colours one at a time, the string, the grains -- were measured against it and corrected, which
  * the selftest holds them to. Most of the comments below are measurements: what was heard, what
  * was measured, and why the number that stands there stands there.
+ * @author Rene Weller
  */
 #include "ambient/Sources.h"
 #include "ambient/Simd.h"
@@ -60,8 +61,7 @@ namespace {
  * The sum of the squares comes to one afterwards; a silent frame is left as it is rather than
  * divided by nothing. Called for every frame a built-in table is written with and for every frame
  * Wavetable::analyse() cuts from a file.
- *
- * @param a  the frame's TablePartials amplitudes, rewritten in place
+ * @param[in,out] a  the frame's TablePartials amplitudes, rewritten in place
  */
 void normaliseFrame(float* a)
 {
@@ -283,8 +283,8 @@ bool Wavetable::analyse(const float* mono, int n, int frameLen)
 namespace {
 /**
  * @brief The fractional part of @p x: a phase brought back into [0, 1).
- * @param x  a phase in cycles, of any magnitude
- * @return   x minus floor(x)
+ * @param[in] x  a phase in cycles, of any magnitude
+ * @return x minus floor(x)
  */
 inline double wrap01(double x) { return x - std::floor(x); }
 }
@@ -872,11 +872,10 @@ void Texture::analyse()
  * Needs p[-stride] .. p[2*stride]; the caller guarantees that window, see `herm` in renderTexture.
  * `p` points at the sample before the fraction and `stride` is 1 for a mono clip, 2 for one channel
  * of an interleaved pair.
- *
- * @param p       the sample before the fraction; p[-stride] .. p[2 * stride] must be readable
- * @param stride  1 for a mono clip, 2 for one channel of an interleaved stereo pair
- * @param t       the fraction between p[0] and p[stride], 0 .. 1
- * @return        the sample on the curve at that fraction
+ * @param[in] p       the sample before the fraction; p[-stride] .. p[2 * stride] must be readable
+ * @param[in] stride  1 for a mono clip, 2 for one channel of an interleaved stereo pair
+ * @param[in] t       the fraction between p[0] and p[stride], 0 .. 1
+ * @return the sample on the curve at that fraction
  */
 static inline float hermiteAt(const float* p, int stride, float t)
 {
@@ -892,12 +891,11 @@ static inline float hermiteAt(const float* p, int stride, float t)
  *
  * The choice is a template tag and not a branch, because the grain loop this serves is the
  * instrument's largest single cost and a test inside it is paid by every sample (see renderTexture).
- *
+ * @param[in] p       the sample before the fraction (for H the window of hermiteAt() must be readable)
+ * @param[in] stride  1 for a mono clip, 2 for one channel of an interleaved stereo pair
+ * @param[in] t       the fraction between p[0] and p[stride], 0 .. 1
+ * @return the interpolated sample
  * @tparam H      true for the Catmull-Rom curve of hermiteAt(), false for the straight line
- * @param p       the sample before the fraction (for H the window of hermiteAt() must be readable)
- * @param stride  1 for a mono clip, 2 for one channel of an interleaved stereo pair
- * @param t       the fraction between p[0] and p[stride], 0 .. 1
- * @return        the interpolated sample
  */
 template <bool H>
 static inline float readAt(const float* p, int stride, float t)
@@ -1342,10 +1340,9 @@ namespace {
  *
  * The three-pole short form is 1.7 dB per octave too
  * steep -- measured, which is why it is not used here.
- *
- * @param st  the channel's noise state; its seven pink terms are advanced
- * @param w   one sample of white noise, -1 .. 1
- * @return    one sample of pink noise, scaled to sit near the white's level
+ * @param[in,out] st  the channel's noise state; its seven pink terms are advanced
+ * @param[in]     w   one sample of white noise, -1 .. 1
+ * @return one sample of pink noise, scaled to sit near the white's level
  */
 inline float pinkStep(SourceSlot::NoiseState& st, float w)
 {

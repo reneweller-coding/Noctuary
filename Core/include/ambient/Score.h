@@ -18,6 +18,7 @@
  * seconds. Without "over" the value is set at that moment; with it, the parameter travels there
  * from wherever it was when the ramp started -- in the parameter's own skewed domain, so a
  * logarithmic knob moves the way the hand would move it.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -51,31 +52,32 @@ public:
      * that is not a number becomes the parameter's default, and every value is clamped to the
      * parameter's range. Comments ('#' to the end of the line) and blank lines are skipped. The
      * clock is rewound afterwards.
-     *
-     * @param text  the whole file, NUL-terminated; nullptr is refused
-     * @return      true when every line parsed
+     * @param[in] text  the whole file, NUL-terminated; nullptr is refused
+     * @return true when every line parsed
      */
     bool parse(const char* text);
     /**
      * @brief The text form again.
      *
      * One line per event, choices by name and switches as on/off, times as m:ss or h:mm:ss.
-     *
-     * @param buf  receives the NUL-terminated text (always terminated when @p cap > 0, cut short if it does not fit)
-     * @param cap  size of @p buf
-     * @return     the length the whole text has (which may exceed @p cap), or -1 on a formatting error
+     * @param[out] buf  receives the NUL-terminated text (always terminated when @p cap > 0, cut short if it does not
+     *                  fit)
+     * @param[in]  cap  size of @p buf
+     * @return the length the whole text has (which may exceed @p cap), or -1 on a formatting error
      */
     int  write(char* buf, size_t cap) const;
     /**
      * @brief Reads a file and parses it (see parse()). Message thread: allocates.
-     * @param path  the file to read
-     * @return      false when the file is missing or a line is malformed
+     * @param[in] path  the file to read
+     * @return false when the file is missing or a line is malformed
+     * @pre called on the message thread
      */
     bool load(const char* path);
     /**
      * @brief Writes the text form to a file. Message thread: allocates.
-     * @param path  the file to create
-     * @return      false when the file could not be opened or written in full
+     * @param[in] path  the file to create
+     * @return false when the file could not be opened or written in full
+     * @pre called on the message thread
      */
     bool save(const char* path) const;
 
@@ -83,8 +85,8 @@ public:
     int  count() const { return m_count; }
     /**
      * @brief One event, in the order of the text.
-     * @param i  0 .. count()-1, unchecked
-     * @return   the event
+     * @param[in] i  0 .. count()-1, unchecked
+     * @return the event
      */
     const ScoreEvent& event(int i) const { return m_events[i]; }
     /** @return when the last ramp finishes, in seconds (the latest at + over) */
@@ -93,8 +95,8 @@ public:
     void clear() { m_count = 0; }
     /**
      * @brief Appends an event, not yet started.
-     * @param e  the event
-     * @return   false when the score is full (MaxScoreEvents)
+     * @param[in] e  the event
+     * @return false when the score is full (MaxScoreEvents)
      */
     bool add(const ScoreEvent& e);
 
@@ -118,12 +120,11 @@ public:
      * writes rampValue() of its progress through @p set on every call until it has finished; an
      * event with no duration is set once its time has come and stays set. Nothing happens for a
      * non-positive @p dt or an empty score.
-     *
+     * @param[in] dt       seconds since the last call
+     * @param[in] valueOf  where a parameter is now, read when a ramp starts
+     * @param[in] set      receives every parameter that moved
      * @tparam ValueFn  callable as float(ParamId)
      * @tparam SetFn    callable as void(ParamId, float)
-     * @param dt        seconds since the last call
-     * @param valueOf   where a parameter is now, read when a ramp starts
-     * @param set       receives every parameter that moved
      */
     template <class ValueFnT, class SetFnT>
     void step(double dt, ValueFnT&& valueOf, SetFnT&& set)
@@ -148,12 +149,11 @@ public:
      *
      * A float travels in the skew domain (the normalised value raised to the parameter's skew);
      * a choice, a switch or an integer does not travel at all and changes when the ramp is over.
-     *
-     * @param id    the parameter, for its range and skew
-     * @param from  the value the ramp started at
-     * @param to    the value it ends at
-     * @param x     progress 0 .. 1 (clamped)
-     * @return      the value to set now, in the parameter's real range
+     * @param[in] id    the parameter, for its range and skew
+     * @param[in] from  the value the ramp started at
+     * @param[in] to    the value it ends at
+     * @param[in] x     progress 0 .. 1 (clamped)
+     * @return the value to set now, in the parameter's real range
      */
     static float rampValue(ParamIdE id, float from, float to, float x);
 
@@ -170,17 +170,16 @@ private:
  *
  * Up to three ':'-separated numbers (h:mm:ss, m:ss or plain seconds), fractions allowed; trailing
  * blanks are ignored, anything else after the number refuses the text.
- *
- * @param text  the time as written; nullptr or empty is not a time
- * @return      seconds, or -1 when @p text is not a time
+ * @param[in] text  the time as written; nullptr or empty is not a time
+ * @return seconds, or -1 when @p text is not a time
  */
 double parseScoreTime(const char* text);
 /**
  * @brief Writes seconds as m:ss, or h:mm:ss once there is an hour, whole seconds only.
- * @param seconds  the time; negative counts as 0
- * @param buf      receives the NUL-terminated text
- * @param cap      size of @p buf
- * @return         what snprintf returns: the length written, or the length needed if @p cap was too small
+ * @param[in]  seconds  the time; negative counts as 0
+ * @param[out] buf      receives the NUL-terminated text
+ * @param[in]  cap      size of @p buf
+ * @return what snprintf returns: the length written, or the length needed if @p cap was too small
  */
 int    writeScoreTime(double seconds, char* buf, size_t cap);
 

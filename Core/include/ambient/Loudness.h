@@ -19,6 +19,7 @@
  * estimate, and both channels into a ZwickerLoudness for the sone figures. The audio thread
  * writes, the message thread reads a LoudnessReading snapshot; the histories are fixed rings
  * (LoudnessLog), so nothing here allocates after prepare().
+ * @author Rene Weller
  */
 #pragma once
 #include <array>
@@ -80,15 +81,15 @@ public:
     /**
      * @brief Computes both stages for a sample rate (the shelf from its analogue f0, gain and Q, the
      *        RLB high-pass with its unnormalised 1, -2, 1 numerator) and clears the state.
-     * @param sampleRate  Hz
+     * @param[in] sampleRate  Hz
      */
     void prepare(double sampleRate);
     /** @brief Clears both stages' delay state; the coefficients stay. */
     void reset();
     /**
      * @brief One sample through the shelf and then the high-pass.
-     * @param x  the input sample
-     * @return   the K-weighted sample
+     * @param[in] x  the input sample
+     * @return the K-weighted sample
      */
     float process(float x);
 private:
@@ -108,8 +109,8 @@ private:
         float m_z1 = 0, m_z2 = 0;   ///< z2: the second state
         /**
          * @brief One sample through the section.
-         * @param x  the input sample
-         * @return   the filtered sample
+         * @param[in] x  the input sample
+         * @return the filtered sample
          */
         float process(float x)
         {
@@ -139,7 +140,8 @@ private:
 struct LoudnessLog {
     /**
      * @brief Sizes the ring (message thread, before use) and empties it.
-     * @param capacity  values the window holds; the oldest is overwritten once it is full
+     * @param[in] capacity  values the window holds; the oldest is overwritten once it is full
+     * @pre called on the message thread
      */
     void prepare(size_t capacity) { m_buf.assign(capacity, 0.0f); m_pos.store(0); m_count.store(0); }
     /** @brief Empties the window without touching its storage. */
@@ -148,7 +150,7 @@ struct LoudnessLog {
      * @brief Appends one value, overwriting the oldest once the ring is full.
      *
      * audio thread; never allocates
-     * @param v  the value (a loudness in LUFS or sones)
+     * @param[in] v  the value (a loudness in LUFS or sones)
      */
     void push(float v)
     {
@@ -166,6 +168,7 @@ struct LoudnessLog {
     /**
      * @brief The window in order, oldest first (message thread).
      * @return a copy of the values; allocates, so not for the audio thread
+     * @pre called on the message thread
      */
     std::vector<float> snapshot() const
     {
@@ -221,7 +224,7 @@ public:
     /**
      * @brief Allocates the FFT buffers, builds the window and the bin ranges of the 28 bands for this
      *        sample rate, sizes the history, and resets.
-     * @param sampleRate  Hz (anything not positive reads as 48 kHz)
+     * @param[in] sampleRate  Hz (anything not positive reads as 48 kHz)
      */
     void prepare(double sampleRate);
     /** @brief Clears the ring, the current and maximum values and the history. */
@@ -229,9 +232,10 @@ public:
     /**
      * @brief Feeds a block of the finished output: the mono sum goes into the analysis ring, and
      *        every 2048 samples a frame is measured (audio thread).
-     * @param L  left channel
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in] L  left channel
+     * @param[in] R  right channel
+     * @param[in] n  samples in the block
+     * @pre called on the audio thread
      */
     void process(const float* L, const float* R, int n);
     /** @brief The loudness of the last frame. @return sones */
@@ -252,15 +256,14 @@ public:
      * rawLoudness() pinned to the sone's definition: the constant is the model's own answer for a
      * 1 kHz third octave at 40 dB SPL, computed once, so one sone IS that tone whatever the model
      * does otherwise.
-     *
-     * @param levelsDb  Bands levels in dB SPL, one per third octave from 25 Hz up
-     * @return          sones
+     * @param[in] levelsDb  Bands levels in dB SPL, one per third octave from 25 Hz up
+     * @return sones
      */
     static float fromBandLevels(const float* levelsDb);
     /**
      * @brief Terhardt's approximation of the absolute threshold of hearing.
-     * @param hz  frequency
-     * @return    the threshold in dB SPL, clamped to -5 .. 80
+     * @param[in] hz  frequency
+     * @return the threshold in dB SPL, clamped to -5 .. 80
      */
     static float thresholdInQuiet(float hz);
     /**
@@ -268,9 +271,8 @@ public:
      *
      * Public only so that the pinning
      * below can be read and checked rather than believed.
-     *
-     * @param levelsDb  Bands levels in dB SPL
-     * @return          the integral of the specific loudness over 24 Bark, in the model's own units
+     * @param[in] levelsDb  Bands levels in dB SPL
+     * @return the integral of the specific loudness over 24 Bark, in the model's own units
      */
     static float rawLoudness(const float* levelsDb);
 
@@ -282,11 +284,11 @@ private:
     /** @var static constexpr int N
      *  @brief the FFT length: 8192 samples, 5.9 Hz per bin at 48 kHz */
     static constexpr int N = 8192, Hop = 2048;   ///< Hop: samples between frames
-    /** @var std::vector<float> m_ring
+    /** @var std::vector\<float\> m_ring
      *  @brief the last N mono samples */
-    /** @var std::vector<float> m_re
+    /** @var std::vector\<float\> m_re
      *  @brief the transform's real part, windowed input in */
-    /** @var std::vector<float> m_im
+    /** @var std::vector\<float\> m_im
      *  @brief the transform's imaginary part */
     std::vector<float> m_ring, m_re, m_im, m_window;   ///< m_window: the Hann window of N
     /** @var int m_pos
@@ -316,7 +318,7 @@ public:
     /**
      * @brief Sizes everything for a sample rate: the 100 ms hop, the K filters, the Zwicker model
      *        and the two block logs; then resets.
-     * @param sampleRate  Hz (anything not positive reads as 48 kHz)
+     * @param[in] sampleRate  Hz (anything not positive reads as 48 kHz)
      */
     void prepare(double sampleRate);
     /** @brief Starts the measurement over: filters, hop sums, logs, true peak and the clock. */
@@ -327,10 +329,9 @@ public:
      * Audio thread. The true peak is taken first, on the unweighted signal; then both channels are
      * K-weighted and their squares summed into the current hop, and every hop pushBlock() closes
      * one 100 ms slice.
-     *
-     * @param L  left channel
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in] L  left channel
+     * @param[in] R  right channel
+     * @param[in] n  samples in the block
      */
     void process(const float* L, const float* R, int n);
     /**
@@ -355,7 +356,7 @@ private:
     /** @var int m_hopLen
      *  @brief samples in a 100 ms hop */
     int    m_blockLen = 19200, m_hopLen = 4800, m_hopPos = 0;   ///< m_hopPos: samples into the current hop
-    /** @var std::vector<double> m_sumL
+    /** @var std::vector\<double\> m_sumL
      *  @brief the left channel's ring of per-hop mean squares */
     std::vector<double> m_sumL, m_sumR;   ///< ring of per-hop mean squares, four hops to a block
     /** @var int m_ringPos

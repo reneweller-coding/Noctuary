@@ -15,6 +15,7 @@
  * stall playback for good). write() produces that text again with a header line, NUL-terminated;
  * save() and load() are the file forms around them, used by the plugin, the Quest app and
  * `ambient_render --set-file`.
+ * @author Rene Weller
  */
 #include <cmath>
 #include "ambient/Timeline.h"

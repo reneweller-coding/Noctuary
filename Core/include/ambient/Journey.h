@@ -26,6 +26,7 @@
  * Journey holds the file's content and its text form, JourneyPlayer plays it; both are
  * header-only and framework-free, so the plugin, the standalone, the Quest app and the render
  * tool share them.
+ * @author Rene Weller
  */
 #pragma once
 #include <algorithm>
@@ -72,8 +73,8 @@ struct Journey {
 
     /**
      * @brief Seconds as the file writes them: m:ss, or h:mm:ss from an hour up.
-     * @param s  seconds, rounded to the nearest whole one
-     * @return   "5:00", "1:02:03" and the like
+     * @param[in] s  seconds, rounded to the nearest whole one
+     * @return "5:00", "1:02:03" and the like
      */
     static std::string timeText(double s)
     {
@@ -85,9 +86,9 @@ struct Journey {
     }
     /**
      * @brief A range as the file writes it: one time when the ends agree, else the two with a dash.
-     * @param lo  the lower end in seconds
-     * @param hi  the upper end in seconds
-     * @return    timeText(lo), or timeText(lo) + "-" + timeText(hi)
+     * @param[in] lo  the lower end in seconds
+     * @param[in] hi  the upper end in seconds
+     * @return timeText(lo), or timeText(lo) + "-" + timeText(hi)
      */
     static std::string rangeText(double lo, double hi)
     {
@@ -95,9 +96,9 @@ struct Journey {
     }
     /**
      * @brief m:ss, h:mm:ss or seconds; false when it is none of them.
-     * @param s    the token, already trimmed
-     * @param out  receives the seconds it names; on failure what it holds is not to be trusted
-     * @return     true when the token parsed
+     * @param[in]  s    the token, already trimmed
+     * @param[out] out  receives the seconds it names; on failure what it holds is not to be trusted
+     * @return true when the token parsed
      */
     static bool parseTime(const std::string& s, double& out)
     {
@@ -111,10 +112,10 @@ struct Journey {
     }
     /**
      * @brief A dwell or fade field: one time, or two with a dash between them (swapped if reversed).
-     * @param s   the field; trimmed here
-     * @param lo  receives the lower end in seconds
-     * @param hi  receives the upper end; equal to lo for a single time
-     * @return    false when either time fails to parse
+     * @param[in]  s   the field; trimmed here
+     * @param[out] lo  receives the lower end in seconds
+     * @param[out] hi  receives the upper end; equal to lo for a single time
+     * @return false when either time fails to parse
      */
     static bool parseRange(std::string s, double& lo, double& hi)
     {
@@ -127,8 +128,8 @@ struct Journey {
     }
     /**
      * @brief Strips spaces, tabs and line ends from both ends.
-     * @param s  any text
-     * @return   the trimmed copy
+     * @param[in] s  any text
+     * @return the trimmed copy
      */
     static std::string trim(const std::string& s)
     {
@@ -145,9 +146,8 @@ struct Journey {
      * "cyclic ..." set the two fields; everything else is a step, its fields split on '|': the
      * first the preset, the second the dwell, the third the fade (either may be empty and keeps
      * its default), and any later "near=..." field the foreground. Clears the journey first.
-     *
-     * @param text  the whole file
-     * @return      true when every line was understood
+     * @param[in] text  the whole file
+     * @return true when every line was understood
      */
     bool parse(const char* text)
     {
@@ -197,8 +197,8 @@ struct Journey {
     }
     /**
      * @brief Reads a journey file.
-     * @param path  the file
-     * @return      false when it cannot be opened or a line fails to parse
+     * @param[in] path  the file
+     * @return false when it cannot be opened or a line fails to parse
      */
     bool load(const char* path)
     {
@@ -209,8 +209,8 @@ struct Journey {
     }
     /**
      * @brief Writes text() to a file.
-     * @param path  the file, overwritten
-     * @return      false when it cannot be opened or written
+     * @param[in] path  the file, overwritten
+     * @return false when it cannot be opened or written
      */
     bool save(const char* path) const
     {
@@ -249,10 +249,9 @@ public:
      * The first advance() after this begins the step at once, whatever dt it is given. A seed of
      * zero is replaced by a fixed constant, so the run is still repeatable; a host that wants an
      * evening passes something that differs every time.
-     *
-     * @param j          the journey, copied
-     * @param seed       the xorshift generator's seed; 0 selects the default constant
-     * @param startStep  the index of the step to begin with, taken modulo the step count
+     * @param[in] j          the journey, copied
+     * @param[in] seed       the xorshift generator's seed; 0 selects the default constant
+     * @param[in] startStep  the index of the step to begin with, taken modulo the step count
      */
     void start(const Journey& j, uint64_t seed, int startStep = 0)
     {
@@ -283,12 +282,11 @@ public:
      *
      * Returns true when a step begins: `step` is it, `fade` the seconds drawn for
      * its crossfade. The first call after start() begins the first step at once.
-     *
-     * @param dt    seconds since the previous call
-     * @param step  receives the step that begins, when one does
-     * @param fade  receives the crossfade seconds drawn for it, when one does
-     * @return      true when a step begins; false while the current one is still held, and once
-     *              a non-cyclic journey has run off its end (running() is then false)
+     * @param[in]  dt    seconds since the previous call
+     * @param[out] step  receives the step that begins, when one does
+     * @param[out] fade  receives the crossfade seconds drawn for it, when one does
+     * @return true when a step begins; false while the current one is still held, and once a non-cyclic journey has run
+     *         off its end (running() is then false)
      */
     bool advance(double dt, JourneyStep& step, double& fade)
     {
@@ -317,9 +315,9 @@ public:
 private:
     /**
      * @brief One draw from a range, from the player's own xorshift64 generator.
-     * @param lo  lower end
-     * @param hi  upper end
-     * @return    lo + (hi - lo) * u, u uniform in [0, 1)
+     * @param[in] lo  lower end
+     * @param[in] hi  upper end
+     * @return lo + (hi - lo) * u, u uniform in [0, 1)
      */
     double draw(double lo, double hi)
     {

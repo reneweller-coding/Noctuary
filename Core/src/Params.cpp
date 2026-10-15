@@ -19,6 +19,7 @@
  * section-name-to-enum table behind sectionOf(), the per-parameter section cache behind
  * sectionTable(), and findParam(), the sorted index that turns a preset's key into a description
  * in nine string comparisons instead of a hundred and forty-six.
+ * @author Rene Weller
  */
 #include "ambient/Params.h"
 #include "ambient/Filter.h"
@@ -109,57 +110,57 @@ namespace {
 using KT = ParamKindE;   ///< short for the kind column, so that a table row stays on one line
 /**
  * @brief A float parameter's row of the table.
- * @param id    the parameter
- * @param key   the stable identifier presets and automation use (never renamed)
- * @param name  the display name on the panel
- * @param sec   the section name the editor groups it under (sectionOf() turns it into a ParamSection)
- * @param mn    the lowest value, in the parameter's unit
- * @param mx    the highest value
- * @param def   the value a new instance and an unmentioning preset get
- * @param skew  1 for a linear knob, below 1 for more resolution at the low end (the domain the
- *              morph, the map blend and the score ramp in)
- * @param unit  the unit shown after the value ("Hz", "s", "dB", "ct", "" for a plain 0 .. 1)
- * @return      the description, with no choices
+ * @param[in] id    the parameter
+ * @param[in] key   the stable identifier presets and automation use (never renamed)
+ * @param[in] name  the display name on the panel
+ * @param[in] sec   the section name the editor groups it under (sectionOf() turns it into a ParamSection)
+ * @param[in] mn    the lowest value, in the parameter's unit
+ * @param[in] mx    the highest value
+ * @param[in] def   the value a new instance and an unmentioning preset get
+ * @param[in] skew  1 for a linear knob, below 1 for more resolution at the low end (the domain the morph, the map blend
+ *                  and the score ramp in)
+ * @param[in] unit  the unit shown after the value ("Hz", "s", "dB", "ct", "" for a plain 0 .. 1)
+ * @return the description, with no choices
  */
 constexpr ParamDesc F(ParamIdE id, const char* key, const char* name, const char* sec,
                       float mn, float mx, float def, float skew, const char* unit)
 { return { id, key, name, sec, KT::FLOAT, mn, mx, def, skew, unit, nullptr, 0 }; }
 /**
  * @brief An integer parameter's row: linear, stepped, rounded by whoever reads it.
- * @param id    the parameter
- * @param key   the stable identifier presets and automation use
- * @param name  the display name
- * @param sec   the section name
- * @param mn    the lowest value
- * @param mx    the highest value
- * @param def   the default
- * @param unit  the unit shown after the value; most integers have none
- * @return      the description, skew 1 and no choices
+ * @param[in] id    the parameter
+ * @param[in] key   the stable identifier presets and automation use
+ * @param[in] name  the display name
+ * @param[in] sec   the section name
+ * @param[in] mn    the lowest value
+ * @param[in] mx    the highest value
+ * @param[in] def   the default
+ * @param[in] unit  the unit shown after the value; most integers have none
+ * @return the description, skew 1 and no choices
  */
 constexpr ParamDesc I(ParamIdE id, const char* key, const char* name, const char* sec,
                       float mn, float mx, float def, const char* unit = "")
 { return { id, key, name, sec, KT::INT, mn, mx, def, 1.0f, unit, nullptr, 0 }; }
 /**
  * @brief A switch's row: 0 or 1, written "off" / "on" in a preset.
- * @param id    the parameter
- * @param key   the stable identifier
- * @param name  the display name
- * @param sec   the section name
- * @param def   whether the switch is on by default
- * @return      the description, range 0 .. 1
+ * @param[in] id    the parameter
+ * @param[in] key   the stable identifier
+ * @param[in] name  the display name
+ * @param[in] sec   the section name
+ * @param[in] def   whether the switch is on by default
+ * @return the description, range 0 .. 1
  */
 constexpr ParamDesc B(ParamIdE id, const char* key, const char* name, const char* sec, bool def)
 { return { id, key, name, sec, KT::BOOL, 0.0f, 1.0f, def ? 1.0f : 0.0f, 1.0f, "", nullptr, 0 }; }
 /**
  * @brief A choice's row: an index into a list of names, which a preset may write by name.
- * @param id       the parameter
- * @param key      the stable identifier
- * @param name     the display name
- * @param sec      the section name
- * @param choices  the names, one per index; the pointer is kept, so the list must be static
- * @param n        how many names there are; the range becomes 0 .. n - 1
- * @param def      the default index
- * @return         the description, with the choices attached
+ * @param[in] id       the parameter
+ * @param[in] key      the stable identifier
+ * @param[in] name     the display name
+ * @param[in] sec      the section name
+ * @param[in] choices  the names, one per index; the pointer is kept, so the list must be static
+ * @param[in] n        how many names there are; the range becomes 0 .. n - 1
+ * @param[in] def      the default index
+ * @return the description, with the choices attached
  */
 constexpr ParamDesc C(ParamIdE id, const char* key, const char* name, const char* sec,
                       const char* const* choices, int n, int def)

@@ -14,6 +14,7 @@
  * actually do: forward, touch nothing, inverse, and the samples have to come back.
  *
  * Include after a CHECK(cond, msg) macro is defined.
+ * @author Rene Weller
  */
 #pragma once
 #include "ambient/Cosmos.h"

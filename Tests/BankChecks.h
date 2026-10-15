@@ -22,6 +22,7 @@
  * what accumulates is then only what the definition allows.
  *
  * Include after a CHECK(cond, msg) macro is defined.
+ * @author Rene Weller
  */
 #pragma once
 #include "ambient/Simd.h"
@@ -120,14 +121,14 @@ struct RefStep {
      */
     /**
      * @brief Computes one step of the definition from the implementation's current state.
-     * @param b        the bank whose rotations, ramps, weights and harmonic numbers apply
-     * @param pcIn     the implementation's phasor cosines before the step
-     * @param psIn     the implementation's phasor sines before the step
-     * @param ampIn    the implementation's amplitudes before the step
-     * @param n        how many partials are in play (the length under test)
-     * @param mode     0 plain, 1 stereo, 2 FM
-     * @param theta    FM only: the modulation angle per unit harmonic number this sample
-     * @param maxStep  FM only: the clamp on theta * hf, as the implementation applies it
+     * @param[in] b        the bank whose rotations, ramps, weights and harmonic numbers apply
+     * @param[in] pcIn     the implementation's phasor cosines before the step
+     * @param[in] psIn     the implementation's phasor sines before the step
+     * @param[in] ampIn    the implementation's amplitudes before the step
+     * @param[in] n        how many partials are in play (the length under test)
+     * @param[in] mode     0 plain, 1 stereo, 2 FM
+     * @param[in] theta    FM only: the modulation angle per unit harmonic number this sample
+     * @param[in] maxStep  FM only: the clamp on theta * hf, as the implementation applies it
      */
     void run(const Bank& b, const float* pcIn, const float* psIn, const float* ampIn,
              int n, int mode, double theta, double maxStep)

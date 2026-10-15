@@ -12,6 +12,7 @@
  *   13.020 on 57 0.80
  *   40.000 off 57
  * Lines starting with '#' are comments. Events are kept sorted by time.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -47,8 +48,8 @@ public:
     double length() const { return m_events.empty() ? 0.0 : m_events.back().m_t; }
     /**
      * @brief One event, in time order.
-     * @param i  0 .. size()-1, unchecked
-     * @return   the event
+     * @param[in] i  0 .. size()-1, unchecked
+     * @return the event
      */
     const TimelineEvent& event(size_t i) const { return m_events[i]; }
 
@@ -61,8 +62,7 @@ public:
      * events; the default room is a quarter of a million.
      *
      * Message thread: allocates.
-     *
-     * @param events  how many events to make room for; add() never goes past it
+     * @param[in] events  how many events to make room for; add() never goes past it
      */
     void reserve(size_t events) { m_events.reserve(events); m_capacity = events; }
     /** @return whether the reserved room is used up, so add() would drop the next event */
@@ -73,8 +73,8 @@ public:
      * Appends when the event is not earlier than the last (the common case while recording),
      * otherwise inserts at its place. Dropped without a word when the room from reserve() is
      * used up. Audio thread safe within that room.
-     *
-     * @param e  the event
+     * @param[in] e  the event
+     * @pre called on the audio thread
      */
     void add(const TimelineEvent& e);
 
@@ -82,8 +82,7 @@ public:
      * @brief Playback: seek, then step() emits every event with from <= t < to, in order.
      *
      * Puts the cursor on the first event at or after @p t.
-     *
-     * @param t  seconds from the start
+     * @param[in] t  seconds from the start
      */
     void seek(double t);
     /**
@@ -91,11 +90,10 @@ public:
      *
      * Events before @p from that the cursor still stands on are skipped without being emitted.
      * Call once per block with the interval the block covers.
-     *
+     * @param[in] from  start of the interval in seconds (inclusive)
+     * @param[in] to    end of the interval in seconds (exclusive)
+     * @param[in] sink  receives each event
      * @tparam Sink  callable as sink(const TimelineEvent&)
-     * @param from   start of the interval in seconds (inclusive)
-     * @param to     end of the interval in seconds (exclusive)
-     * @param sink   receives each event
      */
     template <class SinkT> void step(double from, double to, SinkT&& sink)
     {
@@ -113,9 +111,9 @@ public:
      * Replaces the contents with the events in @p text (see the file comment for the format).
      * Parameters are named by key; a NaN or infinite time or value, an unknown key or an unknown
      * event word refuses the whole text. Events are added through add(), so they end up sorted.
-     *
-     * @param text  the whole file, NUL-terminated; nullptr is refused
-     * @return      true when every line parsed
+     * @param[in] text  the whole file, NUL-terminated; nullptr is refused
+     * @return true when every line parsed
+     * @pre called on the message thread
      */
     bool parse(const char* text);
     /**
@@ -125,14 +123,14 @@ public:
     std::vector<char> write() const;
     /**
      * @brief Writes the text form to a file.
-     * @param path  the file to create
-     * @return      false when the file could not be opened or written in full
+     * @param[in] path  the file to create
+     * @return false when the file could not be opened or written in full
      */
     bool save(const char* path) const;
     /**
      * @brief Reads a file and parses it (see parse()).
-     * @param path  the file to read
-     * @return      false when the file is missing or a line is malformed
+     * @param[in] path  the file to read
+     * @return false when the file is missing or a line is malformed
      */
     bool load(const char* path);
 

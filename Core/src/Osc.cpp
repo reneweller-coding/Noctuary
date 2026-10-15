@@ -16,6 +16,7 @@
  * is dropped silently and not counted in messagesReceived(). The only platform-specific part is the
  * socket handle and how it is closed, kept in the small block above the namespace: Winsock on Windows
  * (started and stopped around the server's life), BSD sockets everywhere else.
+ * @author Rene Weller
  */
 #include "ambient/Osc.h"
 #include "ambient/Presets.h"
@@ -35,7 +36,7 @@
   static const SocketHandleT InvalidSocket = INVALID_SOCKET;    ///< what socket() hands back when it fails
   /**
    * @brief Closes a socket the Winsock way.
-   * @param s  the handle to close; not used again afterwards
+   * @param[in] s  the handle to close; not used again afterwards
    */
   static void closeSocket(SocketHandleT s) { closesocket(s); }
 #else
@@ -49,7 +50,7 @@
   static const SocketHandleT InvalidSocket = -1;                ///< what socket() hands back when it fails
   /**
    * @brief Closes a socket the POSIX way, as any other file descriptor.
-   * @param s  the descriptor to close; not used again afterwards
+   * @param[in] s  the descriptor to close; not used again afterwards
    */
   static void closeSocket(SocketHandleT s) { ::close(s); }
 #endif
@@ -60,9 +61,9 @@ namespace {
 
 /**
  * @brief Whether @p s begins with @p prefix: how the address is taken apart one segment at a time.
- * @param s       the address, or what is left of it after the segments already matched
- * @param prefix  the segment to test for, including its trailing slash where one is expected
- * @return        true when the first strlen(prefix) characters of @p s are the prefix
+ * @param[in] s       the address, or what is left of it after the segments already matched
+ * @param[in] prefix  the segment to test for, including its trailing slash where one is expected
+ * @return true when the first strlen(prefix) characters of @p s are the prefix
  */
 bool startsWith(const char* s, const char* prefix) { return std::strncmp(s, prefix, std::strlen(prefix)) == 0; }
 
@@ -71,10 +72,10 @@ bool startsWith(const char* s, const char* prefix) { return std::strncmp(s, pref
  *
  * A string argument is matched against the preset names, an 'i' or 'f' argument is rounded to an
  * index; either way the result is checked against the table the message addresses.
- * @param m       the message; its first argument is the name or the index
- * @param cosmos  true to look in the cosmos layer presets (Presets.h), false in the full and sound
- *                presets, which share one table
- * @return        the index into that table, or -1 when there is no argument or nothing matches
+ * @param[in] m       the message; its first argument is the name or the index
+ * @param[in] cosmos  true to look in the cosmos layer presets (Presets.h), false in the full and sound presets, which
+ *                    share one table
+ * @return the index into that table, or -1 when there is no argument or nothing matches
  */
 int presetIndexFromArg(const OscMessage& m, bool cosmos)
 {

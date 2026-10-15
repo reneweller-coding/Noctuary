@@ -21,6 +21,7 @@
  * write index that every delay line here uses, sits between them.
  *
  * The granular cloud of the far plane lives in Cloud.h.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -40,14 +41,16 @@ class Ensemble {
 public:
     /**
      * @brief Sizes the delay lines (0.45 s: the chorus taps and the microshifter's longest read) and clears them.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The three knobs, once a block; what they mean depends on the mode.
-     * @param mix     0 .. 1 wet against dry; 0 skips everything but feeding the lines
-     * @param depth   Chorus: the sweep, 6 ms at 1. Microshift: the detune, 12 cents at 1. Velvet: how much of the 30 ms sequence is used, 0.1 .. 1
-     * @param rateHz  Chorus: the LFO rate in Hz (each tap at its own multiple). Microshift: a very slow wander of the detune. Velvet: unused
+     * @param[in] mix     0 .. 1 wet against dry; 0 skips everything but feeding the lines
+     * @param[in] depth   Chorus: the sweep, 6 ms at 1. Microshift: the detune, 12 cents at 1. Velvet: how much of the
+     *                    30 ms sequence is used, 0.1 .. 1
+     * @param[in] rateHz  Chorus: the LFO rate in Hz (each tap at its own multiple). Microshift: a very slow wander of
+     *                    the detune. Velvet: unused
      */
     void set(float mix, float depth, float rateHz) { m_mix = mix; m_depth = depth; m_rate = rateHz; }
     /**
@@ -65,22 +68,23 @@ public:
      * interval at a random position inside it, which is "velvet noise". A sparse sequence of
      * signed unit impulses has a flat magnitude response, so the two channels come out
      * decorrelated without being coloured, and nothing is modulated, so nothing warbles.
-     * @param mode  0 Chorus, 1 Microshift, 2 Velvet
+     * @param[in] mode  0 Chorus, 1 Microshift, 2 Velvet
      */
     void setMode(int mode) { m_mode = mode; }
     /**
      * @brief Runs a block in place through the current mode.
-     * @param L  left channel, n samples, replaced by the mix
-     * @param R  right channel, likewise
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples, replaced by the mix
+     * @param[in,out] R  right channel, likewise
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
 private:
     /**
-     * @brief The chorus: three taps at 13, 17 and 22 ms, each swept by its own LFO, the right channel a quarter cycle on.
-     * @param L  left channel, in place
-     * @param R  right channel
-     * @param n  samples in the block
+     * @brief The chorus: three taps at 13, 17 and 22 ms, each swept by its own LFO, the right channel a quarter cycle
+     *        on.
+     * @param[in,out] L  left channel, in place
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void processChorus(float* L, float* R, int n);
     /**
@@ -89,9 +93,9 @@ private:
      * The read pointer travels 200 ms and hands over to a second tap in a 25 ms cross-fade, so the
      * shifter is a plain delay line at a slowly changing delay rather than a two-tap comb (see
      * Effects.cpp for the measurement behind that).
-     * @param L  left channel, in place
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, in place
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void processShift(float* L, float* R, int n);
     /**
@@ -99,14 +103,15 @@ private:
      *
      * Builds the sequences on first use. Depth shortens the sequence; the gain is renormalised for
      * the taps in use.
-     * @param L  left channel, in place
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, in place
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void processVelvet(float* L, float* R, int n);
     /**
-     * @brief Draws the two velvet sequences: VelvetTaps impulses over 30 ms, one per equal interval at a random position, signs at random.
-     * @param seed  seeds the draw (a fixed constant, so the sequences are the same on every machine)
+     * @brief Draws the two velvet sequences: VelvetTaps impulses over 30 ms, one per equal interval at a random
+     *        position, signs at random.
+     * @param[in] seed  seeds the draw (a fixed constant, so the sequences are the same on every machine)
      */
     void buildVelvet(uint64_t seed);
     static constexpr int VelvetTaps = 96;      ///< impulses per channel
@@ -142,7 +147,7 @@ class StereoDelay {
 public:
     /**
      * @brief Sizes the delay lines for 4 s and clears them.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
@@ -150,12 +155,12 @@ public:
      *
      * absorb: with it up, the loop also loses its low end and its high cut sinks as the feedback
      * rises, so long echoes drown into a fog instead of merely getting quieter.
-     * @param timeL     left delay in seconds, 0.001 .. 4
-     * @param timeR     right delay in seconds, 0.001 .. 4
-     * @param feedback  loop gain, 0 .. 0.98
-     * @param cross     0 .. 1: how much of each side's feedback comes from the other side
-     * @param damping   0 .. 1: the one-pole low pass in the loop, from open to a coefficient of 0.1
-     * @param absorb    0 .. 1: at full feedback and full absorb the loop keeps 320 Hz .. 1 kHz
+     * @param[in] timeL     left delay in seconds, 0.001 .. 4
+     * @param[in] timeR     right delay in seconds, 0.001 .. 4
+     * @param[in] feedback  loop gain, 0 .. 0.98
+     * @param[in] cross     0 .. 1: how much of each side's feedback comes from the other side
+     * @param[in] damping   0 .. 1: the one-pole low pass in the loop, from open to a coefficient of 0.1
+     * @param[in] absorb    0 .. 1: at full feedback and full absorb the loop keeps 320 Hz .. 1 kHz
      */
     void set(float timeL, float timeR, float feedback, float cross, float damping, float absorb = 0.0f);
     /**
@@ -165,16 +170,17 @@ public:
      * one the far reverb's Unmask already uses -- get out of the way of the thing being played --
      * applied to the echoes: a fresh attack should not have to fight the brightness of the last
      * one's tail. At 0 the loop behaves exactly as it did.
-     * @param amount  0 .. 1; the duck is driven by the input's level over its own slow average, so a drone ducks nothing
+     * @param[in] amount  0 .. 1; the duck is driven by the input's level over its own slow average, so a drone ducks
+     *                    nothing
      */
     void setDuck(float amount) { m_duck = clampv(amount, 0.0f, 1.0f); }
     /**
      * @brief Writes the wet signal only; the caller mixes it.
-     * @param inL   left input, n samples
-     * @param inR   right input
-     * @param wetL  receives the left echoes
-     * @param wetR  receives the right echoes
-     * @param n     samples in the block
+     * @param[in]  inL   left input, n samples
+     * @param[in]  inR   right input
+     * @param[out] wetL  receives the left echoes
+     * @param[out] wetR  receives the right echoes
+     * @param[in]  n     samples in the block
      */
     void process(const float* inL, const float* inR, float* wetL, float* wetR, int n);
 private:
@@ -219,18 +225,19 @@ private:
 class Reverb {
 public:
     /**
-     * @brief Allocates the lines, the diffusers, the pre-delays and the scattering all-passes for the rate, and sets the defaults.
-     * @param sampleRate  the engine's rate in Hz
+     * @brief Allocates the lines, the diffusers, the pre-delays and the scattering all-passes for the rate, and sets
+     *        the defaults.
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The main settings, once a block.
-     * @param size          scales the line lengths, 0.5 .. 3 (1 is 30 .. 80 ms)
-     * @param decaySeconds  time to -60 dB, at least 0.1 s; the per-line gains follow from it
-     * @param damping       0 .. 1: the one-pole low pass in every loop, from open to a coefficient of 0.08
-     * @param preDelayMs    pre-delay before the diffusion, 0 .. 500 ms, glided
-     * @param freeze        true holds the loop at unity gain, without damping and with the input shut
-     * @param mix           0 .. 1 wet against dry
+     * @param[in] size          scales the line lengths, 0.5 .. 3 (1 is 30 .. 80 ms)
+     * @param[in] decaySeconds  time to -60 dB, at least 0.1 s; the per-line gains follow from it
+     * @param[in] damping       0 .. 1: the one-pole low pass in every loop, from open to a coefficient of 0.08
+     * @param[in] preDelayMs    pre-delay before the diffusion, 0 .. 500 ms, glided
+     * @param[in] freeze        true holds the loop at unity gain, without damping and with the input shut
+     * @param[in] mix           0 .. 1 wet against dry
      */
     void set(float size, float decaySeconds, float damping, float preDelayMs, bool freeze, float mix);
     /**
@@ -242,9 +249,9 @@ public:
      *            of the filter funnel a mixing engineer puts on a reverb return: without it the
      *            tail piles up in the low mids, where it turns the whole picture to mud rather
      *            than sitting behind it.
-     * @param asymmetry  0 .. 1: lines 4-7 up to 8 % longer and the right output up to 10 ms late
-     * @param highcutHz  200 .. 20000 Hz; 19000 and above turns the filter off
-     * @param lowcutHz   20 .. 1000 Hz, the -3 dB point of the pair; 21 and below turns it off
+     * @param[in] asymmetry  0 .. 1: lines 4-7 up to 8 % longer and the right output up to 10 ms late
+     * @param[in] highcutHz  200 .. 20000 Hz; 19000 and above turns the filter off
+     * @param[in] lowcutHz   20 .. 1000 Hz, the -3 dB point of the pair; 21 and below turns it off
      */
     void setSpace(float asymmetry, float highcutHz, float lowcutHz = 20.0f);
     /**
@@ -272,7 +279,8 @@ public:
      * being re-mixed rather than re-tuned, nothing in the tail is pitch-modulated (Schlecht and
      * Habets 2015, time-varying feedback matrices). Measured: the band pattern of the tail
      * drifts from one moment to the next where the fixed network's stays put.
-     * @param mode  0 Classic, 1 Scattering, 2 Colourless, 3 Rotating; the line lengths take effect at the next set()
+     * @param[in] mode  0 Classic, 1 Scattering, 2 Colourless, 3 Rotating; the line lengths take effect at the next
+     *                  set()
      */
     void setMode(int mode) { m_mode = mode; }
     /**
@@ -285,14 +293,14 @@ public:
      * drone answers with a low-frequency mass that no return filter takes out again, because by
      * then it has recirculated for the length of the tail. The Low Cut of setSpace() stays what it
      * was, a filter on the tail. Off at 20 Hz and below.
-     * @param hz  the -3 dB point in Hz; 20 or less switches it off
+     * @param[in] hz  the -3 dB point in Hz; 20 or less switches it off
      */
     void setSendLowcut(float hz);
     /**
      * @brief Runs a block in place, mixing the tail against the dry signal.
-     * @param L  left channel, n samples
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
 private:
@@ -377,7 +385,7 @@ public:
     static constexpr int Bands = 7;   ///< bands of the split: under 150 Hz, five octaves to 4.8 kHz, above
     /**
      * @brief Sets the crossovers, the duck (20 ms) and return times for the rate, and resets.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
@@ -390,18 +398,18 @@ public:
      * returnSeconds: how long the background takes to come back after a duck (the duck itself is
      * 20 ms, the guide's attack). The guide's release is half a second, which is the parameter's
      * default since 25.09.2026; longer, and the horizon's return is a gesture.
-     * @param amount         0 = off (and then not computed at all); 1 ducks by up to about 16 dB
-     * @param spread         0 .. 1, see above
-     * @param returnSeconds  0.05 .. 30 s; the release coefficient is recomputed only when it changes
+     * @param[in] amount         0 = off (and then not computed at all); 1 ducks by up to about 16 dB
+     * @param[in] spread         0 .. 1, see above
+     * @param[in] returnSeconds  0.05 .. 30 s; the release coefficient is recomputed only when it changes
      */
     void set(float amount, float spread = 0.0f, float returnSeconds = 0.5f);
     /**
      * @brief Ducks the background where the near bus has energy, in place.
-     * @param nearL  the near bus, left, n samples (read only)
-     * @param nearR  the near bus, right
-     * @param farL   the background (the far hall, or the room's return), left, ducked in place
-     * @param farR   the background, right
-     * @param n      samples in the block
+     * @param[in]     nearL  the near bus, left, n samples (read only)
+     * @param[in]     nearR  the near bus, right
+     * @param[in,out] farL   the background (the far hall, or the room's return), left, ducked in place
+     * @param[in,out] farR   the background, right
+     * @param[in]     n      samples in the block
      */
     void process(const float* nearL, const float* nearR, float* farL, float* farR, int n);
     /** @brief Clears the crossover states, the envelopes and the gains (back to 1). */
@@ -410,9 +418,9 @@ private:
     /**
      * @brief Splits one sample into the Bands bands: a second-order low-pass at every crossover,
      *        each band the difference of two neighbours, so the bands add back to the input exactly.
-     * @param lp    the crossovers' filters, Bands - 1 of them, advanced here
-     * @param x     the input sample
-     * @param band  receives the bands, lowest first; they sum to x
+     * @param[in,out] lp    the crossovers' filters, Bands - 1 of them, advanced here
+     * @param[in]     x     the input sample
+     * @param[out]    band  receives the bands, lowest first; they sum to x
      */
     static void split(Svf* lp, float x, float* band);
     Svf    m_xNear[Bands - 1];      ///< the near bus's crossovers (the near bus is summed to mono)
@@ -438,23 +446,23 @@ class Patina {
 public:
     /**
      * @brief Sizes the wow's delay rings, seeds the generator and resets.
-     * @param sampleRate  the engine's rate in Hz
-     * @param seed        seeds the hiss and the wow's drift
+     * @param[in] sampleRate  the engine's rate in Hz
+     * @param[in] seed        seeds the hiss and the wow's drift
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
      * @brief The four knobs, once a block; all clamped to 0 .. 1.
-     * @param amount  the whole effect's depth; 0 bypasses it
-     * @param wow     the depth of the pitch waver (up to 2.2 ms of swing at amount 1)
-     * @param hiss    the noise floor's level
-     * @param age     the lost top end: the high cut falls from 20 kHz towards 4 kHz with age x amount
+     * @param[in] amount  the whole effect's depth; 0 bypasses it
+     * @param[in] wow     the depth of the pitch waver (up to 2.2 ms of swing at amount 1)
+     * @param[in] hiss    the noise floor's level
+     * @param[in] age     the lost top end: the high cut falls from 20 kHz towards 4 kHz with age x amount
      */
     void set(float amount, float wow, float hiss, float age);
     /**
      * @brief Runs a block in place: wow and flutter, the high cut, the hiss, the saturation.
-     * @param L  left channel, n samples
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
     /** @brief Clears the delay rings, the high-cut states and the level envelope. */
@@ -496,14 +504,14 @@ class MidSide {
 public:
     /**
      * @brief Takes the rate, resets the filters and sets the defaults (150 Hz, +2 dB, 1.2).
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The three main settings, once a block.
-     * @param bassMonoHz  below this the side is removed, 20 .. 400 Hz (a Butterworth high pass on the side)
-     * @param sideAirDb   the side's 3 kHz bell, 0 .. 12 dB
-     * @param width       the side's gain, 0 .. 2; 1 leaves it as it is
+     * @param[in] bassMonoHz  below this the side is removed, 20 .. 400 Hz (a Butterworth high pass on the side)
+     * @param[in] sideAirDb   the side's 3 kHz bell, 0 .. 12 dB
+     * @param[in] width       the side's gain, 0 .. 2; 1 leaves it as it is
      */
     void set(float bassMonoHz, float sideAirDb, float width);
     /**
@@ -511,15 +519,15 @@ public:
      *
      * Tilt: a see-saw around the pivot -- one first-order low pass and its complement, weighted
      * against each other. Flat at 0 dB and then not computed at all.
-     * @param dB       the difference between the top and the bottom; positive brightens, half of it each way
-     * @param pivotHz  where the see-saw turns, 20 Hz .. 0.45 of the rate
+     * @param[in] dB       the difference between the top and the bottom; positive brightens, half of it each way
+     * @param[in] pivotHz  where the see-saw turns, 20 Hz .. 0.45 of the rate
      */
     void setTilt(float dB, float pivotHz);
     /**
      * @brief Runs a block in place.
-     * @param L  left channel, n samples
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
     /**
@@ -530,7 +538,7 @@ public:
      * gigantic in stereo can vanish when it is summed to mono. The side channel is measured
      * against the mid over a long window and the width is eased back only when the side actually
      * dominates: a slow, small correction that a listener cannot hear and a mono sum can.
-     * @param on  false puts the trim back to 1 and leaves the width alone
+     * @param[in] on  false puts the trim back to 1 and leaves the width alone
      */
     void setMonoGuard(bool on) { m_guardOn = on; }
     /**
@@ -567,19 +575,20 @@ class Diffuser {
 public:
     /**
      * @brief Sizes the rings for the rate and sets the four lengths (13.7, 21.3, 33.1, 47.9 ms).
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The amount, once a block.
-     * @param amount  0 .. 1: the all-pass coefficient (0.5 .. 0.85), the modulation depth and the wet mix at once; 0 bypasses
+     * @param[in] amount  0 .. 1: the all-pass coefficient (0.5 .. 0.85), the modulation depth and the wet mix at once;
+     *                    0 bypasses
      */
     void set(float amount);
     /**
      * @brief Runs a block in place.
-     * @param L  left channel, n samples
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
     /** @brief Clears the rings. */
@@ -597,11 +606,11 @@ private:
 
 /**
  * @brief Read `delay` samples (>= 1, fractional) behind write index `w` from a power-of-two ring.
- * @param buf    the ring
- * @param mask   its size - 1
- * @param w      the write index (the sample at w is not yet written for this step)
- * @param delay  how far behind w to read, at least 1, linearly interpolated between two samples
- * @return       the interpolated sample
+ * @param[in] buf    the ring
+ * @param[in] mask   its size - 1
+ * @param[in] w      the write index (the sample at w is not yet written for this step)
+ * @param[in] delay  how far behind w to read, at least 1, linearly interpolated between two samples
+ * @return the interpolated sample
  */
 inline float ringRead(const float* buf, int mask, int w, float delay)
 {
@@ -626,7 +635,7 @@ class HaasBand {
 public:
     /**
      * @brief Sizes the one delay line (50 ms), sets the band's two filters and snaps the delay to the knob.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate)
     {
@@ -642,15 +651,15 @@ public:
     }
     /**
      * @brief The amount and the delay, once a block; both glide inside process().
-     * @param amount  0 .. 1; the delayed band enters the side channel at -6 dB at 1
-     * @param timeMs  the delay, 1 .. 45 ms
+     * @param[in] amount  0 .. 1; the delayed band enters the side channel at -6 dB at 1
+     * @param[in] timeMs  the delay, 1 .. 45 ms
      */
     void set(float amount, float timeMs) { m_amount = clampv(amount, 0.0f, 1.0f); m_timeMs = clampv(timeMs, 1.0f, 45.0f); }
     /**
      * @brief Runs a block in place: the mid's band, delayed, added on the left and taken off on the right.
-     * @param L  left channel, n samples
-     * @param R  right channel
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples
+     * @param[in,out] R  right channel
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n)
     {
@@ -724,8 +733,9 @@ public:
     static constexpr int Walls = 6;   ///< the shoebox's surfaces: left, right, front, back, ceiling, floor
 
     /**
-     * @brief Allocates the lines for the largest room, sets a default room and source, and snaps every delay to its target.
-     * @param sampleRate  the engine's rate in Hz
+     * @brief Allocates the lines for the largest room, sets a default room and source, and snaps every delay to its
+     *        target.
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate)
     {
@@ -756,9 +766,10 @@ public:
      * size: the room's longest dimension in metres (the shoebox is size x 0.8 size x 0.45 size,
      * proportions with no simple ratio between them, so its own modes do not pile up).
      * absorb: how much each surface takes out per reflection, and how dark what comes back is.
-     * @param sizeMetres  2 .. 40 m
-     * @param absorb      0 .. 1; the wall filter's corner falls from 16 kHz by five octaves at 1
-     * @param width       0 .. 1.5: how far each wall's direction is spread across the field; 0 puts every reflection in the middle
+     * @param[in] sizeMetres  2 .. 40 m
+     * @param[in] absorb      0 .. 1; the wall filter's corner falls from 16 kHz by five octaves at 1
+     * @param[in] width       0 .. 1.5: how far each wall's direction is spread across the field; 0 puts every
+     *                        reflection in the middle
      */
     void setRoom(float sizeMetres, float absorb, float width)
     {
@@ -786,8 +797,8 @@ public:
      *
      * Where the source stands, from the near bus's own voices: pan -1..1 across the room, and
      * distance 0..1 from the listener towards the far wall.
-     * @param pan       -1 (left wall) .. 1 (right wall)
-     * @param distance  0 (just in front of the listener) .. 1 (a metre short of the front wall)
+     * @param[in] pan       -1 (left wall) .. 1 (right wall)
+     * @param[in] distance  0 (just in front of the listener) .. 1 (a metre short of the front wall)
      */
     void setSource(float pan, float distance)
     {
@@ -800,7 +811,7 @@ public:
 
     /**
      * @brief The level of the reflections added to the output.
-     * @param level  0 .. 1, glided across the block inside process(); 0 lets the room fall silent and then skip
+     * @param[in] level  0 .. 1, glided across the block inside process(); 0 lets the room fall silent and then skip
      */
     void setLevel(float level) { m_level = clampv(level, 0.0f, 1.0f); }
     /**
@@ -819,11 +830,11 @@ public:
      * delays. Identical channels excite the room exactly as the mono sum used to. Halves of both
      * channels on the middle walls were tried first and cancel an anti-phase pair there: it
      * reached the room 10.7 dB down, from the side walls alone.
-     * @param inL  the near bus, left, n samples
-     * @param inR  the near bus, right
-     * @param L    left output; the reflections are added
-     * @param R    right output, likewise
-     * @param n    samples in the block
+     * @param[in]     inL  the near bus, left, n samples
+     * @param[in]     inR  the near bus, right
+     * @param[in,out] L    left output; the reflections are added
+     * @param[in,out] R    right output, likewise
+     * @param[in]     n    samples in the block
      */
     void process(const float* inL, const float* inR, float* L, float* R, int n)
     {

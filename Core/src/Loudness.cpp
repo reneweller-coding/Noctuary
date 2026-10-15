@@ -19,6 +19,7 @@
  *
  * Pi arrives from Dsp.h by way of Cosmos.h. A second one in an anonymous namespace here is not
  * private to this file, it is ambiguous with that one, and the compiler says so.
+ * @author Rene Weller
  */
 #include "ambient/Loudness.h"
 #include "ambient/Cosmos.h"   // Fft
@@ -78,8 +79,8 @@ const float ThirdOctave[ZwickerLoudness::Bands] = {
 
 /**
  * @brief Frequency to critical-band rate: Zwicker and Terhardt's analytic fit to the Bark scale.
- * @param hz  frequency in Hz
- * @return    the critical-band rate in Bark, 0 at 0 Hz and about 24 at the top of hearing
+ * @param[in] hz  frequency in Hz
+ * @return the critical-band rate in Bark, 0 at 0 Hz and about 24 at the top of hearing
  */
 inline float barkOf(float hz)
 {
@@ -92,8 +93,8 @@ inline float barkOf(float hz)
  *
  * Asked once per 0.1 Bark step of the excitation pattern in rawLoudness(), which is why it can
  * afford the forty bisection steps in its body.
- * @param z  critical-band rate in Bark
- * @return   frequency in Hz, bracketed between 10 Hz and 20 kHz
+ * @param[in] z  critical-band rate in Bark
+ * @return frequency in Hz, bracketed between 10 Hz and 20 kHz
  */
 inline float hzOfBark(float z)
 {
@@ -303,9 +304,9 @@ void LoudnessMeter::reset()
 namespace {
 /**
  * @brief Loudness of a mean-square pair, the standard's formula with both channel weights at one.
- * @param msL  mean square of the K-weighted left channel over the block
- * @param msR  the same for the right channel
- * @return     the loudness in LUFS, or -120 when both are as good as zero
+ * @param[in] msL  mean square of the K-weighted left channel over the block
+ * @param[in] msR  the same for the right channel
+ * @return the loudness in LUFS, or -120 when both are as good as zero
  */
 inline float lufs(double msL, double msR)
 {
@@ -321,9 +322,9 @@ inline float lufs(double msL, double msR)
  * resampler would produce. It reads within a couple of tenths of a decibel of the long filter on
  * material like this, and it is the difference between "0.0 dBFS, fine" and "this will clip in an
  * mp3 decoder" that matters here.
- * @param h  the last four samples of one channel, oldest first; the interval looked at is the one
- *           between h[1] and h[2]
- * @return   the largest magnitude among h[1] and the three points interpolated after it
+ * @param[in] h  the last four samples of one channel, oldest first; the interval looked at is the one between h[1] and
+ *               h[2]
+ * @return the largest magnitude among h[1] and the three points interpolated after it
  */
 inline double interPeak(const float* h)
 {

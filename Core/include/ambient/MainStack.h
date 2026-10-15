@@ -13,6 +13,7 @@
  * asked and the hard limit allows more, it raises the limit and starts the program once more with the same arguments
  * (execv of /proc/self/exe), which then has the stack. An environment variable marks the second start, so it never
  * loops; anywhere else, and whenever a step fails, it returns and the program runs with the stack it has.
+ * @author Rene Weller
  */
 #if defined(__linux__) && !defined(__ANDROID__)
   #include <cstdlib>
@@ -24,8 +25,8 @@ namespace ambient {
 
 /**
  * @brief Gives the main thread @p bytes of stack on Linux by starting the program once more (see the file comment).
- * @param argv  main()'s arguments, or nullptr for a program that takes none
- * @param bytes the stack the program needs
+ * @param[in,out] argv   main()'s arguments, or nullptr for a program that takes none
+ * @param[in]     bytes  the stack the program needs
  */
 inline void ensureMainStack(char** argv, unsigned long long bytes)
 {

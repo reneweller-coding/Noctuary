@@ -10,6 +10,7 @@
  * the slot, LFO, envelope and delay families share one text per family, so "src2_pos" is looked
  * up as "srcN_pos" and the four slots can never drift apart. Everything here reads static
  * storage, is safe from any thread, and never hands back a null pointer.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -20,9 +21,8 @@ namespace ambient {
  * @brief What a parameter does, for the person turning it.
  *
  * Never null; "" if nothing is known.
- *
- * @param id  the parameter whose text is wanted
- * @return    one or two sentences from the table in Help.cpp, "" when it has no entry
+ * @param[in] id  the parameter whose text is wanted
+ * @return one or two sentences from the table in Help.cpp, "" when it has no entry
  */
 const char* paramHelp(ParamIdE id);
 
@@ -42,15 +42,15 @@ int         numHelpTopics();
 
 /**
  * @brief The heading of one topic, as the Help page lists it.
- * @param index  0 .. numHelpTopics() - 1
- * @return       the title, "" for an index outside the table
+ * @param[in] index  0 .. numHelpTopics() - 1
+ * @return the title, "" for an index outside the table
  */
 const char* helpTopicTitle(int index);
 
 /**
  * @brief The body of one topic.
- * @param index  0 .. numHelpTopics() - 1
- * @return       the text, "" for an index outside the table
+ * @param[in] index  0 .. numHelpTopics() - 1
+ * @return the text, "" for an index outside the table
  */
 const char* helpTopicText(int index);
 /** @} */
@@ -60,9 +60,8 @@ const char* helpTopicText(int index);
  *        "MATRIX"), a section without a tab ("SPACE", "MASTER") or a source type ("TYPE Stretch").
  *
  * "" when nothing is written for it.
- *
- * @param name  the label exactly as the panel prints it
- * @return      the block's text from the table in Help.cpp, "" when there is none
+ * @param[in] name  the label exactly as the panel prints it
+ * @return the block's text from the table in Help.cpp, "" when there is none
  */
 const char* tabHelp(const char* name);
 

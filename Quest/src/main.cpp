@@ -26,7 +26,7 @@
  * engine is prepared wait in App until the audio has started.
  *
  * @verbatim
- * Files in <externalDataPath>:
+ * Files in \<externalDataPath\>:
  *   ambient.cfg   osc_host=192.168.1.20  osc_port=9000  audio=1  preset=Consonant Hollow  route=Night Descent  rest_zone=0.08
  *   calib.txt     hand calibration, written after the calibration gesture
  *   texture.wav   optional sample for the Texture source slots (assumed recorded at C4)
@@ -35,6 +35,7 @@
  *                        a pack preset may name its own texture, wavetable and impulse
  *   rec-*.wav     recordings
  * @endverbatim
+ * @author Rene Weller
  */
 
 #include <android/log.h>
@@ -104,9 +105,9 @@ Mat4 identity() { Mat4 r{}; r.m_m[0] = r.m_m[5] = r.m_m[10] = r.m_m[15] = 1.0f; 
 
 /**
  * @brief The matrix product a * b, so that (a * b) v applies b first and a second.
- * @param a  the left factor (applied last)
- * @param b  the right factor (applied first)
- * @return   the product, column-major like its factors
+ * @param[in] a  the left factor (applied last)
+ * @param[in] b  the right factor (applied first)
+ * @return the product, column-major like its factors
  */
 Mat4 multiply(const Mat4& a, const Mat4& b)
 {
@@ -122,11 +123,10 @@ Mat4 multiply(const Mat4& a, const Mat4& b)
  *
  * The four angles are turned into tangents, so the frustum need not be centred on the view axis --
  * the two eyes of a headset never are. Depth maps to the -1 .. 1 clip range of GLES.
- *
- * @param fov    the eye's half angles in radians, as xrLocateViews gives them (left and down negative)
- * @param nearZ  distance of the near plane in metres (the app uses 0.05)
- * @param farZ   distance of the far plane in metres (the app uses 100)
- * @return       the projection matrix, column-major
+ * @param[in] fov    the eye's half angles in radians, as xrLocateViews gives them (left and down negative)
+ * @param[in] nearZ  distance of the near plane in metres (the app uses 0.05)
+ * @param[in] farZ   distance of the far plane in metres (the app uses 100)
+ * @return the projection matrix, column-major
  */
 Mat4 projectionFromFov(const XrFovf& fov, float nearZ, float farZ)
 {
@@ -143,8 +143,8 @@ Mat4 projectionFromFov(const XrFovf& fov, float nearZ, float farZ)
 
 /**
  * @brief The rotation matrix of a unit quaternion.
- * @param q  a unit quaternion (OpenXR poses hand out normalised ones; nothing renormalises here)
- * @return   the rotation as a Mat4 with no translation
+ * @param[in] q  a unit quaternion (OpenXR poses hand out normalised ones; nothing renormalises here)
+ * @return the rotation as a Mat4 with no translation
  */
 Mat4 rotationFromQuat(const XrQuaternionf& q)
 {
@@ -158,9 +158,9 @@ Mat4 rotationFromQuat(const XrQuaternionf& q)
 
 /**
  * @brief Rotates a vector by a quaternion, through its rotation matrix.
- * @param q  the rotation, a unit quaternion
- * @param v  the vector to rotate (a direction: no translation is applied)
- * @return   the rotated vector
+ * @param[in] q  the rotation, a unit quaternion
+ * @param[in] v  the vector to rotate (a direction: no translation is applied)
+ * @return the rotated vector
  */
 Vec3 rotate(const XrQuaternionf& q, Vec3 v)
 {
@@ -173,9 +173,8 @@ Vec3 rotate(const XrQuaternionf& q, Vec3 v)
  *
  * Inverse rotation (the transpose, the quaternion being unit) times the negated translation, so a
  * point given in stage coordinates lands in the eye's own frame.
- *
- * @param pose  the eye's pose from xrLocateViews, in the space the scene is drawn in
- * @return      the view matrix, to be multiplied with the projection
+ * @param[in] pose  the eye's pose from xrLocateViews, in the space the scene is drawn in
+ * @return the view matrix, to be multiplied with the projection
  */
 Mat4 viewFromPose(const XrPosef& pose)
 {
@@ -193,11 +192,10 @@ Mat4 viewFromPose(const XrPosef& pose)
  * OpenXR's y-up frame: yaw is the turn about the vertical axis, pitch the nod about x, roll the
  * tilt about the view axis. The pitch's sine is clamped to -1 .. 1 before the asin so a quaternion
  * slightly off unit length cannot produce a NaN.
- *
- * @param q      the orientation, a unit quaternion
- * @param yaw    out: degrees, 0 looking along -z of the stage, positive turning towards +x (the right)
- * @param pitch  out: degrees, positive looking up
- * @param roll   out: degrees, positive tilting the head to the left
+ * @param[in]  q      the orientation, a unit quaternion
+ * @param[out] yaw    out: degrees, 0 looking along -z of the stage, positive turning towards +x (the right)
+ * @param[out] pitch  out: degrees, positive looking up
+ * @param[out] roll   out: degrees, positive tilting the head to the left
  */
 void quatToEulerDeg(const XrQuaternionf& q, float& yaw, float& pitch, float& roll)
 {
@@ -215,9 +213,8 @@ void quatToEulerDeg(const XrQuaternionf& q, float& yaw, float& pitch, float& rol
  * Rows top to bottom, 5 bits each (bit 4 = left column). Covers A-Z, 0-9 and a few signs.
  * Lower-case letters are folded to upper case; anything the font does not have is the blank glyph,
  * so a preset name with an odd character still takes up its cell.
- *
- * @param c  the character to draw
- * @return   seven row bitmasks, a pointer into the static table (never null)
+ * @param[in] c  the character to draw
+ * @return seven row bitmasks, a pointer into the static table (never null)
  */
 const unsigned char* glyph(char c)
 {
@@ -262,9 +259,9 @@ class OscOut {
 public:
     /**
      * @brief Opens the UDP socket towards the plugin, closing any earlier one.
-     * @param host  the PC's IPv4 address in dotted form (no name resolution)
-     * @param port  the plugin's OSC port (9000 by default)
-     * @return      false if the socket could not be made or the host is not a dotted IPv4 address
+     * @param[in] host  the PC's IPv4 address in dotted form (no name resolution)
+     * @param[in] port  the plugin's OSC port (9000 by default)
+     * @return false if the socket could not be made or the host is not a dotted IPv4 address
      */
     bool open(const std::string& host, int port)
     {
@@ -286,10 +283,9 @@ public:
      *
      * The packet is built in a 256-byte buffer: address and type tags padded to four bytes, then
      * the floats as big-endian 32-bit words. Fire and forget: the return of sendto is not checked.
-     *
-     * @param address  the OSC address pattern, e.g. "/ambient/hand/L"
-     * @param args     the float arguments
-     * @param n        how many, at most 14 (the type tag string holds 16 characters)
+     * @param[in] address  the OSC address pattern, e.g. "/ambient/hand/L"
+     * @param[in] args     the float arguments
+     * @param[in] n        how many, at most 14 (the type tag string holds 16 characters)
      */
     void send(const char* address, const float* args, int n)
     {
@@ -321,8 +317,8 @@ class Audio : public oboe::AudioStreamDataCallback {
 public:
     /**
      * @brief Binds the stream to the engine it renders and the recorder that taps it.
-     * @param e  the engine, prepared by start() and run by the callback
-     * @param r  the recorder that gets every rendered block (it ignores them while not recording)
+     * @param[in,out] e  the engine, prepared by start() and run by the callback
+     * @param[in,out] r  the recorder that gets every rendered block (it ignores them while not recording)
      */
     Audio(Engine& e, WavRecorder& r) : m_engine(e), m_recorder(r) {}
     /**
@@ -361,10 +357,9 @@ public:
      *
      * The engine renders into m_bufL / m_bufR in chunks of at most 4096 frames, the recorder is fed
      * the same chunk, and the two channels are interleaved into the stream's float buffer.
-     *
-     * @param data    the stream's output buffer, interleaved stereo float
-     * @param frames  how many frames Oboe wants
-     * @return        Continue, always; the stream stops only through stop()
+     * @param[in,out] data    the stream's output buffer, interleaved stereo float
+     * @param[in]     frames  how many frames Oboe wants
+     * @return Continue, always; the stream stops only through stop()
      */
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream*, void* data, int32_t frames) override
     {
@@ -410,9 +405,8 @@ struct Config {
  *
  * Lines without `=` are skipped, trailing CR, LF and spaces are stripped from a line before the
  * split, and numbers are parsed with atoi / atof (a bad number reads as 0).
- *
- * @param dir  the app's external data folder, or null (then the defaults come back untouched)
- * @return     the settings found, over the defaults
+ * @param[in] dir  the app's external data folder, or null (then the defaults come back untouched)
+ * @return the settings found, over the defaults
  */
 Config readConfig(const char* dir)
 {
@@ -496,9 +490,9 @@ struct Point {
 
 /**
  * @brief Compiles one shader stage and logs the info log if it fails.
- * @param type  GL_VERTEX_SHADER or GL_FRAGMENT_SHADER
- * @param src   the GLSL ES source
- * @return      the shader name, returned even when compiling failed (the link then fails and Scene::init reports it)
+ * @param[in] type  GL_VERTEX_SHADER or GL_FRAGMENT_SHADER
+ * @param[in] src   the GLSL ES source
+ * @return the shader name, returned even when compiling failed (the link then fails and Scene::init reports it)
  */
 GLuint compile(GLenum type, const char* src)
 {
@@ -562,11 +556,11 @@ public:
      * level. The brain's root as an orange dot on the floor at 1 m. Each tracked palm as a dot that
      * turns from green to red with the pinch, and between two tracked palms a dotted bridge that
      * lights up as far as the morph position has gone.
-     *
-     * @param engine      the engine to read (soundingNotes, noteDistance, noteLevel, brainRoot, morphPosition); glue thread, lock-free reads
-     * @param palms       the two palm positions in stage space, left then right
-     * @param palmsValid  whether each palm was tracked this frame
-     * @param pinch       each hand's pinch 0 .. 1
+     * @param[in,out] engine      the engine to read (soundingNotes, noteDistance, noteLevel, brainRoot, morphPosition);
+     *                            glue thread, lock-free reads
+     * @param[in]     palms       the two palm positions in stage space, left then right
+     * @param[in]     palmsValid  whether each palm was tracked this frame
+     * @param[in]     pinch       each hand's pinch 0 .. 1
      */
     void addWorld(Engine& engine, const XrVector3f* palms, const bool* palmsValid, const float* pinch)
     {
@@ -613,16 +607,15 @@ public:
      *
      * One dot per set bit of the 5x7 glyph, a character every six cells; the dots are sized to the
      * cell so the text stays legible whatever the cell.
-     *
-     * @param p     the panel giving origin and axes (App::headPanel)
-     * @param u     start along the panel's right axis, metres
-     * @param v     start along the panel's up axis, metres (the glyph hangs down from it)
-     * @param cell  dot spacing in metres (0.006 for the menu)
-     * @param text  the string; characters the font lacks become blanks
-     * @param r     red 0 .. 1
-     * @param g     green 0 .. 1
-     * @param b     blue 0 .. 1
-     * @param a     brightness 0 .. 1 (the additive alpha)
+     * @param[in] p     the panel giving origin and axes (App::headPanel)
+     * @param[in] u     start along the panel's right axis, metres
+     * @param[in] v     start along the panel's up axis, metres (the glyph hangs down from it)
+     * @param[in] cell  dot spacing in metres (0.006 for the menu)
+     * @param[in] text  the string; characters the font lacks become blanks
+     * @param[in] r     red 0 .. 1
+     * @param[in] g     green 0 .. 1
+     * @param[in] b     blue 0 .. 1
+     * @param[in] a     brightness 0 .. 1 (the additive alpha)
      */
     void addText(const Panel& p, float u, float v, float cell, const char* text, float r, float g, float b, float a)
     {
@@ -649,9 +642,9 @@ public:
     /**
      * @brief Draws the uploaded cloud into the bound framebuffer: near-black clear, additive blend,
      *        no depth test.
-     * @param vp      the eye's projection * view
-     * @param width   the swapchain image's width in pixels
-     * @param height  its height in pixels
+     * @param[in] vp      the eye's projection * view
+     * @param[in] width   the swapchain image's width in pixels
+     * @param[in] height  its height in pixels
      */
     void draw(const Mat4& vp, int width, int height)
     {
@@ -703,7 +696,7 @@ class App {
 public:
     /**
      * @brief Remembers the glue's android_app; nothing is created until init().
-     * @param app  the NativeActivity glue's application object
+     * @param[in,out] app  the NativeActivity glue's application object
      */
     explicit App(android_app* app) : m_app(app) {}
 
@@ -722,7 +715,7 @@ public:
     bool init()
     {
         m_dataDir = m_app->activity->externalDataPath ? m_app->activity->externalDataPath : "";
-        // Preset packs from <externalDataPath>/Packs, before anything looks a preset up by name.
+        // Preset packs from \<externalDataPath\>/Packs, before anything looks a preset up by name.
         if (!m_dataDir.empty()) {
             const int packs = loadPresetPacksIn((m_dataDir + "/Packs").c_str());
             if (packs > 0) LOGI("Packs: %d pack(s), %d presets in total", packs, numPresets());
@@ -759,8 +752,7 @@ public:
      * The texture goes straight into the engine, the wavetable too; the impulses wait in m_pendingIr
      * / m_pendingIrB until the engine is prepared, or go in at once when the audio already runs.
      * Called from init() for the config's preset and from applyMenu() when A changes without morph.
-     *
-     * @param index  the preset's index in the preset list (presetFilePath reads its four file fields)
+     * @param[in] index  the preset's index in the preset list (presetFilePath reads its four file fields)
      */
     void loadPresetFiles(int index)
     {
@@ -818,6 +810,7 @@ public:
      *
      * Hands m_pendingIr and m_pendingIrB to the engine and clears them; when a preset named a room and
      * no B (m_clearIrB), the engine's B impulse is cleared instead so the Room plays A alone.
+     * @pre called on the message thread
      */
     void applyPendingImpulses()
     {
@@ -955,8 +948,7 @@ private:
      * is applied outright, files included); the preset map on/off; the route from ambient.cfg (or the
      * first route preset) playing/stopped; recording start/stop to `rec-YYYYMMDD-HHMMSS.wav` in the
      * data folder; and an 8-second calibration.
-     *
-     * @param a  the fired item, never None
+     * @param[in] a  the fired item, never None
      */
     void applyMenu(MenuActionE a)
     {
@@ -1230,8 +1222,7 @@ private:
      * 15 mm apart or closer falling to 0 at 50 mm, and the palm's tilt (the world y of its sideways
      * axis, -1 .. 1). A hand that is not tracked, not active or without a valid palm pose is marked
      * invalid and not sent. In bridge mode the same five numbers go out as `/ambient/hand/L` and `/R`.
-     *
-     * @param time  the frame's predicted display time, the instant the joints are located for
+     * @param[in] time  the frame's predicted display time, the instant the joints are located for
      */
     void updateHands(XrTime time)
     {
@@ -1272,8 +1263,7 @@ private:
      *
      * The gesture layer gets all three, the engine the yaw for its binaural mode, the bridge the three
      * as `/ambient/head`. m_headPose and m_headValid feed the panel.
-     *
-     * @param time  the frame's predicted display time
+     * @param[in] time  the frame's predicted display time
      */
     void updateHead(XrTime time)
     {
@@ -1519,8 +1509,7 @@ void handleCmd(android_app*, int32_t) {}
  *
  * Attaches the thread to the JavaVM (the OpenXR loader needs a JNIEnv on it), runs the App through
  * init(), run() and shutdown(), and detaches. Errors in init() are logged and the activity ends.
- *
- * @param app  the glue's application object for this activity
+ * @param[in,out] app  the glue's application object for this activity
  */
 void android_main(android_app* app)
 {

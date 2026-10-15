@@ -11,6 +11,7 @@
  * at start() and rewritten with the real one at stop(), so a file whose recording was interrupted
  * is still readable up to where the writer got. Frames the ring cannot take are dropped -- never
  * blocked on -- and counted, so the audio thread never waits for the disk.
+ * @author Rene Weller
  */
 #pragma once
 #include <atomic>
@@ -38,11 +39,10 @@ public:
      *
      * Any recording still running is stopped first. Allocates the ring (512k floats), so message
      * thread only.
-     *
-     * @param path        the file to create (truncated if it exists)
-     * @param sampleRate  the rate the frames given to write() are at, in Hz, written into the header
-     * @param channels    channels written into the header; write() itself always interleaves two
-     * @return            false when the file could not be opened
+     * @param[in] path        the file to create (truncated if it exists)
+     * @param[in] sampleRate  the rate the frames given to write() are at, in Hz, written into the header
+     * @param[in] channels    channels written into the header; write() itself always interleaves two
+     * @return false when the file could not be opened
      */
     bool start(const char* path, int sampleRate, int channels = 2);
     /**
@@ -60,10 +60,10 @@ public:
      *
      * Lock-free and allocation-free; does nothing when not recording. A block is taken whole or not
      * at all, so a dropped block never leaves a half frame in the ring.
-     *
-     * @param L  left samples
-     * @param R  right samples
-     * @param n  frames in both
+     * @param[in] L  left samples
+     * @param[in] R  right samples
+     * @param[in] n  frames in both
+     * @pre called on the audio thread
      */
     void write(const float* L, const float* R, int n);
     /** @return frames the writer thread has put into the file so far */
@@ -77,7 +77,7 @@ private:
     void run();
     /**
      * @brief Writes the 44-byte RIFF/WAVE header (format 3, 32-bit float) at the start of the file.
-     * @param dataBytes  length of the data chunk to write into the header; 0 while recording
+     * @param[in] dataBytes  length of the data chunk to write into the header; 0 while recording
      */
     void writeHeader(uint32_t dataBytes);
     std::vector<float> m_ring;                         ///< the lock-free ring, a power of two of floats

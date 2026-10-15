@@ -27,6 +27,7 @@
  *
  * Nothing here renders: it emits NearNotes, and the engine turns them into voices (or the audit
  * into lines). Its dice are its own stream, so switching it on moves nothing else in a preset.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -111,7 +112,7 @@ public:
     /**
      * @brief Puts the scheduler at the beginning of a piece: nothing sounding, counters at zero, the first event
      *        due in twenty to forty seconds, and the dice seeded.
-     * @param seed  the scheduler's own random stream (part of the preset's seed)
+     * @param[in] seed  the scheduler's own random stream (part of the preset's seed)
      */
     void reset(uint64_t seed)
     {
@@ -165,16 +166,15 @@ public:
      * counts down and, once due, the rules are asked (no silence, six seconds since the root moved,
      * something sounding), stillness is waited for (up to half the rate), and the coin, weighted by
      * the cascade's excitation against its own average, decides whether begin() is called.
-     *
+     * @param[in] dt          seconds since the last call
+     * @param[in] p           the section's settings
+     * @param[in] in          what the piece is doing right now
+     * @param[in] freqOf      the tuning
+     * @param[in] consonance  the ear
+     * @param[in] emit        receives every NearNote
      * @tparam FreqFn      callable as double(int midiNote): the instrument's tuning
      * @tparam ConsFn      callable as double(double fa, double fb): consonance of two frequencies, 0 .. 1
      * @tparam EmitFn      callable as void(const NearNote&)
-     * @param dt           seconds since the last call
-     * @param p            the section's settings
-     * @param in           what the piece is doing right now
-     * @param freqOf       the tuning
-     * @param consonance   the ear
-     * @param emit         receives every NearNote
      */
     template <class FreqFnT, class ConsFnT, class EmitFnT>
     void update(double dt, const NearParams& p, const NearInputs& in, FreqFnT&& freqOf, ConsFnT&& consonance, EmitFnT&& emit)
@@ -220,8 +220,8 @@ private:
 
     /**
      * @brief The gap the conductor draws: exponential, shifted so the floor is a floor and not a peak.
-     * @param mean  the mean gap in seconds
-     * @return      a gap of at least a fifth of the mean (capped at five seconds), exponentially distributed above it
+     * @param[in] mean  the mean gap in seconds
+     * @return a gap of at least a fifth of the mean (capped at five seconds), exponentially distributed above it
      */
     double gap(double mean) const
     {
@@ -234,8 +234,8 @@ private:
     /**
      * @brief How welcome an interval to the root is, by the ear of this music: the fifth first, then
      *        the ninth and the pure third, the octave, the sixth and the fourth, the harmonic seventh.
-     * @param ratio  the frequency ratio to the root, folded into one octave here
-     * @return       a weight 0.12 .. 1 (0.12 for an interval within 25 cents of none of the table's)
+     * @param[in] ratio  the frequency ratio to the root, folded into one octave here
+     * @return a weight 0.12 .. 1 (0.12 for an interval within 25 cents of none of the table's)
      */
     static float intervalWeight(double ratio)
     {
@@ -257,15 +257,14 @@ private:
      * to the root, by the consonance with each sounding note (a doubling and anything inside a
      * critical band of a sounding voice are all but excluded), and by the register (a fifth above
      * the top is favoured, inside the chord discouraged), then draws by weight.
-     *
+     * @param[in] p           the settings (pitch rule)
+     * @param[in] in          the root and the cluster
+     * @param[in] freqOf      the tuning
+     * @param[in] consonance  the ear
+     * @param[in] avoid       a MIDI note to weight down (the previous note), or -1
+     * @return the MIDI note chosen (the cluster's middle when nothing has weight)
      * @tparam FreqFn     the tuning (see update)
      * @tparam ConsFn     the ear (see update)
-     * @param p           the settings (pitch rule)
-     * @param in          the root and the cluster
-     * @param freqOf      the tuning
-     * @param consonance  the ear
-     * @param avoid       a MIDI note to weight down (the previous note), or -1
-     * @return            the MIDI note chosen (the cluster's middle when nothing has weight)
      */
     template <class FreqFnT, class ConsFnT>
     int choose(const NearParams& p, const NearInputs& in, FreqFnT&& freqOf, ConsFnT&& consonance, int avoid)
@@ -327,15 +326,14 @@ private:
      * Phrase chooses its note, decides how many slides a phrase gets (two to four, the last home)
      * and emits the On -- on the horizon when it is to arrive -- followed by the Move that brings it
      * to its place (or, with a negative approach, sends it out from the first moment).
-     *
+     * @param[in] p           the settings
+     * @param[in] in          the root and the cluster
+     * @param[in] freqOf      the tuning
+     * @param[in] consonance  the ear
+     * @param[in] emit        receives the NearNotes
      * @tparam FreqFn     the tuning (see update)
      * @tparam ConsFn     the ear (see update)
      * @tparam EmitFn     the sink (see update)
-     * @param p           the settings
-     * @param in          the root and the cluster
-     * @param freqOf      the tuning
-     * @param consonance  the ear
-     * @param emit        receives the NearNotes
      */
     template <class FreqFnT, class ConsFnT, class EmitFnT>
     void begin(const NearParams& p, const NearInputs& in, FreqFnT&& freqOf, ConsFnT&& consonance, EmitFnT&& emit)
@@ -395,16 +393,15 @@ private:
      * last one home) and its closing meri -- a quarter tone down at 88 % and back at 95 %; an
      * arriving Note or Phrase is sent back to the horizon over its last stretch. At the end of the
      * length the event is ended.
-     *
+     * @param[in] dt          seconds since the last call
+     * @param[in] p           the settings
+     * @param[in] in          the root and the cluster
+     * @param[in] freqOf      the tuning
+     * @param[in] consonance  the ear
+     * @param[in] emit        receives the NearNotes
      * @tparam FreqFn     the tuning (see update)
      * @tparam ConsFn     the ear (see update)
      * @tparam EmitFn     the sink (see update)
-     * @param dt          seconds since the last call
-     * @param p           the settings
-     * @param in          the root and the cluster
-     * @param freqOf      the tuning
-     * @param consonance  the ear
-     * @param emit        receives the NearNotes
      */
     template <class FreqFnT, class ConsFnT, class EmitFnT>
     void run(double dt, const NearParams& p, const NearInputs& in, FreqFnT&& freqOf, ConsFnT&& consonance, EmitFnT&& emit)
@@ -451,8 +448,8 @@ private:
      * @brief Where the sequence stands between the planes at progress q: out of the far, at its place
      *        for the middle, back into the far. Its place is Distance; the run's approach is symmetric
      *        whichever sign it carries.
-     * @param q  progress through the run, 0 .. 1
-     * @return   the plane, m_home .. 1
+     * @param[in] q  progress through the run, 0 .. 1
+     * @return the plane, m_home .. 1
      */
     float trajectory(double q) const
     {
@@ -474,17 +471,16 @@ private:
      * plays at all. Between two steps a quiet, dark ghost of the step just gone may sound (Scatter).
      * At the start of each cycle one step may mutate (Mutation): its degree, octave, gate, velocity
      * or accent.
-     *
+     * @param[in] dt          seconds since the last call
+     * @param[in] q           progress through the run, 0 .. 1
+     * @param[in] p           the settings
+     * @param[in] in          the root and the cluster
+     * @param[in] freqOf      the tuning
+     * @param[in] consonance  the ear
+     * @param[in] emit        receives the NearNotes
      * @tparam FreqFn     the tuning (see update)
      * @tparam ConsFn     the ear (see update)
      * @tparam EmitFn     the sink (see update)
-     * @param dt          seconds since the last call
-     * @param q           progress through the run, 0 .. 1
-     * @param p           the settings
-     * @param in          the root and the cluster
-     * @param freqOf      the tuning
-     * @param consonance  the ear
-     * @param emit        receives the NearNotes
      */
     template <class FreqFnT, class ConsFnT, class EmitFnT>
     void runSequence(double dt, double q, const NearParams& p, const NearInputs& in, FreqFnT&& freqOf, ConsFnT&& consonance, EmitFnT&& emit)
@@ -545,15 +541,14 @@ private:
      * An accented step is sent to the horizon (0.8 or further); every other one stands where
      * trajectory() puts the run. The bloom is two octaves under the cutoff as the run begins, an
      * octave over it at its height, and back.
-     *
+     * @param[in] st         the step
+     * @param[in] root       the conductor's root, as a MIDI note
+     * @param[in] q          progress through the run, 0 .. 1
+     * @param[in] p          the settings (spread, bloom)
+     * @param[in] velocity   0 .. 1
+     * @param[in] gateShare  how long the gate stays open, as a share of a step
+     * @param[in] emit       receives the NearNotes
      * @tparam EmitFn    the sink (see update)
-     * @param st         the step
-     * @param root       the conductor's root, as a MIDI note
-     * @param q          progress through the run, 0 .. 1
-     * @param p          the settings (spread, bloom)
-     * @param velocity   0 .. 1
-     * @param gateShare  how long the gate stays open, as a share of a step
-     * @param emit       receives the NearNotes
      */
     template <class EmitFnT>
     void play(const Step& st, int root, double q, const NearParams& p, float velocity, float gateShare, EmitFnT&& emit)
@@ -579,8 +574,8 @@ private:
     /**
      * @brief Ends the current event: lets its note go, draws the gap to the next one and, after a Note or
      *        a Phrase, holds the conductor for ten more seconds so the horizon's return is heard.
+     * @param[in] emit  receives the Off
      * @tparam EmitFn  the sink (see update)
-     * @param emit     receives the Off
      */
     template <class EmitFnT>
     void end(EmitFnT&& emit)

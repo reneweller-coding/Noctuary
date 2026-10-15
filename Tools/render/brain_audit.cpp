@@ -11,6 +11,7 @@
  * section 11, the anti-rules of section 12 and the roles of table 2. No audio is rendered: the
  * engine's conductors are stepped at the control rate with the parameters exactly as a render
  * would read them, which is why this is an engine method and not a copy of its wiring.
+ * @author Rene Weller
  */
 #include "ambient/Engine.h"
 #include "ambient/MainStack.h"
@@ -29,10 +30,10 @@ using namespace ambient;
 /**
  * @brief Reads the options, sets the engine up as a render would, and runs Engine::auditConductor for the
  *        hours asked, printing the E and R lines (and the T lines under AMBIENT_BRAIN_TRACE) to stdout.
- * @param argc  argument count, as the runtime hands it over
- * @param argv  the options listed in the file header; a bad or unknown one is reported on stderr
- * @return 0 when the audit ran, 2 for a command-line error (unknown option, preset or parameter,
- *         a non-positive --hours or --dt)
+ * @param[in]     argc  argument count, as the runtime hands it over
+ * @param[in,out] argv  the options listed in the file header; a bad or unknown one is reported on stderr
+ * @return 0 when the audit ran, 2 for a command-line error (unknown option, preset or parameter, a non-positive --hours
+ *         or --dt)
  */
 int main(int argc, char** argv)
 {
@@ -74,7 +75,7 @@ int main(int argc, char** argv)
     if (seed >= 0) engine->setParam(ParamIdE::SEED, static_cast<float>(seed));
     std::printf("# preset %s\n", presetIndex >= 0 ? preset(presetIndex).m_name : "(defaults)");
     // With AMBIENT_BRAIN_TRACE set, every stamp of the constellation memory and every verdict it
-    // gives is printed as T,<seconds>,<what>,<note>,<key>: how a repeat is traced to its cause.
+    // gives is printed as T,\<seconds\>,\<what\>,\<note\>,\<key\>: how a repeat is traced to its cause.
     static double now = 0.0;
     if (std::getenv("AMBIENT_BRAIN_TRACE"))
         ClusterBrain::M_Trace = [](const char* what, int note, uint32_t key) { std::printf("T,%.4f,%s,%d,%u\n", now, what, note, key); };

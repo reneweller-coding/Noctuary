@@ -18,6 +18,7 @@
  * the head model, the plane), and the per-sample loop in render() only turns phasors, sums, filters
  * and delays -- the hot loops of that sum are in Simd.h. Everything a voice allocates is inside
  * the object, so the pool is one allocation and the audio thread never asks for memory.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -199,9 +200,8 @@ public:
      *        and filters in their starting state.
      *
      * Message thread, once per instance and again at a sample-rate change.
-     *
-     * @param sampleRate  in Hz
-     * @param seed        the voice's own random stream (each voice of the pool gets a different one)
+     * @param[in] sampleRate  in Hz
+     * @param[in] seed        the voice's own random stream (each voice of the pool gets a different one)
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
@@ -217,15 +217,14 @@ public:
      * A fresh start (the envelope was idle) draws new random phases for every partial and resets
      * the filters and delays; a retrigger keeps them. The role (layer()) is read off the register
      * unless the owner is the second conductor or a near event.
-     *
-     * @param note         MIDI note number, for key tracking and the register roles
-     * @param freqHz       the note's frequency in Hz (already tuned by the engine)
-     * @param velocity     0 .. 1; the level is 0.3 + 0.7 velocity, and Vel to Attack reads it too
-     * @param owner        who plays it: 0 keys, 1 the brain, 2 the second conductor, 3 a near event
-     * @param distance     the plane, 0 at the ear .. 1 on the horizon
-     * @param p            the parameters of this block
-     * @param allowStrike  whether the strike may fire (see above)
-     * @param ageSeconds   how long the note has notionally been sounding (see above)
+     * @param[in] note         MIDI note number, for key tracking and the register roles
+     * @param[in] freqHz       the note's frequency in Hz (already tuned by the engine)
+     * @param[in] velocity     0 .. 1; the level is 0.3 + 0.7 velocity, and Vel to Attack reads it too
+     * @param[in] owner        who plays it: 0 keys, 1 the brain, 2 the second conductor, 3 a near event
+     * @param[in] distance     the plane, 0 at the ear .. 1 on the horizon
+     * @param[in] p            the parameters of this block
+     * @param[in] allowStrike  whether the strike may fire (see above)
+     * @param[in] ageSeconds   how long the note has notionally been sounding (see above)
      */
     void noteOn(int note, double freqHz, float velocity, int owner, float distance, const VoiceParams& p,
                 bool allowStrike = true, float ageSeconds = 0.0f);
@@ -273,30 +272,30 @@ public:
     float rootComp() const      { return m_rootComp; }
     /**
      * @brief Sets the root compensation (see rootComp()).
-     * @param m  the multiplier that keeps this voice's frequency where it was across a root change
+     * @param[in] m  the multiplier that keeps this voice's frequency where it was across a root change
      */
     void  setRootComp(float m)  { m_rootComp = m; }
     /** @return the frequency the bank is at right now in Hz (glides included) */
     double frequency() const { return m_freq; }
     /**
      * @brief Retune a sounding voice (tuning purity/drift): glides in the log domain, ~1 s time constant.
-     * @param hz  the frequency to arrive at
+     * @param[in] hz  the frequency to arrive at
      */
     void setTargetFrequency(double hz) { m_freqTarget = hz; }
     /**
      * @brief Per-note expression. Pressure and slide are 0..1, bend is in semitones; all three are
      *        smoothed inside the voice, so a controller sending steps never steps the sound.
-     * @param v  pressure 0 .. 1 (clamped)
+     * @param[in] v  pressure 0 .. 1 (clamped)
      */
     void setPressure(float v) { m_pressTarget = clampv(v, 0.0f, 1.0f); }
     /**
      * @brief The key's sideways slide (see setPressure).
-     * @param v  0 .. 1 (clamped)
+     * @param[in] v  0 .. 1 (clamped)
      */
     void setSlide(float v)    { m_slideTarget = clampv(v, 0.0f, 1.0f); }
     /**
      * @brief The note's own pitch bend (see setPressure).
-     * @param semitones  signed, unclamped; the engine has applied the bend range
+     * @param[in] semitones  signed, unclamped; the engine has applied the bend range
      */
     void setBend(float semitones) { m_bendTarget = semitones; }
     /** @return the smoothed pressure, 0 .. 1 */
@@ -308,10 +307,9 @@ public:
      *        consonant ratios to the root by `gravity` (0 = an even log-domain glide).
      *
      * Call right after noteOn. Does nothing for a non-positive start or duration.
-     *
-     * @param fromHz   where the slide starts (the previous key's frequency)
-     * @param seconds  the nominal duration of an even slide
-     * @param gravity  0 .. 1, the pull towards the just ratios (see Voice.cpp for the magnet)
+     * @param[in] fromHz   where the slide starts (the previous key's frequency)
+     * @param[in] seconds  the nominal duration of an even slide
+     * @param[in] gravity  0 .. 1, the pull towards the just ratios (see Voice.cpp for the magnet)
      */
     void glideFrom(double fromHz, float seconds, float gravity);
     /** @return whether a portamento is still under way */
@@ -321,35 +319,34 @@ public:
      *        frequency change, and the slide runs on the portamento with its gravity.
      *
      * Ignored when the voice is not sounding.
-     *
-     * @param note     the new MIDI note
-     * @param hz       its frequency
-     * @param seconds  the slide's duration, at least 50 ms
-     * @param gravity  0 .. 1, as glideFrom
+     * @param[in] note     the new MIDI note
+     * @param[in] hz       its frequency
+     * @param[in] seconds  the slide's duration, at least 50 ms
+     * @param[in] gravity  0 .. 1, as glideFrom
      */
     void glideTo(int note, double hz, float seconds, float gravity);
     /**
      * @brief The plane moves: to `distance` over `seconds` -- a near event arriving out of the far plane
      *        or leaving into it. Everything that hangs on the distance follows, as it does for Breath.
-     * @param distance  where to go, 0 .. 1 (clamped)
-     * @param seconds   how long the (exponential) approach takes, at least 10 ms
+     * @param[in] distance  where to go, 0 .. 1 (clamped)
+     * @param[in] seconds   how long the (exponential) approach takes, at least 10 ms
      */
     void moveTo(float distance, float seconds) { m_distTarget = clampv(distance, 0.0f, 1.0f); m_distSeconds = std::max(seconds, 0.01f); }
     /**
      * @brief Where this note stands in what its owner is sounding, for the slot roles (SlotRole): set by
      *        the engine before noteOn, and again whenever the cluster changes.
-     * @param lowest   this note is the lowest of its owner's cluster
-     * @param highest  this note is the highest
+     * @param[in] lowest   this note is the lowest of its owner's cluster
+     * @param[in] highest  this note is the highest
      */
     void setPlace(bool lowest, bool highest) { m_placeLowest = lowest; m_placeHighest = highest; }
     /**
      * @brief A near event's shape, set before its noteOn: the gate as a share of the release, the bloom
      *        as a factor on the cutoff, the near field's low lift in decibels, and its place in the field.
-     * @param releaseMul   factor on the release time, at least 0.05
-     * @param cutoffMul    factor on the filter cutoff, 0.05 .. 8
-     * @param proximityDb  the lift between 120 and 300 Hz on the near plane, in dB
-     * @param pan          -1 .. 1, the event's place, added to the centre pan
-     * @param gain         the event's Gain (fore_gain) as a linear factor, folded into the pan pair
+     * @param[in] releaseMul   factor on the release time, at least 0.05
+     * @param[in] cutoffMul    factor on the filter cutoff, 0.05 .. 8
+     * @param[in] proximityDb  the lift between 120 and 300 Hz on the near plane, in dB
+     * @param[in] pan          -1 .. 1, the event's place, added to the centre pan
+     * @param[in] gain         the event's Gain (fore_gain) as a linear factor, folded into the pan pair
      */
     void setNearShape(float releaseMul, float cutoffMul, float proximityDb, float pan, float gain = 1.0f)
     { m_releaseMul = std::max(releaseMul, 0.05f); m_cutoffMul = clampv(cutoffMul, 0.05f, 8.0f); m_proxDb = proximityDb; m_panOffset = clampv(pan, -1.0f, 1.0f); m_nearGain = std::max(gain, 0.0f); }
@@ -362,10 +359,9 @@ public:
      *
      * Read without
      * synchronisation from the message thread; a torn float costs one wrong pixel.
-     *
-     * @param out       receives the amplitudes
-     * @param maxCount  room in @p out
-     * @return          how many were written (the strand's active partials, at most @p maxCount)
+     * @param[out] out       receives the amplitudes
+     * @param[in]  maxCount  room in @p out
+     * @return how many were written (the strand's active partials, at most @p maxCount)
      */
     int displayPartials(float* out, int maxCount) const
     {
@@ -375,25 +371,25 @@ public:
     }
     /**
      * @brief The same for a slot's own bank (Additive / Wavetable in Source 1..3), and its grains.
-     * @param slot      0 .. Slots-1 (clamped)
-     * @param out       receives the amplitudes
-     * @param maxCount  room in @p out
-     * @return          how many were written
+     * @param[in]  slot      0 .. Slots-1 (clamped)
+     * @param[out] out       receives the amplitudes
+     * @param[in]  maxCount  room in @p out
+     * @return how many were written
      */
     int displaySlotPartials(int slot, float* out, int maxCount) const { return m_slots[slot < 0 ? 0 : (slot >= Slots ? Slots - 1 : slot)].displayAmps(out, maxCount); }
     /**
      * @brief The grains a slot is sounding, for the picture (see SourceSlot::displayGrains).
-     * @param slot      0 .. Slots-1 (clamped)
-     * @param out       receives one entry per live grain
-     * @param maxCount  room in @p out
-     * @param clipLen   the clip's length in samples, to give positions as 0 .. 1
-     * @return          how many were written
+     * @param[in]  slot      0 .. Slots-1 (clamped)
+     * @param[out] out       receives one entry per live grain
+     * @param[in]  maxCount  room in @p out
+     * @param[in]  clipLen   the clip's length in samples, to give positions as 0 .. 1
+     * @return how many were written
      */
     int displayGrains(int slot, SourceSlot::GrainInfo* out, int maxCount, int clipLen) const { return m_slots[slot < 0 ? 0 : (slot >= Slots ? Slots - 1 : slot)].displayGrains(out, maxCount, clipLen); }
     /**
      * @brief Where a slot's table is actually being read, Pos Drift included (see SourceSlot::displayPosition).
-     * @param slot  0 .. Slots-1 (clamped)
-     * @return      the position 0 .. 1, or -1 until the slot has rendered a table
+     * @param[in] slot  0 .. Slots-1 (clamped)
+     * @return the position 0 .. 1, or -1 until the slot has rendered a table
      */
     float displaySlotPosition(int slot) const { return m_slots[slot < 0 ? 0 : (slot >= Slots ? Slots - 1 : slot)].displayPosition(); }
     /** @return where the voice's centre sits right now, -1..1 */
@@ -402,14 +398,14 @@ public:
      * @brief For the envelope editor's playhead: the time each slot's entrance shape was read at in the
      *        last control block (seconds of the shape, -1 while the slot follows none) and the gain it
      *        gave. Read without synchronisation, as above.
-     * @param k  the slot, 0 .. Slots-1 (clamped)
-     * @return   seconds into the shape, or -1
+     * @param[in] k  the slot, 0 .. Slots-1 (clamped)
+     * @return seconds into the shape, or -1
      */
     float slotEnvTime(int k) const { return m_slotEnvT[k < 0 ? 0 : (k >= Slots ? Slots - 1 : k)]; }
     /**
      * @brief The gain a slot's entrance gave in the last control block (see slotEnvTime).
-     * @param k  the slot, 0 .. Slots-1 (clamped)
-     * @return   0 .. 1
+     * @param[in] k  the slot, 0 .. Slots-1 (clamped)
+     * @return 0 .. 1
      */
     float slotGain(int k) const    { return m_slotGain[k < 0 ? 0 : (k >= Slots ? Slots - 1 : k)]; }
 
@@ -423,15 +419,14 @@ public:
      *
      * Runs control() every ControlBlock samples and stops early once neither the envelope nor
      * the strike is going; guards the z-plane state at the end of the block.
-     *
-     * @param nearL   left of the near bus, added to
-     * @param nearR   right of the near bus, added to
-     * @param farL    left of the far bus, added to
-     * @param farR    right of the far bus, added to
-     * @param n       samples
-     * @param p       the parameters of this block
-     * @param fm      the feedback signal, n samples or nullptr
-     * @param couple  the previous block's foreground, n samples or nullptr
+     * @param[in,out] nearL   left of the near bus, added to
+     * @param[in,out] nearR   right of the near bus, added to
+     * @param[in,out] farL    left of the far bus, added to
+     * @param[in,out] farR    right of the far bus, added to
+     * @param[in]     n       samples
+     * @param[in]     p       the parameters of this block
+     * @param[in]     fm      the feedback signal, n samples or nullptr
+     * @param[in]     couple  the previous block's foreground, n samples or nullptr
      */
     void render(float* nearL, float* nearR, float* farL, float* farR, int n, const VoiceParams& p,
                 const float* fm = nullptr, const float* couple = nullptr);
@@ -472,9 +467,8 @@ private:
      * the interaural delay and head shadow, the near field, externalisation and height, the
      * voice filter, the phase field, the z-plane frame and the air. Everything that costs a
      * transcendental lives here, so the per-sample loop has none.
-     *
-     * @param blockLen  samples this block covers (at most ControlBlock)
-     * @param p         the parameters
+     * @param[in] blockLen  samples this block covers (at most ControlBlock)
+     * @param[in] p         the parameters
      */
     void control(int blockLen, const VoiceParams& p);
 
@@ -528,9 +522,8 @@ private:
      *
      * String rings at the note; Wood is two octaves up (clamped to 200 .. 2500 Hz), short and dull;
      * Metal puts an all-pass in the loop. The strike is placed at the voice's centre pan.
-     *
-     * @param hz  the note's frequency
-     * @param p   the parameters, for level, type, decay and damp
+     * @param[in] hz  the note's frequency
+     * @param[in] p   the parameters, for level, type, decay and damp
      */
     void     strikeStart(double hz, const VoiceParams& p);
     /**
@@ -553,8 +546,8 @@ private:
     /**
      * @brief Series of biquads, or a parallel bank of resonators: one call so the two paths cannot
      *        drift apart at the two places the filter is applied.
-     * @param l  left sample, filtered in place
-     * @param r  right sample, filtered in place
+     * @param[in,out] l  left sample, filtered in place
+     * @param[in,out] r  right sample, filtered in place
      */
     inline void zRun(float& l, float& r)
     {
@@ -615,10 +608,10 @@ private:
     float    m_roleGain[Slots] = { 1.0f, 1.0f, 1.0f, 1.0f };   ///< each slot's gain from its role, faded over 1.5 s
     /**
      * @brief The gain a role asks for at a given place: 1 when the note is where the role says, else 0.
-     * @param r        the slot's role
-     * @param lowest   the note is the lowest of the cluster
-     * @param highest  the note is the highest
-     * @return         1 or 0 (always 1 for SlotRole::All)
+     * @param[in] r        the slot's role
+     * @param[in] lowest   the note is the lowest of the cluster
+     * @param[in] highest  the note is the highest
+     * @return 1 or 0 (always 1 for SlotRole::All)
      */
     static float roleTarget(SlotRoleE r, bool lowest, bool highest)
     {

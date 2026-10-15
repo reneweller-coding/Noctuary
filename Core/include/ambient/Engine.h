@@ -25,6 +25,7 @@
  * textures, the route, the matrix and the envelope shapes -- travel from the message thread into
  * pending copies that the audio thread picks up at the top of a block, published by a version
  * counter, a double buffer or the modulation lock, as each section says.
+ * @author Rene Weller
  */
 #pragma once
 #include "NoteTap.h"
@@ -89,10 +90,10 @@ public:
      * the Room unless a user impulse is kept; the conductors are reset an octave below the key
      * root; and readParams() runs once so the first block has its structures. The preset map's
      * vectors are deliberately NOT built here (see Engine.cpp; PresetMap::warmupAsync does it).
-     *
-     * @param sampleRate    Hz
-     * @param maxBlockSize  the largest n process() will be given; raised to ControlBlock at least,
-     *                      and larger blocks are chunked anyway
+     * @param[in] sampleRate    Hz
+     * @param[in] maxBlockSize  the largest n process() will be given; raised to ControlBlock at least, and larger
+     *                          blocks are chunked anyway
+     * @pre called on the message thread
      */
     void prepare(double sampleRate, int maxBlockSize);
     /**
@@ -104,14 +105,14 @@ public:
 
     /**
      * @brief Writes a parameter (any thread, a relaxed atomic store).
-     * @param id  the parameter
-     * @param v   its value in the parameter's own units (Params.h); nothing is clamped here
+     * @param[in] id  the parameter
+     * @param[in] v   its value in the parameter's own units (Params.h); nothing is clamped here
      */
     void  setParam(ParamIdE id, float v) { m_params[static_cast<int>(id)].store(v, std::memory_order_relaxed); }
     /**
      * @brief Reads a parameter as the host set it (any thread); effectiveParam() is what is actually playing.
-     * @param id  the parameter
-     * @return    its value in the parameter's own units
+     * @param[in] id  the parameter
+     * @return its value in the parameter's own units
      */
     float getParam(ParamIdE id) const    { return m_params[static_cast<int>(id)].load(std::memory_order_relaxed); }
     /**
@@ -119,9 +120,8 @@ public:
      *
      * any thread; sets every parameter (full preset) -- and the modulation with it: the matrix rows
      * and the envelope shapes of its mod and envs fields (applyPresetModulation()).
-     *
-     * @param index  0 .. numPresets() - 1
-     * @return       false for an index outside the bank, or when a field of the preset did not parse
+     * @param[in] index  0 .. numPresets() - 1
+     * @return false for an index outside the bank, or when a field of the preset did not parse
      */
     bool  applyPreset(int index);
     /**
@@ -134,11 +134,10 @@ public:
      * The near events are reported as a third conductor (3): their notes on and off, a glide as
      * the new note beginning, a move not at all. Runs readParams() first; offline only, never
      * while process() is being called.
-     *
-     * @param seconds   how long to run
-     * @param dt        the step in seconds (the render's control block, typically)
-     * @param sink      receives (time, conductor 1/2/3, event) for every note on and off
-     * @param rootSink  receives (time, root note) at the start and at every root change; may be empty
+     * @param[in] seconds   how long to run
+     * @param[in] dt        the step in seconds (the render's control block, typically)
+     * @param[in] sink      receives (time, conductor 1/2/3, event) for every note on and off
+     * @param[in] rootSink  receives (time, root note) at the start and at every root change; may be empty
      */
     void  auditConductor(double seconds, double dt,
                          const std::function<void(double, int, const BrainEvent&)>& sink,
@@ -148,45 +147,40 @@ public:
      *
      * sound layer only: everything except the Cosmos section -- and the modulation, which belongs to
      * the sound (its matrix and envelope shapes come along).
-     *
-     * @param index  0 .. numPresets() - 1
-     * @return       false for an index outside the bank or a field that did not parse
+     * @param[in] index  0 .. numPresets() - 1
+     * @return false for an index outside the bank or a field that did not parse
      */
     bool  applySoundPreset(int index);
     /**
      * @brief Loads a preset of the Cosmos bank.
      *
      * Cosmos layer only, from the Cosmos preset bank
-     *
-     * @param index  0 .. numCosmosPresets() - 1
-     * @return       false for an index outside the bank
+     * @param[in] index  0 .. numCosmosPresets() - 1
+     * @return false for an index outside the bank
      */
     bool  applyCosmosPreset(int index);
     /**
      * @brief Loads a preset of the Z-plane bank.
      *
      * Z-plane layer only: the filter and where its point sits
-     *
-     * @param index  0 .. numZPresets() - 1
-     * @return       false for an index outside the bank
+     * @param[in] index  0 .. numZPresets() - 1
+     * @return false for an index outside the bank
      */
     bool  applyZPreset(int index);
     /**
      * @brief Loads a preset of the Strike bank.
      *
      * Strike layer only: the Karplus-Strong pluck
-     *
-     * @param index  0 .. numStrikePresets() - 1
-     * @return       false for an index outside the bank
+     * @param[in] index  0 .. numStrikePresets() - 1
+     * @return false for an index outside the bank
      */
     bool  applyStrikePreset(int index);
     /**
      * @brief Loads a preset of the Near bank.
      *
      * the near layer only: the Near Source and the Near Events
-     *
-     * @param index  0 .. numNearPresets() - 1
-     * @return       false for an index outside the bank
+     * @param[in] index  0 .. numNearPresets() - 1
+     * @return false for an index outside the bank
      */
     bool  applyNearPreset(int index);
     /**
@@ -208,7 +202,8 @@ public:
     /**
      * @brief Takes another engine's scheduler over, sequence and all (message thread, before this
      *        engine is heard).
-     * @param n  the state the leaving engine's nearState() gave
+     * @param[in] n  the state the leaving engine's nearState() gave
+     * @pre called on the message thread
      */
     void  adoptNear(const NearEvents& n) { m_near = n; }
     /** @} */
@@ -219,24 +214,29 @@ public:
     /**
      * @brief A key goes down: a voice starts on the keys' plane (KeysDepth), with portamento from the
      *        previous key when set; under Hold a key that is already sounding is released instead.
-     * @param note      0 .. 127
-     * @param velocity  0 .. 1
+     * @param[in] note      0 .. 127
+     * @param[in] velocity  0 .. 1
      */
     void noteOn(int note, float velocity);
     /**
      * @brief A key comes up: its voice is released, unless Hold latches the keys.
-     * @param note  0 .. 127
+     * @param[in] note  0 .. 127
      */
     void noteOff(int note);
     /** @brief Releases every voice of every owner and forgets the held keys. */
     void allNotesOff();
-    /** @brief From now on every conductor note it plays is also written to @p tap (null: stops; NoteTap.h, MIDI out). */
+    /**
+     * @brief From now on every conductor note it plays is also written to @p tap (null: stops; NoteTap.h, MIDI out).
+     * @param[out] tap  where the notes go, null to stop
+     */
     void setNoteTap(NoteTap* tap) { m_noteTap = tap; }
     /**
      * @brief The family jam (02.10.2026, the plugin's Jam.h), audio thread: the first conductor's root held on the
      *        leader's pitch class @p rootPc (-1: its own; the nearest such note to where it stands, the second
      *        conductor a fixed interval from it as ever), and the leader's @p energy (0..1; negative: none) brightening
      *        or darkening the voices' filters.
+     * @param[in] rootPc  the leader's pitch class, -1 for its own
+     * @param[in] energy  the leader's energy
      */
     void setJam(int rootPc, float energy) { m_jamRoot = rootPc; m_jamEnergy = energy; }
     /** @} */
@@ -249,20 +249,20 @@ public:
      * @{ */
     /**
      * @brief Pressure on a sounding note.
-     * @param note  the note, or < 0 for every sounding voice
-     * @param v     0 .. 1
+     * @param[in] note  the note, or < 0 for every sounding voice
+     * @param[in] v     0 .. 1
      */
     void setPressure(int note, float v);
     /**
      * @brief Slide (CC 74, the MPE Y axis) on a sounding note.
-     * @param note  the note, or < 0 for every sounding voice
-     * @param v     0 .. 1
+     * @param[in] note  the note, or < 0 for every sounding voice
+     * @param[in] v     0 .. 1
      */
     void setSlide(int note, float v);
     /**
      * @brief Pitch bend on a sounding note.
-     * @param note        the note, or < 0 for every sounding voice
-     * @param normalised  -1 .. 1, scaled by the Bend Range parameter
+     * @param[in] note        the note, or < 0 for every sounding voice
+     * @param[in] normalised  -1 .. 1, scaled by the Bend Range parameter
      */
     void setBend(int note, float normalised);
     /** @} */
@@ -272,8 +272,7 @@ public:
      * It belongs to the instrument rather than to a note, and reaches
      * the sound only through the matrix -- there is no fixed route from it. The value is a target
      * the modulation follows over 30 ms (a 7-bit controller steps).
-     *
-     * @param v  0 .. 1, clamped
+     * @param[in] v  0 .. 1, clamped
      */
     void setWheel(float v);
     /**
@@ -281,8 +280,7 @@ public:
      *        tracker.
      *
      * Only the Headphones binaural mode listens to it. Any thread.
-     *
-     * @param degrees  the yaw
+     * @param[in] degrees  the yaw
      */
     void setHeadYaw(float degrees);
 
@@ -295,10 +293,10 @@ public:
      * turns the parameters into this block's structures; then renderChunk() runs the signal path in
      * chunks of the prepared size. Afterwards the sleep check, and the note masks, the voice count
      * and the root are published for the observers.
-     *
-     * @param L  left output, n samples, overwritten
-     * @param R  right output, n samples, overwritten
-     * @param n  samples to render
+     * @param[in,out] L  left output, n samples, overwritten
+     * @param[in,out] R  right output, n samples, overwritten
+     * @param[in]     n  samples to render
+     * @pre called on the audio thread
      */
     void process(float* L, float* R, int n);
 
@@ -313,13 +311,13 @@ public:
     static constexpr int NumStems = 4;   ///< stereo stems: near, far, cosmos (the Memory counted in), room
     /**
      * @brief The name of a stem, for the render tool's file names.
-     * @param i  0 .. NumStems - 1
-     * @return   "near", "far", "cosmos" or "room"; "" outside the range
+     * @param[in] i  0 .. NumStems - 1
+     * @return "near", "far", "cosmos" or "room"; "" outside the range
      */
     static const char* stemName(int i);
     /**
      * @brief Where the next process() call writes the stems.
-     * @param eightPointers  eight buffers in the order above, or null to stop writing stems
+     * @param[in] eightPointers  eight buffers in the order above, or null to stop writing stems
      */
     void setStemBuffers(float* const* eightPointers) { m_stems = eightPointers; }
     /** @} */
@@ -329,8 +327,7 @@ public:
      *
      * Any thread. Applied at the start of the next block. Waits (microseconds) while the audio
      * thread is copying the previous one, then writes the pending copy and bumps its version.
-     *
-     * @param s  the scale for the User (Scala) slot
+     * @param[in] s  the scale for the User (Scala) slot
      */
     void setUserScale(const FixedScale& s);
     /**
@@ -341,8 +338,7 @@ public:
      * audio thread has left the buffer it is about to overwrite, then swaps. The wavetable itself
      * travels as a pending copy with a version (8 KB the audio thread copies at the top of a
      * block); this call waits only while that copy is in progress.
-     *
-     * @param t  the analysed table (Wavetable::analyse)
+     * @param[in] t  the analysed table (Wavetable::analyse)
      */
     void setUserWavetable(const Wavetable& t);
     /**
@@ -351,8 +347,7 @@ public:
      * Double-buffered like a texture rather
      * than copied on the audio thread: 256 frames at ten resolutions are megabytes. Message
      * thread; waits for every block begun before the call to end (waitForQuiet()).
-     *
-     * @param t  the built cycle table (CycleTable::build)
+     * @param[in] t  the built cycle table (CycleTable::build)
      */
     void setUserCycles(const CycleTable& t);
     /**
@@ -360,11 +355,11 @@ public:
      *        and sets both.
      *
      * `frameLen` is one cycle's length; readWavetableFile finds it for a file. Message thread.
-     *
-     * @param mono      the file's samples, frames end to end
-     * @param n         how many samples
-     * @param frameLen  samples per frame (one cycle)
-     * @return          false when the analysis or the cycle build fails (silence, or nothing either type could play)
+     * @param[in] mono      the file's samples, frames end to end
+     * @param[in] n         how many samples
+     * @param[in] frameLen  samples per frame (one cycle)
+     * @return false when the analysis or the cycle build fails (silence, or nothing either type could play)
+     * @pre called on the message thread
      */
     bool loadUserWavetable(const float* mono, int n, int frameLen = 2048);
     /**
@@ -377,22 +372,22 @@ public:
      * buffer that is not playing -- after waitForQuiet(), see Engine.cpp for why the flag that used
      * to stand there asked the wrong question -- its offset is removed, it is measured, and the
      * slot's active index flips to it.
-     *
-     * @param slot        0 .. Slots - 1; anything else is ignored
-     * @param mono        the samples
-     * @param n           how many
-     * @param sampleRate  the recording's rate in Hz (not positive reads as 48 kHz)
-     * @param baseHz      the pitch the clip is heard as unshifted, Hz (not positive reads as middle C)
-     * @param seamless    whether the clip loops without a seam
+     * @param[in] slot        0 .. Slots - 1; anything else is ignored
+     * @param[in] mono        the samples
+     * @param[in] n           how many
+     * @param[in] sampleRate  the recording's rate in Hz (not positive reads as 48 kHz)
+     * @param[in] baseHz      the pitch the clip is heard as unshifted, Hz (not positive reads as middle C)
+     * @param[in] seamless    whether the clip loops without a seam
+     * @pre called on the message thread
      */
     void setTexture(int slot, const float* mono, int n, double sampleRate, double baseHz = 261.6256, bool seamless = false);
     /**
      * @brief The same mono clip into every slot (see the slot form).
-     * @param mono        the samples
-     * @param n           how many
-     * @param sampleRate  the recording's rate in Hz
-     * @param baseHz      the pitch the clip is heard as unshifted, Hz
-     * @param seamless    whether the clip loops without a seam
+     * @param[in] mono        the samples
+     * @param[in] n           how many
+     * @param[in] sampleRate  the recording's rate in Hz
+     * @param[in] baseHz      the pitch the clip is heard as unshifted, Hz
+     * @param[in] seamless    whether the clip loops without a seam
      */
     void setTexture(const float* mono, int n, double sampleRate, double baseHz = 261.6256, bool seamless = false)
     { for (int k = 0; k < Slots; ++k) setTexture(k, mono, n, sampleRate, baseHz, seamless); }
@@ -403,24 +398,23 @@ public:
      * is not, the granular source reads the pair and keeps the recording's own image instead of
      * playing its mono sum. The mono sum is still made here, because the band model, the Paulstretch
      * and the Spectral resynthesis are all built on it.
-     *
-     * @param slot        0 .. Slots - 1; anything else is ignored
-     * @param L           left channel
-     * @param R           right channel, or null for the mono form
-     * @param n           samples per channel
-     * @param sampleRate  the recording's rate in Hz
-     * @param baseHz      the pitch the clip is heard as unshifted, Hz
-     * @param seamless    whether the clip loops without a seam
+     * @param[in] slot        0 .. Slots - 1; anything else is ignored
+     * @param[in] L           left channel
+     * @param[in] R           right channel, or null for the mono form
+     * @param[in] n           samples per channel
+     * @param[in] sampleRate  the recording's rate in Hz
+     * @param[in] baseHz      the pitch the clip is heard as unshifted, Hz
+     * @param[in] seamless    whether the clip loops without a seam
      */
     void setTexture(int slot, const float* L, const float* R, int n, double sampleRate, double baseHz = 261.6256, bool seamless = false);
     /**
      * @brief The same stereo clip into every slot (see the slot form).
-     * @param L           left channel
-     * @param R           right channel, or null
-     * @param n           samples per channel
-     * @param sampleRate  the recording's rate in Hz
-     * @param baseHz      the pitch the clip is heard as unshifted, Hz
-     * @param seamless    whether the clip loops without a seam
+     * @param[in] L           left channel
+     * @param[in] R           right channel, or null
+     * @param[in] n           samples per channel
+     * @param[in] sampleRate  the recording's rate in Hz
+     * @param[in] baseHz      the pitch the clip is heard as unshifted, Hz
+     * @param[in] seamless    whether the clip loops without a seam
      */
     void setTexture(const float* L, const float* R, int n, double sampleRate, double baseHz = 261.6256, bool seamless = false)
     { for (int k = 0; k < Slots; ++k) setTexture(k, L, R, n, sampleRate, baseHz, seamless); }
@@ -431,14 +425,15 @@ public:
      * Copies the band
      * model with it rather than measuring the same clip a second time. Message thread, after
      * waitForQuiet(); an empty clip is ignored.
-     *
-     * @param slot  0 .. Slots - 1
-     * @param src   the other engine's displayTexture(slot)
+     * @param[in] slot  0 .. Slots - 1
+     * @param[in] src   the other engine's displayTexture(slot)
+     * @pre called on the message thread
      */
     void setTexture(int slot, const Texture& src);
     /**
-     * @brief Empties a slot: its active index goes to -1 and the source falls back to silence (the buffers stay for the next clip).
-     * @param slot  0 .. Slots - 1; anything else is ignored
+     * @brief Empties a slot: its active index goes to -1 and the source falls back to silence (the buffers stay for the
+     *        next clip).
+     * @param[in] slot  0 .. Slots - 1; anything else is ignored
      */
     void clearTexture(int slot);
     /**
@@ -454,31 +449,31 @@ public:
     /**
      * @brief Builds a Texture from a recording without touching the engine: the mono sum (and the pair,
      *        when R is given), cut to at most `maxSeconds`, its offset removed, measured.
-     * @param L           left channel
-     * @param R           right channel, or null for mono
-     * @param n           samples per channel
-     * @param sampleRate  the recording's rate in Hz (not positive reads as 48 kHz)
-     * @param baseHz      the pitch the clip is heard as unshifted, Hz (not positive reads as middle C)
-     * @param seamless    whether the clip loops without a seam
-     * @param maxSeconds  the most that is kept, from the start (at least one second)
-     * @return            the clip; empty for a null pointer or n <= 0
+     * @param[in] L           left channel
+     * @param[in] R           right channel, or null for mono
+     * @param[in] n           samples per channel
+     * @param[in] sampleRate  the recording's rate in Hz (not positive reads as 48 kHz)
+     * @param[in] baseHz      the pitch the clip is heard as unshifted, Hz (not positive reads as middle C)
+     * @param[in] seamless    whether the clip loops without a seam
+     * @param[in] maxSeconds  the most that is kept, from the start (at least one second)
+     * @return the clip; empty for a null pointer or n <= 0
      */
     static Texture makeTexture(const float* L, const float* R, int n, double sampleRate, double baseHz = 261.6256,
                                bool seamless = false, double maxSeconds = 120.0);
     /**
      * @brief One recording as the whole pool: at most two minutes of it (a rover driving for sixteen
      *        minutes is a bed, not an event).
-     * @param L           left channel
-     * @param R           right channel, or null
-     * @param n           samples per channel
-     * @param sampleRate  the recording's rate in Hz
-     * @param baseHz      the pitch the clip is heard as unshifted, Hz
-     * @param seamless    whether the clip loops without a seam
+     * @param[in] L           left channel
+     * @param[in] R           right channel, or null
+     * @param[in] n           samples per channel
+     * @param[in] sampleRate  the recording's rate in Hz
+     * @param[in] baseHz      the pitch the clip is heard as unshifted, Hz
+     * @param[in] seamless    whether the clip loops without a seam
      */
     void setNearTexture(const float* L, const float* R, int n, double sampleRate, double baseHz = 261.6256, bool seamless = false);
     /**
      * @brief One already-measured clip as the whole pool (a hand-over from another engine).
-     * @param src  the clip; an empty one is ignored
+     * @param[in] src  the clip; an empty one is ignored
      */
     void setNearTexture(const Texture& src);
     /**
@@ -486,8 +481,7 @@ public:
      *
      * Empty clips are dropped; an empty pool clears. The pool that is not active is written
      * after waitForQuiet() and published; the pick is left to the audio thread, which clamps it.
-     *
-     * @param pool  the clips, moved
+     * @param[in] pool  the clips, moved
      */
     void setNearTextures(std::vector<Texture> pool);
     /** @brief No pool: the near source reads Source 4's clip again. */
@@ -499,6 +493,7 @@ public:
     /**
      * @brief The active pool, for the displays (message thread, no synchronisation).
      * @return the pool, or null when none is active or it is empty
+     * @pre called on the message thread
      */
     const std::vector<Texture>* displayNearPool() const
     {
@@ -518,26 +513,26 @@ public:
     /** @} */
     /**
      * @brief Whether a slot holds a clip.
-     * @param slot  0 .. Slots - 1, clamped
-     * @return      true when the slot's active index is set
+     * @param[in] slot  0 .. Slots - 1, clamped
+     * @return true when the slot's active index is set
      */
     bool hasTexture(int slot = 0) const
     { return m_textureActive[slot < 0 ? 0 : (slot >= Slots ? Slots - 1 : slot)].load(std::memory_order_relaxed) >= 0; }
     /**
      * @brief Convolution room: a stereo (R may be null) impulse response, message thread.
-     * @param L           left channel of the impulse
-     * @param R           right channel, or null
-     * @param n           samples per channel
-     * @param sampleRate  the impulse's rate in Hz
+     * @param[in] L           left channel of the impulse
+     * @param[in] R           right channel, or null
+     * @param[in] n           samples per channel
+     * @param[in] sampleRate  the impulse's rate in Hz
      */
     void  setImpulse(const float* L, const float* R, int n, double sampleRate) { m_room.setImpulse(L, R, n, sampleRate); m_userImpulse = true; }
     /**
      * @brief The room's second impulse: Room Morph blends it into the first inside the one convolution,
      *        so a morph costs what one room costs.
-     * @param L           left channel of the impulse
-     * @param R           right channel, or null
-     * @param n           samples per channel
-     * @param sampleRate  the impulse's rate in Hz
+     * @param[in] L           left channel of the impulse
+     * @param[in] R           right channel, or null
+     * @param[in] n           samples per channel
+     * @param[in] sampleRate  the impulse's rate in Hz
      */
     void  setImpulseB(const float* L, const float* R, int n, double sampleRate) { m_room.setImpulseB(L, R, n, sampleRate); m_hasImpulseB = true; }
     /** @brief Whether a second impulse is loaded. @return true when Room Morph has something to go to */
@@ -554,8 +549,8 @@ public:
      *
      * A minute on the desktop; the Quest app sets 4 s, measured
      * there with the convolver before this one (a third of one of its cores).
-     *
-     * @param s  seconds, clamped to 0.5 .. 60
+     * @param[in] s  seconds, clamped to 0.5 .. 60
+     * @pre called before prepare()
      */
     void  setRoomMaxSeconds(float s) { m_roomMaxSeconds = clampv(s, 0.5f, 60.0f); }
     /** @brief The room's longest impulse. @return seconds, as setRoomMaxSeconds() left it */
@@ -576,8 +571,8 @@ public:
     }
     /**
      * @brief The clip a slot plays.
-     * @param slot  0 .. Slots - 1, clamped
-     * @return      the slot's active clip, or null when it holds none
+     * @param[in] slot  0 .. Slots - 1, clamped
+     * @return the slot's active clip, or null when it holds none
      */
     const Texture*   displayTexture(int slot = 0) const
     {
@@ -599,20 +594,19 @@ public:
      *
      * NumParams values, any thread. The values are stored first and the flag after, so the audio
      * thread never sees "chosen" over a half-written snapshot.
-     *
-     * @param slot    0 for A, anything else for B
-     * @param values  NumParams values in the parameters' own units
+     * @param[in] slot    0 for A, anything else for B
+     * @param[in] values  NumParams values in the parameters' own units
      */
     void  setMorphSlot(int slot, const float* values);
     /**
      * @brief Chooses a slot from what sounds now: copy the live parameters into a slot (any thread).
-     * @param slot  0 for A, anything else for B
+     * @param[in] slot  0 for A, anything else for B
      */
     void  captureMorphSlot(int slot);
     /**
      * @brief Reads a slot out.
-     * @param slot  0 for A, anything else for B
-     * @param out   receives NumParams values
+     * @param[in]  slot  0 for A, anything else for B
+     * @param[out] out   receives NumParams values
      */
     void  morphSlot(int slot, float* out) const;
     /**
@@ -622,18 +616,21 @@ public:
      * Until 13.09.2026 both slots began at the defaults, so switching Morph on before choosing
      * A or B held the whole instrument at Init: every knob dead, the near layer silent, a texture
      * preset without its texture. setMorphSlot and captureMorphSlot choose a slot; this forgets it.
-     *
-     * @param slot  0 for A, anything else for B
+     * @param[in] slot  0 for A, anything else for B
      */
     void  clearMorphSlot(int slot);
-    /** @brief Whether a slot has been chosen. @param slot 0 for A, 1 for B @return true when it holds a snapshot */
+    /**
+     * @brief Whether a slot has been chosen.
+     * @param[in] slot  0 for A, 1 for B
+     * @return true when it holds a snapshot
+     */
     bool  morphSlotSet(int slot) const { return m_slotSet[slot & 1].load(std::memory_order_relaxed); }
     /** @brief Where the gliding morph position stands. @return 0 (A) .. 1 (B) */
     float morphPosition() const { return m_morphCur.load(std::memory_order_relaxed); }
     /**
      * @brief Put the gliding position somewhere without waiting for the glide: a preset change
      *        that travels has to start at A even if the morph was standing somewhere else.
-     * @param p  0 .. 1
+     * @param[in] p  0 .. 1
      */
     void  resetMorphPosition(float p) { m_morphCur.store(p, std::memory_order_relaxed); }
     /**
@@ -643,9 +640,8 @@ public:
      * interpolation between the chosen slots -- in the skewed domain for floats, rounded for ints,
      * flipped halfway for choices, and from the live value where a slot is not chosen -- else the
      * live parameter. Any thread; atomics throughout.
-     *
-     * @param id  the parameter
-     * @return    its effective value in the parameter's own units
+     * @param[in] id  the parameter
+     * @return its effective value in the parameter's own units
      */
     float effectiveParam(ParamIdE id) const;
     /** @} */
@@ -659,8 +655,8 @@ public:
      * @{ */
     /**
      * @brief The gliding blend value of a parameter (any thread).
-     * @param id  the parameter
-     * @return    where the glide stands, in the parameter's own units
+     * @param[in] id  the parameter
+     * @return where the glide stands, in the parameter's own units
      */
     float blendValue(ParamIdE id) const { return m_blendCur[static_cast<int>(id)].load(std::memory_order_relaxed); }
     /** @brief Whether the map blend is overriding the parameters. @return true while it is */
@@ -682,25 +678,30 @@ public:
     const Route& routeEdit() const { return m_routePending; }
     /**
      * @brief Replaces the pending route from its text form and publishes it (message thread).
-     * @param text  the route (Route.h)
-     * @return      false when the text does not parse; nothing is published then
+     * @param[in] text  the route (Route.h)
+     * @return false when the text does not parse; nothing is published then
+     * @pre called on the message thread
      */
     bool setRouteText(const char* text)
     { if (!m_routePending.parse(text)) return false; m_routeVersion.fetch_add(1, std::memory_order_release); return true; }
     /**
      * @brief Appends a waypoint to the pending route and publishes it (message thread).
-     * @param w  the waypoint
-     * @return   false when the route is full
+     * @param[in] w  the waypoint
+     * @return false when the route is full
+     * @pre called on the message thread
      */
     bool addRoutePoint(const Waypoint& w)
     { if (!m_routePending.add(w)) return false; m_routeVersion.fetch_add(1, std::memory_order_release); return true; }
-    /** @brief Empties the pending route and publishes it (message thread). */
+    /**
+     * @brief Empties the pending route and publishes it (message thread).
+     * @pre called on the message thread
+     */
     void clearRoute() { m_routePending.clear(); m_routeVersion.fetch_add(1, std::memory_order_release); }
     /**
      * @brief The pending route as text.
-     * @param buf  the buffer
-     * @param cap  its size in bytes
-     * @return     what Route::write returns: characters written
+     * @param[in,out] buf  the buffer
+     * @param[in]     cap  its size in bytes
+     * @return what Route::write returns: characters written
      */
     int  writeRoute(char* buf, size_t cap) const { return m_routePending.write(buf, cap); }
     /**
@@ -711,12 +712,11 @@ public:
      * it when it goes off, advances it by dt times RouteSpeed, writes the cursor into MapX, MapY
      * and MapRadius, forces MapActive on (a route always plays through the map), and clears
      * RouteActive when a non-looping route ends.
-     *
-     * @param dt      seconds since the previous call, before the speed scaling
-     * @param x       receives the cursor's x (the parameter's value when the route is not active)
-     * @param y       receives the cursor's y
-     * @param radius  receives the cursor's radius
-     * @return        true while the route is running
+     * @param[in]  dt      seconds since the previous call, before the speed scaling
+     * @param[out] x       receives the cursor's x (the parameter's value when the route is not active)
+     * @param[out] y       receives the cursor's y
+     * @param[out] radius  receives the cursor's radius
+     * @return true while the route is running
      */
     bool routeStep(double dt, float& x, float& y, float& radius);
     /** @brief Whether the playing route is under way. @return true while it moves the cursor */
@@ -726,8 +726,8 @@ public:
     bool asleep() const { return m_asleep; }
     /**
      * @brief One of the four Kuramoto oscillators' phases, for pictures.
-     * @param i  0 .. 3 (masked)
-     * @return   Kuramoto oscillator phases, for pictures -- radians, 0 .. 2 pi
+     * @param[in] i  0 .. 3 (masked)
+     * @return Kuramoto oscillator phases, for pictures -- radians, 0 .. 2 pi
      */
     float coherencePhase(int i) const { return m_kuraPhase[i & 3]; }
     /**
@@ -738,9 +738,9 @@ public:
     static constexpr int LeniaSize = 32;   ///< the torus is this many cells on a side
     /**
      * @brief One cell of the field; the coordinates wrap on the torus.
-     * @param x  column, any integer
-     * @param y  row, any integer
-     * @return   the cell, 0..1
+     * @param[in] x  column, any integer
+     * @param[in] y  row, any integer
+     * @return the cell, 0..1
      */
     float leniaCell(int x, int y) const { return m_lenia[((y % LeniaSize + LeniaSize) % LeniaSize) * LeniaSize + ((x % LeniaSize + LeniaSize) % LeniaSize)]; }
     /** @brief Full field updates so far. @return the count */
@@ -749,8 +749,8 @@ public:
     int   leniaReseeds() const { return m_leniaReseeds; }
     /**
      * @brief One of the four readings the matrix sees, glided.
-     * @param k  0 .. 3 (masked)
-     * @return   0..1, the mean of a three-by-three patch near a corner
+     * @param[in] k  0 .. 3 (masked)
+     * @return 0..1, the mean of a three-by-three patch near a corner
      */
     float leniaOut(int k) const { return m_leniaOut[k & 3]; }
     /** @} */
@@ -762,8 +762,8 @@ public:
     int   chaosSteps() const { return m_chaosSteps; }
     /**
      * @brief One of the six readings: Lorenz x, y, z, then Roessler x, y, z.
-     * @param k  0 .. 5
-     * @return   -1..1, the coordinate scaled by the attractor's extent and clamped
+     * @param[in] k  0 .. 5
+     * @return -1..1, the coordinate scaled by the attractor's extent and clamped
      */
     float chaosOut(int k) const { return m_chaosOut[k % 6]; }
     /** @} */
@@ -776,9 +776,9 @@ public:
      * @{ */
     /**
      * @brief The host's transport for this block.
-     * @param bpm           its tempo
-     * @param beatPosition  its position in quarter notes
-     * @param playing       whether it is running
+     * @param[in] bpm           its tempo
+     * @param[in] beatPosition  its position in quarter notes
+     * @param[in] playing       whether it is running
      */
     void setHostClock(double bpm, double beatPosition, bool playing)
     { m_hostBpm = bpm; m_hostBeat = beatPosition; m_hostPlaying = playing; m_hostSeen = true; }
@@ -788,8 +788,7 @@ public:
      * one 0xF8; the interval may be 0 when unknown. Twenty-four to a quarter; the tempo settles
      * over a beat's worth of ticks so jitter does not wobble every synced LFO, the beat advances
      * by a twenty-fourth while running, and the silence timer restarts.
-     *
-     * @param secondsSinceLastTick  the interval, or 0 when it is not known (the tempo is then left)
+     * @param[in] secondsSinceLastTick  the interval, or 0 when it is not known (the tempo is then left)
      */
     void midiClockTick(double secondsSinceLastTick);
     /** @brief MIDI Start (0xFA): the beat goes back to zero and the clock runs. */
@@ -823,9 +822,8 @@ public:
      *
      * Cleared, filled and announced once at the end, under the lock. The envs field holds the six
      * modulation envelopes and then the four sources' own, separated by '~'.
-     *
-     * @param p  the preset
-     * @return   false when a field did not parse (what parsed is kept)
+     * @param[in] p  the preset
+     * @return false when a field did not parse (what parsed is kept)
      */
     bool applyPresetModulation(const Preset& p);
     /** @} */
@@ -835,6 +833,7 @@ private:
      *
      * A spin on m_modLock. Everything that writes into the pending copies has to hold it, because
      * the audio thread copies the very bytes the parser writes (EngineControl.cpp).
+     * @pre called on the message thread
      */
     void lockModulation();
     /** @brief Releases the lock lockModulation() took. */
@@ -846,38 +845,40 @@ private:
 public:
     /**
      * @brief Replaces the matrix from its text form (message thread, under the lock) and publishes it.
-     * @param text  the rows (ModMatrix::parse)
-     * @return      false when the text does not parse; nothing is published then
+     * @param[in] text  the rows (ModMatrix::parse)
+     * @return false when the text does not parse; nothing is published then
+     * @pre called on the message thread
      */
     bool setModMatrixText(const char* text);
     /**
      * @brief The edited matrix as text.
-     * @param buf  the buffer
-     * @param cap  its size in bytes
-     * @return     characters written, 0 when it did not fit
+     * @param[in,out] buf  the buffer
+     * @param[in]     cap  its size in bytes
+     * @return characters written, 0 when it did not fit
      */
     int  writeModMatrix(char* buf, size_t cap) const { return m_matrixPending.write(buf, cap); }
     /** @brief The matrix as edited (the pending copy, what the editor shows). @return the rows */
     const ModMatrix& modMatrix() const { return m_matrixPending; }
     /**
      * @brief Replaces one modulation envelope's shape from its text form and publishes it (message thread).
-     * @param index  0 .. NumModEnvs - 1
-     * @param text   the shape (ModEnv::parse)
-     * @return       false for an index outside the six or a text that does not parse
+     * @param[in] index  0 .. NumModEnvs - 1
+     * @param[in] text   the shape (ModEnv::parse)
+     * @return false for an index outside the six or a text that does not parse
+     * @pre called on the message thread
      */
     bool setEnvShape(int index, const char* text);
     /**
      * @brief One modulation envelope's edited shape as text.
-     * @param index  0 .. NumModEnvs - 1
-     * @param buf    the buffer
-     * @param cap    its size in bytes
-     * @return       characters written; 0 for an index outside the six or a text that did not fit
+     * @param[in]     index  0 .. NumModEnvs - 1
+     * @param[in,out] buf    the buffer
+     * @param[in]     cap    its size in bytes
+     * @return characters written; 0 for an index outside the six or a text that did not fit
      */
     int  writeEnvShape(int index, char* buf, size_t cap) const;
     /**
      * @brief One modulation envelope's shape as edited.
-     * @param index  0 .. NumModEnvs - 1, clamped
-     * @return       the pending shape
+     * @param[in] index  0 .. NumModEnvs - 1, clamped
+     * @return the pending shape
      */
     const ModEnv& envShape(int index) const { return m_envPending[index < 0 ? 0 : (index >= NumModEnvs ? NumModEnvs - 1 : index)]; }
     /**
@@ -885,24 +886,23 @@ public:
      *        level from 0 (silent) to 1.
      *
      * Travels after the six in a preset's envelope field (Presets.h).
-     *
-     * @param slot  0 .. Slots - 1
-     * @param text  the shape (ModEnv::parse)
-     * @return      false for a slot outside the four or a text that does not parse
+     * @param[in] slot  0 .. Slots - 1
+     * @param[in] text  the shape (ModEnv::parse)
+     * @return false for a slot outside the four or a text that does not parse
      */
     bool setSrcEnvShape(int slot, const char* text);
     /**
      * @brief One source's edited shape as text.
-     * @param slot  0 .. Slots - 1
-     * @param buf   the buffer
-     * @param cap   its size in bytes
-     * @return      characters written; 0 for a slot outside the four or a text that did not fit
+     * @param[in]     slot  0 .. Slots - 1
+     * @param[in,out] buf   the buffer
+     * @param[in]     cap   its size in bytes
+     * @return characters written; 0 for a slot outside the four or a text that did not fit
      */
     int  writeSrcEnvShape(int slot, char* buf, size_t cap) const;
     /**
      * @brief One source's shape as edited.
-     * @param slot  0 .. Slots - 1, clamped
-     * @return      the pending shape
+     * @param[in] slot  0 .. Slots - 1, clamped
+     * @return the pending shape
      */
     const ModEnv& srcEnvShape(int slot) const { return m_srcEnvPending[slot < 0 ? 0 : (slot >= Slots ? Slots - 1 : slot)]; }
     /**
@@ -911,17 +911,17 @@ public:
      *
      * The gain is written
      * whenever a voice sounds; the result says whether the slot is following a shape at all.
-     *
-     * @param slot          0 .. Slots - 1
-     * @param shapeSeconds  receives the time in the shape, in the shape's own seconds (negative when no shape is followed)
-     * @param gain          receives the slot's entrance gain, 0 .. 1
-     * @return              true when a voice sounds and the slot follows a shape
+     * @param[in]  slot          0 .. Slots - 1
+     * @param[out] shapeSeconds  receives the time in the shape, in the shape's own seconds (negative when no shape is
+     *                           followed)
+     * @param[out] gain          receives the slot's entrance gain, 0 .. 1
+     * @return true when a voice sounds and the slot follows a shape
      */
     bool displaySlotEnv(int slot, float& shapeSeconds, float& gain) const;
     /**
      * @brief For the displays: the current value of every source, and each LFO's phase.
-     * @param source  a ModSource as an int; anything out of range reads as 0
-     * @return        the source's value this block, -1..1
+     * @param[in] source  a ModSource as an int; anything out of range reads as 0
+     * @return the source's value this block, -1..1
      */
     float modSource(int source) const { return (source >= 0 && source < NumModSources) ? m_modSrc[source] : 0.0f; }
     /**
@@ -931,14 +931,14 @@ public:
     float beatRate() const { return m_beatHz; }
     /**
      * @brief One LFO's phase.
-     * @param i  0 .. NumLfos - 1, clamped
-     * @return   0..1
+     * @param[in] i  0 .. NumLfos - 1, clamped
+     * @return 0..1
      */
     float lfoPhase(int i) const { return m_lfo[i < 0 ? 0 : (i >= NumLfos ? NumLfos - 1 : i)].phase(); }
     /**
      * @brief One running LFO, for shapeAt() with its live random material.
-     * @param i  0 .. NumLfos - 1, clamped
-     * @return   the LFO
+     * @param[in] i  0 .. NumLfos - 1, clamped
+     * @return the LFO
      */
     const Lfo& lfo(int i) const { return m_lfo[i < 0 ? 0 : (i >= NumLfos ? NumLfos - 1 : i)]; }
     /**
@@ -957,15 +957,14 @@ public:
      *
      * Each modulation envelope has its own clock, because Sustain Loop stops one of them where
      * the others keep running. Index-safe like the rest of these display accessors.
-     *
-     * @param i  0 .. NumModEnvs - 1, clamped
-     * @return   seconds since the phrase began, before the envelope's Time scaling
+     * @param[in] i  0 .. NumModEnvs - 1, clamped
+     * @return seconds since the phrase began, before the envelope's Time scaling
      */
     float envTime(int i = 0) const { return static_cast<float>(m_envTime[i < 0 ? 0 : (i >= NumModEnvs ? NumModEnvs - 1 : i)]); }
     /**
      * @brief How much the matrix is currently adding to a parameter, in that parameter's own units.
-     * @param id  the parameter
-     * @return    the offset this block, 0 when nothing is routed at it
+     * @param[in] id  the parameter
+     * @return the offset this block, 0 when nothing is routed at it
      */
     float modAmount(ParamIdE id) const { return m_modOut[static_cast<int>(id)]; }
     /**
@@ -973,20 +972,20 @@ public:
      *
      * Returns how
      * many were written, 0 when nothing sounds. Message thread, no synchronisation (see Voice.h).
-     *
-     * @param out       receives the amplitudes
-     * @param maxCount  room in out
-     * @return          how many were written, 0 when nothing sounds
+     * @param[out] out       receives the amplitudes
+     * @param[in]  maxCount  room in out
+     * @return how many were written, 0 when nothing sounds
+     * @pre called on the message thread
      */
     int  displayPartials(float* out, int maxCount) const;
     /** @brief The loudest voice's pitch. @return that voice's frequency in Hz, 0 when nothing sounds */
     float displayFrequency() const;
     /**
      * @brief The same voice's slot bank (Additive / Wavetable in a slot) and its grains (Texture).
-     * @param slot      0 .. Slots - 1
-     * @param out       receives the slot's partial amplitudes
-     * @param maxCount  room in out
-     * @return          how many were written, 0 when nothing sounds
+     * @param[in]  slot      0 .. Slots - 1
+     * @param[out] out       receives the slot's partial amplitudes
+     * @param[in]  maxCount  room in out
+     * @return how many were written, 0 when nothing sounds
      */
     int  displaySlotPartials(int slot, float* out, int maxCount) const;
     /**
@@ -995,17 +994,16 @@ public:
      *
      * -1 when nothing sounds or the slot plays no table: the display then
      * falls back to the knob, which is all it ever knew before.
-     *
-     * @param slot  0 .. Slots - 1
-     * @return      the table position 0..1, or -1
+     * @param[in] slot  0 .. Slots - 1
+     * @return the table position 0..1, or -1
      */
     float displaySlotPosition(int slot) const;
     /**
      * @brief The loudest voice's grains in a Texture slot, for the display.
-     * @param slot      0 .. Slots - 1, clamped
-     * @param out       receives one entry per live grain
-     * @param maxCount  room in out
-     * @return          how many were written; 0 when nothing sounds or the slot has no clip
+     * @param[in]  slot      0 .. Slots - 1, clamped
+     * @param[out] out       receives one entry per live grain
+     * @param[in]  maxCount  room in out
+     * @return how many were written; 0 when nothing sounds or the slot has no clip
      */
     int  displayGrains(int slot, SourceSlot::GrainInfo* out, int maxCount) const;
     /** @var float VoiceStage::m_pan
@@ -1025,24 +1023,23 @@ public:
      *        envelope level, note, owner (0 keys, 1 brain).
      *
      * Returns how many were written.
-     *
-     * @param out       receives the places
-     * @param maxCount  room in out
-     * @return          how many were written
+     * @param[out] out       receives the places
+     * @param[in]  maxCount  room in out
+     * @return how many were written
      */
     int  voiceStage(VoiceStage* out, int maxCount) const;
     /**
      * @brief The last n (<= 4096) samples of the Cosmos return, mono, oldest first -- for its spectrum.
-     * @param out  receives the samples
-     * @param n    how many, clamped to 0 .. 4096
-     * @return     how many were written
+     * @param[out] out  receives the samples
+     * @param[in]  n    how many, clamped to 0 .. 4096
+     * @return how many were written
      */
     int  cosmosTap(float* out, int n) const;
     /**
      * @brief The same for the finished output, after the master gain and the clipper.
-     * @param out  receives the samples, mono, oldest first
-     * @param n    how many, clamped to 0 .. OutTapLen
-     * @return     how many were written
+     * @param[out] out  receives the samples, mono, oldest first
+     * @param[in]  n    how many, clamped to 0 .. OutTapLen
+     * @return how many were written
      */
     int  outputTap(float* out, int n) const;
 
@@ -1059,8 +1056,8 @@ public:
      * @brief The frequency a note is tuned to right now: the scale blended with 12-TET by Purity, the
      *        note's adaptive offset and the shared comma, the transpose, and the stretched octave
      *        (Engine.cpp explains each).
-     * @param note  MIDI note, 0 .. 127
-     * @return      Hz
+     * @param[in] note  MIDI note, 0 .. 127
+     * @return Hz
      */
     double frequencyOf(int note) const;
     /** @brief The rate prepare() was given. @return Hz */
@@ -1091,11 +1088,10 @@ public:
      *
      * The two
      * are kept apart: the background conductor's cluster belongs to the background.
-     *
-     * @param notes   receives the cluster's notes
-     * @param vels    receives their velocities
-     * @param second  false for the first conductor, true for the background one
-     * @return        how many notes were written
+     * @param[out] notes   receives the cluster's notes
+     * @param[out] vels    receives their velocities
+     * @param[in]  second  false for the first conductor, true for the background one
+     * @return how many notes were written
      */
     int soundingCluster(int* notes, float* vels, bool second = false) const
     { return (second ? m_brain2 : m_brain).soundingNotes(notes, vels); }
@@ -1104,10 +1100,11 @@ public:
      *        heard): the notes are started as the conductor's own would be, already a minute old so
      *        their Bloom and source delays are past, and the conductor keeps filling when the cluster
      *        is thinner than its density asks (EngineRender.cpp).
-     * @param notes   the notes soundingCluster() read out
-     * @param vels    their velocities
-     * @param count   how many
-     * @param second  false for the first conductor, true for the background one
+     * @param[in] notes   the notes soundingCluster() read out
+     * @param[in] vels    their velocities
+     * @param[in] count   how many
+     * @param[in] second  false for the first conductor, true for the background one
+     * @pre called on the message thread
      */
     void adoptCluster(const int* notes, const float* vels, int count, bool second = false);
     /**
@@ -1115,8 +1112,8 @@ public:
      *        for how long.
      *
      * Read on the message thread for the panel; never set from outside.
-     *
      * @return the estimate (ClusterBrain::estimatedKey)
+     * @pre called on the message thread
      */
     KeyEstimate brainKey() const { return m_brain.estimatedKey(); }
     /**
@@ -1125,9 +1122,8 @@ public:
      *
      * Pure, so the
      * selftest can hold it to that.
-     *
-     * @param hourOfDay  0 .. 24
-     * @return           -1 at four in the morning, 1 at four in the afternoon
+     * @param[in] hourOfDay  0 .. 24
+     * @return -1 at four in the morning, 1 at four in the afternoon
      */
     static float clockArcValue(double hourOfDay)
     {
@@ -1169,7 +1165,11 @@ public:
     const BrainSpectrum& brainSpectrum() const { return m_brainSpec; }
     /** @brief The tide's current offset. @return cents */
     float  tideNow() const { return m_tide * m_tideDrift.value(); }
-    /** @brief One entry of the conductor's deja-vu ring. @param i the slot @return the note (ClusterBrain::ringNote) */
+    /**
+     * @brief One entry of the conductor's deja-vu ring.
+     * @param[in] i  the slot
+     * @return the note (ClusterBrain::ringNote)
+     */
     int    brainRingNote(int i) const { return m_brain.ringNote(i); }
     /** @brief Where the deja-vu ring is writing. @return the slot (ClusterBrain::ringPos) */
     int    brainRingPos() const { return m_brain.ringPos(); }
@@ -1188,8 +1188,7 @@ public:
      * clock on, and their descriptors came out different every time the pass ran, because the
      * sound really was different at four in the afternoon and at midnight. The measurement pins
      * it; playing does not (-1 = the wall clock, as always).
-     *
-     * @param h  the hour, 0 .. 24, or -1 for the wall clock
+     * @param[in] h  the hour, 0 .. 24, or -1 for the wall clock
      */
     void   setClockHourOverride(double h) { m_clockHourOverride = h; }
     /**
@@ -1198,9 +1197,8 @@ public:
      * Against every sounding voice the interval is reduced to an octave and matched to the nearest
      * small-integer ratio, the offsets weighted by the ratio's simplicity, capped at thirty cents
      * (Engine.cpp). Raw: frequencyOf() scales it by the Adapt amount.
-     *
-     * @param note  MIDI note, 0 .. 127
-     * @return      cents, -30 .. 30
+     * @param[in] note  MIDI note, 0 .. 127
+     * @return cents, -30 .. 30
      */
     float  adaptiveOffset(int note) const;
     /**
@@ -1208,28 +1206,27 @@ public:
      *
      * The degree of the scale nearest to the partial, counted in periods from the fundamental; the
      * plain harmonic for the timbre scale, which is itself computed from the spectrum.
-     *
-     * @param h  the partial, 1-based
-     * @return   its ratio to the fundamental
+     * @param[in] h  the partial, 1-based
+     * @return its ratio to the fundamental
      */
     double matchedPartialRatio(int h) const;
     /** @brief The arc times its Amount, as the panel draws it (any thread). @return -1..1 */
     float arcValue() const    { return m_arcValue.load(std::memory_order_relaxed); }
     /**
      * @brief Which notes were sounding at the end of the last block (any thread, from two 64-bit masks).
-     * @param out  receives a flag per MIDI note
+     * @param[in] out  receives a flag per MIDI note
      */
     void soundingNotes(bool (&out)[128]) const;
     /**
      * @brief Distance (0 near .. 1 far) of the voice sounding `note`, or -1 if none.
-     * @param note  MIDI note, 0 .. 127
-     * @return      the distance, or -1
+     * @param[in] note  MIDI note, 0 .. 127
+     * @return the distance, or -1
      */
     float noteDistance(int note) const;
     /**
      * @brief Envelope level (0..1) of the loudest voice on `note`, 0 if none.
-     * @param note  MIDI note, 0 .. 127
-     * @return      the level, 0 for none or a note out of range
+     * @param[in] note  MIDI note, 0 .. 127
+     * @return the level, 0 for none or a note out of range
      */
     float noteLevel(int note) const { return (note >= 0 && note < 128) ? m_noteLevel[note].load(std::memory_order_relaxed) : 0.0f; }
 
@@ -1244,9 +1241,9 @@ private:
     /**
      * @brief The voice a note goes into: the one already sounding that note for that owner, else a
      *        free one, else the quietest releasing one, else the oldest.
-     * @param note   MIDI note
-     * @param owner  an Owner
-     * @return       never null
+     * @param[in] note   MIDI note
+     * @param[in] owner  an Owner
+     * @return never null
      */
     Voice* allocate(int note, int owner);
     /**
@@ -1259,13 +1256,13 @@ private:
      * @brief A near event's note: on the near source, with the event's shape, never a strike unless the
      *        section has one, and placed by the scheduler rather than by the dice; the event's clip is
      *        picked from the pool here, never the one just played.
-     * @param e  the event (type On)
+     * @param[in] e  the event (type On)
      */
     void   startNearNote(const NearNote& e);
     /**
      * @brief Carries out one scheduler event: On starts a near note, Off stops it, Glide slides every
      *        held near voice to the new note, Move sends them to a new distance.
-     * @param e  the event
+     * @param[in] e  the event
      */
     void   nearEmit(const NearNote& e);
     /**
@@ -1282,9 +1279,9 @@ private:
      *        whether a background voice is releasing -- and passes what the foreground asks of the
      *        background on: no new onset while a Note or a Phrase speaks, the root held and the pace
      *        halved under a sequence.
+     * @param[in] dt    seconds in this control block
+     * @param[in] emit  receives the scheduler's events (nearEmit() in the render, a recorder in the audit)
      * @tparam EmitFn  callable as emit(const NearNote&)
-     * @param dt       seconds in this control block
-     * @param emit     receives the scheduler's events (nearEmit() in the render, a recorder in the audit)
      */
     template <class EmitFnT>
     void stepNear(double dt, EmitFnT&& emit)
@@ -1318,18 +1315,17 @@ private:
      * another at a preset change: the note is not new there, it is the same note on another
      * instrument, and starting its Bloom and its source delays from zero would make the arriving
      * preset take half a minute to become itself.
-     *
-     * @param note        MIDI note, 0 .. 127
-     * @param velocity    0 .. 1
-     * @param owner       an Owner
-     * @param distance    0 near .. 1 far, the voice's plane
-     * @param ageSeconds  see above; 0 for a new note
+     * @param[in] note        MIDI note, 0 .. 127
+     * @param[in] velocity    0 .. 1
+     * @param[in] owner       an Owner
+     * @param[in] distance    0 near .. 1 far, the voice's plane
+     * @param[in] ageSeconds  see above; 0 for a new note
      */
     void   startNote(int note, float velocity, int owner, float distance, float ageSeconds = 0.0f);
     /**
      * @brief Releases every voice sounding a note for an owner, and hands its place on.
-     * @param note   MIDI note
-     * @param owner  an Owner
+     * @param[in] note   MIDI note
+     * @param[in] owner  an Owner
      */
     void   stopNote(int note, int owner);
     /**
@@ -1345,14 +1341,14 @@ private:
      *        planes through blur, ensemble, delays, cloud, Cosmos, Memory, reverbs, room, feedback,
      *        Foundation, body, mid/side, DC blockers, Patina, subsonic, master and clipper into L/R,
      *        the stems and the output tap alongside (EngineRender.cpp).
-     * @param L  left output for this chunk
-     * @param R  right output for this chunk
-     * @param n  samples in the chunk
+     * @param[in,out] L  left output for this chunk
+     * @param[in,out] R  right output for this chunk
+     * @param[in]     n  samples in the chunk
      */
     void   renderChunk(float* L, float* R, int n);
 
     std::atomic<float> m_params[NumParams];   ///< the parameters as the host set them, in their own units
-    /** @var std::atomic<float> m_slotA[NumParams]
+    /** @var std::atomic\<float\> m_slotA[NumParams]
      *  @brief morph slot A's snapshot */
     std::atomic<float> m_slotA[NumParams], m_slotB[NumParams];   ///< m_slotB: morph slot B's snapshot
     std::atomic<bool>  m_slotSet[2] { false, false };   ///< chosen, or still following the knobs
@@ -1368,7 +1364,7 @@ private:
      * @brief The map's step, once per block: engages when MapActive is on and the map is ready (starting
      *        from what sounds now), recomputes the blended target when the cursor moved, and glides every
      *        parameter towards it with the Morph Glide time constant, in the skewed domain.
-     * @param n  samples in the block
+     * @param[in] n  samples in the block
      */
     void updateBlend(int n);
     /** @} */
@@ -1411,7 +1407,7 @@ private:
     /** @var Smoother m_smMemReturn
      *  @brief per-sample smoothing of m_memReturn */
     Smoother     m_smMemSend, m_smMemReturn, m_smMemToFar;   ///< m_smMemToFar: per-sample smoothing of m_memToFar
-    /** @var std::vector<float> m_memL
+    /** @var std::vector\<float\> m_memL
      *  @brief the Memory's send and return, left */
     std::vector<float> m_memL, m_memR;   ///< m_memR: the same, right
     /** @var Reverb m_nearReverb
@@ -1531,8 +1527,7 @@ private:
      * rest of the source table (the Beat, the Lenia field and the attractors only when routed, the
      * cascade, the hands, the piece's own shape), and applies the matrix -- the performance
      * parameters excepted (EngineControl.cpp).
-     *
-     * @param dt  seconds in the block
+     * @param[in] dt  seconds in the block
      */
     void         stepModulation(float dt);
     /** @} */
@@ -1558,7 +1553,7 @@ private:
      *  @brief the tempo resolved for this block */
     double       m_bpm = 90.0, m_beat = 0.0;   ///< m_beat: the beat position resolved for this block
     bool         m_running = true;       ///< whether the resolved clock runs
-    /** @var std::atomic<double> m_tempoOut
+    /** @var std::atomic\<double\> m_tempoOut
      *  @brief m_bpm for the displays */
     std::atomic<double> m_tempoOut{ 90.0 }, m_beatOut{ 0.0 };   ///< m_beatOut: m_beat for the displays
     std::atomic<bool>   m_runningOut{ true };   ///< m_running for the displays
@@ -1566,7 +1561,7 @@ private:
      * @brief Resolves the clock for this block: the host's while ClockSource says so and one has been
      *        seen, the MIDI clock while it says so and ticks are arriving, otherwise the Tempo knob
      *        counting while Run is on; then publishes the three for the displays.
-     * @param dt  seconds in the block
+     * @param[in] dt  seconds in the block
      */
     void         stepClock(double dt);
     /** @} */
@@ -1622,15 +1617,15 @@ private:
      *  @brief what the room hears: 0 the far sends, 1 the finished near bus */
     int          m_roomSource = 0, m_roomPreDelay = 0;   ///< m_roomPreDelay: the pre-delay in samples (the convolver's latency comes off it)
     long         m_roomTailLeft = 0;     ///< samples the room keeps running after its level reached zero, so the tail can finish
-    /** @var std::vector<float> m_roomInL
+    /** @var std::vector\<float\> m_roomInL
      *  @brief the room's input after the pre-delay, left */
-    /** @var std::vector<float> m_roomInR
+    /** @var std::vector\<float\> m_roomInR
      *  @brief the room's input, right */
-    /** @var std::vector<float> m_roomOutL
+    /** @var std::vector\<float\> m_roomOutL
      *  @brief the convolver's output, left */
-    /** @var std::vector<float> m_roomOutR
+    /** @var std::vector\<float\> m_roomOutR
      *  @brief the convolver's output, right */
-    /** @var std::vector<float> m_roomDelayL
+    /** @var std::vector\<float\> m_roomDelayL
      *  @brief the pre-delay ring, left (at least 320 ms) */
     std::vector<float> m_roomInL, m_roomInR, m_roomOutL, m_roomOutR, m_roomDelayL, m_roomDelayR;   ///< m_roomDelayR: the pre-delay ring, right
     /** @var int m_roomDelayW
@@ -1751,18 +1746,18 @@ private:
     /** @var float m_shimmerLpR
      *  @brief the same, right */
     float         m_cosmosShimmer = 0.0f, m_shimmerLpL = 0.0f, m_shimmerLpR = 0.0f, m_shimmerEnv = 0.0f;   ///< m_shimmerEnv: the far reverb's level follower that throttles the shimmer loop
-    /** @var std::vector<float> m_cosL
+    /** @var std::vector\<float\> m_cosL
      *  @brief the Cosmos (and the cloud's send) scratch, left */
-    /** @var std::vector<float> m_cosR
+    /** @var std::vector\<float\> m_cosR
      *  @brief the same, right */
-    /** @var std::vector<float> m_nebL
+    /** @var std::vector\<float\> m_nebL
      *  @brief the smear's output, left (the blur's as well) */
-    /** @var std::vector<float> m_nebR
+    /** @var std::vector\<float\> m_nebR
      *  @brief the same, right */
-    /** @var std::vector<float> m_shimL
+    /** @var std::vector\<float\> m_shimL
      *  @brief the shimmer's feedback for the next block, left */
     std::vector<float> m_cosL, m_cosR, m_nebL, m_nebR, m_shimL, m_shimR;   ///< m_shimR: the same, right
-    /** @var std::vector<float> m_cloudL
+    /** @var std::vector\<float\> m_cloudL
      *  @brief the cloud's own output, left, when it is shared between the planes */
     std::vector<float> m_cloudL, m_cloudR;   ///< the cloud on its own, when it is shared between planes (m_cloudR: right)
     float         m_cosTap[4096] = {};   ///< ring of the cosmos return for the display (torn reads cost a pixel)
@@ -1784,13 +1779,13 @@ private:
      * Feedback loop: the previous chunk's output mix, low-passed, saturated and throttled,
      * kept in a ring so any chunk length reads back exactly the samples just written.
      * @{ */
-    /** @var std::vector<float> m_fbRingL
+    /** @var std::vector\<float\> m_fbRingL
      *  @brief the loop's ring, left */
-    /** @var std::vector<float> m_fbRingR
+    /** @var std::vector\<float\> m_fbRingR
      *  @brief the loop's ring, right */
-    /** @var std::vector<float> m_fbInL
+    /** @var std::vector\<float\> m_fbInL
      *  @brief what comes back into the near bus this chunk, throttled, left */
-    /** @var std::vector<float> m_fbInR
+    /** @var std::vector\<float\> m_fbInR
      *  @brief the same, right */
     std::vector<float> m_fbRingL, m_fbRingR, m_fbInL, m_fbInR, m_fbMono;   ///< m_fbMono: the mono sum for the phase modulation, unthrottled
     /** @var int m_fbW
@@ -1984,7 +1979,7 @@ private:
     /**
      * @brief Advances the field by as many rows as the block owes at m_leniaRate (building the kernel and
      *        seeding on first use), reseeds it when it died or saturated, and glides the four readings.
-     * @param dt  seconds in the block
+     * @param[in] dt  seconds in the block
      */
     void stepLenia(float dt);
     /** @brief A few soft blobs on an empty torus. From the field's own random stream, so the sound's is not touched. */
@@ -2003,7 +1998,7 @@ private:
     /**
      * @brief Steps both systems by fourth-order Runge-Kutta in their own time, substepped to at most a
      *        hundredth, reseeds a state that left the finite world, and scales the readings.
-     * @param dt  seconds in the block
+     * @param[in] dt  seconds in the block
      */
     void stepChaos(float dt);
     /**
@@ -2016,8 +2011,8 @@ private:
      * @brief Finds the two lowest distinct pitches, the simplest ratio near their interval and the beat
      *        of the harmonics that would coincide if it were just, follows that rate over two seconds,
      *        and turns the phase (held below a fiftieth of a hertz).
-     * @param dt  seconds in the block
-     * @return    the source's value, the sine of its phase
+     * @param[in] dt  seconds in the block
+     * @return the source's value, the sine of its phase
      */
     float             updateBeat(float dt);
     /** @brief The followed beat rate. @return Hz -- for the card's readout */
@@ -2104,38 +2099,42 @@ private:
     int               m_matchScale = -1, m_matchRoot = -1;   ///< m_matchRoot: the root they were computed for
     bool              m_matchHave = false;   ///< they have been computed at all
 
-    /** @var std::vector<float> m_nearL
+    /** @var std::vector\<float\> m_nearL
      *  @brief the near bus (dry plane), left */
-    /** @var std::vector<float> m_nearR
+    /** @var std::vector\<float\> m_nearR
      *  @brief the near bus, right */
-    /** @var std::vector<float> m_farL
+    /** @var std::vector\<float\> m_farL
      *  @brief the far bus (reverb send), left */
-    /** @var std::vector<float> m_farR
+    /** @var std::vector\<float\> m_farR
      *  @brief the far bus, right */
-    /** @var std::vector<float> m_wetL
+    /** @var std::vector\<float\> m_wetL
      *  @brief the delays' output and general scratch, left */
     std::vector<float> m_nearL, m_nearR, m_farL, m_farR, m_wetL, m_wetR;   ///< m_wetR: the same, right
-    /** @var std::vector<float> m_dryL
+    /** @var std::vector\<float\> m_dryL
      *  @brief the near layer's Dry share, left */
     std::vector<float> m_dryL, m_dryR;   ///< the near layer's Dry share: past every reverb and delay, straight to the output (m_dryR: right)
     /**
-     * @var std::vector<float> m_foreD2L
+     * @var std::vector\<float\> m_foreD2L
      * @brief The foreground's two sends, gathered per event and added where the effect takes its input:
      *        into the second delay's, and into the Cosmos'.
      *
      * Empty buffers cost nothing when both are 0.
      * m_foreD2L is the send into the second delay, left.
      */
-    /** @var std::vector<float> m_foreD2R
+    /** @var std::vector\<float\> m_foreD2R
      *  @brief the send into the second delay, right */
-    /** @var std::vector<float> m_foreCoL
+    /** @var std::vector\<float\> m_foreCoL
      *  @brief the send into the Cosmos, left */
     std::vector<float> m_foreD2L, m_foreD2R, m_foreCoL, m_foreCoR;   ///< m_foreCoR: the send into the Cosmos, right
     float* const* m_stems = nullptr;   ///< eight pointers or null; valid for one process() call
     int    m_stemPos = 0;              ///< where in them this chunk starts
     NoteTap* m_noteTap = nullptr;      ///< where the conductors' notes go for MIDI out (setNoteTap), or null
     int    m_tapPos = 0;               ///< where in the block the chunk being rendered starts (0 outside process())
-    /** @brief The MIDI channel of an owner's notes for MIDI out: 1 the first conductor, 2 the second, 3 near; 0 a key. */
+    /**
+     * @brief The MIDI channel of an owner's notes for MIDI out: 1 the first conductor, 2 the second, 3 near; 0 a key.
+     * @param[in] owner  the notes' owner
+     * @return the MIDI channel, 0 for a key
+     */
     static int tapChannel(int owner) { return owner == 1 ? 1 : owner == 2 ? 2 : owner == 3 ? 3 : 0; }
     double   m_sr = 48000.0;   ///< the sample rate
     int      m_maxBlock = 512; ///< the chunk size renderChunk() is given at most; the buffers' length

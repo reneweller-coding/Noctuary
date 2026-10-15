@@ -6,6 +6,7 @@
  * drawing, in the order knob, sliders, boxes, buttons, menus, labels, scrollbars. Nothing here
  * keeps state: every override reads what it needs from the component it is handed, including the
  * slider properties the editor sets for the modulation arcs, the clock dial and the halo dot.
+ * @author Rene Weller
  */
 #include "NoctuaryLookAndFeel.h"
 
@@ -59,14 +60,14 @@ namespace {
 /**
  * @brief An arc of the given thickness between two angles, with a soft wide copy underneath so a lit
  *        value seems to glow rather than to be outlined.
- * @param g          the graphics context
- * @param c          the centre
- * @param radius     the arc's radius in pixels
- * @param from       the start angle in radians (JUCE's rotary convention: 0 at the top, clockwise)
- * @param to         the end angle in radians; an arc shorter than 1e-4 draws nothing
- * @param thickness  the stroke width in pixels
- * @param colour     the stroke colour
- * @param glow       true also strokes a 2.6 times wider copy at 18 \% alpha underneath
+ * @param[in,out] g          the graphics context
+ * @param[in]     c          the centre
+ * @param[in]     radius     the arc's radius in pixels
+ * @param[in]     from       the start angle in radians (JUCE's rotary convention: 0 at the top, clockwise)
+ * @param[in]     to         the end angle in radians; an arc shorter than 1e-4 draws nothing
+ * @param[in]     thickness  the stroke width in pixels
+ * @param[in]     colour     the stroke colour
+ * @param[in]     glow       true also strokes a 2.6 times wider copy at 18 \% alpha underneath
  */
 void arc(juce::Graphics& g, juce::Point<float> c, float radius, float from, float to,
          float thickness, juce::Colour colour, bool glow)
@@ -84,7 +85,7 @@ void arc(juce::Graphics& g, juce::Point<float> c, float radius, float from, floa
 
 /**
  * @brief The slider's value as it prints it, trimmed, for the text inside the knob.
- * @param s  the slider
+ * @param[in,out] s  the slider
  * @return its text for the current value (unit suffix included), without surrounding spaces
  */
 juce::String valueText(juce::Slider& s)

@@ -26,6 +26,7 @@
  *
  * On Windows it still earns its place: it is a stress test, and it says whether the sound survives
  * having everything changed under it and whether the audio thread keeps up while that happens.
+ * @author Rene Weller
  */
 #include "ambient/Engine.h"
 #include "ambient/MainStack.h"
@@ -48,8 +49,8 @@ int failures = 0;   ///< how many checks failed; decides the exit code
 
 /**
  * @brief Records one check: prints a FAIL line and counts it when @p ok is false.
- * @param ok    the condition that has to hold
- * @param what  what was measured, as the FAIL line prints it
+ * @param[in] ok    the condition that has to hold
+ * @param[in] what  what was measured, as the FAIL line prints it
  */
 void check(bool ok, const char* what)
 {
@@ -61,9 +62,9 @@ void check(bool ok, const char* what)
  *
  * Different lengths on purpose: the slot's buffers are
  * reassigned when the length changes, which is the moment that used to be unsafe.
- * @param n   length in samples
- * @param hz  the sine's frequency at 48 kHz
- * @return    n samples of a sine at 0.3 peak
+ * @param[in] n   length in samples
+ * @param[in] hz  the sine's frequency at 48 kHz
+ * @return n samples of a sine at 0.3 peak
  */
 std::vector<float> clip(int n, float hz)
 {
@@ -81,8 +82,8 @@ std::vector<float> clip(int n, float hz)
  * thread cycles through every handover a window can make (all knobs, clips into slots, the matrix,
  * envelope shapes, a user scale, a user wavetable). Passes when both threads ran and no sample was
  * ever non-finite; the real-time factor is printed, not judged.
- * @param argc  argument count, as the runtime hands it over
- * @param argv  argv[1], if given: how many seconds to run (default 6; ctest runs it with 4)
+ * @param[in]     argc  argument count, as the runtime hands it over
+ * @param[in,out] argv  argv[1], if given: how many seconds to run (default 6; ctest runs it with 4)
  * @return 0 when every check passed, 1 otherwise
  */
 int main(int argc, char** argv)

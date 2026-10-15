@@ -26,6 +26,7 @@
  * parameter atomics (rawParam) and the engine's display getters, and never blocks: the one costly
  * picture here, the wavetable slab, is drawn into an image once and blitted until the table or the
  * size changes, as the map's cloud is in EditorBrowse.cpp.
+ * @author Rene Weller
  */
 #include "EditorCommon.h"
 

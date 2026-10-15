@@ -17,6 +17,7 @@
  * of Surge's own .wt format -- and falls back to measuring it from the samples (CycleTable.h).
  * On Windows the files are opened with FILE_FLAG_SEQUENTIAL_SCAN so that a batch reading gigabytes
  * of clips does not push everything else out of memory; see openRead().
+ * @author Rene Weller
  */
 #include "ambient/WavFile.h"
 /** @brief One translation unit defines dr_flac; everything else here is our own. */
@@ -57,10 +58,9 @@ namespace {
  * every byte of it stays resident afterwards. Windows filled its standby list to 38 GB that way
  * and started trimming the working sets of the applications on screen instead.
  * FILE_FLAG_SEQUENTIAL_SCAN tells the cache manager to age these pages out immediately.
- *
- * @param path  the file to open
- * @return      a stdio stream positioned at the start, or nullptr when the file cannot be opened;
- *              on Windows a plain fopen when the flagged open fails for any reason
+ * @param[in] path  the file to open
+ * @return a stdio stream positioned at the start, or nullptr when the file cannot be opened; on Windows a plain fopen
+ *         when the flagged open fails for any reason
  */
 FILE* openRead(const char* path)
 {
@@ -126,11 +126,10 @@ namespace {
  * against 75 % for 24-bit PCM). It costs a decode when a preset loads -- milliseconds for a
  * twelve-second clip, and never on the audio thread -- and nothing at all in memory afterwards,
  * because what comes out is the same block of floats either way.
- *
- * @param path         the FLAC file
- * @param channelsOut  receives one vector per channel, every sample scaled to -1 .. 1
- * @param sampleRate   receives the file's sample rate in Hz
- * @return             false when dr_flac cannot open or decode the file, or it holds no audio
+ * @param[in]  path         the FLAC file
+ * @param[out] channelsOut  receives one vector per channel, every sample scaled to -1 .. 1
+ * @param[out] sampleRate   receives the file's sample rate in Hz
+ * @return false when dr_flac cannot open or decode the file, or it holds no audio
  */
 bool readFlacChannels(const char* path, std::vector<std::vector<float>>& channelsOut, int& sampleRate)
 {
@@ -153,9 +152,8 @@ bool readFlacChannels(const char* path, std::vector<std::vector<float>>& channel
  *
  * What a file is, from its first four bytes rather than from its name: a name can be wrong, and a
  * reader that trusts the extension hands back silence without a word.
- *
- * @param path  the file to inspect
- * @return      true only when the file opens and its first four bytes are "fLaC"
+ * @param[in] path  the file to inspect
+ * @return true only when the file opens and its first four bytes are "fLaC"
  */
 bool looksLikeFlac(const char* path)
 {
@@ -174,9 +172,8 @@ bool looksLikeFlac(const char* path)
  * what ships is the same audio as FLAC, at half the download. Rather than rewrite every reference
  * in every pack (and break every pack anybody else has written), the named file is looked for
  * first and the FLAC beside it second. One rule, in the one place that opens audio at all.
- *
- * @param path  the file as the preset names it; nullptr is treated as an empty name
- * @return      the sibling FLAC's path; a dot inside a folder name is not taken for an extension
+ * @param[in] path  the file as the preset names it; nullptr is treated as an empty name
+ * @return the sibling FLAC's path; a dot inside a folder name is not taken for an extension
  */
 std::string withFlacExtension(const char* path)
 {
@@ -190,8 +187,8 @@ std::string withFlacExtension(const char* path)
 /**
  * @brief Whether a file can be opened for reading -- the only test of existence that also proves
  *        the caller may read it.
- * @param path  the file to try
- * @return      true when openRead() succeeds; the stream is closed again at once
+ * @param[in] path  the file to try
+ * @return true when openRead() succeeds; the stream is closed again at once
  */
 bool exists(const std::string& path)
 {
@@ -287,9 +284,8 @@ namespace {
  * Serum writes a "clm " chunk whose text begins "<!>2048"
  * and Vital writes the same; Surge writes "srge", a version and the size as two 32-bit integers.
  * 0 when the file says nothing.
- *
- * @param path  the WAV file (the real file, after resolveAudioFile)
- * @return      the stated cycle length in samples when it lies between 8 and 65536, else 0
+ * @param[in] path  the WAV file (the real file, after resolveAudioFile)
+ * @return the stated cycle length in samples when it lies between 8 and 65536, else 0
  */
 int statedCycleLength(const char* path)
 {
@@ -322,10 +318,8 @@ int statedCycleLength(const char* path)
  * @brief A frame length written into the file name, a convention some tools use: "-WT512", "_wt1024".
  *
  * A power of two from 16 to 8192, or 0 when the name says nothing.
- *
- * @param path  the file's path; only the part after the last slash is searched
- * @return      the number after the first "-WT", "_WT" or " WT" (any case) that is a power of two
- *              in 16 .. 8192, else 0
+ * @param[in] path  the file's path; only the part after the last slash is searched
+ * @return the number after the first "-WT", "_WT" or " WT" (any case) that is a power of two in 16 .. 8192, else 0
  */
 int namedCycleLength(const char* path)
 {
@@ -345,13 +339,11 @@ int namedCycleLength(const char* path)
  *
  * Surge's own format: "vawt", the size of one wave, how many waves, flags, then the waves -- 16-bit
  * when flag 4 is set (full scale at 32768 with flag 8, at 16384 without it), 32-bit float otherwise.
- *
- * @param path      the file to read
- * @param mono      receives every wave in turn, waveSize * count samples scaled to -1 .. 1; cleared
- *                  when the read fails
- * @param cycleLen  receives the size of one wave, or 0 when the read fails
- * @return          false when the file is not a .wt (no "vawt" tag, a wave size outside 8 .. 65536,
- *                  no waves) or is cut short
+ * @param[in]  path      the file to read
+ * @param[out] mono      receives every wave in turn, waveSize * count samples scaled to -1 .. 1; cleared when the read
+ *                       fails
+ * @param[out] cycleLen  receives the size of one wave, or 0 when the read fails
+ * @return false when the file is not a .wt (no "vawt" tag, a wave size outside 8 .. 65536, no waves) or is cut short
  */
 bool readSurgeWt(const char* path, std::vector<float>& mono, int& cycleLen)
 {

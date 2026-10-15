@@ -17,6 +17,7 @@
  * This header holds only what is shared: the two enumerations, their name tables (Clock.cpp) and
  * the arithmetic that turns a division and a tempo into seconds, hertz or a phase. The clock
  * itself -- who advances the beat position and from where -- lives in the engine.
+ * @author Rene Weller
  */
 #pragma once
 #include <cmath>
@@ -71,35 +72,36 @@ extern const double      SyncBeats[NumSyncDivs];   ///< length of each division 
 
 /**
  * @brief Whether a Sync choice means "take the time from the tempo".
- * @param div  a parameter's Sync value, as an int (SyncDiv)
- * @return     true for every division but Free; false for Free and for anything out of range
+ * @param[in] div  a parameter's Sync value, as an int (SyncDiv)
+ * @return true for every division but Free; false for Free and for anything out of range
  */
 inline bool   syncOn(int div) { return div > 0 && div < NumSyncDivs; }
 /**
  * @brief Length of a division in quarter-note beats.
- * @param div  a SyncDiv as an int
- * @return     SyncBeats of the division; 0 for Free or out of range
+ * @param[in] div  a SyncDiv as an int
+ * @return SyncBeats of the division; 0 for Free or out of range
  */
 inline double syncBeats(int div) { return syncOn(div) ? SyncBeats[div] : 0.0; }
 /**
  * @brief Seconds of one division at a tempo; 0 for Free.
- * @param div  a SyncDiv as an int
- * @param bpm  the tempo in quarter notes per minute; anything under 1 counts as 1
- * @return     beats x 60 / bpm, or 0 when the division is Free
+ * @param[in] div  a SyncDiv as an int
+ * @param[in] bpm  the tempo in quarter notes per minute; anything under 1 counts as 1
+ * @return beats x 60 / bpm, or 0 when the division is Free
  */
 inline double syncSeconds(int div, double bpm) { return syncOn(div) ? SyncBeats[div] * 60.0 / (bpm > 1.0 ? bpm : 1.0) : 0.0; }
 /**
  * @brief A rate in Hz for one cycle per division; 0 for Free.
- * @param div  a SyncDiv as an int
- * @param bpm  the tempo in quarter notes per minute
- * @return     1 / syncSeconds(), or 0 when the division is Free -- what an LFO or a grain clock runs at when synced
+ * @param[in] div  a SyncDiv as an int
+ * @param[in] bpm  the tempo in quarter notes per minute
+ * @return 1 / syncSeconds(), or 0 when the division is Free -- what an LFO or a grain clock runs at when synced
  */
 inline double syncHz(int div, double bpm) { const double s = syncSeconds(div, bpm); return s > 0.0 ? 1.0 / s : 0.0; }
 /**
  * @brief Where in a cycle of `div` the beat position sits, 0..1.
- * @param div      a SyncDiv as an int
- * @param beatPos  the clock's position in quarter-note beats since it started
- * @return         the fractional part of beatPos over the division's length; 0 for Free, so a synced modulator can be phase-locked to the grid
+ * @param[in] div      a SyncDiv as an int
+ * @param[in] beatPos  the clock's position in quarter-note beats since it started
+ * @return the fractional part of beatPos over the division's length; 0 for Free, so a synced modulator can be
+ *         phase-locked to the grid
  */
 inline double syncPhase(int div, double beatPos) { const double b = syncBeats(div); if (b <= 0.0) return 0.0; const double x = beatPos / b; return x - std::floor(x); }
 

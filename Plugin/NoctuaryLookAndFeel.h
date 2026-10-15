@@ -9,6 +9,7 @@
  * The palette is deliberately not the flat grey of a mixing tool: the instrument is about
  * distance and slow motion, so the ground is a deep blue-black with a little vertical lift, and
  * each signal group keeps its own hue on the arc and on the card's edge.
+ * @author Rene Weller
  */
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -49,13 +50,13 @@ const juce::Colour MasterCol  { 0xff9aa7bd };   ///< the master section
 
 /**
  * @brief letter-spaced small caps for headings
- * @param height  the font height in points
+ * @param[in] height  the font height in points
  * @return a bold face with 0.14 extra kerning
  */
 juce::Font title(float height);
 /**
  * @brief The plain face for everything that is not a heading.
- * @param height  the font height in points
+ * @param[in] height  the font height in points
  * @return the default face at that height
  */
 juce::Font body(float height);
@@ -92,134 +93,134 @@ public:
      * @brief The knob: an inner disc, the track, the value arc (from the centre when bipolar), the
      *        modulation and live arcs, the clock dial or halo dot, a short pointer, and the value
      *        text inside when the knob is big enough.
-     * @param g           the graphics context
-     * @param x           the bounds the slider gives
-     * @param y           the bounds the slider gives
-     * @param width       the bounds the slider gives
-     * @param height      the bounds the slider gives
-     * @param pos         the value, 0 .. 1 along the arc
-     * @param startAngle  the arc's start in radians
-     * @param endAngle    the arc's end in radians
-     * @param s           the slider, for its colours, properties and text
+     * @param[in,out] g           the graphics context
+     * @param[in]     x           the bounds the slider gives
+     * @param[in]     y           the bounds the slider gives
+     * @param[in]     width       the bounds the slider gives
+     * @param[in]     height      the bounds the slider gives
+     * @param[in]     pos         the value, 0 .. 1 along the arc
+     * @param[in]     startAngle  the arc's start in radians
+     * @param[in]     endAngle    the arc's end in radians
+     * @param[in,out] s           the slider, for its colours, properties and text
      */
     void drawRotarySlider(juce::Graphics&, int x, int y, int width, int height, float pos,
                           float startAngle, float endAngle, juce::Slider&) override;
     /**
      * @brief The whole component is the knob; there is no text box, the value is drawn inside.
-     * @param s  the slider
+     * @param[in,out] s  the slider
      * @return its bounds as the slider area and an empty text box
      */
     juce::Slider::SliderLayout getSliderLayout(juce::Slider&) override;
     /**
      * @brief JUCE's text box made invisible (no background, no outline), for the sliders that keep one.
-     * @param s  the slider
+     * @param[in,out] s  the slider
      * @return the label, owned by the slider
      */
     juce::Label* createSliderTextBox(juce::Slider&) override;
 
     /**
      * @brief A linear slider as a thin track with a filled part and a round thumb, horizontal or vertical.
-     * @param g       the graphics context
-     * @param x       the bounds the slider gives
-     * @param y       the bounds the slider gives
-     * @param width   the bounds the slider gives
-     * @param height  the bounds the slider gives
-     * @param pos     the thumb's position in pixels along the track
-     * @param min     unused
-     * @param max     unused
-     * @param style   horizontal (LinearHorizontal, LinearBar) or anything else, taken as vertical
-     * @param s       the slider, for its fill colour
+     * @param[in,out] g       the graphics context
+     * @param[in]     x       the bounds the slider gives
+     * @param[in]     y       the bounds the slider gives
+     * @param[in]     width   the bounds the slider gives
+     * @param[in]     height  the bounds the slider gives
+     * @param[in]     pos     the thumb's position in pixels along the track
+     * @param[in]     min     unused
+     * @param[in]     max     unused
+     * @param[in]     style   horizontal (LinearHorizontal, LinearBar) or anything else, taken as vertical
+     * @param[in,out] s       the slider, for its fill colour
      */
     void drawLinearSlider(juce::Graphics&, int x, int y, int width, int height, float pos,
                           float min, float max, juce::Slider::SliderStyle, juce::Slider&) override;
 
     /**
      * @brief A rounded box with a chevron, brighter and accent-edged while hot.
-     * @param g        the graphics context
-     * @param width    the box's width
-     * @param height   the box's height
-     * @param down     unused
-     * @param buttonX  unused
-     * @param buttonY  unused
-     * @param buttonW  unused
-     * @param buttonH  unused
-     * @param box      the box, for its colours and hover state
+     * @param[in,out] g        the graphics context
+     * @param[in]     width    the box's width
+     * @param[in]     height   the box's height
+     * @param[in]     down     unused
+     * @param[in]     buttonX  unused
+     * @param[in]     buttonY  unused
+     * @param[in]     buttonW  unused
+     * @param[in]     buttonH  unused
+     * @param[in,out] box      the box, for its colours and hover state
      */
     void drawComboBox(juce::Graphics&, int width, int height, bool down, int buttonX, int buttonY,
                       int buttonW, int buttonH, juce::ComboBox&) override;
     /**
      * @brief Places the box's label left of the chevron and gives it the box font and colour.
-     * @param box    the box
-     * @param label  its text label
+     * @param[in,out] box    the box
+     * @param[in,out] label  its text label
      */
     void positionComboBoxText(juce::ComboBox&, juce::Label&) override;
     /**
-     * @param box  the box
+     * @param[in,out] box  the box
      * @return the body face, 60 \% of the box height and at most 13 pt
      */
     juce::Font getComboBoxFont(juce::ComboBox&) override;
 
     /**
      * @brief A pill switch with a sliding knob and the text beside it (see the body).
-     * @param g            the graphics context
-     * @param b            the button, for its state, colour and text
-     * @param highlighted  the mouse is over it: a faint outline
-     * @param down         unused
+     * @param[in,out] g            the graphics context
+     * @param[in,out] b            the button, for its state, colour and text
+     * @param[in]     highlighted  the mouse is over it: a faint outline
+     * @param[in]     down         unused
      */
     void drawToggleButton(juce::Graphics&, juce::ToggleButton&, bool highlighted, bool down) override;
 
     /**
      * @brief A rounded button: brighter when highlighted or down, accent-edged when on.
-     * @param g            the graphics context
-     * @param b            the button, for its toggle state and colours
-     * @param background   unused; the colour ids decide
-     * @param highlighted  the mouse is over it
-     * @param down         it is pressed
+     * @param[in,out] g            the graphics context
+     * @param[in,out] b            the button, for its toggle state and colours
+     * @param[in]     background   unused; the colour ids decide
+     * @param[in]     highlighted  the mouse is over it
+     * @param[in]     down         it is pressed
      */
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour& background,
                               bool highlighted, bool down) override;
     /**
      * @brief The button's text centred, in the on or off colour, faded when disabled.
-     * @param g            the graphics context
-     * @param b            the button
-     * @param highlighted  unused
-     * @param down         unused
+     * @param[in,out] g            the graphics context
+     * @param[in,out] b            the button
+     * @param[in]     highlighted  unused
+     * @param[in]     down         unused
      */
     void drawButtonText(juce::Graphics&, juce::TextButton&, bool highlighted, bool down) override;
     /**
-     * @param buttonHeight  the button's height in pixels
+     * @param[in] buttonHeight  the button's height in pixels
      * @return the body face, 55 \% of the height and at most 13 pt
      */
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override;
 
     /**
      * @brief A rounded card with an edge behind a menu.
-     * @param g       the graphics context
-     * @param width   the menu's width
-     * @param height  the menu's height
+     * @param[in,out] g       the graphics context
+     * @param[in]     width   the menu's width
+     * @param[in]     height  the menu's height
      */
     void drawPopupMenuBackground(juce::Graphics&, int width, int height) override;
     /** @return the body face at 13 pt */
     juce::Font getPopupMenuFont() override;
     /**
      * @brief The label's text fitted into its bounds, faded when disabled; nothing while it is being edited.
-     * @param g  the graphics context
-     * @param l  the label
+     * @param[in,out] g  the graphics context
+     * @param[in,out] l  the label
      */
     void drawLabel(juce::Graphics&, juce::Label&) override;
 
     /**
      * @brief A thin rounded thumb and no track, brighter under the mouse and while dragged.
-     * @param g          the graphics context
-     * @param x          the bar's bounds
-     * @param y          the bar's bounds
-     * @param width      the bar's bounds
-     * @param height     the bar's bounds
-     * @param vertical   the bar's direction
-     * @param thumbPos   the thumb's start along the bar, in pixels
-     * @param thumbSize  the thumb's length in pixels; 0 or less draws nothing
-     * @param mouseOver  the mouse is over the bar
-     * @param down       the thumb is being dragged
+     * @param[in,out] g          the graphics context
+     * @param[in]     x          the bar's bounds
+     * @param[in]     y          the bar's bounds
+     * @param[in]     width      the bar's bounds
+     * @param[in]     height     the bar's bounds
+     * @param[in]     vertical   the bar's direction
+     * @param[in]     thumbPos   the thumb's start along the bar, in pixels
+     * @param[in]     thumbSize  the thumb's length in pixels; 0 or less draws nothing
+     * @param[in]     mouseOver  the mouse is over the bar
+     * @param[in]     down       the thumb is being dragged
      */
     void drawScrollbar(juce::Graphics&, juce::ScrollBar&, int x, int y, int width, int height,
                        bool vertical, int thumbPos, int thumbSize, bool mouseOver, bool down) override;

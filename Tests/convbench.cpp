@@ -12,6 +12,7 @@
  *
  * Every case first runs one impulse length untimed, so the frequency-domain delay lines are full
  * and the cost is the steady one, not the cheap start.
+ * @author Rene Weller
  */
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
@@ -34,11 +35,11 @@ namespace {
  *        gone long before the bottom as in a real hall.
  *
  * rt60 is the low band's; the others are shorter.
- * @param seed  seeds the noise, so that the same seed is the same room every run
- * @param n     length in samples
- * @param sr    sample rate in Hz, for the band splits at 300 and 3000 Hz and the decays
- * @param rt60  decay to -60 dB of the low band in seconds; the mid band gets 0.6 of it, the top 0.25
- * @return      the n samples, unnormalised (the Convolver normalises the energy itself)
+ * @param[in] seed  seeds the noise, so that the same seed is the same room every run
+ * @param[in] n     length in samples
+ * @param[in] sr    sample rate in Hz, for the band splits at 300 and 3000 Hz and the decays
+ * @param[in] rt60  decay to -60 dB of the low band in seconds; the mid band gets 0.6 of it, the top 0.25
+ * @return the n samples, unnormalised (the Convolver normalises the energy itself)
  */
 std::vector<float> makeImpulse(uint64_t seed, int n, float sr, float rt60)
 {
@@ -77,13 +78,13 @@ struct Result { double m_cpuPercent, m_worstMs, m_p999Ms; };
  *
  * The convolver is first run for one impulse length plus four callbacks untimed (see the file
  * header), then for @p seconds of audio with every callback timed by the steady clock.
- * @param kind        the case, as above
- * @param len         impulse length in seconds; the rooms decay with rt60 = len / 2
- * @param maxSeconds  the longest impulse the Convolver is prepared for (what the Room keeps)
- * @param block       samples per callback
- * @param seconds     seconds of audio to time
- * @param sr          sample rate in Hz
- * @return            CPU percentage, worst and 99.9th-percentile callback of the timed part
+ * @param[in] kind        the case, as above
+ * @param[in] len         impulse length in seconds; the rooms decay with rt60 = len / 2
+ * @param[in] maxSeconds  the longest impulse the Convolver is prepared for (what the Room keeps)
+ * @param[in] block       samples per callback
+ * @param[in] seconds     seconds of audio to time
+ * @param[in] sr          sample rate in Hz
+ * @return CPU percentage, worst and 99.9th-percentile callback of the timed part
  */
 Result run(int kind, float len, float maxSeconds, int block, double seconds, float sr)
 {
@@ -128,10 +129,10 @@ Result run(int kind, float len, float maxSeconds, int block, double seconds, flo
 
 /**
  * @brief Runs the three cases for every impulse length up to the longest asked and prints the table.
- * @param argc  argument count, as the runtime hands it over
- * @param argv  optional, in order: callback samples (at least 16, default 128), seconds of audio per
- *              case (default 20), longest impulse in seconds (default 60; the 4, 8, 12, 30, 60 s rows
- *              beyond it are skipped)
+ * @param[in]     argc  argument count, as the runtime hands it over
+ * @param[in,out] argv  optional, in order: callback samples (at least 16, default 128), seconds of audio per case
+ *                      (default 20), longest impulse in seconds (default 60; the 4, 8, 12, 30, 60 s rows beyond it are
+ *                      skipped)
  * @return 0 always; the numbers are the result
  */
 int main(int argc, char** argv)

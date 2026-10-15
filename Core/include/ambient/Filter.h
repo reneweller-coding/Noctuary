@@ -17,6 +17,7 @@
  * to high pass, the OTA cascades of the Prophet and the Juno, and the diode ladder of the EMS and the
  * TB-303. They run at twice the rate, both channels at once, and their resonance sits on Cutoff: a
  * ringing ladder with Key Track 1 plays the note.
+ * @author Rene Weller
  */
 #pragma once
 #include "CircuitFilter.h"
@@ -55,8 +56,8 @@ constexpr int NumFilterModels = static_cast<int>(FilterModelE::COUNT);   ///< en
 extern const char* const FilterModelNames[NumFilterModels];   ///< display names in FilterModel order ("LP 6" .. "Diode"), defined in Filter.cpp
 /**
  * @brief Whether a model is one of the circuit models (CircuitFilter.h), which run at twice the rate.
- * @param m  the model
- * @return   true for Moog, SEM, Prophet, Juno and Diode
+ * @param[in] m  the model
+ * @return true for Moog, SEM, Prophet, Juno and Diode
  */
 constexpr bool isCircuitModel(FilterModelE m) { return static_cast<int>(m) >= static_cast<int>(FilterModelE::MOOG) && m != FilterModelE::COUNT; }
 extern const char* const FilterRouteNames[2];   ///< Series, Parallel: the names of the two ways a voice's two filters can be routed
@@ -77,7 +78,7 @@ class VoiceFilter {
 public:
     /**
      * @brief Takes the sample rate and silences the filter.
-     * @param sr  the engine's rate in Hz, kept as a float for the coefficient arithmetic
+     * @param[in] sr  the engine's rate in Hz, kept as a float for the coefficient arithmetic
      */
     void prepare(double sr) { m_sr = static_cast<float>(sr); reset(); }
     /** @brief Clears every model's state -- the six state-variable pairs, the ladder, the one-pole, the comb -- to silence. */
@@ -89,12 +90,12 @@ public:
      *
      * Called once a block from the voice's smoothed parameters. Switching the model resets the
      * state. Cutoff is clamped between 10 Hz and 0.45 of the rate, Resonance, Drive and Morph to 0 .. 1.
-     * @param model      which of the fifteen models to run from the next tick on
-     * @param cutoffHz   cutoff (or centre, or comb fundamental) in Hz, clamped inside the model
-     * @param resonance  0 .. 1, the meaning per model (Q, feedback, formant width)
-     * @param drive      0 .. 1, input gain into the soft clip -- or, for a circuit model, into the
-     *                   circuit itself -- with the output compensated; off at 0
-     * @param morph      0 .. 1, the SEM's response: low pass, notch at 0.5, high pass; the other models ignore it
+     * @param[in] model      which of the fifteen models to run from the next tick on
+     * @param[in] cutoffHz   cutoff (or centre, or comb fundamental) in Hz, clamped inside the model
+     * @param[in] resonance  0 .. 1, the meaning per model (Q, feedback, formant width)
+     * @param[in] drive      0 .. 1, input gain into the soft clip -- or, for a circuit model, into the circuit itself
+     *                       -- with the output compensated; off at 0
+     * @param[in] morph      0 .. 1, the SEM's response: low pass, notch at 0.5, high pass; the other models ignore it
      */
     void set(FilterModelE model, float cutoffHz, float resonance, float drive, float morph = 0.0f);
     /**
@@ -105,10 +106,10 @@ public:
      * rate (Oversample.h) since 25.09.2026, and is 29.5 samples late for it while it is on. A
      * circuit model runs at twice the rate as a whole, both channels in one register, its drive the
      * gain into the circuit, and is 25 samples late all the time.
-     * @param inL   left input sample
-     * @param inR   right input sample
-     * @param outL  left output
-     * @param outR  right output
+     * @param[in]     inL   left input sample
+     * @param[in]     inR   right input sample
+     * @param[in,out] outL  left output
+     * @param[in,out] outR  right output
      */
     inline void tick(float inL, float inR, float& outL, float& outR);
     /**
@@ -125,13 +126,13 @@ public:
      * The analogue prototype of each model is evaluated at the warped frequency, so the curve is
      * the one the digital filter actually has; the formant model sums magnitudes, not phases. The
      * circuit models are drawn by their small-signal response: what they do to a quiet input.
-     * @param model      the model whose response is drawn
-     * @param cutoffHz   the Cutoff knob in Hz (clamped like set() does)
-     * @param resonance  the Resonance knob, 0 .. 1
-     * @param hz         the frequency to evaluate at, in Hz
-     * @param sr         the sample rate the voice runs at
-     * @param morph      the Morph knob, 0 .. 1 (the SEM's response)
-     * @return           the linear magnitude at hz; 1 for a model that is not drawn
+     * @param[in] model      the model whose response is drawn
+     * @param[in] cutoffHz   the Cutoff knob in Hz (clamped like set() does)
+     * @param[in] resonance  the Resonance knob, 0 .. 1
+     * @param[in] hz         the frequency to evaluate at, in Hz
+     * @param[in] sr         the sample rate the voice runs at
+     * @param[in] morph      the Morph knob, 0 .. 1 (the SEM's response)
+     * @return the linear magnitude at hz; 1 for a model that is not drawn
      */
     static float magnitude(FilterModelE model, float cutoffHz, float resonance, float hz, float sr, float morph = 0.0f);
 
@@ -196,8 +197,8 @@ private:
     /**
      * @brief The drive stage: a soft clip with its level compensated, at four times the rate;
      *        skipped entirely at Drive 0.
-     * @param inL  the left input sample, driven in place
-     * @param inR  the right input sample, driven in place
+     * @param[in,out] inL  the left input sample, driven in place
+     * @param[in,out] inR  the right input sample, driven in place
      */
     inline void drive(float& inL, float& inR)
     {
@@ -210,17 +211,17 @@ private:
     }
     /**
      * @brief One sample of one channel through the current model.
-     * @param ch  0 left, 1 right: which channel's state to use
-     * @param x   the (already driven) input sample
-     * @return    the model's output; the input unchanged for an unknown model
+     * @param[in] ch  0 left, 1 right: which channel's state to use
+     * @param[in] x   the (already driven) input sample
+     * @return the model's output; the input unchanged for an unknown model
      */
     inline float one(int ch, float x);
     /**
      * @brief One stereo sample through the current circuit model, at twice the rate.
-     * @param l   the left input at twice the rate, the drive's gain already applied
-     * @param r   the right input, the same
-     * @param yl  receives the left output, before m_cOut
-     * @param yr  receives the right output
+     * @param[in]  l   the left input at twice the rate, the drive's gain already applied
+     * @param[in]  r   the right input, the same
+     * @param[out] yl  receives the left output, before m_cOut
+     * @param[out] yr  receives the right output
      */
     inline void circuitTick(float l, float r, float& yl, float& yr);
 };

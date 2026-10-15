@@ -10,6 +10,7 @@
  * IEEE operations, and the fused forms use std::fma, which is what vfmaq_f32 and vfmsq_f32 compute
  * on AArch64 (a + b c and a - b c as one fused multiply-add). What this cannot check is whether
  * the real header spells something differently -- that is what the NDK build is for.
+ * @author Rene Weller
  */
 #pragma once
 #include <cmath>

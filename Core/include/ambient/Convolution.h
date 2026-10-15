@@ -27,6 +27,7 @@
  * impulse is read at all. Impulses are double-buffered like textures: the message thread writes
  * the copy the audio thread is not reading, then swaps. Without a file a generated hall is loaded
  * at prepare(), so the Room works out of the box (see makeDefaultImpulse).
+ * @author Rene Weller
  */
 #pragma once
 #include <atomic>
@@ -61,8 +62,8 @@ public:
      * The block sizes scale with the rate (256 x 1, 2 or 4 samples up to 64, 128 kHz and beyond),
      * so the latency stays about 5 ms. Stages whose stretch begins past the cap are left out. Both
      * impulses are forgotten. Not for the audio thread.
-     * @param sampleRate  the engine's rate in Hz
-     * @param maxSeconds  the longest impulse kept, in seconds (60 by default; 4 on the Quest)
+     * @param[in] sampleRate  the engine's rate in Hz
+     * @param[in] maxSeconds  the longest impulse kept, in seconds (60 by default; 4 on the Quest)
      */
     void prepare(double sampleRate, float maxSeconds = 60.0f);
     /**
@@ -77,30 +78,34 @@ public:
      *
      * Message thread. R may be nullptr (mono impulse). Resampled to the engine rate with a
      * windowed sinc, energy-normalised, the silence at the end trimmed.
-     * @param L                  the left (or only) channel, n samples
-     * @param R                  the right channel, or nullptr for a mono impulse read once for both
-     * @param n                  samples per channel
-     * @param impulseSampleRate  the rate the impulse was recorded at, in Hz; 0 or less means the engine's
+     * @param[in] L                  the left (or only) channel, n samples
+     * @param[in] R                  the right channel, or nullptr for a mono impulse read once for both
+     * @param[in] n                  samples per channel
+     * @param[in] impulseSampleRate  the rate the impulse was recorded at, in Hz; 0 or less means the engine's
      */
     void setImpulse(const float* L, const float* R, int n, double impulseSampleRate)  { load(0, L, R, n, impulseSampleRate); }
     /**
      * @brief The second impulse, the one the morph goes to.
      *
      * Message thread, otherwise as setImpulse().
-     * @param L                  the left (or only) channel, n samples
-     * @param R                  the right channel, or nullptr for mono
-     * @param n                  samples per channel
-     * @param impulseSampleRate  the rate the impulse was recorded at, in Hz
+     * @param[in] L                  the left (or only) channel, n samples
+     * @param[in] R                  the right channel, or nullptr for mono
+     * @param[in] n                  samples per channel
+     * @param[in] impulseSampleRate  the rate the impulse was recorded at, in Hz
      */
     void setImpulseB(const float* L, const float* R, int n, double impulseSampleRate) { load(1, L, R, n, impulseSampleRate); }
-    /** @brief Forget impulse B: the room is A alone again, and B's memory goes back. Message thread. */
+    /**
+     * @brief Forget impulse B: the room is A alone again, and B's memory goes back. Message thread.
+     * @pre called on the message thread
+     */
     void clearImpulseB();
     /**
      * @brief The built-in hall (makeDefaultImpulse), for a Room without a file.
      *
      * Renders the hall at the engine's rate and loads it as impulse A. Message thread.
-     * @param seed     seeds the hall's noise
-     * @param seconds  the hall's length, 4 s by default
+     * @param[in] seed     seeds the hall's noise
+     * @param[in] seconds  the hall's length, 4 s by default
+     * @pre called on the message thread
      */
     void generateDefault(uint64_t seed, float seconds = 4.0f);
     /**
@@ -109,11 +114,11 @@ public:
      * The built-in hall as samples, at any rate, for generateDefault and for whoever wants to
      * measure it: the statistical late field the generated library's halls are made of (Gaussian
      * noise, every frequency decaying at its own T60), with a colour and a decay solved offline.
-     * @param sampleRate  the rate to render at, in Hz
-     * @param seed        seeds the two noise streams
-     * @param seconds     the hall's length
-     * @param L           receives the left channel, seconds x sampleRate samples
-     * @param R           receives the right channel, half-coherent with the left in the bass
+     * @param[in]  sampleRate  the rate to render at, in Hz
+     * @param[in]  seed        seeds the two noise streams
+     * @param[in]  seconds     the hall's length
+     * @param[out] L           receives the left channel, seconds x sampleRate samples
+     * @param[out] R           receives the right channel, half-coherent with the left in the bass
      */
     static void makeDefaultImpulse(double sampleRate, uint64_t seed, float seconds, std::vector<float>& L, std::vector<float>& R);
     /**
@@ -146,18 +151,20 @@ public:
      *
      * 0 plays impulse A, 1 impulse B. Audio thread, before process(); each stage takes the value
      * at the start of its own blocks.
-     * @param x  0 .. 1 (clamped when a block begins)
+     * @param[in] x  0 .. 1 (clamped when a block begins)
+     * @pre called on the audio thread
      */
     void  setMorph(float x) { m_morph = x; }
     /**
      * @brief Runs a block through the Room.
      *
      * Wet only, replaces outL/outR (which may be the inputs). Any n. Audio thread; never allocates.
-     * @param inL   left input, n samples
-     * @param inR   right input
-     * @param outL  receives the left wet signal; may be inL
-     * @param outR  receives the right wet signal; may be inR
-     * @param n     samples in the block
+     * @param[in]  inL   left input, n samples
+     * @param[in]  inR   right input
+     * @param[out] outL  receives the left wet signal; may be inL
+     * @param[out] outR  receives the right wet signal; may be inR
+     * @param[in]  n     samples in the block
+     * @pre called on the audio thread
      */
     void  process(const float* inL, const float* inR, float* outL, float* outR, int n);
 
@@ -166,14 +173,14 @@ public:
      * @{ */
     /**
      * @brief A stage's partition and block size.
-     * @param s  0 .. Stages - 1
-     * @return   B in samples
+     * @param[in] s  0 .. Stages - 1
+     * @return B in samples
      */
     int   stageBlock(int s) const { return m_stage[s].m_block; }
     /**
      * @brief Where a stage's stretch of the impulse begins.
-     * @param s  0 .. Stages - 1
-     * @return   D in samples
+     * @param[in] s  0 .. Stages - 1
+     * @return D in samples
      */
     int   stageStart(int s) const { return m_stage[s].m_start; }
     /**
@@ -202,7 +209,7 @@ private:
                            m_snI;   ///< sine negated for the forward transform, as is for the inverse
         /**
          * @brief Builds the tables for a size and its cost estimate.
-         * @param size  the transform length, a power of two
+         * @param[in] size  the transform length, a power of two
          */
         void init(int size);
     };
@@ -217,13 +224,13 @@ private:
      * The same radix-2 transform as Fft (Cosmos.h): forward turns by e^-i, inverse by e^+i and is
      * left unscaled -- the caller divides by n when it delivers. Stops at the end of a run of
      * butterflies once the budget is spent.
-     * @param f        the tables for this size
-     * @param r        the run's position, FftRun{} to start; advanced by the call
-     * @param re       n real parts, transformed in place
-     * @param im       n imaginary parts
-     * @param inverse  false forward, true inverse (unscaled)
-     * @param budget   work units left in this slice; reduced by what was done, may go negative
-     * @return         true once the whole transform is done
+     * @param[in]     f        the tables for this size
+     * @param[in,out] r        the run's position, FftRun{} to start; advanced by the call
+     * @param[in,out] re       n real parts, transformed in place
+     * @param[in,out] im       n imaginary parts
+     * @param[in]     inverse  false forward, true inverse (unscaled)
+     * @param[in,out] budget   work units left in this slice; reduced by what was done, may go negative
+     * @return true once the whole transform is done
      */
     static bool runFft(const StepFft& f, FftRun& r, float* re, float* im, bool inverse, long long& budget);
 
@@ -281,11 +288,11 @@ private:
      * cap (shrinkToCap), normalises the energy to one, trims the silence at the end, waits for the
      * steps that had begun, analyses into the free copy, publishes it and frees the old copy once
      * every step that could still read it has ended.
-     * @param which  0 impulse A, 1 impulse B
-     * @param L      the left (or only) channel
-     * @param R      the right channel or nullptr
-     * @param n      samples per channel
-     * @param rate   the impulse's own sample rate in Hz
+     * @param[in] which  0 impulse A, 1 impulse B
+     * @param[in] L      the left (or only) channel
+     * @param[in] R      the right channel or nullptr
+     * @param[in] n      samples per channel
+     * @param[in] rate   the impulse's own sample rate in Hz
      */
     void load(int which, const float* L, const float* R, int n, double rate);
     /**
@@ -295,10 +302,10 @@ private:
      * Each partition is zero-padded to 2B and transformed; from the top down, bins are dropped
      * while the energy they carry stays inside the partition's share of the budget, and the rest
      * are stored packed, rounded up to eights.
-     * @param imp     the copy to fill
-     * @param ch      the channels, resampled and normalised
-     * @param stereo  whether ch[1] is to be analysed as well
-     * @param len     samples to analyse (the trimmed length)
+     * @param[in,out] imp     the copy to fill
+     * @param[in]     ch      the channels, resampled and normalised
+     * @param[in]     stereo  whether ch[1] is to be analysed as well
+     * @param[in]     len     samples to analyse (the trimmed length)
      */
     void analyse(Impulse& imp, const std::vector<float>* ch, bool stereo, int len);
     /**
@@ -312,7 +319,7 @@ private:
     /**
      * @brief Begins a stage's block: copies the last B input samples into the work buffers, zero-padded,
      *        and sets the phase, the deadline, the morph weights and the work estimate.
-     * @param s  the stage
+     * @param[in,out] s  the stage
      */
     void begin(Stage& s);
     /**
@@ -320,12 +327,12 @@ private:
      *
      * Forward transform of both channels, push into the delay line, the products (sum()), inverse
      * transform of both channels, delivery into the output ring scaled by 1 / N.
-     * @param s      the stage
-     * @param g      its index, for the impulses' spectra
-     * @param quota  work units this slice may spend
-     * @param A      impulse A as the step saw it, or nullptr
-     * @param B      impulse B, or nullptr
-     * @return       the work units used
+     * @param[in,out] s      the stage
+     * @param[in]     g      its index, for the impulses' spectra
+     * @param[in]     quota  work units this slice may spend
+     * @param[in]     A      impulse A as the step saw it, or nullptr
+     * @param[in]     B      impulse B, or nullptr
+     * @return the work units used
      */
     long long advance(Stage& s, int g, long long quota, const Impulse* A, const Impulse* B);
     /**
@@ -334,11 +341,11 @@ private:
      * Where both impulses have a bin they are blended with the block's weights; above the shorter
      * one only the longer is summed. A mono impulse is loaded once for both channels. When every
      * partition is done the upper half of the spectrum is mirrored and the phase moves to the inverse.
-     * @param s      the stage
-     * @param g      its index
-     * @param A      impulse A or nullptr
-     * @param B      impulse B or nullptr
-     * @param quota  work units left; reduced by what was done
+     * @param[in,out] s      the stage
+     * @param[in]     g      its index
+     * @param[in]     A      impulse A or nullptr
+     * @param[in]     B      impulse B or nullptr
+     * @param[in,out] quota  work units left; reduced by what was done
      */
     void sum(Stage& s, int g, const Impulse* A, const Impulse* B, long long& quota);
     /**
@@ -346,6 +353,7 @@ private:
      *
      * Spins on m_stepsDone against m_stepsBegun with 50 microsecond sleeps, giving up after 400 ms;
      * see Engine::waitForQuiet.
+     * @pre called on the message thread
      */
     void waitForQuiet();
 

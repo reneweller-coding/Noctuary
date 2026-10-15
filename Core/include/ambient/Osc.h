@@ -24,6 +24,7 @@
  * address dispatch live in Osc.cpp. Parameter writes go straight into the sink on the OSC thread,
  * as the sink's own atomics allow; everything that must not race the audio thread goes through
  * the EventQueue.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -54,8 +55,8 @@ public:
     static constexpr int Size = 256;   ///< ring length, a power of two; one slot is always kept empty
     /**
      * @brief Producer side: appends an event.
-     * @param e  the event
-     * @return   false when the ring is full (the event is dropped)
+     * @param[in] e  the event
+     * @return false when the ring is full (the event is dropped)
      */
     bool push(const ControlEvent& e)
     {
@@ -68,8 +69,8 @@ public:
     }
     /**
      * @brief Consumer side: takes the oldest event.
-     * @param e  receives the event
-     * @return   false when the ring is empty (@p e untouched)
+     * @param[out] e  receives the event
+     * @return false when the ring is empty (@p e untouched)
      */
     bool pop(ControlEvent& e)
     {
@@ -91,19 +92,19 @@ struct OscSink {
     virtual ~OscSink() = default;
     /**
      * @brief A parameter set to a value in its real range (already clamped to the parameter's min .. max).
-     * @param id     the parameter
-     * @param value  real value
+     * @param[in] id     the parameter
+     * @param[in] value  real value
      */
     virtual void setParam(ParamIdE id, float value) = 0;
     /**
      * @brief A parameter set along its knob curve.
-     * @param id    the parameter
-     * @param norm  0..1 along the knob curve
+     * @param[in] id    the parameter
+     * @param[in] norm  0..1 along the knob curve
      */
     virtual void setParamNormalised(ParamIdE id, float norm) = 0;
     /**
      * @brief A note or a preset change, to be queued for the audio thread.
-     * @param e  the event
+     * @param[in] e  the event
      */
     virtual void event(const ControlEvent& e) = 0;
     /**
@@ -129,8 +130,8 @@ struct OscMessage {
 namespace osc_detail {
 /**
  * @brief Reads a big-endian 32-bit integer.
- * @param p  four bytes
- * @return   the value
+ * @param[in] p  four bytes
+ * @return the value
  */
 inline int32_t readInt(const char* p)
 {
@@ -141,8 +142,8 @@ inline int32_t readInt(const char* p)
 }
 /**
  * @brief Reads a big-endian IEEE float.
- * @param p  four bytes
- * @return   the value
+ * @param[in] p  four bytes
+ * @return the value
  */
 inline float readFloat(const char* p)
 {
@@ -153,8 +154,8 @@ inline float readFloat(const char* p)
 }
 /**
  * @brief How many bytes an OSC string of @p n characters occupies.
- * @param n  the string's length without its terminator
- * @return   string length incl. terminator, padded to 4
+ * @param[in] n  the string's length without its terminator
+ * @return string length incl. terminator, padded to 4
  */
 inline size_t padded(size_t n) { return (n + 4) & ~static_cast<size_t>(3); }
 
@@ -164,12 +165,11 @@ inline size_t padded(size_t n) { return (n + 4) & ~static_cast<size_t>(3); }
  *
  * Understands 'f', 'i', 's', 'T' and 'F'; a message without type tags is delivered with no
  * arguments; any other tag, or a length that runs past the packet, is malformed.
- *
+ * @param[in]  data     the bytes
+ * @param[in]  size     how many
+ * @param[out] handler  receives each message
+ * @return the number of messages delivered, or -1 on malformed data
  * @tparam Handler  callable as handler(const OscMessage&)
- * @param data      the bytes
- * @param size      how many
- * @param handler   receives each message
- * @return          the number of messages delivered, or -1 on malformed data
  */
 template <class HandlerT>
 int parseOne(const char* data, size_t size, HandlerT& handler)
@@ -224,12 +224,11 @@ int parseOne(const char* data, size_t size, HandlerT& handler)
 /**
  * @brief Parse a packet (message or bundle); calls handler(const OscMessage&) per message.
  *        Returns the number of messages, or -1 on malformed data.
- *
+ * @param[in] data     the packet's bytes, as received from the socket
+ * @param[in] size     how many
+ * @param[in] handler  receives each message; the OscMessage points into @p data and is valid only during the call
+ * @return the number of messages, or -1 on malformed data
  * @tparam Handler  callable as handler(const OscMessage&)
- * @param data      the packet's bytes, as received from the socket
- * @param size      how many
- * @param handler   receives each message; the OscMessage points into @p data and is valid only during the call
- * @return          the number of messages, or -1 on malformed data
  */
 template <class HandlerT>
 int parseOscPacket(const char* data, size_t size, HandlerT&& handler)
@@ -244,11 +243,10 @@ int parseOscPacket(const char* data, size_t size, HandlerT&& handler)
  * layer's calibration). A parameter given as a string is parsed with paramValueFromText, so a
  * choice may be sent by name; a preset given as a string is looked up by name; a note velocity
  * above 1 is taken as MIDI 0..127. Runs on the OSC thread.
- *
- * @param m         the parsed message
- * @param sink      receives parameters, events and the head yaw
- * @param gestures  receives gesture inputs, hands and head
- * @return          false if the address is unknown or the arguments do not fit it
+ * @param[in]  m         the parsed message
+ * @param[out] sink      receives parameters, events and the head yaw
+ * @param[out] gestures  receives gesture inputs, hands and head
+ * @return false if the address is unknown or the arguments do not fit it
  */
 bool dispatchOsc(const OscMessage& m, OscSink& sink, GestureLayer& gestures);
 
@@ -268,11 +266,10 @@ public:
      * @brief Binds a UDP socket to @p port on every interface and starts the receiving thread.
      *
      * A server already running is stopped first. On Windows this also initialises Winsock.
-     *
-     * @param port      the UDP port to listen on
-     * @param sink      where parameters, events and the head yaw go; must outlive the server
-     * @param gestures  where hands, head and gesture inputs go; must outlive the server
-     * @return          false when the socket could not be made or the port is in use (see lastError())
+     * @param[in]     port      the UDP port to listen on
+     * @param[in,out] sink      where parameters, events and the head yaw go; must outlive the server
+     * @param[in,out] gestures  where hands, head and gesture inputs go; must outlive the server
+     * @return false when the socket could not be made or the port is in use (see lastError())
      */
     bool start(int port, OscSink& sink, GestureLayer& gestures);
     /** @brief Asks the thread to leave, joins it, closes the socket. Safe when not running. */

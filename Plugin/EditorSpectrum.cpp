@@ -19,6 +19,7 @@
  *   * the filter -- the response from the voice's own arithmetic on the same decibel axis, so a
  *     resonance sitting between two partials is visible as exactly that
  *   * the ticks -- the fundamental of every sounding note, so a line can be tied to a voice
+ * @author Rene Weller
  */
 #include "EditorCommon.h"
 

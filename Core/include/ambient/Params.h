@@ -13,6 +13,7 @@
  * tables declared at the bottom are defined in Params.cpp beside the table itself, and the
  * ParamSection enum answers, at compile time, the question every layer keeps asking -- which
  * section is this, is it performance state, does a preset carry it.
+ * @author Rene Weller
  */
 #pragma once
 #include <array>
@@ -422,8 +423,8 @@ struct ParamDesc {
 const std::array<ParamDesc, NumParams>& paramTable();
 /**
  * @brief The row of one parameter.
- * @param id  the parameter
- * @return    its description
+ * @param[in] id  the parameter
+ * @return its description
  */
 inline const ParamDesc& paramDesc(ParamIdE id) { return paramTable()[static_cast<size_t>(id)]; }
 /**
@@ -432,9 +433,8 @@ inline const ParamDesc& paramDesc(ParamIdE id) { return paramTable()[static_cast
  * A binary search over a sorted index built on first use (Params.cpp): everything that reads a
  * preset goes through here, and a linear scan over the whole table cost 1.75 seconds every time
  * the map was warmed up for the library.
- *
- * @param key  the stable identifier, as presets and OSC spell it
- * @return     the row, or nullptr if unknown
+ * @param[in] key  the stable identifier, as presets and OSC spell it
+ * @return the row, or nullptr if unknown
  */
 const ParamDesc* findParam(const char* key);   ///< nullptr if unknown
 
@@ -447,9 +447,8 @@ constexpr int SlotFields  = 42;   ///< ... the last of them the slot's role (13.
  * consecutive (Source 1's level and spectrum are the classic Oscillator parameters). The table
  * that maps slot and field to an id used to be written out twice -- once in the engine, once in
  * the editor -- and every field added since had to be added to both. It lives here now.
- *
- * @param slot  0 .. SourceSlots-1
- * @return      SlotFields entries, or nullptr for a slot that is not one
+ * @param[in] slot  0 .. SourceSlots-1
+ * @return SlotFields entries, or nullptr for a slot that is not one
  */
 const ParamIdE* slotParamIds(int slot);   ///< SlotFields entries, or nullptr for a slot that is not one
 
@@ -470,9 +469,10 @@ enum class ParamSectionE : int {
 };
 extern const char* const MemLineNames[3];      ///< "2", "4", "8": how many lines the Memory's pool is divided into
 /**
- * @brief The section behind a section name from the table ("LFO 3", "Env 5" and "Src Env 2" fold into Lfo and ModEnvelope).
- * @param sectionName  the string in ParamDesc::section; nullptr gives Unknown
- * @return             the section, Unknown for a name the table of names does not hold
+ * @brief The section behind a section name from the table ("LFO 3", "Env 5" and "Src Env 2" fold into Lfo and
+ *        ModEnvelope).
+ * @param[in] sectionName  the string in ParamDesc::section; nullptr gives Unknown
+ * @return the section, Unknown for a name the table of names does not hold
  */
 ParamSectionE sectionOf(const char* sectionName);
 /**
@@ -489,8 +489,8 @@ ParamSectionE sectionOf(const char* sectionName);
 const ParamSectionE* sectionTable();   ///< NumParams entries, built once
 /**
  * @brief The section of a parameter, by id (a table lookup, see sectionTable()).
- * @param id  the parameter
- * @return    its section
+ * @param[in] id  the parameter
+ * @return its section
  */
 inline ParamSectionE sectionOf(ParamIdE id) { return sectionTable()[static_cast<size_t>(id)]; }
 

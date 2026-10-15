@@ -13,6 +13,7 @@
  * The table edits a copy and hands the whole matrix back to the engine as the same text the box
  * used to, so the parser and the presets see nothing new -- and dragging a card onto a knob
  * still adds a row here, because it goes through the same door.
+ * @author Rene Weller
  */
 #include "EditorCommon.h"
 
@@ -28,15 +29,15 @@ constexpr int RowH = 26,    ///< height of a route row, px
 /**
  * @brief The combo-box item id that stands for a modulation source: combo ids start at 1, so it is
  *        the source's index plus one.
- * @param s  the source
- * @return   its item id in the source and via combos (ModSource::None is 1)
+ * @param[in] s  the source
+ * @return its item id in the source and via combos (ModSource::None is 1)
  */
 int sourceItemId(ModSourceE s) { return static_cast<int>(s) + 1; }
 /**
  * @brief The modulation source a combo's selected item stands for: the inverse of sourceItemId().
- * @param id  the selected item id, 0 when nothing is selected
- * @return    the source, clamped into 0 .. NumModSources - 1 so a stray id reads as None or as the
- *            last source rather than as garbage
+ * @param[in] id  the selected item id, 0 when nothing is selected
+ * @return the source, clamped into 0 .. NumModSources - 1 so a stray id reads as None or as the last source rather than
+ *         as garbage
  */
 ModSourceE sourceFromItem(int id) { return static_cast<ModSourceE>(juce::jlimit(0, NumModSources - 1, id - 1)); }
 }
@@ -53,8 +54,8 @@ struct RouteTable::Row : juce::Component {
     /**
      * @brief Builds the six controls and fills the combos: every source but None, the targets grouped
      *        by section in the parameter table's order, the performance parameters left out.
-     * @param t      the table this row reports to
-     * @param index  the row's position, which is the route's index in the engine's matrix
+     * @param[in,out] t      the table this row reports to
+     * @param[in]     index  the row's position, which is the route's index in the engine's matrix
      */
     Row(RouteTable& t, int index) : m_table(t), m_idx(index)
     {
@@ -93,7 +94,7 @@ struct RouteTable::Row : juce::Component {
     }
     /**
      * @brief Shows a route in the controls, without firing their callbacks.
-     * @param r  the route as the engine holds it
+     * @param[in] r  the route as the engine holds it
      */
     void set(const ModRoute& r)
     {

@@ -8,6 +8,7 @@
  * 256 for 64 bars, a dotted division at one and a half times its plain one, a triplet at two thirds
  * -- which is what syncSeconds(), syncHz() and syncPhase() read. The three tables follow the order
  * of the ClockSource and SyncDiv enums and must stay in step with them.
+ * @author Rene Weller
  */
 #include "ambient/Clock.h"
 

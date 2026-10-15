@@ -17,6 +17,11 @@
  *     Morph 0.5 is a notch on Cutoff (more than 20 dB down), through VoiceFilter;
  *   - the sums: halfband::dot against a plain sum in double, and both oversamplers around nothing
  *     pass a 1 kHz sine at unity within 0.05 dB.
+ * @author Rene Weller
+ *
+ * @par Compile Flags:
+ *   @arg @c AMBIENT_EXPECT_PATH - the vector paths the build expects; the test fails when CircuitFilter.h and Simd.h
+ *                                 chose others
  */
 #include "ambient/Filter.h"
 #include <cmath>
@@ -32,8 +37,8 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
 
 /**
  * @brief Records one check: prints a FAIL line with the file and line and counts it when @p cond is false.
- * @param cond  the condition that has to hold
- * @param msg   what was measured, as the FAIL line prints it
+ * @param[in] cond  the condition that has to hold
+ * @param[in] msg   what was measured, as the FAIL line prints it
  */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 
@@ -41,10 +46,10 @@ namespace {
 
 /**
  * @brief A chord of saws and a little noise, the same every run.
- * @param n      how many samples
- * @param seed   the noise's seed
- * @param level  the chord's scale: 0.5 is a quiet voice, 1.5 one that drives the circuits
- * @return       the signal
+ * @param[in] n      how many samples
+ * @param[in] seed   the noise's seed
+ * @param[in] level  the chord's scale: 0.5 is a quiet voice, 1.5 one that drives the circuits
+ * @return the signal
  */
 std::vector<float> signal(int n, unsigned seed, float level)
 {
@@ -61,8 +66,8 @@ std::vector<float> signal(int n, unsigned seed, float level)
 
 /**
  * @brief One model through F4 against the float template on each lane.
- * @param model  a generic callable `V(V* v, V* s, V x)` running one circuit, called with F4 and with float
- * @return       the largest difference between a lane and its float, relative to the largest output
+ * @param[in] model  a generic callable `V(V* v, V* s, V x)` running one circuit, called with F4 and with float
+ * @return the largest difference between a lane and its float, relative to the largest output
  */
 template <class ModelT>
 float lanesAgainstFloat(ModelT&& model)
@@ -86,10 +91,10 @@ float lanesAgainstFloat(ModelT&& model)
 
 /**
  * @brief The settled peak of a sine through a filter, in dB against its input.
- * @param f    the filter, set
- * @param hz   the sine's frequency
- * @param amp  its amplitude
- * @return     the gain in dB
+ * @param[in,out] f    the filter, set
+ * @param[in]     hz   the sine's frequency
+ * @param[in]     amp  its amplitude
+ * @return the gain in dB
  */
 float gainDb(VoiceFilter& f, float hz, float amp)
 {
@@ -107,9 +112,9 @@ float gainDb(VoiceFilter& f, float hz, float amp)
 
 /**
  * @brief The frequency of a ringing tone from its rising zero crossings.
- * @param y   the tone
- * @param sr  its sample rate
- * @return    the frequency in Hz, 0 without two crossings
+ * @param[in] y   the tone
+ * @param[in] sr  its sample rate
+ * @return the frequency in Hz, 0 without two crossings
  */
 double freqOf(const std::vector<float>& y, double sr)
 {

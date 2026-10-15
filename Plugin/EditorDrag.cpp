@@ -9,6 +9,7 @@
  * when it lands, a knob for the depth appears where it landed, in the modulator's colour, and
  * goes away at the next click somewhere else. Both are Pigments' idea; both are the difference
  * between a gesture you have to remember and one you can see.
+ * @author Rene Weller
  */
 #include "PluginEditor.h"
 #include "EditorCommon.h"
@@ -106,14 +107,13 @@ float NoctuaryEditor::routeDepth(ModSourceE src, ParamIdE target) const
  * The matrix has no "set this
  * row" call -- it travels as text everywhere in this program, which is what the preset files and
  * the OSC interface use as well, so there is one form of it and not two.
- *
- * @param m       the matrix as the engine holds it now, read route by route
- * @param src     the source of the one route to change or drop
- * @param target  the target of that route
- * @param depth   the new depth for the matching route, or nullptr to keep the depth it has
- * @param drop    true leaves the matching route out of the text altogether
- * @return        the whole matrix as `source>target:depth[:via][:u]` rows joined with ';', in the
- *                form Engine::setModMatrixText parses
+ * @param[in] m       the matrix as the engine holds it now, read route by route
+ * @param[in] src     the source of the one route to change or drop
+ * @param[in] target  the target of that route
+ * @param[in] depth   the new depth for the matching route, or nullptr to keep the depth it has
+ * @param[in] drop    true leaves the matching route out of the text altogether
+ * @return the whole matrix as `source>target:depth[:via][:u]` rows joined with ';', in the form
+ *         Engine::setModMatrixText parses
  */
 static juce::String matrixTextWith(const ModMatrix& m, ModSourceE src, ParamIdE target, const float* depth, bool drop)
 {

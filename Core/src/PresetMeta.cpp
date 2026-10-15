@@ -11,6 +11,7 @@
  * between neighbours on it, and PresetPacks.cpp appends the packs' own metadata behind it so that
  * presetMeta(index) answers for the whole list. Nothing in here is edited by hand: a re-measurement
  * rewrites the file.
+ * @author Rene Weller
  */
 #include "ambient/PresetMeta.h"
 #include "ambient/Presets.h"

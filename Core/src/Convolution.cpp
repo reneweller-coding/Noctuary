@@ -18,6 +18,11 @@
  * advance() spends phase by phase -- the input transform, the push into the delay line, the sum over
  * the partitions, the inverse, the delivery -- through the resumable StepFft, so no step ever pays
  * for a 16384-sample partition at once.
+ * @author Rene Weller
+ *
+ * @par Compile Flags:
+ *   @arg @c AMBIENT_NEON_SHIM - the NEON path on x86 through Tests/neonshim
+ *   @arg @c AMBIENT_NEON_SHIM_NOFMA - the shim without fused multiply-add (the test of the NEON path without FMA)
  */
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
@@ -55,8 +60,8 @@ enum PhaseE { IDLE = 0, FFT_IN, PUSH, SUM, INVERT, DELIVER };
 
 /**
  * @brief @p v rounded up to a multiple of eight: the bin counts, so the vector paths cover every bin.
- * @param v  a bin count
- * @return   the smallest multiple of eight >= v
+ * @param[in] v  a bin count
+ * @return the smallest multiple of eight >= v
  */
 inline int roundUp8(int v) { return (v + 7) & ~7; }
 
@@ -80,34 +85,34 @@ inline int roundUp8(int v) { return (v + 7) & ~7; }
 #if (defined(__ARM_FEATURE_FMA) || defined(_M_ARM64) || defined(AMBIENT_NEON_SHIM)) && !defined(AMBIENT_NEON_SHIM_NOFMA)
 /**
  * @brief a + b c in one fused instruction.
- * @param a  the addend, four lanes
- * @param b  first factor
- * @param c  second factor
+ * @param[in] a  the addend, four lanes
+ * @param[in] b  first factor
+ * @param[in] c  second factor
  * @return   a + b * c, rounded once
  */
 inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vfmaq_f32(a, b, c); }
 /**
  * @brief a - b c in one fused instruction.
- * @param a  the minuend, four lanes
- * @param b  first factor
- * @param c  second factor
+ * @param[in] a  the minuend, four lanes
+ * @param[in] b  first factor
+ * @param[in] c  second factor
  * @return   a - b * c, rounded once
  */
 inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vfmsq_f32(a, b, c); }
 #else
 /**
  * @brief a + b c as a multiply and an add, for a target without FMA.
- * @param a  the addend, four lanes
- * @param b  first factor
- * @param c  second factor
+ * @param[in] a  the addend, four lanes
+ * @param[in] b  first factor
+ * @param[in] c  second factor
  * @return   a + b * c, rounded twice
  */
 inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vmlaq_f32(a, b, c); }
 /**
  * @brief a - b c as a multiply and a subtract, for a target without FMA.
- * @param a  the minuend, four lanes
- * @param b  first factor
- * @param c  second factor
+ * @param[in] a  the minuend, four lanes
+ * @param[in] b  first factor
+ * @param[in] c  second factor
  * @return   a - b * c, rounded twice
  */
 inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vmlsq_f32(a, b, c); }
@@ -117,15 +122,15 @@ inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { ret
 
 /**
  * @brief One channel against one impulse, weighted.
- * @param ar  the accumulator's real parts; += Re(w H X) over the bins
- * @param ai  the accumulator's imaginary parts; += Im(w H X)
- * @param xr  the input block's spectrum, real parts
- * @param xi  the input block's spectrum, imaginary parts
- * @param hr  the partition's spectrum, real parts
- * @param hi  the partition's spectrum, imaginary parts
- * @param w   the impulse's morph weight; at exactly 1 the vector paths skip the multiply
- * @param k0  the first bin
- * @param k1  one past the last bin; k1 - k0 is a multiple of eight
+ * @param[in,out] ar  the accumulator's real parts; += Re(w H X) over the bins
+ * @param[in,out] ai  the accumulator's imaginary parts; += Im(w H X)
+ * @param[in]     xr  the input block's spectrum, real parts
+ * @param[in]     xi  the input block's spectrum, imaginary parts
+ * @param[in]     hr  the partition's spectrum, real parts
+ * @param[in]     hi  the partition's spectrum, imaginary parts
+ * @param[in]     w   the impulse's morph weight; at exactly 1 the vector paths skip the multiply
+ * @param[in]     k0  the first bin
+ * @param[in]     k1  one past the last bin; k1 - k0 is a multiple of eight
  */
 void sumOne(float* ar, float* ai, const float* xr, const float* xi, const float* hr, const float* hi, float w, int k0, int k1)
 {
@@ -160,19 +165,19 @@ void sumOne(float* ar, float* ai, const float* xr, const float* xi, const float*
 
 /**
  * @brief Both channels against one mono impulse: the impulse is loaded once for the two of them.
- * @param a0r  left accumulator, real parts
- * @param a0i  left accumulator, imaginary parts
- * @param a1r  right accumulator, real parts
- * @param a1i  right accumulator, imaginary parts
- * @param x0r  the left input block's spectrum, real parts
- * @param x0i  the left input block's spectrum, imaginary parts
- * @param x1r  the right input block's spectrum, real parts
- * @param x1i  the right input block's spectrum, imaginary parts
- * @param hr   the mono partition's spectrum, real parts
- * @param hi   the mono partition's spectrum, imaginary parts
- * @param w    the impulse's morph weight; at exactly 1 the vector paths skip the multiply
- * @param k0   the first bin
- * @param k1   one past the last bin; k1 - k0 is a multiple of eight
+ * @param[in,out] a0r  left accumulator, real parts
+ * @param[in,out] a0i  left accumulator, imaginary parts
+ * @param[in,out] a1r  right accumulator, real parts
+ * @param[in,out] a1i  right accumulator, imaginary parts
+ * @param[in]     x0r  the left input block's spectrum, real parts
+ * @param[in]     x0i  the left input block's spectrum, imaginary parts
+ * @param[in]     x1r  the right input block's spectrum, real parts
+ * @param[in]     x1i  the right input block's spectrum, imaginary parts
+ * @param[in]     hr   the mono partition's spectrum, real parts
+ * @param[in]     hi   the mono partition's spectrum, imaginary parts
+ * @param[in]     w    the impulse's morph weight; at exactly 1 the vector paths skip the multiply
+ * @param[in]     k0   the first bin
+ * @param[in]     k1   one past the last bin; k1 - k0 is a multiple of eight
  */
 void sumTwo(float* a0r, float* a0i, float* a1r, float* a1i,
             const float* x0r, const float* x0i, const float* x1r, const float* x1i,
@@ -217,18 +222,18 @@ void sumTwo(float* a0r, float* a0i, float* a1r, float* a1i,
 
 /**
  * @brief One channel against the blend of two impulses.
- * @param ar   the accumulator's real parts
- * @param ai   the accumulator's imaginary parts
- * @param xr   the input block's spectrum, real parts
- * @param xi   the input block's spectrum, imaginary parts
- * @param har  impulse A's partition, real parts
- * @param hai  impulse A's partition, imaginary parts
- * @param wa   impulse A's weight, 1 - morph
- * @param hbr  impulse B's partition, real parts
- * @param hbi  impulse B's partition, imaginary parts
- * @param wb   impulse B's weight, the morph
- * @param k0   the first bin
- * @param k1   one past the last bin; k1 - k0 is a multiple of eight
+ * @param[in,out] ar   the accumulator's real parts
+ * @param[in,out] ai   the accumulator's imaginary parts
+ * @param[in]     xr   the input block's spectrum, real parts
+ * @param[in]     xi   the input block's spectrum, imaginary parts
+ * @param[in]     har  impulse A's partition, real parts
+ * @param[in]     hai  impulse A's partition, imaginary parts
+ * @param[in]     wa   impulse A's weight, 1 - morph
+ * @param[in]     hbr  impulse B's partition, real parts
+ * @param[in]     hbi  impulse B's partition, imaginary parts
+ * @param[in]     wb   impulse B's weight, the morph
+ * @param[in]     k0   the first bin
+ * @param[in]     k1   one past the last bin; k1 - k0 is a multiple of eight
  */
 void blendOne(float* ar, float* ai, const float* xr, const float* xi,
               const float* har, const float* hai, float wa, const float* hbr, const float* hbi, float wb, int k0, int k1)
@@ -262,22 +267,22 @@ void blendOne(float* ar, float* ai, const float* xr, const float* xi,
 
 /**
  * @brief Both channels against the blend of two mono impulses.
- * @param a0r  left accumulator, real parts
- * @param a0i  left accumulator, imaginary parts
- * @param a1r  right accumulator, real parts
- * @param a1i  right accumulator, imaginary parts
- * @param x0r  the left input block's spectrum, real parts
- * @param x0i  the left input block's spectrum, imaginary parts
- * @param x1r  the right input block's spectrum, real parts
- * @param x1i  the right input block's spectrum, imaginary parts
- * @param har  impulse A's mono partition, real parts
- * @param hai  impulse A's mono partition, imaginary parts
- * @param wa   impulse A's weight, 1 - morph
- * @param hbr  impulse B's mono partition, real parts
- * @param hbi  impulse B's mono partition, imaginary parts
- * @param wb   impulse B's weight, the morph
- * @param k0   the first bin
- * @param k1   one past the last bin; k1 - k0 is a multiple of eight
+ * @param[in,out] a0r  left accumulator, real parts
+ * @param[in,out] a0i  left accumulator, imaginary parts
+ * @param[in,out] a1r  right accumulator, real parts
+ * @param[in,out] a1i  right accumulator, imaginary parts
+ * @param[in]     x0r  the left input block's spectrum, real parts
+ * @param[in]     x0i  the left input block's spectrum, imaginary parts
+ * @param[in]     x1r  the right input block's spectrum, real parts
+ * @param[in]     x1i  the right input block's spectrum, imaginary parts
+ * @param[in]     har  impulse A's mono partition, real parts
+ * @param[in]     hai  impulse A's mono partition, imaginary parts
+ * @param[in]     wa   impulse A's weight, 1 - morph
+ * @param[in]     hbr  impulse B's mono partition, real parts
+ * @param[in]     hbi  impulse B's mono partition, imaginary parts
+ * @param[in]     wb   impulse B's weight, the morph
+ * @param[in]     k0   the first bin
+ * @param[in]     k1   one past the last bin; k1 - k0 is a multiple of eight
  */
 void blendTwo(float* a0r, float* a0i, float* a1r, float* a1i,
               const float* x0r, const float* x0i, const float* x1r, const float* x1i,
@@ -326,9 +331,8 @@ void blendTwo(float* a0r, float* a0i, float* a1r, float* a1i,
  *
  * The Kaiser window is I0(beta sqrt(1 - z^2)) / I0(beta); the series converges in a few dozen terms
  * for the beta of 7 used here.
- *
- * @param x  the argument, non-negative
- * @return   I0(x), 1 at zero and growing like e^x / sqrt(2 pi x)
+ * @param[in] x  the argument, non-negative
+ * @return I0(x), 1 at zero and growing like e^x / sqrt(2 pi x)
  */
 double besselI0(double x)
 {
@@ -349,12 +353,11 @@ double besselI0(double x)
  * The
  * linear interpolation that stood here dulled the top octave of every 44.1 kHz impulse and folded
  * what lay above a lower rate's Nyquist back down. At most `limit` samples come out.
- *
- * @param x      the impulse's samples at its own rate
- * @param n      how many of them
- * @param ratio  engine rate over the impulse's rate: the output has n * ratio samples
- * @param limit  the most samples to produce (the Room's cap); the rest of the impulse is not computed
- * @return       the impulse at the engine rate; a copy of the first `limit` samples when the rates match
+ * @param[in] x      the impulse's samples at its own rate
+ * @param[in] n      how many of them
+ * @param[in] ratio  engine rate over the impulse's rate: the output has n * ratio samples
+ * @param[in] limit  the most samples to produce (the Room's cap); the rest of the impulse is not computed
+ * @return the impulse at the engine rate; a copy of the first `limit` samples when the rates match
  */
 std::vector<float> resample(const float* x, int n, double ratio, long limit)
 {
@@ -401,10 +404,9 @@ std::vector<float> resample(const float* x, int n, double ratio, long limit)
  * rate, so the room keeps its colour and only gets smaller (Canfield-Dafilou and Abel 2018) -- and
  * then a 50 ms fade. Measured on that space: a straight 13.8-second room that ends 76 dB down and
  * gates nowhere; on the Quest's four seconds, a 4.3-second room.
- *
- * @param ch        the channels, already resampled and cut at the cap, all of one length; windowed in place
- * @param channels  1 or 2, how many of @p ch are in use
- * @param sr        the engine's sample rate, for the 50 ms windows
+ * @param[in,out] ch        the channels, already resampled and cut at the cap, all of one length; windowed in place
+ * @param[in]     channels  1 or 2, how many of @p ch are in use
+ * @param[in]     sr        the engine's sample rate, for the 50 ms windows
  */
 void shrinkToCap(std::vector<float>* ch, int channels, double sr)
 {
@@ -454,10 +456,9 @@ constexpr double OctT60[Oct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85,
 /**
  * @brief The design at any frequency: linear in log frequency between the octaves (the T60 in its logarithm); outside them the ends
  *        are held, with the design's guards: 12 dB an octave below 40 Hz, 6 dB an octave above 14 kHz.
- *
- * @param f    the frequency in Hz (a bin's centre); anything below 1 Hz is taken as 1
- * @param bDb  receives the initial level in dB
- * @param t60  receives the decay time to -60 dB in seconds
+ * @param[in]  f    the frequency in Hz (a bin's centre); anything below 1 Hz is taken as 1
+ * @param[out] bDb  receives the initial level in dB
+ * @param[out] t60  receives the decay time to -60 dB in seconds
  */
 void octaveDesign(double f, double& bDb, double& t60)
 {
@@ -486,10 +487,10 @@ void octaveDesign(double f, double& bDb, double& t60)
 
 /**
  * @brief Copies a run of samples into a ring, wrapping at its end.
- * @param ring  the ring, a power of two long
- * @param at    the index of the first sample written, already masked into the ring
- * @param src   the samples
- * @param m     how many; never more than the ring holds
+ * @param[in,out] ring  the ring, a power of two long
+ * @param[in]     at    the index of the first sample written, already masked into the ring
+ * @param[in]     src   the samples
+ * @param[in]     m     how many; never more than the ring holds
  */
 void ringWrite(std::vector<float>& ring, int at, const float* src, int m)
 {
@@ -501,10 +502,10 @@ void ringWrite(std::vector<float>& ring, int at, const float* src, int m)
 
 /**
  * @brief Read and empty: what the stages add lands on zeros.
- * @param ring  the output ring, a power of two long
- * @param at    the index of the first sample read, already masked into the ring
- * @param dst   receives the samples
- * @param m     how many; never more than the ring holds
+ * @param[in,out] ring  the output ring, a power of two long
+ * @param[in]     at    the index of the first sample read, already masked into the ring
+ * @param[out]    dst   receives the samples
+ * @param[in]     m     how many; never more than the ring holds
  */
 void ringTake(std::vector<float>& ring, int at, float* dst, int m)
 {

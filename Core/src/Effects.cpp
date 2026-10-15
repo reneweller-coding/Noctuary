@@ -11,6 +11,7 @@
  * all-passes and turning matrix, and the MidSide's tilt and mono guard with the measurements behind
  * their thresholds. HaasBand and EarlyRoom are inline in the header and have nothing here.
  * Everything but prepare() runs on the audio thread and allocates nothing.
+ * @author Rene Weller
  */
 #include "ambient/Effects.h"
 #include <cmath>
@@ -21,8 +22,8 @@ namespace ambient {
 namespace {
 /**
  * @brief The smallest power of two that is at least @p n: the ring sizes, so a mask can wrap them.
- * @param n  the number of samples a ring has to hold
- * @return   the first power of two >= n (1 for n <= 1)
+ * @param[in] n  the number of samples a ring has to hold
+ * @return the first power of two >= n (1 for n <= 1)
  */
 int pow2At(int n) { int p = 1; while (p < n) p <<= 1; return p; }
 }

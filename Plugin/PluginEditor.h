@@ -35,6 +35,7 @@
  * (the strip and the envelope editor), EditorDrag.cpp (the drag overlay and the depth popup),
  * EditorMatrix.cpp (the route table) and EditorSpectrum.cpp (the spectrum strip); what they
  * share -- the grid's geometry and the palette -- is EditorCommon.h.
+ * @author Rene Weller
  */
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -83,7 +84,7 @@ public:
      * reads the `AMBIENT_*` environment variables (layout, page, preset, tabs, manual export,
      * screenshot, wavetable, parameter overrides, matrix, route) that exist for photographing
      * the panel, and starts the timer.
-     * @param p  the processor this editor shows
+     * @param[in,out] p  the processor this editor shows
      */
     explicit NoctuaryEditor(NoctuaryProcessor&);
     /** @brief Detaches the look and feel before the members go. */
@@ -94,7 +95,7 @@ public:
      *        (the control under the mouse, its value and what it does), the keyboard strip with
      *        the sounding notes and the brain's root, the status line, the cascade's aura, the
      *        REC time and the Master section's frame. Everything else is a child component.
-     * @param g  the graphics, in window coordinates until the scale is applied
+     * @param[in,out] g  the graphics, in window coordinates until the scale is applied
      */
     void paint(juce::Graphics&) override;
     /**
@@ -106,7 +107,7 @@ public:
     /**
      * @brief The right-click menu of a knob: MIDI learn, clear the CC, and every route that
      *        modulates it, each removable. Reached through the mouse listener every cell adds.
-     * @param e  the press; only a popup-menu press on a parameter cell does anything
+     * @param[in] e  the press; only a popup-menu press on a parameter cell does anything
      */
     void mouseDown(const juce::MouseEvent&) override;
     /**
@@ -128,13 +129,13 @@ private:
     void chooseScalaFile();
     /**
      * @brief Opens a file chooser for a wavetable or a texture clip and loads what was chosen.
-     * @param wavetable  true for a table into the user slot, false for a clip
-     * @param slot       slot < 0: the clip goes into every slot
+     * @param[in] wavetable  true for a table into the user slot, false for a clip
+     * @param[in] slot       slot < 0: the clip goes into every slot
      */
     void chooseSourceFile(bool wavetable, int slot = -1);
     /**
      * @brief Opens a file chooser for an impulse response for the Room.
-     * @param second  true for Impulse B (Room Morph fades to it), false for Impulse A
+     * @param[in] second  true for Impulse B (Room Morph fades to it), false for Impulse A
      */
     void chooseImpulseFile(bool second = false);
     /** @brief the near source's own recording (the near layer's Clip type) */
@@ -148,7 +149,7 @@ private:
     bool updateNearCells();
     /**
      * @brief The index into m_cells of the cell that holds a parameter.
-     * @param id  the parameter
+     * @param[in] id  the parameter
      * @return the cell index, or -1 if the parameter has no cell (the master gain, in the header)
      */
     int  cellForParam(ambient::ParamIdE id) const;
@@ -177,10 +178,10 @@ private:
     void colourCellsByGroup();
     /**
      * @brief Adds a cell that is not a parameter (a button, a chooser, a label) to a section.
-     * @param section  the section's name
-     * @param comp     the component, taken over by the cell
-     * @param label    the caption under it
-     * @param units    its width in cells
+     * @param[in] section  the section's name
+     * @param[in] comp     the component, taken over by the cell
+     * @param[in] label    the caption under it
+     * @param[in] units    its width in cells
      * @return the new cell's index into m_cells, or -1 if there is no such section
      */
     int  addExtraCell(const juce::String& section, std::unique_ptr<juce::Component> comp, const juce::String& label, int units);
@@ -188,17 +189,17 @@ private:
      *  @{ */
     /**
      * @brief A registered control under the mouse: its parameter goes into the help line.
-     * @param e  the event; its component is looked up in m_helpParamOf
+     * @param[in] e  the event; its component is looked up in m_helpParamOf
      */
     void mouseEnter(const juce::MouseEvent&) override;
     /**
      * @brief The mouse left the control the help line was showing: back to the general hint.
-     * @param e  the event; its component is looked up in m_helpParamOf
+     * @param[in] e  the event; its component is looked up in m_helpParamOf
      */
     void mouseExit(const juce::MouseEvent&) override;
     /**
      * @brief F1 opens and closes the help, Esc closes it, Ctrl+Z undoes, Ctrl+Y redoes.
-     * @param k  the key
+     * @param[in] k  the key
      * @return true if the key was one of these
      */
     bool keyPressed(const juce::KeyPress&) override;
@@ -207,8 +208,8 @@ private:
 public:
     /**
      * @brief the modulation strip registers its own
-     * @param c   the control; it also gets this editor as a mouse listener
-     * @param id  the parameter behind it
+     * @param[in,out] c   the control; it also gets this editor as a mouse listener
+     * @param[in]     id  the parameter behind it
      */
     void registerHelp(juce::Component*, ambient::ParamIdE);
     /** @} */
@@ -228,18 +229,19 @@ private:
     bool     m_showingB = false;   ///< which of the two the panel shows
     /**
      * @brief The parameters as they stand now.
-     * @param what  the name the snapshot carries
+     * @param[in] what  the name the snapshot carries
      * @return the snapshot
      */
     Snapshot takeSnapshot(const juce::String& what) const;
     /**
      * @brief Writes a snapshot back through the host, parameter by parameter.
-     * @param s  the snapshot; ignored if it is not NumParams long
+     * @param[in] s  the snapshot; ignored if it is not NumParams long
      */
     void     restore(const Snapshot&);
     /**
      * @brief call before changing many parameters at once
-     * @param what  what is about to change ("preset", "randomise Cloud", a knob's name)
+     * @param[in] what  what is about to change ("preset", "randomise Cloud", a knob's name)
+     * @pre called before changing
      */
     void     pushUndo(const juce::String& what);
     /** @brief Back one snapshot, the current state onto the redo stack. */
@@ -267,7 +269,7 @@ private:
         std::map<juce::Component*, double> m_lastWheel;   ///< when each control was last wheeled, ms
         /**
          * @brief A press on a registered control takes a snapshot before the value moves.
-         * @param e  the press; its component is looked up in names
+         * @param[in] e  the press; its component is looked up in names
          */
         void mouseDown(const juce::MouseEvent& e) override
         {
@@ -276,7 +278,7 @@ private:
         }
         /**
          * @brief A wheel step takes a snapshot only if the last one on this control is a second old.
-         * @param e  the wheel event; its component is looked up in names
+         * @param[in] e  the wheel event; its component is looked up in names
          */
         void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails&) override
         {
@@ -302,8 +304,9 @@ private:
         /** @brief Catches no clicks and stays on top: it is only ever drawn on. */
         DragOverlay() { setInterceptsMouseClicks(false, false); setAlwaysOnTop(true); }
         /**
-         * @brief The ring and name on the target knob, the curved lead from the card, the card under the cursor (EditorDrag.cpp).
-         * @param g  the graphics
+         * @brief The ring and name on the target knob, the curved lead from the card, the card under the cursor
+         *        (EditorDrag.cpp).
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         bool m_active = false;   ///< a drag is in flight; nothing is drawn otherwise
@@ -326,17 +329,17 @@ private:
     struct DepthPopup : juce::Component {
         /**
          * @brief Builds the slider at the route's current depth and registers as a global mouse listener.
-         * @param o  the editor, which rewrites the route
-         * @param s  the route's source
-         * @param t  the route's target
-         * @param c  the source's colour
+         * @param[in,out] o  the editor, which rewrites the route
+         * @param[in]     s  the route's source
+         * @param[in]     t  the route's target
+         * @param[in]     c  the source's colour
          */
         DepthPopup(NoctuaryEditor& o, ambient::ModSourceE s, ambient::ParamIdE t, juce::Colour c);
         /** @brief Removes the global mouse listener again. */
         ~DepthPopup() override;
         /**
          * @brief The card: source -> target in the source's colour over the slider.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief The slider across, the remove button at the right. */
@@ -348,7 +351,7 @@ private:
          * A press inside keeps
          * it; a press anywhere else puts it away -- posted, since a component may not be deleted
          * from inside its own mouse callback.
-         * @param e  the press, from anywhere on the desktop
+         * @param[in] e  the press, from anywhere on the desktop
          */
         void mouseDown(const juce::MouseEvent& e) override
         {
@@ -369,43 +372,43 @@ public:
     /**
      * @brief Draws (or moves) the drag in flight: the lead from the card to the cursor, and the
      *        ring on the knob under it (EditorDrag.cpp).
-     * @param screenFrom  where the card is, in screen coordinates
-     * @param screenTo    where the cursor is, in screen coordinates
-     * @param name        the modulator's label on the card
-     * @param c           the modulator's colour
+     * @param[in] screenFrom  where the card is, in screen coordinates
+     * @param[in] screenTo    where the cursor is, in screen coordinates
+     * @param[in] name        the modulator's label on the card
+     * @param[in] c           the modulator's colour
      */
     void showModDrag(juce::Point<int> screenFrom, juce::Point<int> screenTo, const juce::String& name, juce::Colour);
     /** @brief The drag ended: the overlay goes blank. */
     void hideModDrag();
     /**
      * @brief Shows the depth popup for a route beside a screen point, inside the panel.
-     * @param src       the route's source
-     * @param target    the route's target
-     * @param c         the source's colour
-     * @param screenAt  where the drop happened, in screen coordinates
+     * @param[in] src       the route's source
+     * @param[in] target    the route's target
+     * @param[in] c         the source's colour
+     * @param[in] screenAt  where the drop happened, in screen coordinates
      */
     void showDepthPopup(ambient::ModSourceE, ambient::ParamIdE, juce::Colour, juce::Point<int> screenAt);
     /** @brief Deletes the depth popup, if one is up. */
     void hideDepthPopup();
     /**
      * @brief Rewrites one route's depth (the matrix travels as text, as everywhere else here).
-     * @param src     the route's source
-     * @param target  the route's target
-     * @param depth   the new depth, -1 .. 1
+     * @param[in] src     the route's source
+     * @param[in] target  the route's target
+     * @param[in] depth   the new depth, -1 .. 1
      * @return true if the engine accepted the rewritten matrix
      */
     bool setRouteDepth(ambient::ModSourceE, ambient::ParamIdE, float depth);
     /**
      * @brief Drops one route from the matrix, the rest written back as they stand.
-     * @param src     the route's source
-     * @param target  the route's target
+     * @param[in] src     the route's source
+     * @param[in] target  the route's target
      * @return true if the engine accepted the rewritten matrix
      */
     bool removeRoute(ambient::ModSourceE, ambient::ParamIdE);
     /**
      * @brief The depth of a route as the matrix has it.
-     * @param src     the route's source
-     * @param target  the route's target
+     * @param[in] src     the route's source
+     * @param[in] target  the route's target
      * @return the depth, or 0 if there is no such route
      */
     float routeDepth(ambient::ModSourceE, ambient::ParamIdE) const;
@@ -444,15 +447,15 @@ private:
     std::map<juce::String, juce::Rectangle<int>> m_diceOf;
     /**
      * @brief Draws every parameter of a section again (the die), after a snapshot for undo.
-     * @param name    the section
-     * @param subtle  true (shift held) keeps every value near where it already is
+     * @param[in] name    the section
+     * @param[in] subtle  true (shift held) keeps every value near where it already is
      */
     void     randomiseSection(const juce::String& name, bool subtle);
     /** @brief Lays the body out again and resizes the window to the new design shape. */
     void     rebuildLayout();
     /**
      * @brief Switches the layout mode, stores it in the processor and rebuilds.
-     * @param mode  0 normal, 1 compact, 2 expanded
+     * @param[in] mode  0 normal, 1 compact, 2 expanded
      */
     void     applyLayoutMode(int mode);
     /**
@@ -463,13 +466,13 @@ private:
     struct HelpView : juce::Component, juce::ListBoxModel {
         /**
          * @brief Builds the list and the text, and generates the last topic (every parameter with its help).
-         * @param p  the processor the help reads
-         * @param o  the editor whose sections it photographs
+         * @param[in,out] p  the processor the help reads
+         * @param[in,out] o  the editor whose sections it photographs
          */
         HelpView(NoctuaryProcessor&, NoctuaryEditor&);
         /**
          * @brief The frame, the topic's pictures in their column, the title and the hint line.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief The topics on the left, the text at a readable width, the pictures and the live display in the column right of it. */
@@ -481,22 +484,22 @@ private:
         int  getNumRows() override;
         /**
          * @brief One topic title, highlighted when selected.
-         * @param row       the topic
-         * @param g         the graphics
-         * @param w         row width
-         * @param h         row height
-         * @param selected  whether the row is the chosen one
+         * @param[in]     row       the topic
+         * @param[in,out] g         the graphics
+         * @param[in]     w         row width
+         * @param[in]     h         row height
+         * @param[in]     selected  whether the row is the chosen one
          */
         void paintListBoxItem(int row, juce::Graphics&, int w, int h, bool selected) override;
         /**
          * @brief Puts the topic's text into the editor and shows its pictures.
-         * @param row  the topic chosen, -1 for none
+         * @param[in] row  the topic chosen, -1 for none
          */
         void selectedRowsChanged(int row) override;
         /**
          * @brief Takes the topic's pictures: its sections, its live display, and -- for the manual -- every
          *        tab that belongs to the chapter, from the tab rows themselves.
-         * @param row  the topic
+         * @param[in] row  the topic
          */
         void showTopic(int row);
         NoctuaryProcessor& m_proc;   ///< the processor the help reads
@@ -528,12 +531,12 @@ private:
         struct FlowDiagram : juce::Component {
             /**
              * @brief Catches no clicks; the diagram reads the processor for nothing but its existence.
-             * @param p  the processor
+             * @param[in,out] p  the processor
              */
             explicit FlowDiagram(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); }
             /**
              * @brief The units as boxes in their group colours, the buses as arrows, on a fixed canvas scaled to fit.
-             * @param g  the graphics
+             * @param[in,out] g  the graphics
              */
             void paint(juce::Graphics&) override;
             /**
@@ -558,20 +561,20 @@ private:
      * @{ */
     /**
      * @brief A picture of one section, its tab opened for the picture and put back.
-     * @param name  the section
+     * @param[in] name  the section
      * @return the snapshot, or an invalid image if there is no such section
      */
     juce::Image snapshotSection(const juce::String& name);
     /**
      * @brief A picture of one page of a tab row as it opens: the bar, the sections, the display.
-     * @param rowIndex  the tab row
-     * @param page      the page on it
+     * @param[in] rowIndex  the tab row
+     * @param[in] page      the page on it
      * @return the snapshot, or an invalid image if there is no such page
      */
     juce::Image snapshotTab(int rowIndex, int page);
     /**
      * @brief A picture of a whole page component, made visible for the picture and put back.
-     * @param page  the page
+     * @param[in,out] page  the page
      * @return the snapshot, or an invalid image if the page has no size
      */
     juce::Image snapshotPage(juce::Component* page);
@@ -607,27 +610,27 @@ private:
     juce::Image snapshotBrowseMapZoomed();
     /**
      * @brief One tab of the modulation strip.
-     * @param tab     0 LFO, 1 envelopes, 2 matrix
-     * @param detail  true for the left third at twice the size, where it can be read on a page
+     * @param[in] tab     0 LFO, 1 envelopes, 2 matrix
+     * @param[in] detail  true for the left third at twice the size, where it can be read on a page
      * @return the snapshot, or an invalid image without a strip
      */
     juce::Image snapshotStripTab(int tab, bool detail = false);
     /**
      * @brief the envelope tab's SOURCES page, from a click on a source's picture
-     * @param slot  which source asked (unused: the page shows all four)
+     * @param[in] slot  which source asked (unused: the page shows all four)
      */
     void openSourceEnvelope(int slot);
     /**
      * @brief The sections on one page of a tab row.
-     * @param rowIndex  the tab row
-     * @param page      the page on it
+     * @param[in] rowIndex  the tab row
+     * @param[in] page      the page on it
      * @return the section names, empty for an unknown row or page
      */
     juce::StringArray tabSectionNames(int rowIndex, int page) const;
     /**
      * @brief What a tab is called on its own bar.
-     * @param rowIndex  the tab row
-     * @param page      the page on it
+     * @param[in] rowIndex  the tab row
+     * @param[in] page      the page on it
      * @return the label, empty for an unknown row or page
      */
     juce::String tabName(int rowIndex, int page) const;
@@ -637,8 +640,8 @@ private:
      *
      * It has to happen here, in a running editor, because the pictures ARE the panel: snapshots
      * of the real sections with their real values, not drawings kept somewhere in step with it.
-     * @param dir     the folder the pictures, manual.json and coverage.txt go into
-     * @param onDone  called when the last step has run
+     * @param[in] dir     the folder the pictures, manual.json and coverage.txt go into
+     * @param[in] onDone  called when the last step has run
      */
     void exportManual(const juce::File& dir, std::function<void()> onDone);
     struct ManualJob;
@@ -739,26 +742,26 @@ private:
     std::vector<TabRow> m_tabRows;   ///< the rows that page, filled in the constructor
     /**
      * @brief The tab row of a group's row, if it has one.
-     * @param group  index into m_groups
-     * @param row    the row in it
+     * @param[in] group  index into m_groups
+     * @param[in] row    the row in it
      * @return the tab row, or null if that row does not page
      */
     TabRow* tabRowFor(int group, int row);
     /**
      * @brief Shows or hides a section's cells (those its state shows) and records the flag.
-     * @param s  the section
-     * @param v  visible or not
+     * @param[in,out] s  the section
+     * @param[in]     v  visible or not
      */
     void    setSectionVisible(Section&, bool);
     /**
      * @brief A click on the content: if it hits a tab of a paging row, that page opens.
-     * @param contentPos  the click, in content coordinates
+     * @param[in] contentPos  the click, in content coordinates
      */
     void    clickTabs(juce::Point<int> contentPos);
 
     /**
      * @brief The section of a name.
-     * @param name  the section's name
+     * @param[in] name  the section's name
      * @return the section, or null if there is none
      */
     Section* findSection(const juce::String& name);
@@ -768,41 +771,41 @@ private:
      * @{ */
     /**
      * @brief Whether a cell is on the page as the section stands.
-     * @param s  the section
-     * @param c  one of its cells
+     * @param[in] s  the section
+     * @param[in] c  one of its cells
      * @return false for a cell the slot's type does not use, and for all but the switch's cells of a closed section
      */
     bool cellShown(const Section&, const Cell&) const;
     /**
      * @brief how many of its cells are on the page as it stands
-     * @param s  the section
+     * @param[in] s  the section
      * @return the count of cells for which cellShown is true
      */
     int  shownCells(const Section&) const;
     /**
      * @brief Whether the section's switch says closed (never while m_openAll is set).
-     * @param s  the section
+     * @param[in] s  the section
      * @return true if the section has a closer and its switch is off
      */
     bool sectionCollapsed(const Section&) const;
     /** @} */
     /**
      * @brief The width the section takes at its maxUnits: its widest row of shown cells plus the pads.
-     * @param s  the section
+     * @param[in] s  the section
      * @return pixels
      */
     int      sectionWidth(const Section&) const;
     /**
      * @brief The height the section takes at its maxUnits: its rows of shown cells, the title and a pad.
-     * @param s  the section
+     * @param[in] s  the section
      * @return pixels
      */
     int      sectionHeight(const Section&) const;
     /**
      * @brief Places the section and its cells, hiding the cells its state does not show.
-     * @param s  the section
-     * @param x  left edge, in content coordinates
-     * @param y  top edge, in content coordinates
+     * @param[in,out] s  the section
+     * @param[in]     x  left edge, in content coordinates
+     * @param[in]     y  top edge, in content coordinates
      */
     void     layoutSection(Section&, int x, int y);
 
@@ -855,12 +858,12 @@ private:
     struct ScopeView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and repaints at 20 Hz.
-         * @param p  the processor whose engine it reads
+         * @param[in,out] p  the processor whose engine it reads
          */
         explicit ScopeView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(20); }
         /**
          * @brief The spectrum as thin bars behind one cycle of the wave the partials make, and the frequency.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen; the smoothing happens in paint. */
@@ -878,12 +881,12 @@ private:
         std::function<void(const juce::MouseEvent&)> m_onMouse;   ///< the editor takes the click: dice and tabs
         /**
          * @brief Hands the painting to the editor.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics& g) override { if (m_onPaint) m_onPaint(g); }
         /**
          * @brief Hands a press to the editor.
-         * @param e  the press
+         * @param[in] e  the press
          */
         void mouseDown(const juce::MouseEvent& e) override { if (m_onMouse) m_onMouse(e); }
     };
@@ -891,7 +894,7 @@ private:
     juce::Viewport m_viewport;   ///< holds m_content; scroll bars hidden, the layout never needs them
     /**
      * @brief Paints the content: the group boxes, the tab bars, every visible section's frame, title, die and notes.
-     * @param g  the content's graphics
+     * @param[in,out] g  the content's graphics
      */
     void paintContent(juce::Graphics&);
     std::unique_ptr<frame::IconButton> m_saveButton,     ///< a disk: save a preset file
@@ -914,18 +917,21 @@ private:
     std::unique_ptr<frame::IconButton> m_helpIcon;       ///< the help (F1)
     std::unique_ptr<frame::IconButton> m_settingsIcon;   ///< the settings menu
     void showSettings();          ///< the frame's settings menu
-    /** @brief The headset's controls are shown: one sends its hands (Auto), or the settings say always (On). */
+    /**
+     * @brief The headset's controls are shown: one sends its hands (Auto), or the settings say always (On).
+     * @return true while they are shown
+     */
     bool headsetShown() const;
     /** @brief Perform page: the eight macros as large knobs plus the morph, instead of the editor. */
     struct PerformView : juce::Component {
         /**
          * @brief Builds the eight knobs with their labels, the morph slider and switch, and the set recorder's buttons.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit PerformView(NoctuaryProcessor& p);
         /**
          * @brief The frame, the title line, and the morph slots' names (refreshed every paint).
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief The set controls on the title line, the knobs in a 4 x 2 grid, the morph along the bottom. */
@@ -956,7 +962,7 @@ private:
     bool m_performing = false;   ///< the Perform page is the one showing
     /**
      * @brief Shows the Perform page, or the panel again.
-     * @param on  true for the Perform page
+     * @param[in] on  true for the Perform page
      */
     void setPerforming(bool on);
 
@@ -968,12 +974,12 @@ private:
         /**
          * @brief Builds the search, the family and sort boxes, the tag buttons, the list, the map with its
          *        macros and route strip, the four columns and the mode buttons; starts in the column view.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit BrowseView(NoctuaryProcessor& p);
         /**
          * @brief The background and the column titles.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Places the controls of the view that is on (columns or map) and hides the other's. */
@@ -989,17 +995,17 @@ private:
         int  getNumRows() override { return static_cast<int>(m_filtered.size()); }
         /**
          * @brief One preset: its name in its family's colour, a star if favourite, its measurements as small bars.
-         * @param row       the row of the filtered list
-         * @param g         the graphics
-         * @param w         row width
-         * @param h         row height
-         * @param selected  whether the row is the chosen one
+         * @param[in]     row       the row of the filtered list
+         * @param[in,out] g         the graphics
+         * @param[in]     w         row width
+         * @param[in]     h         row height
+         * @param[in]     selected  whether the row is the chosen one
          */
         void paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool selected) override;
         /**
          * @brief Selects the preset; a click loads it (morphing into it if that is on) and puts the map cursor on it.
-         * @param row  the row of the filtered list
-         * @param e    the click
+         * @param[in] row  the row of the filtered list
+         * @param[in] e    the click
          */
         void listBoxItemClicked(int row, const juce::MouseEvent&) override;
         /** @brief Rebuilds filtered from the search, the columns or the tags and macros, the favourites and the sort; bumps filterGen. */
@@ -1014,70 +1020,70 @@ private:
         struct MapView : juce::Component {
             /**
              * @brief Remembers the browser it belongs to.
-             * @param o  the browser
+             * @param[in,out] o  the browser
              */
             explicit MapView(BrowseView& o) : m_owner(o) {}
             /**
              * @brief The cached cloud, then what moves: favourites, the route, the cursor, the crossing, the names.
-             * @param g  the graphics
+             * @param[in,out] g  the graphics
              */
             void paint(juce::Graphics&) override;
             /**
              * @brief On a preset: selects it. Otherwise: starts a blend drag if Map blend is on, a pan if not.
-             * @param e  the press
+             * @param[in] e  the press
              */
             void mouseDown(const juce::MouseEvent&) override;
             /**
              * @brief Pans the window onto the plane, or moves the blend cursor through the host.
-             * @param e  the drag
+             * @param[in] e  the drag
              */
             void mouseDrag(const juce::MouseEvent&) override;
             /**
              * @brief Tracks the preset under the mouse for the hover ring and name.
-             * @param e  the move
+             * @param[in] e  the move
              */
             void mouseMove(const juce::MouseEvent&) override;
             /** @brief Ends a drag or a pan. */
             void mouseUp(const juce::MouseEvent&) override;
             /**
              * @brief Zooms about the mouse, 1 .. 40 times.
-             * @param e  the event, whose position is the pivot
-             * @param w  the wheel step
+             * @param[in] e  the event, whose position is the pivot
+             * @param[in] w  the wheel step
              */
             void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
             /** @brief Back to the whole plane. */
             void mouseDoubleClick(const juce::MouseEvent&) override;
             /**
              * @brief The preset whose point is nearest a screen position.
-             * @param p        the position, in the map's coordinates
-             * @param maxDist  how far away a point may be, in pixels
+             * @param[in] p        the position, in the map's coordinates
+             * @param[in] maxDist  how far away a point may be, in pixels
              * @return the preset index, or -1 if none is within reach
              */
             int  nearestPreset(juce::Point<float> p, float maxDist) const;
             /**
              * @brief Where a point of the plane lands on the screen at the current zoom and centre.
-             * @param x  0 .. 1 across the plane
-             * @param y  0 .. 1 up the plane
+             * @param[in] x  0 .. 1 across the plane
+             * @param[in] y  0 .. 1 up the plane
              * @return the position in the map's coordinates
              */
             juce::Point<float> toScreen(float x, float y) const;
             /**
              * @brief The plane position under a screen point.
-             * @param s  the position in the map's coordinates
+             * @param[in] s  the position in the map's coordinates
              * @return clamped to the plane
              */
             juce::Point<float> toMap(juce::Point<float> s) const;
             /**
              * @brief The plane position under a screen point.
-             * @param s  the position in the map's coordinates
+             * @param[in] s  the position in the map's coordinates
              * @return not clamped: for the zoom's pivot
              */
             juce::Point<float> toMapRaw(juce::Point<float> s) const;
             /**
              * @brief centre the view on a point at a zoom
-             * @param x  0 .. 1 across the plane
-             * @param y  0 .. 1 up the plane
-             * @param z  the zoom, clamped to 1 .. 40; at 1 the centre is the plane's
+             * @param[in] x  0 .. 1 across the plane
+             * @param[in] y  0 .. 1 up the plane
+             * @param[in] z  the zoom, clamped to 1 .. 40; at 1 the centre is the plane's
              */
             void zoomTo(float x, float y, float z);
             BrowseView& m_owner;   ///< the browser
@@ -1134,22 +1140,22 @@ private:
             int  getNumRows() override { return m_items.size(); }
             /**
              * @brief One row: its name, lit when chosen, with its preset count at the right.
-             * @param row       the row
-             * @param g         the graphics
-             * @param w         row width
-             * @param h         row height
-             * @param selected  unused: chosen is what lights a row
+             * @param[in]     row       the row
+             * @param[in,out] g         the graphics
+             * @param[in]     w         row width
+             * @param[in]     h         row height
+             * @param[in]     selected  unused: chosen is what lights a row
              */
             void paintListBoxItem(int row, juce::Graphics& g, int w, int h, bool selected) override;
             /**
              * @brief "All" clears; a row toggles alone or, with shift, joins the chosen set.
-             * @param row  the row
-             * @param e    the click, for its modifiers
+             * @param[in] row  the row
+             * @param[in] e    the click, for its modifiers
              */
             void listBoxItemClicked(int row, const juce::MouseEvent&) override;
             /**
              * @brief Whether a preset passes this column's choice.
-             * @param preset  the preset index
+             * @param[in] preset  the preset index
              * @return true if nothing is chosen or the preset is in a chosen family or carries a chosen tag
              */
             bool passes(int preset) const;
@@ -1157,7 +1163,7 @@ private:
         Column m_columns[4];   ///< Family, Character, Motion, Features
         /**
          * @brief Switches the view and shows the controls that belong to it.
-         * @param m  0 classic columns, 1 map
+         * @param[in] m  0 classic columns, 1 map
          */
         void setMode(int m);
         int m_mode = 0;   ///< the view that is on: 0 columns, 1 map
@@ -1188,7 +1194,7 @@ private:
         struct InfoPanel : juce::Component {
             /**
              * @brief The title, then the body's headings in the accent colour with their prose wrapped under them.
-             * @param g  the graphics
+             * @param[in,out] g  the graphics
              */
             void paint(juce::Graphics&) override;
             juce::String m_title,   ///< the preset's name
@@ -1284,13 +1290,13 @@ private:
         /**
          * @brief Builds the LFO and envelope rows with their knobs, the cards of every source, the tab and
          *        page buttons and the route table; opens on the LFO tab at 15 Hz.
-         * @param p  the processor
-         * @param o  the editor, for undo, help and the drop target
+         * @param[in,out] p  the processor
+         * @param[in,out] o  the editor, for undo, help and the drop target
          */
         ModView(NoctuaryProcessor& p, NoctuaryEditor& o);
         /**
          * @brief The lane of cards, then the open tab's panels, then the drag line while a card is in flight.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief The lane along the top, the tab bar, and the open tab's rows and knobs (EditorModStrip.cpp). */
@@ -1298,23 +1304,24 @@ private:
         /** @brief Repaints while on screen, 15 Hz. */
         void timerCallback() override;
         /**
-         * @brief A card: starts a drag or opens its tab. A tab or page button. An envelope point: starts dragging it; right-click: the shape menu.
-         * @param e  the press
+         * @brief A card: starts a drag or opens its tab. A tab or page button. An envelope point: starts dragging it;
+         *        right-click: the shape menu.
+         * @param[in] e  the press
          */
         void mouseDown(const juce::MouseEvent&) override;
         /**
          * @brief Moves the envelope point being dragged, or the card in flight (and the editor's overlay).
-         * @param e  the drag
+         * @param[in] e  the drag
          */
         void mouseDrag(const juce::MouseEvent&) override;
         /**
          * @brief Drops the card: on a knob, a route is added and the depth popup shown; the overlay is hidden.
-         * @param e  the release, whose screen position is the drop target
+         * @param[in] e  the release, whose screen position is the drop target
          */
         void mouseUp(const juce::MouseEvent&) override;
         /**
          * @brief Tracks the card and the envelope point under the mouse for the highlight.
-         * @param e  the move
+         * @param[in] e  the move
          */
         void mouseMove(const juce::MouseEvent&) override;
 
@@ -1354,60 +1361,60 @@ private:
 
         /**
          * @brief Opens a tab: shows its rows and buttons, pulls the matrix for the table.
-         * @param t  0 LFO, 1 envelopes, 2 matrix
+         * @param[in] t  0 LFO, 1 envelopes, 2 matrix
          */
         void setTab(int t);
         /**
          * @brief Turns the envelope tab's page.
-         * @param page  0 the six modulation envelopes, 1 the four sources' own
+         * @param[in] page  0 the six modulation envelopes, 1 the four sources' own
          */
         void setEnvPage(int page);
         /**
          * @brief on the page that is showing
-         * @param env  the row, 0 .. EnvRows - 1
+         * @param[in] env  the row, 0 .. EnvRows - 1
          * @return true if the row belongs to the page that is open
          */
         bool envVisible(int env) const;
         /**
          * @brief a row's shape, of the six or a source's
-         * @param env  the row, 0 .. EnvRows - 1
+         * @param[in] env  the row, 0 .. EnvRows - 1
          * @return the engine's envelope shape
          */
         const ambient::ModEnv& shapeOf(int env) const;
         /**
          * @brief a row's parameter: "env3_time", "src2_env_time"
-         * @param env    the row, 0 .. EnvRows - 1
-         * @param field  "mode", "time", "depth" or "sync"
+         * @param[in] env    the row, 0 .. EnvRows - 1
+         * @param[in] field  "mode", "time", "depth" or "sync"
          * @return the parameter key
          */
         juce::String envKey(int env, const char* field) const;
         /**
          * @brief The lane's background and every card.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paintLane(juce::Graphics&);
         /**
          * @brief One card: its frame, its live curve and value dot, its label.
-         * @param g    the graphics
-         * @param c    the card
-         * @param hot  under the mouse or in flight
+         * @param[in,out] g    the graphics
+         * @param[in]     c    the card
+         * @param[in]     hot  under the mouse or in flight
          */
         void paintCard(juce::Graphics&, const Card&, bool hot);
         /**
          * @brief One LFO row's curve: the shape over a cycle, the live phase, the period.
-         * @param g  the graphics
-         * @param i  the LFO, 0 .. NumLfos - 1
+         * @param[in,out] g  the graphics
+         * @param[in]     i  the LFO, 0 .. NumLfos - 1
          */
         void paintLfo(juce::Graphics&, int i);
         /**
          * @brief One envelope row's curve: the breakpoints, the sustain, the loop, the live position, the length.
-         * @param g  the graphics
-         * @param i  the row, 0 .. EnvRows - 1
+         * @param[in,out] g  the graphics
+         * @param[in]     i  the row, 0 .. EnvRows - 1
          */
         void paintEnv(juce::Graphics&, int i);
         /**
          * @brief On a point: removes it; on the curve: puts one there (sixteen at most).
-         * @param e  the click
+         * @param[in] e  the click
          */
         void mouseDoubleClick(const juce::MouseEvent&) override;
         /**
@@ -1429,61 +1436,61 @@ private:
         };
         /**
          * @brief The geometry of one envelope row.
-         * @param env  the row, 0 .. EnvRows - 1
+         * @param[in] env  the row, 0 .. EnvRows - 1
          * @return where its curve is drawn and how it is scaled
          */
         EnvGeom envGeom(int env) const;
         /**
          * @brief Which envelope row, and which breakpoint, a position is on.
-         * @param pos       the position in the strip's coordinates
-         * @param pointOut  if given, receives the breakpoint index under the mouse, or -1
+         * @param[in]     pos       the position in the strip's coordinates
+         * @param[in,out] pointOut  if given, receives the breakpoint index under the mouse, or -1
          * @return -1 if not on a curve
          */
         int  envAt(juce::Point<int> pos, int* pointOut = nullptr) const;
         /**
          * @brief Where a breakpoint of an envelope is drawn.
-         * @param env    the row
-         * @param time   the point's time, seconds
-         * @param value  the point's value, -1 .. 1 (0 .. 1 for a source's own)
+         * @param[in] env    the row
+         * @param[in] time   the point's time, seconds
+         * @param[in] value  the point's value, -1 .. 1 (0 .. 1 for a source's own)
          * @return the position in the strip's coordinates
          */
         juce::Point<float> envToXY(int env, float time, float value) const;
         /**
          * @brief The time and value a position stands for, the inverse of envToXY.
-         * @param env    the row
-         * @param pos    the position in the strip's coordinates
-         * @param time   receives the time, seconds
-         * @param value  receives the value
+         * @param[in]  env    the row
+         * @param[in]  pos    the position in the strip's coordinates
+         * @param[out] time   receives the time, seconds
+         * @param[out] value  receives the value
          */
         void envFromXY(int env, juce::Point<int> pos, float& time, float& value) const;
         /**
          * @brief A copy of a row's shape to edit.
-         * @param env  the row
+         * @param[in] env  the row
          * @return the shape
          */
         ambient::ModEnv envCopy(int env) const;
         /**
          * @brief Writes a shape into the engine, with a snapshot for undo.
-         * @param env   the row
-         * @param e     the shape
-         * @param what  the undo name, empty for a step in a drag that was already recorded
+         * @param[in] env   the row
+         * @param[in] e     the shape
+         * @param[in] what  the undo name, empty for a step in a drag that was already recorded
          */
         void envCommit(int env, const ambient::ModEnv&, const juce::String& what);
         /**
          * @brief The right-click menu of an envelope: sustain and loop points, a segment's curvature, starting shapes.
-         * @param env    the row
-         * @param point  the breakpoint clicked, or -1
+         * @param[in] env    the row
+         * @param[in] point  the breakpoint clicked, or -1
          */
         void envShapeMenu(int env, int point);
         /**
          * @brief An LFO's settings as the engine reads them, for drawing its shape.
-         * @param i  the LFO, 0 .. NumLfos - 1
+         * @param[in] i  the LFO, 0 .. NumLfos - 1
          * @return the spec
          */
         ambient::LfoSpec specOf(int i) const;
         /**
          * @brief Where a drag ended: the parameter under the mouse, or none.
-         * @param screenPos  the position in screen coordinates
+         * @param[in] screenPos  the position in screen coordinates
          * @return the ParamId as an int, or -1
          */
         int paramUnder(juce::Point<int> screenPos) const;
@@ -1508,8 +1515,8 @@ private:
         void pullMatrix();
         /**
          * @brief Adds a route from a dragged source to a parameter, with a small default depth.
-         * @param src     the source
-         * @param target  the parameter
+         * @param[in] src     the source
+         * @param[in] target  the parameter
          * @return true if the engine accepted the matrix (false when it is full or the text was refused)
          */
         bool addRoute(ambient::ModSourceE src, ambient::ParamIdE target);
@@ -1533,7 +1540,10 @@ private:
     /** @brief The night's veil: dark and warm over the panel, under the overlays; the mouse goes through it. */
     struct Veil : juce::Component {
         float m_alpha = 0.0f;   ///< how dark
-        /** @brief Dark and warm: little blue for eyes used to the dark. @param g where */
+        /**
+         * @brief Dark and warm: little blue for eyes used to the dark.
+         * @param[in,out] g  where
+         */
         void paint(juce::Graphics& g) override { g.fillAll(juce::Colour(0xff0c0703).withAlpha(m_alpha)); }
     };
     Veil m_veil;                                       ///< the night's veil
@@ -1546,21 +1556,49 @@ private:
     /** @brief Whether this is an automated run (AMBIENT_SHOT, AMBIENT_MANUAL, AMBIENT_MUTE): no tour, no window state. @return true then */
     static bool automated();
     void openPalette();                               ///< the command palette (Ctrl+K)
-    std::vector<frame::CommandPalette::Command> paletteCommands();   ///< what it can do: actions, pages, knobs, presets
-    /** @brief Shows a parameter's control (the main page, its tab, scrolled to it) and lights it. @param id the parameter @return false without a cell */
+    /**
+     * what it can do: actions, pages, knobs, presets
+     * @return the palette's commands
+     */
+    std::vector<frame::CommandPalette::Command> paletteCommands();
+    /**
+     * @brief Shows a parameter's control (the main page, its tab, scrolled to it) and lights it.
+     * @param[in] id  the parameter
+     * @return false without a cell
+     */
     bool revealParam(int id);
     void startTour();                                 ///< the first steps, from the first
-    /** @brief The night mode on or off (kept in the instrument's settings). @param on night */
+    /**
+     * @brief The night mode on or off (kept in the instrument's settings).
+     * @param[in] on  night
+     */
     void setNight(bool on);
-    /** @brief The preset as it was loaded while held; the sound again when let go. @param on held */
+    /**
+     * @brief The preset as it was loaded while held; the sound again when let go.
+     * @param[in] on  held
+     */
     void holdPreset(bool on);
-    /** @brief The journey chosen in the Morph section's box. @param out receives it @return false when none is chosen */
+    /**
+     * @brief The journey chosen in the Morph section's box.
+     * @param[out] out  receives it
+     * @return false when none is chosen
+     */
     bool chosenJourney(ambient::Journey& out) const;
-    /** @brief Starts the chosen journey at step @p step (the timeline's click while none runs). @param step the step */
+    /**
+     * @brief Starts the chosen journey at step @p step (the timeline's click while none runs).
+     * @param[in] step  the step
+     */
     void startJourneyAt(int step);
-    /** @brief A route's depth anew, in the matrix text. @param row the route @param depth -1 .. 1 */
+    /**
+     * @brief A route's depth anew, in the matrix text.
+     * @param[in] row    the route
+     * @param[in] depth  -1 .. 1
+     */
     void setRouteDepth(int row, float depth);
-    /** @brief A route taken out of the matrix text. @param row the route */
+    /**
+     * @brief A route taken out of the matrix text.
+     * @param[in] row  the route
+     */
     void removeRoute(int row);
     /** @} */
 public:
@@ -1568,13 +1606,13 @@ public:
      *  @{ */
     /**
      * @brief Which parameter sits under a screen point.
-     * @param screenPos  the position in screen coordinates
+     * @param[in] screenPos  the position in screen coordinates
      * @return the ParamId as an int, or -1 if no parameter cell is showing there
      */
     int cellParamAt(juce::Point<int> screenPos) const;
     /**
      * @brief Where a cell's control is on the screen.
-     * @param cellIndex  index into m_cells
+     * @param[in] cellIndex  index into m_cells
      * @return the bounds in screen coordinates, empty for a bad index or a cell without a component
      */
     juce::Rectangle<int> cellScreenBounds(int cellIndex) const;
@@ -1593,12 +1631,12 @@ private:
     struct FilterView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and polls the parameters at 15 Hz.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit FilterView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         /**
          * @brief The axes, the two branches and their product, and the legend (EditorViews.cpp).
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Nothing but parameters is drawn here, so nothing but a parameter can change it. */
@@ -1618,18 +1656,18 @@ private:
     struct SourceView : juce::Component, juce::Timer {
         /**
          * @brief Takes clicks (the table flips, the entrance opens) and polls at 15 Hz.
-         * @param p  the processor
-         * @param s  the slot, 1 .. 4
+         * @param[in,out] p  the processor
+         * @param[in]     s  the slot, 1 .. 4
          */
         SourceView(NoctuaryProcessor& p, int s) : m_proc(p), m_slot(s) { setInterceptsMouseClicks(true, false); startTimerHz(15); }
         /**
          * @brief The source's picture, then the entrance in the corner.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /**
          * @brief The picture of whatever the slot is set to: table, FM, clip, noise, partials, string, model.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paintSource(juce::Graphics&);
         /**
@@ -1645,12 +1683,12 @@ private:
         juce::Rectangle<int> entranceBox() const;
         /**
          * @brief The own envelope's shape with the loudest voice's gain on it, and "ENV".
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paintEntrance(juce::Graphics&);
         /**
          * @brief On the entrance: opens the source's envelope in the strip. On a table: flips between depth and flat.
-         * @param e  the press
+         * @param[in] e  the press
          */
         void mouseDown(const juce::MouseEvent&) override;
         /**
@@ -1689,11 +1727,11 @@ private:
         }
         /**
          * @brief The table in depth; false when there is nothing to stand in depth (no table, one frame).
-         * @param g      the graphics
-         * @param plot   the area to draw in
-         * @param type   the slot's type (Harmonic or Wavetable)
-         * @param table  which table
-         * @param pos    the Position, 0 .. 1, whose frame is lit
+         * @param[in,out] g      the graphics
+         * @param[in]     plot   the area to draw in
+         * @param[in]     type   the slot's type (Harmonic or Wavetable)
+         * @param[in]     table  which table
+         * @param[in]     pos    the Position, 0 .. 1, whose frame is lit
          * @return true if the table was drawn
          */
         bool paintTable3D(juce::Graphics& g, juce::Rectangle<float> plot, int type, int table, float pos);
@@ -1722,12 +1760,12 @@ private:
     struct BrainView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and ticks at 15 Hz.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit BrainView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         /**
          * @brief The roll: octave lines, a bar per held note fading with age, the range labels, the cascade's aura.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Writes the sounding notes into the newest column, widens the range, advances the head. */
@@ -1753,12 +1791,12 @@ private:
     struct StageView : juce::Component, juce::Timer {
         /**
          * @brief Ticks at 15 Hz; takes the mouse for the planes.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit StageView(NoctuaryProcessor& p) : m_proc(p) { startTimerHz(15); }
         /**
          * @brief The room, the three planes as lines, every voice as a smoothed dot, the count.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
@@ -1770,17 +1808,17 @@ private:
          * Drag a line and its knob
          * follows (through the host, so it is automated and undone like any knob). The voices
          * themselves are where the conductor put them and stay a picture.
-         * @param e  the move; the plane under it is highlighted and the cursor changes
+         * @param[in] e  the move; the plane under it is highlighted and the cursor changes
          */
         void mouseMove(const juce::MouseEvent&) override;
         /**
          * @brief Grabs the plane under the mouse: a snapshot for undo, then the host's change gesture begins.
-         * @param e  the press
+         * @param[in] e  the press
          */
         void mouseDown(const juce::MouseEvent&) override;
         /**
          * @brief Moves the grabbed plane's depth parameter to where the mouse is.
-         * @param e  the drag
+         * @param[in] e  the drag
          */
         void mouseDrag(const juce::MouseEvent&) override;
         /** @brief Ends the host's change gesture and lets the plane go. */
@@ -1794,7 +1832,7 @@ private:
         juce::Rectangle<float> plotRect() const;
         /**
          * @brief Which plane's line a position is near.
-         * @param pos  the position in the view's coordinates
+         * @param[in] pos  the position in the view's coordinates
          * @return 0 conductor, 1 keys, 2 conductor 2, or -1 if none is within reach
          */
         int  lineAt(juce::Point<int>) const;
@@ -1822,12 +1860,12 @@ private:
     struct TuningView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and repaints at 5 Hz: the curve is slow to compute and slow to change.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit TuningView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(5); }
         /**
          * @brief The roughness curve, the scale's degrees on it, the key, the comma, the tide and the scale's name.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
@@ -1844,12 +1882,12 @@ private:
     struct CoherenceView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and ticks at 10 Hz.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit CoherenceView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(10); }
         /**
          * @brief The ring of phases, the Lenia grid, the attractor bars and the two orbits.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Appends the attractors' current x/y to the trails (forty seconds kept) and repaints. */
@@ -1866,12 +1904,12 @@ private:
     struct CosmosView : juce::Component, juce::Timer {
         /**
          * @brief Sizes the FFT buffers, builds the Hann window, starts at 15 Hz.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit CosmosView(NoctuaryProcessor& p);
         /**
          * @brief The bins as a filled curve on the log axis, and a legend of which stages are on.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Reads the return tap, transforms it, folds the bins into Bins log-spaced bands with a falling hold. */
@@ -1899,12 +1937,12 @@ private:
     struct LoudnessView : juce::Component, juce::Timer {
         /**
          * @brief Repaints at 10 Hz; takes the click that resets the measurement.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit LoudnessView(NoctuaryProcessor& p) : m_proc(p) { startTimerHz(10); }
         /**
          * @brief Momentary and integrated loudness, the range, the peak, as bars and figures.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
@@ -1923,29 +1961,29 @@ private:
     struct VectorView : juce::Component, juce::Timer {
         /**
          * @brief Ticks at 15 Hz; takes the mouse for the point.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit VectorView(NoctuaryProcessor& p) : m_proc(p) { startTimerHz(15); }
         /**
          * @brief The square with its corners named, the wander's trail, the point, and a hint.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
         void timerCallback() override { if (isShowing()) repaint(); }
         /**
          * @brief A press moves the point.
-         * @param e  the press
+         * @param[in] e  the press
          */
         void mouseDown(const juce::MouseEvent& e) override { drag(e); }
         /**
          * @brief A drag moves the point.
-         * @param e  the drag
+         * @param[in] e  the drag
          */
         void mouseDrag(const juce::MouseEvent& e) override { drag(e); }
         /**
          * @brief Writes the mouse position, clamped to the square, into VecX and VecY through the host.
-         * @param e  the press or drag
+         * @param[in] e  the press or drag
          */
         void drag(const juce::MouseEvent&);
         /**
@@ -1972,19 +2010,20 @@ private:
     struct SpectrumView : juce::Component, juce::Timer {
         /**
          * @brief Sizes the FFT buffers, builds the Hann window, starts at 12 Hz (EditorSpectrum.cpp).
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit SpectrumView(NoctuaryProcessor& p);
         /**
-         * @brief The axes, the hold trace, the live bands, the filter's response over them, the note ticks and the frequency under the pointer.
-         * @param g  the graphics
+         * @brief The axes, the hold trace, the live bands, the filter's response over them, the note ticks and the
+         *        frequency under the pointer.
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Reads the output tap, transforms it, folds it into the bands and lets the hold fall. */
         void timerCallback() override;
         /**
          * @brief Remembers the pointer's x, so paint can name the frequency under it.
-         * @param e  the move
+         * @param[in] e  the move
          */
         void mouseMove(const juce::MouseEvent&) override;
         /** @brief Forgets the pointer. */
@@ -2014,12 +2053,12 @@ private:
     struct EnvView : juce::Component, juce::Timer {
         /**
          * @brief Catches no clicks and repaints at 15 Hz.
-         * @param p  the processor
+         * @param[in,out] p  the processor
          */
         explicit EnvView(NoctuaryProcessor& p) : m_proc(p) { setInterceptsMouseClicks(false, false); startTimerHz(15); }
         /**
          * @brief The ADSR as a curve with its four times labelled, and the loudest voice's level on it.
-         * @param g  the graphics
+         * @param[in,out] g  the graphics
          */
         void paint(juce::Graphics&) override;
         /** @brief Repaints while on screen. */
@@ -2036,7 +2075,7 @@ private:
     std::unique_ptr<juce::TextButton> m_browseButton;   ///< Browse, in the header
     /**
      * @brief Shows one page and hides the others; the header buttons follow.
-     * @param page  0 edit, 1 perform, 2 browse, 3 help
+     * @param[in] page  0 edit, 1 perform, 2 browse, 3 help
      */
     void setPage(int page);
     /** @brief Opens the gesture / macro mapping table as text in a dialog; the timer applies it when the dialog closes. */

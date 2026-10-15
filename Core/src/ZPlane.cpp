@@ -19,6 +19,7 @@
  * as a parallel bank of ringing resonators, each normalised to unity at its own frequency and the
  * bank as a whole on expected power. The two warm-up functions build the static tables from the
  * message thread, so that no voice ever builds them under the lock a function-local static carries.
+ * @author Rene Weller
  */
 #include <vector>
 #include "ambient/ZPlane.h"
@@ -153,9 +154,8 @@ struct ShapeCorners {
  * The whole table is a function-local static, so the first caller builds it -- all shapes at once,
  * from ZCorners through zFrameFromSpec -- under the guard the language puts around the static.
  * zWarmShapes() makes sure that first caller is the message thread.
- *
- * @param shape  a valid shape index, 0 .. ZShapes - 1 (zInterpolate clamps before asking)
- * @return       the corners and their logarithms for that shape
+ * @param[in] shape  a valid shape index, 0 .. ZShapes - 1 (zInterpolate clamps before asking)
+ * @return the corners and their logarithms for that shape
  */
 const ShapeCorners& shapeCorners(int shape)
 {

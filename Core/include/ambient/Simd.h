@@ -34,6 +34,12 @@
  * per-sample rotation, its amplitude and the amplitude's per-sample step -- steps all of them in
  * place, and returns the sample. The vector part handles as many whole groups of eight (AVX) or
  * four (NEON) lanes as fit; a scalar tail finishes the rest, so `n` may be anything.
+ * @author Rene Weller
+ *
+ * @par Compile Flags:
+ *   @arg @c AMBIENT_AVX - the eight-lane AVX2 paths with MSVC on x64 (Core/CMakeLists.txt sets it)
+ *   @arg @c AMBIENT_NEON_SHIM - the NEON paths on x86 through Tests/neonshim, so the four-lane code is tested on the
+ *                               desktop
  */
 #pragma once
 #include "Dsp.h"
@@ -73,7 +79,7 @@ namespace ambient {
 #if AMBIENT_HAS_AVX
 /**
  * @brief The eight lanes added up. Written once: three loops end with it.
- * @param acc  the accumulator
+ * @param[in] acc  the accumulator
  * @return     the sum of its eight lanes
  */
 inline float horizontalSum(__m256 acc)
@@ -88,7 +94,7 @@ inline float horizontalSum(__m256 acc)
 /**
  * @brief The same for four lanes, through memory rather than through vaddvq: the test shim spells out
  *        only the intrinsics the instrument uses, and one store is not worth another entry in it.
- * @param acc  the accumulator
+ * @param[in] acc  the accumulator
  * @return     the sum of its four lanes
  */
 inline float horizontalSum(float32x4_t acc)
@@ -105,18 +111,17 @@ inline float horizontalSum(float32x4_t acc)
  *
  * See phasorBankStep for the step itself; the only difference is that partial h's sample
  * amp[h] * ps[h] is added into the left sum times wL[h] and into the right sum times wR[h].
- *
- * @param pc    cos of each phasor, updated in place
- * @param ps    sin of each phasor, updated in place
- * @param rc    cos of each phasor's per-sample rotation
- * @param rs    sin of each phasor's per-sample rotation
- * @param amp   each partial's amplitude, stepped in place
- * @param step  each amplitude's per-sample increment (the control-rate ramp)
- * @param n     partials to process, 0 .. the array length
- * @param wL    each partial's left weight
- * @param wR    each partial's right weight
- * @param outL  receives the left sum
- * @param outR  receives the right sum
+ * @param[in,out] pc    cos of each phasor, updated in place
+ * @param[in,out] ps    sin of each phasor, updated in place
+ * @param[in]     rc    cos of each phasor's per-sample rotation
+ * @param[in]     rs    sin of each phasor's per-sample rotation
+ * @param[in,out] amp   each partial's amplitude, stepped in place
+ * @param[in]     step  each amplitude's per-sample increment (the control-rate ramp)
+ * @param[in]     n     partials to process, 0 .. the array length
+ * @param[in]     wL    each partial's left weight
+ * @param[in]     wR    each partial's right weight
+ * @param[out]    outL  receives the left sum
+ * @param[out]    outR  receives the right sum
  */
 inline void phasorBankStepStereo(float* pc, float* ps, const float* rc, const float* rs,
                                  float* amp, const float* step, int n,
@@ -171,15 +176,14 @@ inline void phasorBankStepStereo(float* pc, float* ps, const float* rc, const fl
  *
  * The sample is taken BEFORE the turn, so partial h contributes amp[h] * ps[h] as they stand on
  * entry; then (pc, ps) is turned by (rc, rs) as a complex product and amp advanced by step.
- *
- * @param pc    cos of each phasor, updated in place
- * @param ps    sin of each phasor, updated in place
- * @param rc    cos of each phasor's per-sample rotation
- * @param rs    sin of each phasor's per-sample rotation
- * @param amp   each partial's amplitude, stepped in place
- * @param step  each amplitude's per-sample increment (the control-rate ramp)
- * @param n     partials to process
- * @return      the sum of amp[h] * ps[h] over the n partials
+ * @param[in,out] pc    cos of each phasor, updated in place
+ * @param[in,out] ps    sin of each phasor, updated in place
+ * @param[in]     rc    cos of each phasor's per-sample rotation
+ * @param[in]     rs    sin of each phasor's per-sample rotation
+ * @param[in,out] amp   each partial's amplitude, stepped in place
+ * @param[in]     step  each amplitude's per-sample increment (the control-rate ramp)
+ * @param[in]     n     partials to process
+ * @return the sum of amp[h] * ps[h] over the n partials
  */
 inline float phasorBankStep(float* pc, float* ps, const float* rc, const float* rs,
                             float* amp, const float* step, int n)
@@ -231,18 +235,18 @@ inline float phasorBankStep(float* pc, float* ps, const float* rc, const float* 
  * clamped, so deep modulation saturates softly on the high partials instead of tearing -- and
  * then put back on the unit circle by two Newton steps of the inverse square root. `hf` is the
  * partial's harmonic number, `theta` the modulation for this sample, `maxStep` the clamp.
- *
- * @param pc       cos of each phasor, updated in place
- * @param ps       sin of each phasor, updated in place
- * @param rc       cos of each phasor's per-sample rotation
- * @param rs       sin of each phasor's per-sample rotation
- * @param amp      each partial's amplitude, stepped in place
- * @param step     each amplitude's per-sample increment (the control-rate ramp)
- * @param n        partials to process
- * @param hf       each partial's harmonic number as a float (1, 2, 3, ...)
- * @param theta    this sample's modulation angle at the fundamental, in radians
- * @param maxStep  the clamp on tan of the per-partial angle (Voice.cpp uses 0.4, which keeps the two-step normalisation exact)
- * @return         the sum of amp[h] * ps[h] over the n partials, taken before the turn
+ * @param[in,out] pc       cos of each phasor, updated in place
+ * @param[in,out] ps       sin of each phasor, updated in place
+ * @param[in]     rc       cos of each phasor's per-sample rotation
+ * @param[in]     rs       sin of each phasor's per-sample rotation
+ * @param[in,out] amp      each partial's amplitude, stepped in place
+ * @param[in]     step     each amplitude's per-sample increment (the control-rate ramp)
+ * @param[in]     n        partials to process
+ * @param[in]     hf       each partial's harmonic number as a float (1, 2, 3, ...)
+ * @param[in]     theta    this sample's modulation angle at the fundamental, in radians
+ * @param[in]     maxStep  the clamp on tan of the per-partial angle (Voice.cpp uses 0.4, which keeps the two-step
+ *                         normalisation exact)
+ * @return the sum of amp[h] * ps[h] over the n partials, taken before the turn
  */
 inline float phasorBankStepFm(float* pc, float* ps, const float* rc, const float* rs,
                               float* amp, const float* step, int n,

@@ -12,6 +12,7 @@
  * The blend needs every preset's full parameter vector, which is expensive to build from the
  * text of eight thousand presets (PresetMap.cpp): it is built once by warmup(), published behind
  * an atomic pointer, and until it is there the map simply does not engage.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -43,6 +44,7 @@ public:
      * Idempotent: a table that already covers numPresets() presets is kept. A rebuild after packs
      * were loaded publishes a new table and retires the old one rather than freeing it, so a reader
      * inside blend() keeps valid memory. Serialised by a mutex; message or worker thread only.
+     * @pre called before the
      */
     static void warmup();
     /**
@@ -74,11 +76,10 @@ public:
      * grows to reach the third neighbour, so the blend never collapses onto one point between two
      * clusters; standing on a point still plays that preset alone. Far from everything the nearest
      * point gets weight 1.
-     *
-     * @param x       cursor position, 0 .. 1 (MapX)
-     * @param y       cursor position, 0 .. 1 (MapY)
-     * @param radius  the Gaussian's sigma in plane units (MapRadius), floored at 0.001
-     * @return        the neighbours and their weights
+     * @param[in] x       cursor position, 0 .. 1 (MapX)
+     * @param[in] y       cursor position, 0 .. 1 (MapY)
+     * @param[in] radius  the Gaussian's sigma in plane units (MapRadius), floored at 0.001
+     * @return the neighbours and their weights
      */
     static Blend neighbours(float x, float y, float radius);
     /**
@@ -87,16 +88,15 @@ public:
      *
      * Audio thread, control rate. Before ready(), or with no neighbours, every parameter is its
      * default; if a rebuild pulls the table away mid-call, @p out is left untouched.
-     *
-     * @param b    the neighbours, from neighbours()
-     * @param out  NumParams floats, indexed by ParamId, in each parameter's real range
+     * @param[in]     b    the neighbours, from neighbours()
+     * @param[in,out] out  NumParams floats, indexed by ParamId, in each parameter's real range
      */
     static void blend(const Blend& b, float* out);
     /**
      * @brief The cached vector of one preset (NumParams values), or nullptr before warmup.
-     * @param index  preset index as numPresets() counts them
-     * @return       a pointer into the published table (valid for the life of the process), or
-     *               nullptr before warmup or for an index the table does not cover
+     * @param[in] index  preset index as numPresets() counts them
+     * @return a pointer into the published table (valid for the life of the process), or nullptr before warmup or for
+     *         an index the table does not cover
      */
     static const float* presetValues(int index);
 };

@@ -26,6 +26,7 @@
  *
  * Everything here runs on the message thread and reads the engine only through
  * NoctuaryProcessor and the APVTS; the displays are the same, each on its own timer.
+ * @author Rene Weller
  */
 #include "EditorCommon.h"
 
@@ -42,7 +43,7 @@ namespace {
  * ComboBox still reports the chosen id through onChange exactly as before.
  *
  * Fills the Sound box in the header and the two morph slot choosers; item id = preset index + 1.
- * @param box  the chooser to fill (emptied of nothing: called once on a fresh box)
+ * @param[in,out] box  the chooser to fill (emptied of nothing: called once on a fresh box)
  */
 void fillPresetBox(juce::ComboBox& box)
 {
@@ -74,7 +75,11 @@ namespace {
 
 namespace {
 
-/** @brief A source as a person reads it: "lfo1" -> "LFO 1", "macro_a" -> "Macro A", "lorenz_x" -> "Lorenz X". */
+/**
+ * @brief A source as a person reads it: "lfo1" -> "LFO 1", "macro_a" -> "Macro A", "lorenz_x" -> "Lorenz X".
+ * @param[in] s  the source
+ * @return its name
+ */
 juce::String prettySource(ambient::ModSourceE s)
 {
     juce::String t(ambient::modSourceName(s));
@@ -90,7 +95,11 @@ juce::String prettySource(ambient::ModSourceE s)
     return words.joinIntoString(" ");
 }
 
-/** @brief A source's section in the "Modulate with" menu. */
+/**
+ * @brief A source's section in the "Modulate with" menu.
+ * @param[in] name  the source's name
+ * @return its section
+ */
 juce::String sourceSection(const juce::String& name)
 {
     const juce::String l = name.toLowerCase();
@@ -451,11 +460,11 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
         if (juce::SystemStats::getEnvironmentVariable("AMBIENT_SHOT", "").isNotEmpty()) setSize(m_designW, m_designH);
     }
     if (juce::SystemStats::getEnvironmentVariable("AMBIENT_PERFORM", "").isNotEmpty()) setPage(1);
-    {   // AMBIENT_PRESET=<name>: open on a named preset (dev aid for photographing a modulated patch)
+    {   // AMBIENT_PRESET=\<name\>: open on a named preset (dev aid for photographing a modulated patch)
         const juce::String ps = juce::SystemStats::getEnvironmentVariable("AMBIENT_PRESET", "");
         for (int i = 0; ps.isNotEmpty() && i < numPresets(); ++i)
             if (ps == preset(i).m_name) { m_proc.applySoundPreset(i); if (m_soundBox) m_soundBox->setSelectedId(i + 1, juce::dontSendNotification); }
-        // AMBIENT_MORPH_TO=<name>: a second in, start a transition to this one, so the map's
+        // AMBIENT_MORPH_TO=\<name\>: a second in, start a transition to this one, so the map's
         // crossing -- the line, the travelling point, the two labels -- can be photographed while
         // it is happening. Alongside AMBIENT_SHOT, which captures ten seconds after the chord.
         const juce::String mt = juce::SystemStats::getEnvironmentVariable("AMBIENT_MORPH_TO", "");
@@ -474,7 +483,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
         if (hv > 0) { setPage(3); if (m_help) m_help->m_topics.selectRow(hv - 1); }
         const juce::String sc = juce::SystemStats::getEnvironmentVariable("AMBIENT_SCROLL", "");
         if (sc.isNotEmpty()) juce::MessageManager::callAsync([this, y = sc.getIntValue()] { m_viewport.setViewPosition(0, y); });
-        // AMBIENT_TAB=<row>,<page>[;<row>,<page>...]: open tabbed rows on a given page, so a page
+        // AMBIENT_TAB=\<row\>,\<page\>[;\<row\>,\<page\>...]: open tabbed rows on a given page, so a page
         // that is not the first one can be photographed at all. Rows count from the top, pages
         // from the left, both from zero.
         for (const auto& one : juce::StringArray::fromTokens(juce::SystemStats::getEnvironmentVariable("AMBIENT_TAB", ""), ";", "")) {
@@ -483,7 +492,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
             if (r >= 0 && r < static_cast<int>(m_tabRows.size()) && pg >= 0 && pg < static_cast<int>(m_tabRows[static_cast<size_t>(r)].m_names.size()))
                 m_tabRows[static_cast<size_t>(r)].m_active = pg;
         }
-        // AMBIENT_MANUAL=<folder>: write the manual out and quit. A chord is played first and
+        // AMBIENT_MANUAL=\<folder\>: write the manual out and quit. A chord is played first and
         // then twelve seconds pass, because the pictures are of the running instrument and its
         // displays -- the spectrum, the stage, the note roll -- have nothing in them until it is
         // actually sounding. Waiting alone was not enough: with a slow conductor the first draft
@@ -498,13 +507,13 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
                 exportManual(juce::File(man), [] { juce::JUCEApplicationBase::quit(); });
             });
         }
-        // AMBIENT_WAVETABLE=<file>: a table file into the user slot, for a picture of a table the
+        // AMBIENT_WAVETABLE=\<file\>: a table file into the user slot, for a picture of a table the
         // built-ins cannot show -- they have four or five frames, a Serum bank has up to 256.
         {
             const juce::String wtf = juce::SystemStats::getEnvironmentVariable("AMBIENT_WAVETABLE", "");
             if (wtf.isNotEmpty()) m_proc.loadWavetableFile(juce::File(wtf));
         }
-        // AMBIENT_SET=key=value;key=value and AMBIENT_MATRIX=<routes>: parameters and routes for a
+        // AMBIENT_SET=key=value;key=value and AMBIENT_MATRIX=\<routes\>: parameters and routes for a
         // run, on top of the preset -- so a picture can show a state no preset has.
         {
             for (const auto& kv : juce::StringArray::fromTokens(juce::SystemStats::getEnvironmentVariable("AMBIENT_SET", ""), ";", "")) {
@@ -518,7 +527,7 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
             const juce::String mx = juce::SystemStats::getEnvironmentVariable("AMBIENT_MATRIX", "");
             if (mx.isNotEmpty()) m_proc.engine().setModMatrixText(mx.toRawUTF8());
         }
-        // AMBIENT_SHOT=<file.png>: a picture of the whole editor as it stands -- the layout mode,
+        // AMBIENT_SHOT=\<file.png\>: a picture of the whole editor as it stands -- the layout mode,
         // the open tabs, the live displays -- ten seconds after a chord, then quit. The dev aid for
         // looking at the panel without a screen grab, which takes whatever else is on the screen.
         const juce::String shot = juce::SystemStats::getEnvironmentVariable("AMBIENT_SHOT", "");
@@ -1028,7 +1037,7 @@ const std::vector<Closer>& closers()
 }
 /**
  * @brief The closer of a section.
- * @param section  the section's name
+ * @param[in] section  the section's name
  * @return its entry, or null if the section never closes
  */
 const Closer* closerFor(const juce::String& section)
@@ -3477,7 +3486,7 @@ void NoctuaryEditor::setRouteDepth(int row, float depth)
     const int len = m_proc.engine().writeModMatrix(buf, sizeof(buf));
     juce::StringArray rows = juce::StringArray::fromTokens(juce::String(juce::CharPointer_UTF8(buf), static_cast<size_t>(juce::jmax(0, len))), ";", "");
     if (row < 0 || row >= rows.size()) return;
-    juce::StringArray fields = juce::StringArray::fromTokens(rows[row], ":", "");   // <source>><target>:<depth>[:<via>][:u]
+    juce::StringArray fields = juce::StringArray::fromTokens(rows[row], ":", "");   // \<source\>>\<target\>:\<depth\>[:\<via\>][:u]
     if (fields.size() < 2) return;
     fields.set(1, juce::String(juce::jlimit(-1.0f, 1.0f, depth), 3));
     rows.set(row, fields.joinIntoString(":"));

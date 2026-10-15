@@ -48,6 +48,7 @@
  * In the engine it is a parallel send off the near bus, returned to both planes like the Cosmos
  * (Engine.h: m_memory and its three sends); readParams() hands it the Mem* parameters once per block
  * and process() runs on the audio thread in control blocks of Sub samples.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -81,8 +82,8 @@ public:
      * @brief Allocates the pool (90 s, capped at PoolMaxCells), the all-pass rings, the reading
      *        interpolator, the fingerprint tables and the FFT scratch; lays the lines out and puts every
      *        state at rest. Message thread, before any process().
-     * @param sampleRate  Hz
-     * @param seed        the memory's own random stream (the engine gives it a constant, so a fork
+     * @param[in] sampleRate  Hz
+     * @param[in] seed        the memory's own random stream (the engine gives it a constant, so a fork
      *                    of the voices' dice is never spent here)
      */
     void prepare(double sampleRate, uint64_t seed);
@@ -92,34 +93,33 @@ public:
      * A new line count is taken up at the next control block after the output has faded; size moves
      * the read heads as a tape delay does; blur is the butterfly's angle and, past a half, the
      * scattering; drift the slides and the pans.
-     *
-     * @param lines        2, 4 or 8 (anything else rounds up to the next of them)
-     * @param sizeSeconds  the longest line's repeat, clamped to 0.2 .. 60 s (and to the pool's share)
-     * @param blur         0..1
-     * @param drift        0..1
+     * @param[in] lines        2, 4 or 8 (anything else rounds up to the next of them)
+     * @param[in] sizeSeconds  the longest line's repeat, clamped to 0.2 .. 60 s (and to the pool's share)
+     * @param[in] blur         0..1
+     * @param[in] drift        0..1
      */
     void setShape(int lines, float sizeSeconds, float blur, float drift);
     /**
      * @brief all 0..1
-     * @param hold   how long a memory lasts: 4 s to -60 dB at 0, twenty minutes near 1, for ever at 1
-     * @param age    how much darker it grows per second of line, up to 2 dB per second at Nyquist
-     * @param renew  how hard what arrives pushes out what is kept
-     * @param drive  the saturation in the loop
+     * @param[in] hold   how long a memory lasts: 4 s to -60 dB at 0, twenty minutes near 1, for ever at 1
+     * @param[in] age    how much darker it grows per second of line, up to 2 dB per second at Nyquist
+     * @param[in] renew  how hard what arrives pushes out what is kept
+     * @param[in] drive  the saturation in the loop
      */
     void setDecay(float hold, float age, float renew, float drive);
     /**
      * @brief recall and seek 0..1, the grains' length in milliseconds
-     * @param recall   how much of the output is grains rather than the lines (0 switches them off)
-     * @param seek     how much a grain's harmony counts against chance when its place is chosen
-     * @param grainMs  the grains' length, 20 .. 2000 ms (each drawn within a fifth of it)
+     * @param[in] recall   how much of the output is grains rather than the lines (0 switches them off)
+     * @param[in] seek     how much a grain's harmony counts against chance when its place is chosen
+     * @param[in] grainMs  the grains' length, 20 .. 2000 ms (each drawn within a fifth of it)
      */
     void setRecall(float recall, float seek, float grainMs);
     /**
      * @brief The tape's four switches.
-     * @param reverse  the tape runs backwards (through a standstill on the way)
-     * @param half     the tape runs at half speed, an octave down
-     * @param freeze   nothing is written, nothing decays: the memory is held as it is
-     * @param erase    the output fades and the pool is emptied a stretch at a time
+     * @param[in] reverse  the tape runs backwards (through a standstill on the way)
+     * @param[in] half     the tape runs at half speed, an octave down
+     * @param[in] freeze   nothing is written, nothing decays: the memory is held as it is
+     * @param[in] erase    the output fades and the pool is emptied a stretch at a time
      */
     void setTape(bool reverse, bool half, bool freeze, bool erase);
     /**
@@ -128,8 +128,8 @@ public:
      * Turned into a twelve-bin pitch-class profile (the tonic weighted up) that the recall grains
      * score the tape's fingerprints against; recomputed only when the pair changes.
      *
-     * @param scale    the current scale
-     * @param tonicHz  the key's tonic in Hz (anything not above 1 Hz is ignored)
+     * @param[in] scale    the current scale
+     * @param[in] tonicHz  the key's tonic in Hz (anything not above 1 Hz is ignored)
      */
     void setHarmony(const FixedScale& scale, double tonicHz);
     /**
@@ -139,9 +139,9 @@ public:
      * every sample through the lines -- read through the sinc, all-pass, absorption and DC blocker
      * in the loop, the butterfly, gain, limiter and drive, the input added, and the tape written.
      *
-     * @param L  left channel, replaced
-     * @param R  right channel, replaced
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, replaced
+     * @param[in,out] R  right channel, replaced
+     * @param[in] n  samples in the block
      */
     void process(float* L, float* R, int n);
     /**
@@ -160,7 +160,7 @@ public:
     double    energy() const;                    ///< what circulates: the lines' spans and their all-passes
     /** @brief How many lines the pool is divided into right now. @return 2, 4 or 8 */
     int       lineCount() const { return m_lines; }
-    /** @brief One line's repeat at normal speed. @param k the line @return seconds, the all-pass included */
+    /** @brief One line's repeat at normal speed. @param[in] k the line @return seconds, the all-pass included */
     double    lineSeconds(int k) const { return (m_line[k].m_lenTarget + m_apLen[k]) / m_sr; }
     /** @brief Recall grains started since prepare(). @return the count */
     long long grainsStarted() const { return m_started; }
@@ -216,7 +216,7 @@ private:
     /**
      * @brief Divides the pool between `lines` lines and folds every write head into the new capacity;
      *        the grains are dropped, since their places belonged to the old division.
-     * @param lines  2, 4 or 8
+     * @param[in] lines  2, 4 or 8
      */
     void   layout(int lines);
     /** @brief Sets every line's target length from Size: the longest as far as its share allows, the rest stepping down geometrically to six tenths, each a prime number of cells; then gains(). */
@@ -227,21 +227,21 @@ private:
      * @brief The control step at the head of every sub-block: line-count and erase fades, the Lorenz
      *        step, the tape speed glide, the butterfly angle and scattering, the recall, drive and
      *        input gains, and every line's slide, pan and anti-alias filter.
-     * @param m  samples in this sub-block (Sub, or the remainder)
+     * @param[in] m  samples in this sub-block (Sub, or the remainder)
      */
     void   stepControl(int m);
     /**
      * @brief Writes one sample onto line k's tape at the write head, spread over the two cells it falls
      *        between, and advances the head by v; queues a finished segment for fingerprinting.
-     * @param k  the line
-     * @param x  the sample
-     * @param v  cells per sample: the tape's speed, negative backwards
+     * @param[in] k  the line
+     * @param[in] x  the sample
+     * @param[in] v  cells per sample: the tape's speed, negative backwards
      */
     void   tapeWrite(int k, float x, double v);
     /**
      * @brief Starts a recall grain if there is room: draws a dozen places behind the write heads, scores
      *        their fingerprints against the harmony as Seek says, and takes the best.
-     * @param offset  the sample of the current sub-block the grain begins in
+     * @param[in] offset  the sample of the current sub-block the grain begins in
      */
     void   spawnGrain(int offset);
     /** @brief One fingerprint per control block at most: the last seconds of input when a window is full, otherwise the next finished stretch of tape from the queue. */
@@ -249,9 +249,9 @@ private:
     /**
      * @brief The pitch-class profile of Seg samples: a Hann-windowed FFT, the bins between 55 Hz and
      *        5 kHz summed into their pitch classes, the twelve normalised.
-     * @param x       Seg samples
-     * @param chroma  receives the twelve values (all zero for silence)
-     * @param rms     receives the stretch's RMS
+     * @param[in]  x       Seg samples
+     * @param[out] chroma  receives the twelve values (all zero for silence)
+     * @param[out] rms     receives the stretch's RMS
      */
     void   fingerprint(const float* x, float* chroma, float& rms);
     /** @brief Clears every line's splat sums, filter states and saturation (after an erase). */
@@ -367,9 +367,9 @@ private:
     /** @var int m_qHead
      *  @brief the queue's read position */
     int       m_qHead = 0, m_qTail = 0;       ///< m_qTail: its write position
-    /** @var std::vector<float> m_fftRe
+    /** @var std::vector\<float\> m_fftRe
      *  @brief the fingerprint transform's real part */
-    /** @var std::vector<float> m_fftIm
+    /** @var std::vector\<float\> m_fftIm
      *  @brief its imaginary part */
     std::vector<float> m_fftRe, m_fftIm, m_window;   ///< m_window: the Hann window of Seg
     std::vector<signed char> m_binPc;        ///< each FFT bin's pitch class, -1 outside what is listened to

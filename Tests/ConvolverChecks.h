@@ -8,6 +8,7 @@
  * ambient_convtest runs them once for every vector path the convolver has (see convtest.cpp).
  *
  * Include after a CHECK(cond, msg) macro is defined.
+ * @author Rene Weller
  */
 #pragma once
 #include "ambient/Convolution.h"

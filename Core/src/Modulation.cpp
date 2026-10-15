@@ -12,6 +12,7 @@
  * and the plugin state, and run on the message thread. ModMatrix::apply() is the one place where a
  * route's depth meets a parameter's range. The Wavetable of Sources.h is included for the Table
  * shape, which resynthesises a frame's spectrum rather than reading samples.
+ * @author Rene Weller
  */
 #include "ambient/Modulation.h"
 #include "ambient/Sources.h"   // Wavetable, for the Table shape
@@ -53,15 +54,15 @@ namespace {
 
 /**
  * @brief The fractional part of a phase, so that any value lands in 0 .. 1.
- * @param x  a phase in cycles, of any sign
- * @return   x - floor(x)
+ * @param[in] x  a phase in cycles, of any sign
+ * @return x - floor(x)
  */
 inline float wrap01(float x) { return x - std::floor(x); }
 
 /**
  * @brief The cubic 3t^2 - 2t^3 with its input clamped: a ramp with no corner at either end.
- * @param t  0 .. 1; anything outside is clamped
- * @return   0 at 0, 1 at 1, zero slope at both
+ * @param[in] t  0 .. 1; anything outside is clamped
+ * @return 0 at 0, 1 at 1, zero slope at both
  */
 inline float smoothstep(float t)
 {
@@ -75,8 +76,8 @@ inline float smoothstep(float t)
  * The standing rule of this instrument is
  * that a modulator may not step -- a hard edge on a cutoff is a click -- and the width is chosen
  * so that even at the fastest rate the change per control block stays small.
- * @param p  phase in 0 .. 1, already wrapped
- * @return   -1 .. 1, high in the first half of the cycle
+ * @param[in] p  phase in 0 .. 1, already wrapped
+ * @return -1 .. 1, high in the first half of the cycle
  */
 inline float softSquare(float p)
 {
@@ -93,10 +94,10 @@ inline float softSquare(float p)
  *
  * Without a table, or with an empty one, it falls back to a sine, so a preset that names a table the
  * host has not loaded still moves.
- * @param table    the user wavetable, or null
- * @param frame    which frame of it, wrapped into the table's frame count
- * @param phase01  phase in 0 .. 1
- * @return         the shape at that phase, about -1 .. 1 after the normalisation in the body
+ * @param[in] table    the user wavetable, or null
+ * @param[in] frame    which frame of it, wrapped into the table's frame count
+ * @param[in] phase01  phase in 0 .. 1
+ * @return the shape at that phase, about -1 .. 1 after the normalisation in the body
  */
 float tableAt(const Wavetable* table, int frame, float phase01)
 {
@@ -195,9 +196,9 @@ bool ModEnv::set(const EnvPoint* points, int count)
 namespace {
 /**
  * @brief A segment with a curve: 0 is linear, positive dwells at the start, negative at the end.
- * @param t      position in the segment, 0 .. 1; clamped
- * @param curve  EnvPoint::curve of the segment's first point, -1 .. 1
- * @return       the shaped position, 0 .. 1, a power of @p t
+ * @param[in] t      position in the segment, 0 .. 1; clamped
+ * @param[in] curve  EnvPoint::curve of the segment's first point, -1 .. 1
+ * @return the shaped position, 0 .. 1, a power of @p t
  */
 float shape(float t, float curve)
 {

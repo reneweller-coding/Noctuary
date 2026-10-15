@@ -36,6 +36,7 @@
  * **Environment.** `AMBIENT_MUTE=1`, `AMBIENT_MANUAL` and `AMBIENT_SHOT` silence the device output
  * while the engine, its meters and the recorder keep running (see `m_muteOutput`). OSC listens on
  * port 9000.
+ * @author Rene Weller
  */
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -76,15 +77,15 @@ public:
      * @brief Prepares every engine that exists at the host's rate and block size and ends any
      *        transition in flight (both engines have just been cleared, so there is nothing to
      *        fade out of).
-     * @param sampleRate       the host's sample rate in Hz (0 or less is taken as 48000)
-     * @param samplesPerBlock  the largest block the host will ask for
+     * @param[in] sampleRate       the host's sample rate in Hz (0 or less is taken as 48000)
+     * @param[in] samplesPerBlock  the largest block the host will ask for
      */
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     /** @brief Nothing to release: the engines keep their buffers, so stopping and starting the transport costs nothing. */
     void releaseResources() override {}
     /**
      * @brief Stereo or mono output only: the instrument is a synth and takes no audio in.
-     * @param layouts  the layout the host proposes
+     * @param[in] layouts  the layout the host proposes
      * @return true for a stereo or mono main output
      */
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
@@ -95,8 +96,8 @@ public:
      *        the recorder and the mute.
      *
      * Never allocates and never waits; see the body for the order and the reasons.
-     * @param buffer  the host's output buffer (stereo, or mono, which gets the two channels halved)
-     * @param midi    notes, expression, MPE, clock and controllers; cleared on return
+     * @param[in,out] buffer  the host's output buffer (stereo, or mono, which gets the two channels halved)
+     * @param[in,out] midi    notes, expression, MPE, clock and controllers; cleared on return
      */
     void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
@@ -132,11 +133,11 @@ public:
      * @brief Applies preset @p index in full (sound and Cosmos), brings its near foreground while
      *        Auto is on, and reads its files -- unless the change came within a sweep, in which case
      *        the files wait for the pump (see the body).
-     * @param index  program number; out of range does nothing
+     * @param[in] index  program number; out of range does nothing
      */
     void setCurrentProgram(int index) override;
     /**
-     * @param index  program number
+     * @param[in] index  program number
      * @return the preset's name, or an empty string out of range
      */
     const juce::String getProgramName(int index) override;
@@ -148,14 +149,14 @@ public:
      * @brief Writes the whole state: the parameter tree plus the scale, the gesture mappings, the
      *        modulation matrix and envelope shapes, the route, the file paths, the loaded preset
      *        names, the layout switches, the MIDI map and the two Morph snapshots (see the body).
-     * @param destData  receives the binary form of the state's XML
+     * @param[out] destData  receives the binary form of the state's XML
      */
     void getStateInformation(juce::MemoryBlock& destData) override;
     /**
      * @brief Restores a state written by getStateInformation(), older layouts included, and
      *        reloads the files it names from wherever they are on this machine.
-     * @param data         the block a host or a preset file hands back
-     * @param sizeInBytes  its length
+     * @param[in] data         the block a host or a preset file hands back
+     * @param[in] sizeInBytes  its length
      */
     void setStateInformation(const void* data, int sizeInBytes) override;
 
@@ -163,8 +164,8 @@ public:
      * @brief Loads a Scala scale as the instrument's user tuning and selects it.
      *
      * Message thread. Returns false if the file is not a valid Scala scale.
-     * @param text         the contents of a Scala (.scl) file
-     * @param displayName  what the tuning box shows; empty takes the name from the file
+     * @param[in] text         the contents of a Scala (.scl) file
+     * @param[in] displayName  what the tuning box shows; empty takes the name from the file
      * @return false if the file is not a valid Scala scale
      */
     bool loadScalaText(const juce::String& text, const juce::String& displayName);
@@ -177,28 +178,28 @@ public:
      * @{ */
     /**
      * @brief Loads a recording into one source slot of the engine being prepared (target()).
-     * @param slot  0 .. ambient::Slots - 1; out of range does nothing
-     * @param file  any format JUCE reads; a "_A3" suffix names its pitch, else C4 is assumed
+     * @param[in] slot  0 .. ambient::Slots - 1; out of range does nothing
+     * @param[in] file  any format JUCE reads; a "_A3" suffix names its pitch, else C4 is assumed
      * @return false if the slot is out of range or the file could not be read
      */
     bool loadTextureFile(int slot, const juce::File& file);
     /**
      * @brief Loads a recording into all four source slots.
-     * @param file  any format JUCE reads
+     * @param[in] file  any format JUCE reads
      * @return false if the file could not be read
      */
     bool loadTextureFile(const juce::File& file);
     /**
      * @brief Loads a user wavetable: the core's reader first (Serum, Vital, Surge frame lengths),
      *        then JUCE's with the cycle length worked out from the samples.
-     * @param file  the wavetable file
+     * @param[in] file  the wavetable file
      * @return false if neither reader could open it or the engine refused it
      */
     bool loadWavetableFile(const juce::File& file);
     /**
      * @brief convolution room, mono or stereo
-     * @param file    the impulse response; as much as the Room keeps is read
-     * @param second  true loads room B (Room Morph), false room A
+     * @param[in] file    the impulse response; as much as the Room keeps is read
+     * @param[in] second  true loads room B (Room Morph), false room A
      * @return false if the file could not be read
      */
     bool loadImpulseFile(const juce::File& file, bool second = false);
@@ -212,14 +213,14 @@ public:
      * @brief Level matching: while it is on, loading a preset trims the master gain by the difference
      *        between the loudness that was measured for it and a common target, so auditioning a
      *        hundred presets is not a ride on the volume knob. It never touches a preset's own settings.
-     * @param on  the switch; kept in the state
+     * @param[in] on  the switch; kept in the state
      */
     void setLevelMatch(bool on) { m_levelMatch = on; }
     /** @return whether level matching is on (see setLevelMatch) */
     bool levelMatch() const { return m_levelMatch; }
     /**
      * @brief The compact layout switch (layout mode 1); kept in the state.
-     * @param on  true wraps the wide rows
+     * @param[in] on  true wraps the wide rows
      */
     void setCompactLayout(bool on) { m_compact = on; }
     /** @return whether the editor is in the compact layout */
@@ -227,13 +228,13 @@ public:
     /**
      * @brief 0 normal, 1 compact (wide rows wrap), 2 expanded (every page of every tab row laid out
      *        under one another -- the tabs gone, the page tall). Kept in the state like Compact.
-     * @param m  the mode; 1 also sets the compact switch
+     * @param[in] m  the mode; 1 also sets the compact switch
      */
     void setLayoutMode(int m) { m_layoutMode = m; m_compact = m == 1; }
     /** @return the layout mode, 0 .. 2 (see setLayoutMode) */
     int  layoutMode() const { return m_layoutMode; }
     /**
-     * @param slot  source slot, clamped to 0 .. ambient::Slots - 1
+     * @param[in] slot  source slot, clamped to 0 .. ambient::Slots - 1
      * @return the name of the recording in that slot without extension, or empty
      */
     juce::String textureName(int slot = 0) const
@@ -248,13 +249,13 @@ public:
      * @{ */
     /**
      * @brief Writes the whole state as XML.
-     * @param file  the file to write (replaced)
+     * @param[in] file  the file to write (replaced)
      * @return false if the state could not be written
      */
     bool savePresetFile(const juce::File& file);
     /**
      * @brief Reads a file written by savePresetFile and applies it as a state.
-     * @param file  the file to read
+     * @param[in] file  the file to read
      * @return false if it does not parse as a Noctuary state
      */
     bool loadPresetFile(const juce::File& file);
@@ -266,52 +267,52 @@ public:
      * Applies the sound part of a preset, moves the program number and name with it, forgets the
      * Z-plane and Strike layer presets, reads the preset's files, matches the level and brings the
      * Auto foreground.
-     * @param index  preset index; out of range does nothing
+     * @param[in] index  preset index; out of range does nothing
      */
     void applySoundPreset(int index);
     /**
      * @brief Applies the Cosmos part of a Cosmos preset, and nothing else.
-     * @param index  index into the Cosmos presets; out of range does nothing
+     * @param[in] index  index into the Cosmos presets; out of range does nothing
      */
     void applyCosmosPreset(int index);
     /**
      * @brief The two newer layers. Like Cosmos: each resets its own section and touches nothing else.
-     * @param index  index into the Z-plane presets; out of range does nothing
+     * @param[in] index  index into the Z-plane presets; out of range does nothing
      */
     void applyZPreset(int index);
     /**
      * @brief The Strike layer's preset, applied like a Z-plane one.
-     * @param index  index into the Strike presets; out of range does nothing
+     * @param[in] index  index into the Strike presets; out of range does nothing
      */
     void applyStrikePreset(int index);
     /**
      * @brief The near layer (13.09.2026): like the Cosmos, kept across sound presets. A near preset may
      *        name a clip of the library's archive for its source; the player may open one by hand.
-     * @param index  index into the near presets; out of range does nothing
+     * @param[in] index  index into the near presets; out of range does nothing
      */
     void applyNearPreset(int index);
     /**
      * @brief Auto: the foreground a pack preset brings (the artist's table); applied with the sound
      *        preset while fore_auto is on, and again when it is switched on for the preset playing.
-     * @param soundIndex  the sound preset whose table entry is looked up
+     * @param[in] soundIndex  the sound preset whose table entry is looked up
      */
     void applyNearAuto(int soundIndex);
     /** @brief Brings the Auto foreground for the sound preset playing now (the switch was just turned on). */
     void nearAutoNow() { applyNearAuto(m_soundIndex); }
     /**
      * @brief Writes the fore_auto switch through the host.
-     * @param on  the switch
+     * @param[in] on  the switch
      */
     void setNearAuto(bool on) { setParam(ambient::ParamIdE::FORE_AUTO, on ? 1.0f : 0.0f); }
     /**
      * @brief Loads one recording as the near layer's clip, into the engine being prepared.
-     * @param file  any format JUCE reads
+     * @param[in] file  any format JUCE reads
      * @return false if the file could not be read
      */
     bool loadNearClipFile(const juce::File& file);
     /**
      * @brief a pool: every event plays one of its recordings, at random
-     * @param dir  a folder of recordings; up to NearPoolMax of them are taken, spread over the folder
+     * @param[in] dir  a folder of recordings; up to NearPoolMax of them are taken, spread over the folder
      * @return false if not one of them could be read
      */
     bool loadNearClipFolder(const juce::File& dir);
@@ -340,7 +341,7 @@ public:
      * @{ */
     /**
      * @brief The switch: on starts the timer and writes the session now, off stops it and drops the stored state.
-     * @param on  the switch; kept in the standalone's settings file
+     * @param[in] on  the switch; kept in the standalone's settings file
      */
     void setSessionRecall(bool on);
     /** @return whether the session is being recalled */
@@ -350,13 +351,25 @@ public:
      * @return false in a plugin: there the host owns the state
      */
     static bool sessionRecallAvailable();
-    /** @brief The standalone's Ableton Link, as the settings menu says it: off, alone, or how many apps are with it. */
+    /**
+     * @brief The standalone's Ableton Link, as the settings menu says it: off, alone, or how many apps are with it.
+     * @return the Link's state as text
+     */
     juce::String linkStatus() const;
-    /** @brief Message thread, 30 times a second: joins or leaves the Link session as the settings say (the standalone). */
+    /**
+     * @brief Message thread, 30 times a second: joins or leaves the Link session as the settings say (the standalone).
+     * @pre called on the message thread
+     */
     void linkTick();
-    /** @brief The score cues, as the settings menu says it: off, or where they go and how many have gone. */
+    /**
+     * @brief The score cues, as the settings menu says it: off, or where they go and how many have gone.
+     * @return the cues' state as text
+     */
     juce::String cueStatus() const;
-    /** @brief The family jam, as the settings menu says it (Jam.h): off, leading, or whom it follows. */
+    /**
+     * @brief The family jam, as the settings menu says it (Jam.h): off, leading, or whom it follows.
+     * @return the jam's state as text
+     */
     juce::String jamStatus() const { return m_jam.status(); }
     /**
      * @brief Message thread, 30 times a second: the score cues for a visualiser (02.10.2026; Settings > Score cues).
@@ -365,6 +378,7 @@ public:
      * runs (`/noct/bar i`), the key its conductor plays in (`/noct/key s`, "A JI Minor": the root and the tuning), and a
      * new scene when a preset or a journey's step arrives (`/noct/scene s f`: its name and an energy). KaleidoscopeEnhanced
      * reads them (its CueReceiver.h); thirty times a second is precise enough for music that changes in minutes.
+     * @pre called on the message thread
      */
     void cueTick();
     /** @brief Writes the state into the standalone's settings file if it has changed since the last write. */
@@ -388,22 +402,22 @@ public:
     /**
      * @brief The browser's and the journeys' way to a preset: a cut, or a crossfade of two engines
      *        (see the body and beginTransition).
-     * @param index     preset index; out of range does nothing
-     * @param viaMorph  true asks for the transition; false, or the browser's switch off, is a cut
+     * @param[in] index     preset index; out of range does nothing
+     * @param[in] viaMorph  true asks for the transition; false, or the browser's switch off, is a cut
      */
     void selectPreset(int index, bool viaMorph);
     /** @return the browser's switch: whether a chosen preset travels */
     bool morphOnSelect() const { return m_morphOnSelect; }
     /**
      * @brief The browser's switch: whether a chosen preset travels.
-     * @param on  the switch
+     * @param[in] on  the switch
      */
     void setMorphOnSelect(bool on) { m_morphOnSelect = on; }
     /** @return how long a transition takes, in seconds */
     float morphSelectSeconds() const { return m_morphSelectSeconds.load(std::memory_order_relaxed); }
     /**
      * @brief How long a transition takes; a journey sets it per step.
-     * @param s  seconds, clamped to 0.5 .. 600
+     * @param[in] s  seconds, clamped to 0.5 .. 600
      */
     void setMorphSelectSeconds(float s) { m_morphSelectSeconds = juce::jlimit(0.5f, 600.0f, s); }
     /** @} */
@@ -417,14 +431,14 @@ public:
      * @{ */
     /**
      * @brief Loads a journey file and starts it.
-     * @param file  a .journey file; its name is the journey's when the file names none
+     * @param[in] file  a .journey file; its name is the journey's when the file names none
      * @return false if the file does not parse
      */
     bool startJourney(const juce::File& file);
     /**
      * @brief Starts a journey: lets Morph, the map and a route go, seeds the player from the clock
      *        and begins the first step now.
-     * @param j  the journey; one with no steps does nothing
+     * @param[in] j  the journey; one with no steps does nothing
      * @return false if the journey has no steps
      */
     bool startJourney(const ambient::Journey& j);
@@ -436,25 +450,31 @@ public:
     juce::String journeyStatus() const;
     /** @return the journey being edited or played */
     const ambient::Journey& journey() const { return m_journey; }
-    /** @brief The journey being written anew (15.10.2026: the timeline's edits, "Edit a copy"). @param j the journey */
+    /**
+     * @brief The journey being written anew (15.10.2026: the timeline's edits, "Edit a copy").
+     * @param[in] j  the journey
+     */
     void setJourney(const ambient::Journey& j) { m_journey = j; }
     /** @return the player: the journey under way, its step, the time left in it (the timeline draws it) */
     const ambient::JourneyPlayer& journeyPlayer() const { return m_journeyPlayer; }
-    /** @brief Goes to step @p step of the journey under way (the timeline's click); nothing when none runs. @param step the step */
+    /**
+     * @brief Goes to step @p step of the journey under way (the timeline's click); nothing when none runs.
+     * @param[in] step  the step
+     */
     void skipJourneyTo(int step);
     /**
      * @brief the sound preset playing, appended
-     * @param dwellLo  shortest hold in seconds
-     * @param dwellHi  longest hold in seconds
-     * @param fadeLo   shortest crossfade into the next step, in seconds
-     * @param fadeHi   longest crossfade, in seconds
+     * @param[in] dwellLo  shortest hold in seconds
+     * @param[in] dwellHi  longest hold in seconds
+     * @param[in] fadeLo   shortest crossfade into the next step, in seconds
+     * @param[in] fadeHi   longest crossfade, in seconds
      */
     void journeyAddCurrent(double dwellLo, double dwellHi, double fadeLo, double fadeHi);
     /** @brief Empties the journey being edited. */
     void journeyClear() { m_journey = ambient::Journey(); }
     /**
      * @brief Writes the journey being edited; its name is the file's when it has none.
-     * @param file  the .journey file to write; its folder is created
+     * @param[in] file  the .journey file to write; its folder is created
      * @return false if the journey is empty or could not be written
      */
     bool saveJourney(const juce::File& file);
@@ -486,13 +506,13 @@ public:
     /** @} */
     /**
      * @brief Fills a Morph slot with a preset's values over the knobs as they stand.
-     * @param slot         0 (A) or 1 (B)
-     * @param presetIndex  preset index; out of range does nothing
+     * @param[in] slot         0 (A) or 1 (B)
+     * @param[in] presetIndex  preset index; out of range does nothing
      */
     void setMorphSlotFromPreset(int slot, int presetIndex);
     /**
      * @brief Fills a Morph slot with the knobs as they stand, named "(captured)".
-     * @param slot  0 (A) or 1 (B)
+     * @param[in] slot  0 (A) or 1 (B)
      */
     void setMorphSlotFromCurrent(int slot);
     /**
@@ -500,7 +520,7 @@ public:
      *
      * An empty name is a slot nobody chose, which plays as the knobs stand (Engine::morphSlotSet).
      * It used to read "Init", and that was true: the slot held the defaults, which is the fault.
-     * @param slot  0 (A) or 1 (B)
+     * @param[in] slot  0 (A) or 1 (B)
      * @return the preset's name, "(captured)", or "as played" for a slot nobody chose
      */
     juce::String morphSlotName(int slot) const { return m_slotName[slot & 1].isEmpty() ? juce::String("as played") : m_slotName[slot & 1]; }
@@ -520,7 +540,7 @@ public:
     juce::uint64 oscMessages() const { return m_osc.messagesReceived(); }
     /**
      * @brief Replaces the gesture mappings from their text form (kept in the state).
-     * @param text  the mappings, one per line, as gestureMappings() writes them
+     * @param[in] text  the mappings, one per line, as gestureMappings() writes them
      * @return false if the text does not parse; nothing changes then
      */
     bool setGestureMappings(const juce::String& text);
@@ -533,7 +553,7 @@ public:
      * @{ */
     /**
      * @brief Starts writing the output; a recording already running is stopped first.
-     * @param file  the WAV to write (replaced)
+     * @param[in] file  the WAV to write (replaced)
      * @return false if the file or the writer could not be opened
      */
     bool startRecording(const juce::File& file);
@@ -550,16 +570,16 @@ public:
      * @{ */
     /**
      * @brief Arms a parameter; the next controller message binds to it.
-     * @param id  the parameter
+     * @param[in] id  the parameter
      */
     void armMidiLearn(ambient::ParamIdE id) { m_learnTarget.store(static_cast<int>(id)); }
     /**
      * @brief Unbinds a parameter from its controller and disarms it if it was armed.
-     * @param id  the parameter
+     * @param[in] id  the parameter
      */
     void clearMidiLearn(ambient::ParamIdE id);
     /**
-     * @param id  the parameter
+     * @param[in] id  the parameter
      * @return the controller bound to it, -1 if unmapped
      */
     int  midiCcFor(ambient::ParamIdE id) const;
@@ -576,7 +596,7 @@ public:
     void startSetRecording();
     /**
      * @brief Stops recording, waits for the audio thread to leave the timeline, and writes it.
-     * @param saveTo  the file to write; an empty File only stops
+     * @param[in] saveTo  the file to write; an empty File only stops
      * @return false if the file could not be written
      */
     bool stopSetRecording(const juce::File& saveTo);
@@ -584,7 +604,7 @@ public:
     bool isRecordingSet() const { return m_setRecording.load(); }
     /**
      * @brief Loads a set file and plays it from the start; recording stops.
-     * @param file  a file written by stopSetRecording
+     * @param[in] file  a file written by stopSetRecording
      * @return false if the file does not load
      */
     bool playSetFile(const juce::File& file);
@@ -600,7 +620,7 @@ public:
      * @{ */
     /**
      * @brief Hands a route to the engine and keeps its text for the state.
-     * @param text  the route in its text form
+     * @param[in] text  the route in its text form
      * @return false if the engine does not accept the text; nothing changes then
      */
     bool setRouteText(const juce::String& text) { if (!live().setRouteText(text.toRawUTF8())) return false; m_routeText = text; return true; }
@@ -610,7 +630,7 @@ public:
     void clearRoute() { live().clearRoute(); m_routeText.clear(); }
     /**
      * @brief Appends a waypoint to the engine's route and reads the route's text back.
-     * @param w  the waypoint
+     * @param[in] w  the waypoint
      * @return false if the engine refused it (the route is full)
      */
     bool addRoutePoint(const ambient::Waypoint& w) { if (!live().addRoutePoint(w)) return false; char buf[4096]; live().writeRoute(buf, sizeof(buf)); m_routeText = buf; return true; }
@@ -624,14 +644,14 @@ public:
      * juce::BigInteger grows on demand, so the library's size is not a limit here.
      * @{ */
     /**
-     * @param preset  preset index
+     * @param[in] preset  preset index
      * @return whether it is starred
      */
     bool isFavourite(int preset) const { return preset >= 0 && m_favourites[preset]; }
     /**
      * @brief Stars or unstars a preset and writes the file.
-     * @param preset  preset index; out of range does nothing
-     * @param on      starred or not
+     * @param[in] preset  preset index; out of range does nothing
+     * @param[in] on      starred or not
      */
     void setFavourite(int preset, bool on);
     /** @return how many installed presets are starred */
@@ -644,7 +664,7 @@ public:
     bool favouritesFirst() const { return m_favouritesFirst; }
     /**
      * @brief Sets "favourites first" and writes the file.
-     * @param on  the switch
+     * @param[in] on  the switch
      */
     void setFavouritesFirst(bool on) { m_favouritesFirst = on; saveFavourites(); }
     /** @} */
@@ -686,7 +706,7 @@ private:
     struct ParamWatch : juce::AudioProcessorParameter::Listener {
         /**
          * @brief Binds the counter.
-         * @param g  the counter to bump (the processor's m_paramGen)
+         * @param[in,out] g  the counter to bump (the processor's m_paramGen)
          */
         explicit ParamWatch(std::atomic<uint32_t>& g) : m_gen(g) {}
         /** @brief Bumps the counter; the value itself is not looked at. */
@@ -717,22 +737,25 @@ private:
     juce::AudioBuffer<float> m_planeBuf;                       ///< 2 x NumStems channels, a block long (prepareToPlay)
     std::array<float*, 2 * ambient::Engine::NumStems> m_planePtr{};   ///< near L/R, far L/R, cosmos L/R, room L/R
     bool m_planesOn = false;                                   ///< audio thread: the engine writes the planes now
-    /** @brief The buses: the main output, then one stereo output per plane, those off by default. */
+    /**
+     * @brief The buses: the main output, then one stereo output per plane, those off by default.
+     * @return the buses
+     */
     static BusesProperties busLayout();
     /**
-     * @param i  0 or 1
+     * @param[in] i  0 or 1
      * @return the engine at that index, which must exist
      */
     ambient::Engine& engineAt(int i) { return *m_engines[i]; }
     /**
      * @brief message thread: build and prepare it if it is gone
-     * @param i  0 or 1
+     * @param[in] i  0 or 1
      * @return the engine at that index, built and prepared if it was not there
      */
     ambient::Engine& ensureEngine(int i);
     /**
      * @brief the scale, wavetable, clips and room the player loaded
-     * @param e  the engine that has just been built, to receive them from the live one
+     * @param[in,out] e  the engine that has just been built, to receive them from the live one
      */
     void carryUserData(ambient::Engine& e);
     /** @brief message thread: give back the one nothing is using */
@@ -786,7 +809,7 @@ private:
     int  m_pendingPreset = -1;         ///< a change waiting for the audio thread to free an engine
     /**
      * @brief message thread: prepare the incoming engine and publish it
-     * @param index  the preset to build on the other engine
+     * @param[in] index  the preset to build on the other engine
      */
     void beginTransition(int index);
     /**
@@ -801,7 +824,7 @@ private:
     struct PresetPump : juce::Timer {
         /**
          * @brief Binds the processor.
-         * @param p  the processor whose requests the pump serves
+         * @param[in,out] p  the processor whose requests the pump serves
          */
         explicit PresetPump(NoctuaryProcessor& p) : m_proc(p) {}
         /** @brief 30 times a second: the OSC preset requests, a pending transition, the journey's step. */
@@ -879,13 +902,13 @@ private:
     std::array<std::atomic<float>, 128> m_heldVel{};   ///< audio writes, beginTransition reads
     /**
      * @brief A note to the live engine, remembered in m_heldVel.
-     * @param note  MIDI note 0 .. 127; anything else is ignored
-     * @param vel   velocity 0 .. 1; remembered as at least 1/127 so a held note is never mistaken for none
+     * @param[in] note  MIDI note 0 .. 127; anything else is ignored
+     * @param[in] vel   velocity 0 .. 1; remembered as at least 1/127 so a held note is never mistaken for none
      */
     void noteOn(int note, float vel);
     /**
      * @brief A note off to the live engine, forgotten in m_heldVel.
-     * @param note  MIDI note 0 .. 127; anything else is ignored
+     * @param[in] note  MIDI note 0 .. 127; anything else is ignored
      */
     void noteOff(int note);
     /** @brief Every note off, in m_heldVel and in the live engine. */
@@ -918,6 +941,7 @@ private:
     /**
      * @brief Trims the master gain after a preset so its measured loudness meets the common target;
      *        does nothing while level matching is off or the preset was never measured.
+     * @param[in] presetIndex  the preset just loaded, whose measured loudness (ambient::presetMeta) is matched
      */
     void       applyLevelMatch(int presetIndex);
     juce::BigInteger m_favourites;   ///< one bit per installed preset: starred
@@ -942,18 +966,18 @@ private:
     double m_setClock = 0.0;   ///< the audio thread's clock into the set, in seconds
     /**
      * @brief Reads an audio file folded to one channel, at most two minutes of it.
-     * @param file        any format JUCE reads
-     * @param mono        receives the samples, all channels averaged
-     * @param sampleRate  receives the file's rate
+     * @param[in]  file        any format JUCE reads
+     * @param[out] mono        receives the samples, all channels averaged
+     * @param[out] sampleRate  receives the file's rate
      * @return false if the file could not be read
      */
     bool readMono(const juce::File& file, std::vector<float>& mono, double& sampleRate);
     /**
      * @brief Reads an audio file keeping its image: even channels to the left, odd to the right.
-     * @param file        any format JUCE reads
-     * @param left        receives the left samples (the only ones for a mono file)
-     * @param right       receives the right samples; left empty for a mono file
-     * @param sampleRate  receives the file's rate
+     * @param[in]  file        any format JUCE reads
+     * @param[out] left        receives the left samples (the only ones for a mono file)
+     * @param[out] right       receives the right samples; left empty for a mono file
+     * @param[out] sampleRate  receives the file's rate
      * @return false if the file could not be read
      */
     bool readStereo(const juce::File& file, std::vector<float>& left, std::vector<float>& right, double& sampleRate);
@@ -986,13 +1010,13 @@ private:
     /**
      * @brief Applies a preset's parameters through the host and, for the layers that have it, hands
      *        its modulation to the engine being prepared.
-     * @param p      the preset
-     * @param scope  which of its parameters to apply (ambient::PresetScope)
+     * @param[in] p      the preset
+     * @param[in] scope  which of its parameters to apply (ambient::PresetScope)
      */
     void applyScoped(const ambient::Preset& p, ambient::PresetScopeE scope);
     /**
      * @brief a pack preset's own sample and wavetable
-     * @param index  the preset whose files are read
+     * @param[in] index  the preset whose files are read
      */
     void loadPresetFiles(int index);
     std::array<std::atomic<int>, 128> m_ccMap{};   ///< controller -> parameter index, -1 = none
@@ -1012,24 +1036,24 @@ private:
      * @{ */
     /**
      * @brief Writes a parameter's real value through the host, so automation and the editor see it.
-     * @param id     the parameter
-     * @param value  its real value (Hz, dB, ...), converted to the host's 0..1
+     * @param[in] id     the parameter
+     * @param[in] value  its real value (Hz, dB, ...), converted to the host's 0..1
      */
     void setParam(ambient::ParamIdE id, float value) override;
     /**
      * @brief Writes a parameter through the host from its normalised form.
-     * @param id    the parameter
-     * @param norm  0..1 along the knob curve, clamped
+     * @param[in] id    the parameter
+     * @param[in] norm  0..1 along the knob curve, clamped
      */
     void setParamNormalised(ambient::ParamIdE id, float norm) override;
     /**
      * @brief Notes to the audio thread's queue, preset changes to the message thread's.
-     * @param e  the event
+     * @param[in] e  the event
      */
     void event(const ambient::ControlEvent& e) override;
     /**
      * @brief The head's yaw for the live engine's binaural mode.
-     * @param degrees  the yaw from /ambient/head
+     * @param[in] degrees  the yaw from /ambient/head
      */
     void setHeadYaw(float degrees) override { live().setHeadYaw(degrees); }
     ambient::GestureLayer m_gestures;   ///< OSC inputs mapped onto parameters, updated once a block

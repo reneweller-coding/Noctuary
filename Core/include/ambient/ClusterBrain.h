@@ -25,6 +25,7 @@
  * rendered and measured before most of the knobs existed. The comments cite the user's rule book
  * of 12.09.2026 by section (R6.1, Anti 2, G3, table 2): those are the rules the conductor was made
  * to keep, and the measurements beside them are what it did before and after.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -47,11 +48,11 @@ namespace ambient {
  * (Params.cpp, BrainModeNames).
  */
 enum class BrainModeE : int { FREE = 0, CHORDS, COUNT };
-/** @var BrainMode::Free
+/** @var BrainModeE::FREE
  *  @brief Notes start and stop on their own timers; the cluster breathes around its root. */
-/** @var BrainMode::Chords
+/** @var BrainModeE::CHORDS
  *  @brief The cluster is kept full and one voice at a time is exchanged for the best-fitting note within its voice-leading allowance. */
-/** @var BrainMode::Count
+/** @var BrainModeE::COUNT
  *  @brief Number of modes, for the tables. */
 constexpr int NumBrainModes = static_cast<int>(BrainModeE::COUNT);   ///< entries of BrainModeNames
 extern const char* const BrainModeNames[NumBrainModes];             ///< "Free", "Chords" -- the choice names of the parameter (Params.cpp)
@@ -81,12 +82,11 @@ struct BrainSpectrum {
  *     b1 = 3.5, b2 = 5.75, d* = 0.24, s1 = 0.021, s2 = 19
  * so that the peak of the roughness sits at about a quarter of a critical bandwidth whatever the
  * register. Pairs more than a few critical bandwidths apart contribute nothing and are skipped.
- *
- * @param f1  fundamental of the first tone, Hz
- * @param f2  fundamental of the second tone, Hz
- * @param sp  the partial template both tones are sounded with
- * @return    the summed roughness, non-negative, in the square of the template's amplitude units;
- *            not normalised, so compare only values made with the same template
+ * @param[in] f1  fundamental of the first tone, Hz
+ * @param[in] f2  fundamental of the second tone, Hz
+ * @param[in] sp  the partial template both tones are sounded with
+ * @return the summed roughness, non-negative, in the square of the template's amplitude units; not normalised, so
+ *         compare only values made with the same template
  */
 inline double spectralRoughness(double f1, double f2, const BrainSpectrum& sp)
 {
@@ -115,11 +115,10 @@ inline double spectralRoughness(double f1, double f2, const BrainSpectrum& sp)
  * shape of the sound and not how loud it is -- 0 for a single tone or a pure octave, and up where
  * partials sit a few tens of hertz apart and beat. The library's map reads a preset's roughness
  * with it; the conductor uses the template form above, and both are the same Plomp-Levelt curve.
- *
- * @param f  frequencies of the peaks, Hz, in any order
- * @param a  their amplitudes, linear, same length as @p f
- * @param n  how many peaks
- * @return   the normalised roughness, 0 for no beating at all; 0 as well when the amplitudes sum to nothing
+ * @param[in] f  frequencies of the peaks, Hz, in any order
+ * @param[in] a  their amplitudes, linear, same length as @p f
+ * @param[in] n  how many peaks
+ * @return the normalised roughness, 0 for no beating at all; 0 as well when the amplitudes sum to nothing
  */
 inline double peakRoughness(const double* f, const double* a, int n)
 {
@@ -158,14 +157,14 @@ inline double peakRoughness(const double* f, const double* a, int n)
  *
  * Called by the engine on the message thread whenever the template changes (EngineControl.cpp,
  * the Timbre scale slot); four hundred roughness evaluations, no allocation.
- *
- * @param sp      the partial template to find the scale of
- * @param out     receives the scale: period 2, ratios ascending from 1.0, named "Timbre (n)"; left as
- *                an empty FixedScale when the function returns false after reaching it
- * @param want    how many dips to keep at most (the least rough ones), capped at FixedScale::Max - 1
- * @param baseHz  the fundamental the sweep is made at; the curve depends on the register through the
- *                critical bandwidth, so middle C is the reference
- * @return        true when a scale of at least two degrees (the unison and one dip) was made
+ * @param[in]  sp      the partial template to find the scale of
+ * @param[out] out     receives the scale: period 2, ratios ascending from 1.0, named "Timbre (n)"; left as an empty
+ *                     FixedScale when the function returns false after reaching it
+ * @param[in]  want    how many dips to keep at most (the least rough ones), capped at FixedScale::Max - 1
+ * @param[in]  baseHz  the fundamental the sweep is made at; the curve depends on the register through the critical
+ *                     bandwidth, so middle C is the reference
+ * @return true when a scale of at least two degrees (the unison and one dip) was made
+ * @pre called on the message thread
  */
 inline bool makeTimbreScale(const BrainSpectrum& sp, FixedScale& out, int want = 12,
                             double baseHz = 261.6255653005986)
@@ -231,11 +230,10 @@ inline bool makeTimbreScale(const BrainSpectrum& sp, FixedScale& out, int want =
  * is the yardstick because it is the roughest interval a scale contains, and measuring against
  * it rather than against a fixed number keeps the score meaningful for a soft timbre with few
  * partials and for a bright one alike.
- *
- * @param f1  the reference tone, Hz; the semitone yardstick is measured above it
- * @param f2  the tone judged against it, Hz
- * @param sp  the partial template; an empty one answers 1
- * @return    consonance 0.05 .. 1 -- floored at 0.05 so that no interval is ever quite impossible
+ * @param[in] f1  the reference tone, Hz; the semitone yardstick is measured above it
+ * @param[in] f2  the tone judged against it, Hz
+ * @param[in] sp  the partial template; an empty one answers 1
+ * @return consonance 0.05 .. 1 -- floored at 0.05 so that no interval is ever quite impossible
  */
 inline double spectralConsonance(double f1, double f2, const BrainSpectrum& sp)
 {
@@ -281,13 +279,12 @@ inline double spectralConsonance(double f1, double f2, const BrainSpectrum& sp)
  * Thirds knob told them to avoid it. So a harmonic whose number holds the prime five (5, 10, 15,
  * 20, 25, 30) counts w5 times as much, and one holding seven (7, 14, 21, 28) w7 times; the
  * conductor sets w5 from Thirds and w7 from Seventh, both one at their defaults.
- *
- * @param freqs  the tones of the chord, Hz, in any order
- * @param n      how many; fewer than two have no root and score 0
- * @param w5     the weight of a harmonic whose number holds the prime five; 1 leaves it as it was
- * @param w7     the weight of one holding the prime seven
- * @return       0 .. 1, the best root's mean fit per tone (about 1 for a low, clean harmonic
- *               segment, near 0 for a set no series can hold); 0 for a non-positive frequency
+ * @param[in] freqs  the tones of the chord, Hz, in any order
+ * @param[in] n      how many; fewer than two have no root and score 0
+ * @param[in] w5     the weight of a harmonic whose number holds the prime five; 1 leaves it as it was
+ * @param[in] w7     the weight of one holding the prime seven
+ * @return 0 .. 1, the best root's mean fit per tone (about 1 for a low, clean harmonic segment, near 0 for a set no
+ *         series can hold); 0 for a non-positive frequency
  */
 inline double chordHarmonicity(const double* freqs, int n, double w5 = 1.0, double w7 = 1.0)
 {
@@ -336,12 +333,11 @@ inline double chordHarmonicity(const double* freqs, int n, double w5 = 1.0, doub
  * each assigned to its nearest subharmonic number, the same fit, the same weights, the same two
  * rules against the trivial answers. The conductor takes the larger of the two, scaled by Utonal,
  * so a dark family can listen hard for rootedness without being pulled into major.
- *
- * @param freqs  the tones of the chord, Hz, in any order
- * @param n      how many; fewer than two score 0
- * @param w5     the weight of a subharmonic whose number holds the prime five
- * @param w7     the weight of one holding the prime seven
- * @return       0 .. 1, the best top's mean fit per tone; 0 for a non-positive frequency
+ * @param[in] freqs  the tones of the chord, Hz, in any order
+ * @param[in] n      how many; fewer than two score 0
+ * @param[in] w5     the weight of a subharmonic whose number holds the prime five
+ * @param[in] w7     the weight of one holding the prime seven
+ * @return 0 .. 1, the best top's mean fit per tone; 0 for a non-positive frequency
  */
 inline double chordUtonality(const double* freqs, int n, double w5 = 1.0, double w7 = 1.0)
 {
@@ -439,8 +435,8 @@ struct KeyProfile {
 
 /**
  * @brief Whether a scale is twelve-tone equal temperament, where the major and minor profiles are the right context.
- * @param s  the scale
- * @return   true for twelve degrees per octave, each within a cent of 2^(i/12)
+ * @param[in] s  the scale
+ * @return true for twelve degrees per octave, each within a cent of 2^(i/12)
  */
 inline bool isTwelveTet(const FixedScale& s)
 {
@@ -452,10 +448,11 @@ inline bool isTwelveTet(const FixedScale& s)
 
 /**
  * @brief Builds the scale's own tonal hierarchy (see KeyProfile).
- * @param s        the scale in force; its period should be the octave (the conductor does not ask for a key otherwise)
- * @param thirds   the Thirds knob, -1 .. 1: tilts the bins of the thirds and sixths
- * @param seconds  the Seconds knob, -1 .. 1: tilts the bins of the seconds and sevenths
- * @param out      receives the profile
+ * @param[in]  s        the scale in force; its period should be the octave (the conductor does not ask for a key
+ *                      otherwise)
+ * @param[in]  thirds   the Thirds knob, -1 .. 1: tilts the bins of the thirds and sixths
+ * @param[in]  seconds  the Seconds knob, -1 .. 1: tilts the bins of the seconds and sevenths
+ * @param[out] out      receives the profile
  */
 inline void scaleKeyProfile(const FixedScale& s, float thirds, float seconds, KeyProfile& out)
 {
@@ -494,9 +491,8 @@ inline void scaleKeyProfile(const FixedScale& s, float thirds, float seconds, Ke
  * Taken from the frequency rather than from the MIDI number because a scale in this instrument
  * need not have twelve degrees -- with consecutive degrees on a nine-tone scale, note % 12 means
  * nothing at all, while cents always mean cents.
- *
- * @param f  frequency in Hz; anything not positive lands in bin 0
- * @return   0 .. 11, bin 0 at middle C (261.63 Hz) and its octaves, rounded to the nearest semitone
+ * @param[in] f  frequency in Hz; anything not positive lands in bin 0
+ * @return 0 .. 11, bin 0 at middle C (261.63 Hz) and its octaves, rounded to the nearest semitone
  */
 inline int pitchClassOf(double f)
 {
@@ -516,10 +512,9 @@ inline int pitchClassOf(double f)
  * One for a chord whose notes divide the octave equally, zero for one whose notes are all in the
  * same place. Duplicated pitch classes leave a gap of zero, which is exactly right: an octave
  * doubling adds nothing to how the chord is spread.
- *
- * @param freqs  the tones, Hz; non-positive ones are skipped, at most sixteen are counted
- * @param n      how many; fewer than two score 0
- * @return       0 .. 1 as described, with the pitch classes measured in fractional semitones
+ * @param[in] freqs  the tones, Hz; non-positive ones are skipped, at most sixteen are counted
+ * @param[in] n      how many; fewer than two score 0
+ * @return 0 .. 1 as described, with the pitch classes measured in fractional semitones
  */
 inline double chordEvenness(const double* freqs, int n)
 {
@@ -581,12 +576,11 @@ struct KeyEstimate {
  *
  * With a scale's own profile (25.09.2026, see KeyProfile) there are twelve candidates instead of
  * twenty-four: the scale says what the mode is, and only the tonic is looked for.
- *
- * @param weights  twelve weights, one per pitch class in pitchClassOf()'s bins -- the conductor's
- *                 faded histogram of how long each class has been sounding
- * @param modal    the scale's profile, or nullptr for the Krumhansl-Kessler major and minor pair
- * @return         the best of the keys with its correlation; key -1 and confidence 0 for silence,
- *                 or for twelve classes in perfect balance
+ * @param[in] weights  twelve weights, one per pitch class in pitchClassOf()'s bins -- the conductor's faded histogram
+ *                     of how long each class has been sounding
+ * @param[in] modal    the scale's profile, or nullptr for the Krumhansl-Kessler major and minor pair
+ * @return the best of the keys with its correlation; key -1 and confidence 0 for silence, or for twelve classes in
+ *         perfect balance
  */
 inline KeyEstimate findKey(const float* weights, const KeyProfile* modal = nullptr)
 {
@@ -743,10 +737,8 @@ struct BrainParams {
      * @brief The draw, shaped.
      *
      * Written so that the default returns u untouched, bit for bit.
-     *
-     * @param u  a uniform draw in [0, 1) from the conductor's stream
-     * @return   the draw pushed by Spread towards the middle or the extremes and by Bias up or
-     *           down, still in 0 .. 1
+     * @param[in] u  a uniform draw in [0, 1) from the conductor's stream
+     * @return the draw pushed by Spread towards the middle or the extremes and by Bias up or down, still in 0 .. 1
      */
     float shaped(float u) const
     {
@@ -882,17 +874,16 @@ struct BrainParams {
     /**
      * @brief The equivalent rectangular bandwidth of the auditory filter at f, in hertz
      * (Glasberg and Moore 1990): ERB = 24.7 (0.00437 f + 1).
-     * @param f  centre frequency, Hz
-     * @return   the bandwidth in Hz (about 25 Hz at the bottom, 130 Hz at 1 kHz)
+     * @param[in] f  centre frequency, Hz
+     * @return the bandwidth in Hz (about 25 Hz at the bottom, 130 Hz at 1 kHz)
      */
     static double erbAt(double f) { return 24.7 * (0.00437 * f + 1.0); }
     /**
      * @brief How much a candidate at fa is discouraged by a sounding tone at fb. 1 leaves it alone.
-     * @param fa  the candidate's frequency, Hz
-     * @param fb  the sounding tone's frequency, Hz
-     * @return    a weight to multiply the candidate's by: below 1 (down to 0.05 at the same pitch
-     *            and Spacing 1) when Spacing is positive, above 1 when it is negative, exactly 1
-     *            at Spacing 0 or more than about one ERB apart
+     * @param[in] fa  the candidate's frequency, Hz
+     * @param[in] fb  the sounding tone's frequency, Hz
+     * @return a weight to multiply the candidate's by: below 1 (down to 0.05 at the same pitch and Spacing 1) when
+     *         Spacing is positive, above 1 when it is negative, exactly 1 at Spacing 0 or more than about one ERB apart
      */
     float crowding(double fa, double fb) const
     {
@@ -908,10 +899,9 @@ struct BrainParams {
      *
      * The ratio score of intervalConsonance() blended with spectralConsonance() over the voice's
      * template by Timbre; with Timbre at 0 or no template the ratio score alone, as it always was.
-     *
-     * @param fa  the candidate, Hz
-     * @param fb  the tone it is judged against (the root, or a sounding voice), Hz
-     * @return    0 .. 1, 1 for a unison, about a tenth for a semitone on either scale
+     * @param[in] fa  the candidate, Hz
+     * @param[in] fb  the tone it is judged against (the root, or a sounding voice), Hz
+     * @return 0 .. 1, 1 for a unison, about a tenth for a semitone on either scale
      */
     double consonanceOf(double fa, double fb) const
     {
@@ -938,9 +928,9 @@ struct BrainEvent {
     int   m_note;       ///< MIDI note number, 0 .. 127, within the conductor's range
     float m_velocity;   ///< 0 .. 1 for a NoteOn -- nearness rather than loudness (see BrainParams::topSoft); 0 for a NoteOff
 };
-/** @var BrainEvent::Type::NoteOn
+/** @var BrainEvent::TypeE::NOTE_ON
  *  @brief The note begins, with the event's velocity. */
-/** @var BrainEvent::Type::NoteOff
+/** @var BrainEvent::TypeE::NOTE_OFF
  *  @brief The note is let go; velocity is 0. */
 
 /**
@@ -982,10 +972,9 @@ public:
      * already silenced or never started the voices. The guard clocks are set so that the first
      * note may begin at once, every pitch counts as long rested, and the exposition (m_settled)
      * starts over.
-     *
-     * @param seed      seed of the conductor's own Rng, usually forked from the engine's
-     * @param rootNote  MIDI note the root and the home root begin on (the engine passes its key
-     *                  root an octave down, or 48 plus the pitch class)
+     * @param[in] seed      seed of the conductor's own Rng, usually forked from the engine's
+     * @param[in] rootNote  MIDI note the root and the home root begin on (the engine passes its key root an octave
+     *                      down, or 48 plus the pitch class)
      */
     void reset(uint64_t seed, int rootNote)
     {
@@ -1057,13 +1046,14 @@ public:
      * both conductors, and read by update() at its next tick.
      * @{ */
     /**
-     * @brief Hold Onsets: while set, update() begins no new note (a Chords-mode step asked for by hand still goes through).
-     * @param h  true while a near Note or a Phrase is speaking
+     * @brief Hold Onsets: while set, update() begins no new note (a Chords-mode step asked for by hand still goes
+     *        through).
+     * @param[in] h  true while a near Note or a Phrase is speaking
      */
     void holdOnsets(bool h) { m_onsetHold = h; }
     /**
      * @brief Hold Root: while set, the root does not wander (an anchor note from the keyboard still sets it).
-     * @param h  true while a sequence is running
+     * @param[in] h  true while a sequence is running
      */
     void holdRoot(bool h)   { m_rootHold = h; }
     /** @} */
@@ -1097,7 +1087,7 @@ public:
      *
      * Unlike the private setRoot(int, const BrainParams&) it neither resets the root's age nor
      * swaps a degree; it is bookkeeping, not a decision.
-     * @param note  the new root, clamped to 0 .. 127
+     * @param[in] note  the new root, clamped to 0 .. 127
      */
     void setRoot(int note) { m_root = clampv(note, 0, 127); }
     /**
@@ -1107,7 +1097,7 @@ public:
     int  activeCount() const { int c = 0; for (auto& s : m_slots) if (s.m_note >= 0) ++c; return c; }
     /**
      * @brief Whether a note is in the cluster: in a slot, or exchanged and still sounding out its overlap.
-     * @param note  MIDI note
+     * @param[in] note  MIDI note
      * @return true while the engine has a voice on it that the conductor started
      */
     bool sounding(int note) const
@@ -1159,10 +1149,9 @@ public:
      *
      * Message thread, from Engine::soundingCluster at the start of a crossfade; adopt() on the
      * arriving engine is its counterpart.
-     *
-     * @param notes  receives the MIDI notes, at least Slots long
-     * @param vels   receives their velocities, at least Slots long
-     * @return       how many were written, 0 .. Slots
+     * @param[out] notes  receives the MIDI notes, at least Slots long
+     * @param[out] vels   receives their velocities, at least Slots long
+     * @return how many were written, 0 .. Slots
      */
     int soundingNotes(int* notes, float* vels) const
     {
@@ -1187,12 +1176,12 @@ public:
      * go through the ordinary path when it does not fit -- and emitted as a NoteOn. Message thread,
      * from Engine::adoptCluster, before the engine has rendered a block; the engine asks for a
      * fill afterwards (requestFill), because this clears the flag.
-     *
+     * @param[in] notes  the inherited MIDI notes, as soundingNotes() wrote them
+     * @param[in] vels   their velocities
+     * @param[in] count  how many; at most Slots are taken
+     * @param[in] emit   receives the NoteOffs of what was here and the NoteOns of what arrives
+     * @pre called on the message thread
      * @tparam EmitFn  callable `void(const BrainEvent&)`
-     * @param notes  the inherited MIDI notes, as soundingNotes() wrote them
-     * @param vels   their velocities
-     * @param count  how many; at most Slots are taken
-     * @param emit   receives the NoteOffs of what was here and the NoteOns of what arrives
      */
     template <class EmitFnT>
     void adopt(const int* notes, const float* vels, int count, EmitFnT&& emit)
@@ -1269,8 +1258,8 @@ public:
     double excitation() const { return m_excite; }
     /**
      * @brief One place of the deja-vu ring, for the panel's picture of the loop.
-     * @param i  place, 0 .. Ring - 1
-     * @return   the MIDI note held there, or -1 for an empty place or an index out of range
+     * @param[in] i  place, 0 .. Ring - 1
+     * @return the MIDI note held there, or -1 for an empty place or an index out of range
      */
     int ringNote(int i) const { return (i >= 0 && i < Ring) ? m_ring[i] : -1; }
     /**
@@ -1295,15 +1284,14 @@ public:
      * the hold expiries with their two guards, the memoryless clock with its floor and its guards,
      * the retirement of a voice when the room is full, the weighted draw with the root's wander
      * inside it, the constellation memory, the deja-vu ring, and Blend's extra notes.
-     *
+     * @param[in] dt          seconds since the last tick: a control block, or the wait Quantize accumulated
+     * @param[in] pIn         the knobs as the engine filled them for this block (read through guard())
+     * @param[in] anchorNote  the lowest MIDI note held on the keyboard, or -1; while held it is the root and the root
+     *                        does not wander
+     * @param[in] freqOf      see FreqFn
+     * @param[in] emit        see EmitFn
      * @tparam FreqFn  callable `double(int note)`: the frequency of a MIDI note in the engine's current scale
      * @tparam EmitFn  callable `void(const BrainEvent&)`: receives every NoteOn and NoteOff
-     * @param dt          seconds since the last tick: a control block, or the wait Quantize accumulated
-     * @param pIn         the knobs as the engine filled them for this block (read through guard())
-     * @param anchorNote  the lowest MIDI note held on the keyboard, or -1; while held it is the root
-     *                    and the root does not wander
-     * @param freqOf      see FreqFn
-     * @param emit        see EmitFn
      */
     template <class FreqFnT, class EmitFnT>
     void update(double dt, const BrainParams& pIn, int anchorNote, FreqFnT&& freqOf, EmitFnT&& emit)
@@ -1808,13 +1796,12 @@ private:
      * oldest voice -- or with Smooth the one whose exchange travels least for what it gains -- is
      * exchanged for chooseNote()'s pick, the allowance doubling until a note is found, and the root
      * may travel with the chord. Chords mode has no holds: `remaining` counts age here.
-     *
+     * @param[in] dt      seconds since the last tick
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @param[in] emit    receives the NoteOns and NoteOffs
      * @tparam FreqFn  callable `double(int note)`
      * @tparam EmitFn  callable `void(const BrainEvent&)`
-     * @param dt      seconds since the last tick
-     * @param p       the knobs
-     * @param freqOf  frequency of a MIDI note in the engine's current scale
-     * @param emit    receives the NoteOns and NoteOffs
      */
     template <class FreqFnT, class EmitFnT>
     void updateChords(double dt, const BrainParams& p, FreqFnT&& freqOf, EmitFnT&& emit)
@@ -2018,11 +2005,10 @@ private:
      * Draws the hold (Free mode) and the velocity from the stream, resets the onset clock and emits
      * the NoteOn itself; the callers stamp the constellation memory around it. Nothing happens
      * when every slot is taken.
-     *
+     * @param[in] note  MIDI note to start, already passed admissible() or chooseNote()
+     * @param[in] p     the knobs: the mode decides what `remaining` means, the register and roles the hold and velocity
+     * @param[in] emit  receives the NoteOn
      * @tparam EmitFn  callable `void(const BrainEvent&)`
-     * @param note  MIDI note to start, already passed admissible() or chooseNote()
-     * @param p     the knobs: the mode decides what `remaining` means, the register and roles the hold and velocity
-     * @param emit  receives the NoteOn
      */
     template <class EmitFnT>
     void startIn(int note, const BrainParams& p, EmitFnT&& emit)
@@ -2051,10 +2037,9 @@ private:
      * twenty seconds (measured, 0.5 at lag 20). The mean is what the rate says either way.
      *
      * One draw from the stream.
-     *
-     * @param mean  the mean gap in seconds, as tickSeconds() gives it
-     * @return      seconds to wait: the floor (twenty seconds, or half the mean where that is less)
-     *              plus an exponential draw whose mean makes the whole average out to @p mean
+     * @param[in] mean  the mean gap in seconds, as tickSeconds() gives it
+     * @return seconds to wait: the floor (twenty seconds, or half the mean where that is less) plus an exponential draw
+     *         whose mean makes the whole average out to @p mean
      */
     double gapDraw(double mean)
     {
@@ -2070,9 +2055,8 @@ private:
      * minutes.
      *
      * One formula for both modes.
-     *
-     * @param p  the knobs: Wander, Root Move, Home and Home Time
-     * @return   a probability 0 .. 1 that the decision at hand asks wanderRoot() to move
+     * @param[in] p  the knobs: Wander, Root Move, Home and Home Time
+     * @return a probability 0 .. 1 that the decision at hand asks wanderRoot() to move
      */
     float moveChanceOf(const BrainParams& p) const
     {
@@ -2083,8 +2067,8 @@ private:
 
     /**
      * @brief Whether `note`, already in its slot, is the lowest voice sounding.
-     * @param note  the MIDI note asked about
-     * @return      true when no slot holds a lower note -- the voice Bass Hold applies to
+     * @param[in] note  the MIDI note asked about
+     * @return true when no slot holds a lower note -- the voice Bass Hold applies to
      */
     bool isLowest(int note) const
     {
@@ -2113,16 +2097,15 @@ private:
      * B2 and C3 are no longer in two different octaves. And on a keyboard that walks the scale
      * degree by degree (19-EDO, Bohlen-Pierce) a MIDI step is not a semitone: there every
      * distance is read from the frequencies, in semitones of a hundred cents.
-     *
+     * @param[in] c             the candidate MIDI note
+     * @param[in] low           bottom of the register, MIDI
+     * @param[in] high          top of the register, MIDI (the roles are placed between the two)
+     * @param[in] rootSounding  whether the root's pitch class is in the cluster, for the leading-note rule
+     * @param[in] p             the knobs of the register roles section
+     * @param[in] freqOf        frequency of a MIDI note in the engine's current scale
+     * @param[in] pivotal       true for the pivot tone of a changeover, which may be the leading note
+     * @return a weight to multiply the candidate's by, 0 for a veto, 1 with every knob at its default
      * @tparam FreqFn       callable `double(int note)`
-     * @param c             the candidate MIDI note
-     * @param low           bottom of the register, MIDI
-     * @param high          top of the register, MIDI (the roles are placed between the two)
-     * @param rootSounding  whether the root's pitch class is in the cluster, for the leading-note rule
-     * @param p             the knobs of the register roles section
-     * @param freqOf        frequency of a MIDI note in the engine's current scale
-     * @param pivotal       true for the pivot tone of a changeover, which may be the leading note
-     * @return              a weight to multiply the candidate's by, 0 for a veto, 1 with every knob at its default
      */
     template <class FreqFnT>
     float ruleWeight(int c, int low, int high, bool rootSounding, const BrainParams& p, FreqFnT&& freqOf, bool pivotal = false) const
@@ -2277,12 +2260,11 @@ private:
      * The note number itself when the keys snap to the scale -- which is what every rule was
      * written in -- and the place of its frequency, 69 + 12 log2(f / 440), when the keyboard walks
      * the scale degree by degree and a MIDI step is whatever the scale's step is (19-EDO, Bohlen-Pierce).
-     *
+     * @param[in] note    the MIDI note
+     * @param[in] p       the knobs: whether the mapping is consecutive
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return the position in semitones
      * @tparam FreqFn  callable `double(int note)`
-     * @param note     the MIDI note
-     * @param p        the knobs: whether the mapping is consecutive
-     * @param freqOf   frequency of a MIDI note in the engine's current scale
-     * @return         the position in semitones
      */
     template <class FreqFnT>
     static double posOf(int note, const BrainParams& p, FreqFnT&& freqOf)
@@ -2293,12 +2275,12 @@ private:
     }
     /**
      * @brief The interval class from one note up to another, 0 .. 11 semitones, read like posOf() reads.
+     * @param[in] a       the upper end
+     * @param[in] b       the reference
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return (a - b) in whole semitones, folded into one octave
      * @tparam FreqFn  callable `double(int note)`
-     * @param a        the upper end
-     * @param b        the reference
-     * @param p        the knobs
-     * @param freqOf   frequency of a MIDI note in the engine's current scale
-     * @return         (a - b) in whole semitones, folded into one octave
      */
     template <class FreqFnT>
     static int icOf(int a, int b, const BrainParams& p, FreqFnT&& freqOf)
@@ -2308,9 +2290,9 @@ private:
     }
     /**
      * @brief Whether a frequency stands on a degree of the scale, in any of its periods, within 25 cents.
-     * @param f  the frequency, Hz (a difference tone)
-     * @param p  the knobs: the scale and the frequency of its first degree; without them every frequency is on it
-     * @return   true when a degree is within 25 cents
+     * @param[in] f  the frequency, Hz (a difference tone)
+     * @param[in] p  the knobs: the scale and the frequency of its first degree; without them every frequency is on it
+     * @return true when a degree is within 25 cents
      */
     static bool onScale(double f, const BrainParams& p)
     {
@@ -2332,10 +2314,9 @@ private:
      * with mean nothing: a key of a scale that has none, evenness round an octave that is not its
      * period. They are switched off there. And the Harmonic Cloud asks for harmonics of one
      * fundamental, which Key and Even pull away from; Series takes its share of them.
-     *
-     * @param in       the knobs as the engine filled them
-     * @param scratch  where a modified copy is made, when one is needed
-     * @return         `in` itself, or `scratch` holding the guarded copy
+     * @param[in]     in       the knobs as the engine filled them
+     * @param[in,out] scratch  where a modified copy is made, when one is needed
+     * @return `in` itself, or `scratch` holding the guarded copy
      */
     static const BrainParams& guard(const BrainParams& in, BrainParams& scratch)
     {
@@ -2352,7 +2333,7 @@ private:
     /**
      * @brief Brings the scale's own key profile up to date (F1): the Krumhansl-Kessler pair on
      *        12-TET and without a scale, the scale's own hierarchy otherwise.
-     * @param p  the knobs: the scale, Thirds and Seconds
+     * @param[in] p  the knobs: the scale, Thirds and Seconds
      */
     void refreshProfile(const BrainParams& p)
     {
@@ -2368,10 +2349,10 @@ private:
     /**
      * @brief Harmonic's measure of a set: its harmonicity under the prime limit Thirds and Seventh
      *        set (F2a), and with Utonal up the larger of that and its utonality (F2b).
-     * @param set  the tones, Hz
-     * @param m    how many
-     * @param p    the knobs: Thirds (the weight of the prime five), Seventh (seven), Utonal
-     * @return     0 .. 1
+     * @param[in] set  the tones, Hz
+     * @param[in] m    how many
+     * @param[in] p    the knobs: Thirds (the weight of the prime five), Seventh (seven), Utonal
+     * @return 0 .. 1
      */
     static double harmonicityOf(const double* set, int m, const BrainParams& p)
     {
@@ -2390,11 +2371,10 @@ private:
      * The fundamental is the root's pitch class under 40 Hz; a candidate is scored by how close it
      * lies to a harmonic (25 cents), by 1 / sqrt(h) above the eighth, and by the prime limit
      * Thirds and Seventh set -- the eleventh and thirteenth at six tenths of the seventh.
-     *
-     * @param fc        the candidate, Hz
-     * @param rootFreq  the root, Hz
-     * @param p         the knobs: Series, Thirds, Seventh
-     * @return          a weight to multiply the candidate's by; 1 at Series 0
+     * @param[in] fc        the candidate, Hz
+     * @param[in] rootFreq  the root, Hz
+     * @param[in] p         the knobs: Series, Thirds, Seventh
+     * @return a weight to multiply the candidate's by; 1 at Series 0
      */
     static double seriesWeight(double fc, double rootFreq, const BrainParams& p)
     {
@@ -2425,9 +2405,8 @@ private:
      * tone is 9/8 up and 16/9 (a whole tone down, folded into the octave); the falling semitone is
      * 15/8, a semitone under the root folded up -- the step size in wanderRoot() keeps it the near
      * one rather than a seventh up.
-     *
-     * @param targets  Root Targets: 0 Classic, 1 Modal, 2 Mediant, 3 Phrygian
-     * @return         the target ratio, folded into one octave
+     * @param[in] targets  Root Targets: 0 Classic, 1 Modal, 2 Mediant, 3 Phrygian
+     * @return the target ratio, folded into one octave
      */
     double drawRootTarget(int targets)
     {
@@ -2457,12 +2436,11 @@ private:
      * and steady (Rene's table of roles).
      *
      * One draw from the stream, the same one every path made.
-     *
-     * @param note  the MIDI note being started
-     * @param low   bottom of the register, MIDI
-     * @param high  top of the register, MIDI; the fall of velocity with height runs between the two
-     * @param p     the knobs: Spread and Bias shape the draw, Top Soft narrows it and tilts it
-     * @return      velocity 0 .. 1; 0.5 .. 0.9 uniform with Top Soft at nought
+     * @param[in] note  the MIDI note being started
+     * @param[in] low   bottom of the register, MIDI
+     * @param[in] high  top of the register, MIDI; the fall of velocity with height runs between the two
+     * @param[in] p     the knobs: Spread and Bias shape the draw, Top Soft narrows it and tilts it
+     * @return velocity 0 .. 1; 0.5 .. 0.9 uniform with Top Soft at nought
      */
     float velocityFor(int note, int low, int high, const BrainParams& p)
     {
@@ -2485,13 +2463,12 @@ private:
      * The
      * foundation's multiple is Bass Hold's, applied by the caller, which knows which voice is
      * lowest. One draw from the stream, the same one as before.
-     *
-     * @param note    the MIDI note being started
-     * @param low     bottom of the register, MIDI
-     * @param high    top of the register, MIDI; the roles are placed between the two
-     * @param p       the knobs: Hold Min, Hold Max, Spread, Bias, Layers, Bass Hold
-     * @param lowest  whether this note is the lowest voice (isLowest), which Bass Hold multiplies
-     * @return        seconds the note holds before it is due
+     * @param[in] note    the MIDI note being started
+     * @param[in] low     bottom of the register, MIDI
+     * @param[in] high    top of the register, MIDI; the roles are placed between the two
+     * @param[in] p       the knobs: Hold Min, Hold Max, Spread, Bias, Layers, Bass Hold
+     * @param[in] lowest  whether this note is the lowest voice (isLowest), which Bass Hold multiplies
+     * @return seconds the note holds before it is due
      */
     double holdFor(int note, int low, int high, const BrainParams& p, bool lowest)
     {
@@ -2524,16 +2501,15 @@ private:
      * notes that left recently; Key, Even, Harmonic; a dislike of doublings -- and a little noise
      * is added so the best is not always the same; the highest score wins. Draws from the stream
      * once per candidate.
-     *
+     * @param[in]  from      the note being replaced, or -1 when adding to the chord
+     * @param[in]  low       bottom of the register, MIDI
+     * @param[in]  high      top of the register, MIDI
+     * @param[in]  p         the knobs
+     * @param[in]  freqOf    frequency of a MIDI note in the engine's current scale
+     * @param[out] outScore  receives the winner's score (0 when none was found) when not null; Smooth compares
+     *                       exchanges by it
+     * @return the MIDI note to bring in, or -1 when no candidate survived
      * @tparam FreqFn  callable `double(int note)`
-     * @param from      the note being replaced, or -1 when adding to the chord
-     * @param low       bottom of the register, MIDI
-     * @param high      top of the register, MIDI
-     * @param p         the knobs
-     * @param freqOf    frequency of a MIDI note in the engine's current scale
-     * @param outScore  receives the winner's score (0 when none was found) when not null; Smooth
-     *                  compares exchanges by it
-     * @return          the MIDI note to bring in, or -1 when no candidate survived
      */
     template <class FreqFnT>
     int chooseNote(int from, int low, int high, const BrainParams& p, FreqFnT&& freqOf,
@@ -2627,14 +2603,13 @@ private:
      * Weighted by the
      * confidence of the key estimate, so an uncertain key pulls gently and a clear one pulls
      * hard -- and a passage with no key in it at all is left alone.
-     *
-     * @param f       the candidate's frequency, Hz
-     * @param k       the key as findKey() found it; no key, or no confidence, answers 1
-     * @param amount  the Key knob, 0 .. 1; 0 answers 1
-     * @param modal   the scale's own profile the key was found against, or nullptr for major and
-     *                minor (a modal key without its profile reads as major)
-     * @return        a weight to multiply the candidate's by, the profile's stability raised by
-     *                amount and confidence; 1 for the tonic whatever the amount
+     * @param[in] f       the candidate's frequency, Hz
+     * @param[in] k       the key as findKey() found it; no key, or no confidence, answers 1
+     * @param[in] amount  the Key knob, 0 .. 1; 0 answers 1
+     * @param[in] modal   the scale's own profile the key was found against, or nullptr for major and minor (a modal key
+     *                    without its profile reads as major)
+     * @return a weight to multiply the candidate's by, the profile's stability raised by amount and confidence; 1 for
+     *         the tonic whatever the amount
      */
     static double keyWeightOf(double f, const KeyEstimate& k, float amount, const KeyProfile* modal = nullptr)
     {
@@ -2654,15 +2629,15 @@ private:
      * imperfect ones the second tier falls back to.
      *
      * This is the first tier: unison, fourth and fifth (the octave is the unison's class).
-     * @param ic  interval class in semitones, 0 .. 11, from the root up to the tone
-     * @return    true for 0, 5 and 7
+     * @param[in] ic  interval class in semitones, 0 .. 11, from the root up to the tone
+     * @return true for 0, 5 and 7
      */
     static bool perfectTo(int ic)   { return ic == 0 || ic == 5 || ic == 7; }
     /**
      * @brief The second tier of the pivot tone's search: the perfect consonances and the imperfect
      *        ones, thirds and sixths, major and minor.
-     * @param ic  interval class in semitones, 0 .. 11, from the root up to the tone
-     * @return    true for 0, 3, 4, 5, 7, 8 and 9
+     * @param[in] ic  interval class in semitones, 0 .. 11, from the root up to the tone
+     * @return true for 0, 3, 4, 5, 7, 8 and 9
      */
     static bool consonantTo(int ic) { return ic == 0 || ic == 3 || ic == 4 || ic == 5 || ic == 7 || ic == 8 || ic == 9; }
 
@@ -2672,11 +2647,9 @@ private:
      *
      * Asked of frequencies rather than MIDI numbers because the scale need not have twelve degrees,
      * and used for the doubling rule, the "root is sounding" test and the foundation weight.
-     *
-     * @param fa  one frequency, Hz
-     * @param fb  the other, Hz
-     * @return    true when they are octaves of one another; false, not a hang, for a zero or
-     *            infinite ratio
+     * @param[in] fa  one frequency, Hz
+     * @param[in] fb  the other, Hz
+     * @return true when they are octaves of one another; false, not a hang, for a zero or infinite ratio
      */
     static bool pitchClassEqual(double fa, double fb)
     {
@@ -2702,12 +2675,11 @@ private:
      * found, the leading-note simultaneity it would make, and the pull home -- and takes the best
      * when it is worth having. Counts the move in m_rootMoves. Draws from the stream once for the
      * target interval.
-     *
+     * @param[in] low     bottom of the register, MIDI: the roots considered
+     * @param[in] high    top of the register, MIDI
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @param[in] p       the knobs of the root and long form section, and Key and Leading
      * @tparam FreqFn  callable `double(int note)`
-     * @param low     bottom of the register, MIDI: the roots considered
-     * @param high    top of the register, MIDI
-     * @param freqOf  frequency of a MIDI note in the engine's current scale
-     * @param p       the knobs of the root and long form section, and Key and Leading
      */
     template <class FreqFnT>
     void wanderRoot(int low, int high, FreqFnT&& freqOf, const BrainParams& p)
@@ -2828,9 +2800,8 @@ private:
      * The root's age starts over. With Degree Swap the dice may turn a major third or sixth into
      * the minor one or back (m_degreeBias), which ruleWeight() applies from then on. One draw from
      * the stream when Degree Swap is up, two when it strikes.
-     *
-     * @param note  the new root, MIDI (a candidate wanderRoot() chose, or the destination of a changeover)
-     * @param p     the knobs: Degree Swap
+     * @param[in] note  the new root, MIDI (a candidate wanderRoot() chose, or the destination of a changeover)
+     * @param[in] p     the knobs: Degree Swap
      */
     void setRoot(int note, const BrainParams& p)
     {
@@ -2855,13 +2826,12 @@ private:
      * will not be in the constellation the candidate makes. Counted in, the memory judged a
      * four-note chord that lasted ten seconds and never the three-note one that followed, and a
      * voice could go A, B, A, B between two notes for an hour (Glacier Bloom, measured).
-     *
+     * @param[in] extra   a MIDI note to count in as if it sounded (the candidate), or -1
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @param[in] forNew  true for the constellation a candidate would make, which leaves out the voices on their way
+     *                    out; false for the one sounding now, which counts them in
+     * @return bits 0 .. 11 the pitch classes, bits 12 and up the octave (MIDI / 12) of the lowest note
      * @tparam FreqFn  callable `double(int note)`
-     * @param extra   a MIDI note to count in as if it sounded (the candidate), or -1
-     * @param freqOf  frequency of a MIDI note in the engine's current scale
-     * @param forNew  true for the constellation a candidate would make, which leaves out the voices
-     *                on their way out; false for the one sounding now, which counts them in
-     * @return        bits 0 .. 11 the pitch classes, bits 12 and up the octave (MIDI / 12) of the lowest note
      */
     template <class FreqFnT>
     uint32_t chordKey(int extra, FreqFnT&& freqOf, bool forNew = false) const
@@ -2883,9 +2853,9 @@ private:
     }
     /**
      * @brief Whether a constellation was stamped in the memory within the last Memory minutes.
-     * @param k  a chordKey()
-     * @param p  the knobs: Memory, in minutes
-     * @return   true when an entry with that key is younger than the memory
+     * @param[in] k  a chordKey()
+     * @param[in] p  the knobs: Memory, in minutes
+     * @return true when an entry with that key is younger than the memory
      */
     bool heardLately(uint32_t k, const BrainParams& p) const
     {
@@ -2903,12 +2873,11 @@ private:
      * at 0.06.
      *
      * Reports its verdict to the trace hook when one is set.
-     *
+     * @param[in] c       the candidate MIDI note
+     * @param[in] p       the knobs: Memory; at 0 nothing is ever heard lately
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return true to strike the candidate out
      * @tparam FreqFn  callable `double(int note)`
-     * @param c       the candidate MIDI note
-     * @param p       the knobs: Memory; at 0 nothing is ever heard lately
-     * @param freqOf  frequency of a MIDI note in the engine's current scale
-     * @return        true to strike the candidate out
      */
     template <class FreqFnT>
     bool constellationHeard(int c, const BrainParams& p, FreqFnT&& freqOf) const
@@ -2932,7 +2901,7 @@ private:
      * could come straight back.
      *
      * An entry already there is re-stamped in place; a new one takes the oldest place of the ring.
-     * @param k  a chordKey()
+     * @param[in] k  a chordKey()
      */
     void rememberChord(uint32_t k)
     {
@@ -2961,10 +2930,9 @@ private:
      *
      * The conductor's own rate, unless the cluster is being
      * filled on request (see requestFill), in which case it is short enough to arrive as music.
-     *
-     * @param p  the knobs: Event Rate, Rate Breath
-     * @return   the mean gap in seconds the next wait is drawn against: 0.35 while filling, else
-     *           the rate (at least half a second) swung by the breath
+     * @param[in] p  the knobs: Event Rate, Rate Breath
+     * @return the mean gap in seconds the next wait is drawn against: 0.35 while filling, else the rate (at least half
+     *         a second) swung by the breath
      */
     double tickSeconds(const BrainParams& p) const
     {
@@ -2999,9 +2967,9 @@ private:
      * @{ */
     /**
      * @brief Runs the timer down by `dt`, faster while the excitation is up, and lets the excitation decay.
-     * @param dt    seconds since the last tick
-     * @param p     the knobs: Cascade
-     * @param mean  the mean gap in seconds, whose half is the excitation's time constant
+     * @param[in] dt    seconds since the last tick
+     * @param[in] p     the knobs: Cascade
+     * @param[in] mean  the mean gap in seconds, whose half is the excitation's time constant
      */
     void advanceTimer(double dt, const BrainParams& p, double mean)
     {
@@ -3012,8 +2980,9 @@ private:
         } else m_timer -= dt;
     }
     /**
-     * @brief An event happened: lifts the excitation by 1.3 times Cascade, the jump that gives the branching ratio of 0.65 at full.
-     * @param p  the knobs: Cascade; nothing happens at 0
+     * @brief An event happened: lifts the excitation by 1.3 times Cascade, the jump that gives the branching ratio of
+     *        0.65 at full.
+     * @param[in] p  the knobs: Cascade; nothing happens at 0
      */
     void kick(const BrainParams& p) { if (p.m_cascade > 0.0f) m_excite += 1.3 * static_cast<double>(p.m_cascade); }
     /** @} */
@@ -3027,7 +2996,7 @@ private:
      *
      * Called with every note the conductor chooses or inherits; the first note after reset()
      * only sets the reference.
-     * @param note  the MIDI note just chosen
+     * @param[in] note  the MIDI note just chosen
      */
     void remember(int note)
     {
@@ -3041,9 +3010,8 @@ private:
      * @brief Where the homeostat leans: + when the music is more predictable than Surprise asks for, - when it is less, scaled by Homeostat.
      *
      * Needs a few events of history to say anything.
-     *
-     * @param p  the knobs: Surprise, Homeostat
-     * @return   -1 .. 1 times Homeostat; 0 with Homeostat off or fewer than three events of history
+     * @param[in] p  the knobs: Surprise, Homeostat
+     * @return -1 .. 1 times Homeostat; 0 with Homeostat off or fewer than three events of history
      */
     float leanOf(const BrainParams& p) const
     {
@@ -3063,15 +3031,14 @@ private:
      * For the paths that do not draw -- the ring
      * of Deja Vu offers a PAST note, and until this was asked of it the offer went past every
      * rule: a second in the bass, a leading note under a sounding root, a pitch inside its rest.
-     *
+     * @param[in] c        the note offered, MIDI
+     * @param[in] low      one end of the register, MIDI (either order)
+     * @param[in] high     the other end
+     * @param[in] p        the knobs
+     * @param[in] freqOf   frequency of a MIDI note in the engine's current scale
+     * @param[in] pivotal  true for the pivot tone of a changeover, which may be the leading note
+     * @return true when the note may be started
      * @tparam FreqFn  callable `double(int note)`
-     * @param c        the note offered, MIDI
-     * @param low      one end of the register, MIDI (either order)
-     * @param high     the other end
-     * @param p        the knobs
-     * @param freqOf   frequency of a MIDI note in the engine's current scale
-     * @param pivotal  true for the pivot tone of a changeover, which may be the leading note
-     * @return         true when the note may be started
      */
     template <class FreqFnT>
     bool admissible(int c, int low, int high, const BrainParams& p, FreqFnT&& freqOf, bool pivotal = false) const
@@ -3094,15 +3061,14 @@ private:
      * long (at most Ring); the offered note must be free, admissible and not the one being
      * replaced, else the fresh note plays and is written into the ring in its stead. One draw from
      * the stream when Deja Vu is up.
-     *
+     * @param[in] fresh   the note the draw chose, MIDI, or -1 (returned unchanged)
+     * @param[in] p       the knobs: Deja Vu and Loop
+     * @param[in] avoid   Chords: the note being replaced, which the ring may not offer back; -1 in Free mode
+     * @param[in] low     one end of the register, for admissible()
+     * @param[in] high    the other end
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return the note to play: the ring's when it was offered and allowed, else `fresh`
      * @tparam FreqFn  callable `double(int note)`
-     * @param fresh   the note the draw chose, MIDI, or -1 (returned unchanged)
-     * @param p       the knobs: Deja Vu and Loop
-     * @param avoid   Chords: the note being replaced, which the ring may not offer back; -1 in Free mode
-     * @param low     one end of the register, for admissible()
-     * @param high    the other end
-     * @param freqOf  frequency of a MIDI note in the engine's current scale
-     * @return        the note to play: the ring's when it was offered and allowed, else `fresh`
      */
     template <class FreqFnT>
     int viaDejaVu(int fresh, const BrainParams& p, int avoid, int low, int high, FreqFnT&& freqOf)

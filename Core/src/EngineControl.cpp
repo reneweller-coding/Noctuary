@@ -5,6 +5,7 @@
  *        the effects are given.
  *
  * Split out of Engine.cpp, which had grown past fourteen hundred lines.
+ * @author Rene Weller
  */
 #include "ambient/Engine.h"
 #include "ambient/PresetMap.h"

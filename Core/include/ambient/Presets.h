@@ -17,6 +17,7 @@
  * way; what it clears and what it may set are two different questions (clearedBy, inScope), and
  * the difference is what keeps a foreground chosen for the night standing while the backgrounds
  * change under it.
+ * @author Rene Weller
  */
 #pragma once
 #include <string>
@@ -70,7 +71,7 @@ int numPresets();
  *
  * Message thread: allocates.
  *
- * @param index  0 .. numPresets()-1
+ * @param[in] index  0 .. numPresets()-1
  * @return       one or two sentences
  */
 std::string presetDescription(int index);
@@ -83,21 +84,21 @@ std::string presetDescription(int index);
  *
  * Message thread: allocates.
  *
- * @param index  0 .. numPresets()-1
+ * @param[in] index  0 .. numPresets()-1
  * @return       the card's lines, newline-separated
  */
 std::string presetInfoText(int index);
 /**
  * @brief One preset of the list, built-in or pack.
- * @param index  0 .. numPresets()-1; an index past the packs gives built-in 0
- * @return       the preset; a pack preset's pointers stay valid until clearPresetPacks()
+ * @param[in] index  0 .. numPresets()-1; an index past the packs gives built-in 0
+ * @return the preset; a pack preset's pointers stay valid until clearPresetPacks()
  */
 const Preset& preset(int index);
 /** @return the compiled-in presets (the first ones) */
 int builtinPresetCount();
 /**
  * @brief One compiled-in preset.
- * @param index  0 .. builtinPresetCount()-1; anything else gives preset 0
+ * @param[in] index  0 .. builtinPresetCount()-1; anything else gives preset 0
  * @return       the preset
  */
 const Preset& builtinPreset(int index);
@@ -109,23 +110,23 @@ const Preset& builtinPreset(int index);
 int numCosmosPresets();
 /**
  * @brief One preset of the Cosmos bank.
- * @param index  0 .. numCosmosPresets()-1; anything else gives entry 0
+ * @param[in] index  0 .. numCosmosPresets()-1; anything else gives entry 0
  * @return       the preset (its settings name Cosmos parameters only)
  */
 const Preset& cosmosPreset(int index);
 /**
  * @brief The family a Cosmos preset is filed under.
- * @param index  0 .. numCosmosPresets()-1
- * @return       the family index for cosmosPresetFamily(), or 255 for the Off entry, which belongs
- *               to no family, and for any index out of range
+ * @param[in] index  0 .. numCosmosPresets()-1
+ * @return the family index for cosmosPresetFamily(), or 255 for the Off entry, which belongs to no family, and for any
+ *         index out of range
  */
 int cosmosPresetCategory(int index);
 /** @return how many families the Cosmos bank is sorted into */
 int numCosmosPresetFamilies();
 /**
  * @brief The name of a Cosmos family: the heading of one family of the bank, as the browser shows it.
- * @param family  0 .. numCosmosPresetFamilies()-1
- * @return        the name, "" when out of range
+ * @param[in] family  0 .. numCosmosPresetFamilies()-1
+ * @return the name, "" when out of range
  */
 const char* cosmosPresetFamily(int family);
 
@@ -133,15 +134,14 @@ const char* cosmosPresetFamily(int family);
 int numZPresets();
 /**
  * @brief One preset of the Z-plane bank.
- * @param index  0 .. numZPresets()-1; anything else gives entry 0
+ * @param[in] index  0 .. numZPresets()-1; anything else gives entry 0
  * @return       the preset
  */
 const Preset& zPreset(int index);
 /**
  * @brief The family of a Z-plane preset: the shape's own family.
- * @param index  0 .. numZPresets()-1
- * @return       the shape's family (see ZPlane.h), 255 for Off and for any index out of range --
- *               255 belongs to no family
+ * @param[in] index  0 .. numZPresets()-1
+ * @return the shape's family (see ZPlane.h), 255 for Off and for any index out of range -- 255 belongs to no family
  */
 int zPresetCategory(int index);
 
@@ -149,23 +149,23 @@ int zPresetCategory(int index);
 int numStrikePresets();
 /**
  * @brief One preset of the Strike bank.
- * @param index  0 .. numStrikePresets()-1; anything else gives entry 0
+ * @param[in] index  0 .. numStrikePresets()-1; anything else gives entry 0
  * @return       the preset
  */
 const Preset& strikePreset(int index);
 /**
  * @brief The family a Strike preset is filed under.
- * @param index  0 .. numStrikePresets()-1
- * @return       the family index for strikePresetFamily(), or 255 for the Off entry and for any
- *               index out of range -- 255 belongs to no family
+ * @param[in] index  0 .. numStrikePresets()-1
+ * @return the family index for strikePresetFamily(), or 255 for the Off entry and for any index out of range -- 255
+ *         belongs to no family
  */
 int strikePresetCategory(int index);
 /** @return how many families the Strike bank is sorted into */
 int numStrikePresetFamilies();
 /**
  * @brief The name of a Strike family: the heading of one family of the bank, as the browser shows it.
- * @param family  0 .. numStrikePresetFamilies()-1
- * @return        the name, "" when out of range
+ * @param[in] family  0 .. numStrikePresetFamilies()-1
+ * @return the name, "" when out of range
  */
 const char* strikePresetFamily(int family);
 
@@ -181,42 +181,42 @@ const char* strikePresetFamily(int family);
 int numNearPresets();
 /**
  * @brief One preset of the near bank.
- * @param index  0 .. numNearPresets()-1; anything else gives entry 0
+ * @param[in] index  0 .. numNearPresets()-1; anything else gives entry 0
  * @return       the preset
  */
 const Preset& nearPreset(int index);
 /**
  * @brief The family a near preset is filed under.
- * @param index  0 .. numNearPresets()-1
- * @return       the family index for nearPresetFamily(), or 255 for the Off entry and for any
- *               index out of range -- 255 belongs to no family
+ * @param[in] index  0 .. numNearPresets()-1
+ * @return the family index for nearPresetFamily(), or 255 for the Off entry and for any index out of range -- 255
+ *         belongs to no family
  */
 int nearPresetCategory(int index);
 /** @return how many families the near bank is sorted into */
 int numNearPresetFamilies();
 /**
  * @brief The name of a near family: the heading of one family of the bank, as the browser shows it.
- * @param family  0 .. numNearPresetFamilies()-1
- * @return        the name, "" when out of range
+ * @param[in] family  0 .. numNearPresetFamilies()-1
+ * @return the name, "" when out of range
  */
 const char* nearPresetFamily(int family);
 
 /**
  * @brief Whether a parameter belongs to the Cosmos section.
- * @param id  the parameter
- * @return    true for the Cosmos layer's parameters
+ * @param[in] id  the parameter
+ * @return true for the Cosmos layer's parameters
  */
 inline bool isCosmosParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::COSMOS; }
 /**
  * @brief Whether a parameter belongs to the Z-plane section.
- * @param id  the parameter
- * @return    true for the Z-plane layer's parameters
+ * @param[in] id  the parameter
+ * @return true for the Z-plane layer's parameters
  */
 inline bool isZPlaneParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::Z_PLANE; }
 /**
  * @brief Whether a parameter belongs to the Strike section.
- * @param id  the parameter
- * @return    true for the Strike layer's parameters
+ * @param[in] id  the parameter
+ * @return true for the Strike layer's parameters
  */
 inline bool isStrikeParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::STRIKE; }
 /**
@@ -224,9 +224,8 @@ inline bool isStrikeParam(ParamIdE id) { return sectionOf(id) == ParamSectionE::
  *
  * Auto is the one Near Events control that is not part of a near preset: it decides whether a
  * sound preset brings its own foreground, and a near preset chosen by hand must not switch it on.
- *
- * @param id  the parameter
- * @return    true for the near layer's parameters other than ForeAuto
+ * @param[in] id  the parameter
+ * @return true for the near layer's parameters other than ForeAuto
  */
 inline bool isNearParam(ParamIdE id)   { const ParamSectionE s = sectionOf(id); return (s == ParamSectionE::NEAR_SOURCE || s == ParamSectionE::NEAR_EVENTS) && id != ParamIdE::FORE_AUTO; }
 /**
@@ -235,45 +234,45 @@ inline bool isNearParam(ParamIdE id)   { const ParamSectionE s = sectionOf(id); 
  * `isNearParam` is what a near PRESET carries; this is what
  * a sound preset has to leave standing. The two differ by exactly one control, and the difference
  * matters: Auto is the player's setting about presets, not a setting a preset may make.
- *
- * @param id  the parameter
- * @return    true for every Near Source and Near Events parameter
+ * @param[in] id  the parameter
+ * @return true for every Near Source and Near Events parameter
  */
 inline bool isNearLayerParam(ParamIdE id) { const ParamSectionE s = sectionOf(id); return s == ParamSectionE::NEAR_SOURCE || s == ParamSectionE::NEAR_EVENTS; }
 /**
  * @brief Whether a parameter is one of the morph controls (performance state).
- * @param id  the parameter
- * @return    true for the Morph section
+ * @param[in] id  the parameter
+ * @return true for the Morph section
  */
 inline bool isMorphParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::MORPH; }
 /**
  * @brief Whether a parameter is one of the eight macros (performance state).
- * @param id  the parameter
- * @return    true for the Macros section
+ * @param[in] id  the parameter
+ * @return true for the Macros section
  */
 inline bool isMacroParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::MACROS; }
 /**
  * @brief Whether a parameter is the map cursor or its switch (performance state).
- * @param id  the parameter
- * @return    true for the Map section
+ * @param[in] id  the parameter
+ * @return true for the Map section
  */
 inline bool isMapParam(ParamIdE id)    { return sectionOf(id) == ParamSectionE::MAP; }
 /**
  * @brief Whether a parameter is one of the route controls (performance state).
- * @param id  the parameter
- * @return    true for the Route section
+ * @param[in] id  the parameter
+ * @return true for the Route section
  */
 inline bool isRouteParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::ROUTE; }
 /**
  * @brief Whether a parameter is one of the clock controls (performance state).
- * @param id  the parameter
- * @return    true for the Clock section
+ * @param[in] id  the parameter
+ * @return true for the Clock section
  */
 inline bool isClockParam(ParamIdE id)  { return sectionOf(id) == ParamSectionE::CLOCK; }
 /**
- * @brief Morph controls, macros, the map cursor, the route and the clock are performance state, never part of any preset.
- * @param id  the parameter
- * @return    true when no preset, of any scope, may set or clear it
+ * @brief Morph controls, macros, the map cursor, the route and the clock are performance state, never part of any
+ *        preset.
+ * @param[in] id  the parameter
+ * @return true when no preset, of any scope, may set or clear it
  */
 inline bool isPerformanceParam(ParamIdE id) { return isMorphParam(id) || isMacroParam(id) || isMapParam(id) || isRouteParam(id) || isClockParam(id); }
 /**
@@ -281,10 +280,9 @@ inline bool isPerformanceParam(ParamIdE id) { return isMorphParam(id) || isMacro
  *
  * Performance state never; the section scopes their own section; Sound everything that is not
  * the Cosmos or the near layer; Full everything else.
- *
- * @param id     the parameter
- * @param scope  the preset's scope
- * @return       true when a key naming @p id in a preset of that scope is applied
+ * @param[in] id     the parameter
+ * @param[in] scope  the preset's scope
+ * @return true when a key naming @p id in a preset of that scope is applied
  */
 inline bool inScope(ParamIdE id, PresetScopeE scope)
 {
@@ -314,10 +312,9 @@ inline bool inScope(ParamIdE id, PresetScopeE scope)
  * It CLEARS less than it may SET on purpose: a preset that does name a fore_* key still sets it,
  * because inScope, which decides that, is unchanged. So this cannot swallow a preset's intent --
  * only its silence.
- *
- * @param id     the parameter
- * @param scope  the preset's scope
- * @return       true when applying a preset of that scope first resets @p id to its default
+ * @param[in] id     the parameter
+ * @param[in] scope  the preset's scope
+ * @return true when applying a preset of that scope first resets @p id to its default
  */
 inline bool clearedBy(ParamIdE id, PresetScopeE scope)
 {
@@ -349,15 +346,14 @@ inline bool clearedBy(ParamIdE id, PresetScopeE scope)
  * folder, is skipped (false). A pack without a "format" line predates the classic wavetable and
  * has its "Wavetable" type read as Harmonic. Every preset of the pack is filed under a family of
  * its own, appended after the built-in families.
- *
- * @param path  the .ambientpack file
- * @return      false if the file is missing or a line is malformed
+ * @param[in] path  the .ambientpack file
+ * @return false if the file is missing or a line is malformed
  */
 bool loadPresetPack(const char* path);
 /**
  * @brief Loads every *.ambientpack in a directory, in sorted order so preset indices are reproducible.
- * @param dir  the folder; a missing folder loads nothing
- * @return     every *.ambientpack in a directory; returns how many loaded
+ * @param[in] dir  the folder; a missing folder loads nothing
+ * @return every *.ambientpack in a directory; returns how many loaded
  */
 int  loadPresetPacksIn(const char* dir);
 /**
@@ -379,14 +375,14 @@ void clearPresetPacks();
 int  numPresetPacks();
 /**
  * @brief The name of a loaded pack (its "pack" line, else the file's stem).
- * @param pack  0 .. numPresetPacks()-1
- * @return      the name, "" when out of range
+ * @param[in] pack  0 .. numPresetPacks()-1
+ * @return the name, "" when out of range
  */
 const char* presetPackName(int pack);
 /**
  * @brief The pack a preset came from, or -1 for a built-in.
- * @param presetIndex  0 .. numPresets()-1
- * @return             the pack index, or -1
+ * @param[in] presetIndex  0 .. numPresets()-1
+ * @return the pack index, or -1
  */
 int  presetPack(int presetIndex);
 /**
@@ -398,19 +394,18 @@ int  presetPack(int presetIndex);
  * the draw is a hash of the preset's name, so a preset brings the same foreground every time.
  * Returns the near preset's index (0 = Near Off for the presets that get none), or -1 when the
  * pack has no table; `rateFactor` is what to multiply the near preset's Every by.
- *
- * @param packName    the pack's name, as presetPackName() gives it
- * @param presetName  the preset's name
- * @param rateFactor  receives the factor on the near preset's Every (1 when there is no table)
- * @return            the near preset's index, 0 for none, -1 when the pack has no table
+ * @param[in]  packName    the pack's name, as presetPackName() gives it
+ * @param[in]  presetName  the preset's name
+ * @param[out] rateFactor  receives the factor on the near preset's Every (1 when there is no table)
+ * @return the near preset's index, 0 for none, -1 when the pack has no table
  */
 int  nearAutoPick(const char* packName, const char* presetName, float& rateFactor);
 /**
  * @brief The folders the library may lie in, in the order resolveLibraryFile searches them: for anything
  *        that lists a library folder (the journeys under \<root\>/Journeys, say) rather than one file.
- * @param buf  receives the roots, NUL-terminated
- * @param cap  size of @p buf; roots that do not fit are left out
- * @return     ';'-separated into buf; returns how many roots were written
+ * @param[out] buf  receives the roots, NUL-terminated
+ * @param[in]  cap  size of @p buf; roots that do not fit are left out
+ * @return ';'-separated into buf; returns how many roots were written
  */
 int  libraryRoots(char* buf, int cap);
 constexpr int PresetFiles = 4;   ///< how many files a pack preset may name: texture, wavetable, impulse, impulse B
@@ -421,10 +416,9 @@ constexpr int PresetFiles = 4;   ///< how many files a pack preset may name: tex
  *
  * Resolved against the pack's folder when the pack was loaded; the texture field may hold up to
  * four ';'-separated files, one per slot, and the separators are kept.
- *
- * @param presetIndex  0 .. numPresets()-1; a built-in has no files
- * @param which        0 .. PresetFiles-1
- * @return             the path, or "" for a built-in, an unnamed file or an index out of range
+ * @param[in] presetIndex  0 .. numPresets()-1; a built-in has no files
+ * @param[in] which        0 .. PresetFiles-1
+ * @return the path, or "" for a built-in, an unnamed file or an index out of range
  */
 const char* presetFilePath(int presetIndex, int which);
 /**
@@ -435,9 +429,8 @@ const char* presetFilePath(int presetIndex, int which);
  * folder (the library is the folder the Packs folder is in), in the user's and the installer's
  * Noctuary folders, and last relative to the working directory (the source tree's Library).
  * Empty if nowhere. The .flac beside a named .wav counts, as everywhere else.
- *
- * @param relative  the path as the bank names it
- * @return          the first existing absolute path, or ""
+ * @param[in] relative  the path as the bank names it
+ * @return the first existing absolute path, or ""
  */
 std::string resolveLibraryFile(const char* relative);
 /** @} */
@@ -449,8 +442,8 @@ std::string resolveLibraryFile(const char* relative);
  * goes through atof and is clamped to the parameter's range, and "nan" (or no number at all)
  * gives the default.
  *
- * @param d     the parameter's description, for its kind, range, default and choice names
- * @param text  the value as written in a preset, a score or an OSC string
+ * @param[in] d     the parameter's description, for its kind, range, default and choice names
+ * @param[in] text  the value as written in a preset, a score or an OSC string
  * @return      the value in the parameter's real range
  */
 float paramValueFromText(const ParamDesc& d, const char* text);
@@ -463,12 +456,11 @@ float paramValueFromText(const ParamDesc& d, const char* text);
  * its parameter if inScope(). Parsing stops at the first malformed item (a key over 63 characters,
  * a value over 63, a missing '='); an unknown key is skipped and remembered in the result. No
  * allocation, so the engine may apply on the audio thread.
- *
+ * @param[in] p      the preset
+ * @param[in] set    receives every parameter that is cleared or set
+ * @param[in] scope  which layer this apply is
+ * @return true when every key was known and every item well formed
  * @tparam SetFn  callable as set(ParamId, float)
- * @param p       the preset
- * @param set     receives every parameter that is cleared or set
- * @param scope   which layer this apply is
- * @return        true when every key was known and every item well formed
  */
 template <class SetFnT>
 bool applyPreset(const Preset& p, SetFnT&& set, PresetScopeE scope = PresetScopeE::FULL)

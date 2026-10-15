@@ -11,6 +11,7 @@
  * detectCycleLength() guesses the layout of a file that does not say; and BuiltinCycles writes the
  * five built-in tables from their spectra on first use. Sources.h supplies the spectra of the
  * built-in tables (builtinTable) and Cosmos.h the Fft.
+ * @author Rene Weller
  */
 #include "ambient/CycleTable.h"
 #include "ambient/Sources.h"   // the spectra of the built-in tables
@@ -34,14 +35,13 @@ constexpr double PiD = 3.14159265358979323846;   ///< pi in double, for the plai
  * A power of two goes
  * through the FFT; any other length through the plain sum, which for a single cycle of a few hundred
  * samples costs nothing worth a second code path.
- *
- * @param x    the cycle's samples, `len` of them
- * @param len  the cycle length in samples
- * @param fft  a transform of size `len`, or nullptr when `len` is no power of two
- * @param re   scratch of at least `len` floats, used only with @p fft
- * @param im   scratch of at least `len` floats, used only with @p fft
- * @return     harmonics 1 .. top, top being the finest level's count or the cycle's own Nyquist,
- *             whichever is lower; empty for a cycle too short to hold a harmonic
+ * @param[in]     x    the cycle's samples, `len` of them
+ * @param[in]     len  the cycle length in samples
+ * @param[in]     fft  a transform of size `len`, or nullptr when `len` is no power of two
+ * @param[in,out] re   scratch of at least `len` floats, used only with @p fft
+ * @param[in,out] im   scratch of at least `len` floats, used only with @p fft
+ * @return harmonics 1 .. top, top being the finest level's count or the cycle's own Nyquist, whichever is lower; empty
+ *         for a cycle too short to hold a harmonic
  */
 CoeffsT analyseCycle(const float* x, int len, const Fft* fft, std::vector<float>& re, std::vector<float>& im)
 {
@@ -72,14 +72,13 @@ CoeffsT analyseCycle(const float* x, int len, const Fft* fft, std::vector<float>
  *        transformed back.
  *
  * `out` points at sample 0; the guards either side are written as well.
- *
- * @param c      the frame's harmonics, as analyseCycle() or the built-in spectra give them
- * @param gain   the table's scale: TargetRms over the RMS of its loudest frame
- * @param level  0 .. Levels - 1, the resolution to write
- * @param fft    a transform of size levelLength(level)
- * @param re     scratch of at least levelLength(level) floats
- * @param im     scratch of at least levelLength(level) floats
- * @param out    where sample 0 of the cycle goes; out[-1] and out[len], out[len + 1] are written too
+ * @param[in]     c      the frame's harmonics, as analyseCycle() or the built-in spectra give them
+ * @param[in]     gain   the table's scale: TargetRms over the RMS of its loudest frame
+ * @param[in]     level  0 .. Levels - 1, the resolution to write
+ * @param[in]     fft    a transform of size levelLength(level)
+ * @param[in,out] re     scratch of at least levelLength(level) floats
+ * @param[in,out] im     scratch of at least levelLength(level) floats
+ * @param[in,out] out    where sample 0 of the cycle goes; out[-1] and out[len], out[len + 1] are written too
  */
 void synthesise(const CoeffsT& c, double gain, int level, const Fft& fft, std::vector<float>& re, std::vector<float>& im, float* out)
 {

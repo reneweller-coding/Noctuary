@@ -26,6 +26,7 @@
  * The perform page is PerformView: the eight macros as large knobs, the morph slider between the
  * A and B slots, and the set recorder (record every knob, gesture and note with its time; play a set
  * back; ambient_render --set-file renders it again offline).
+ * @author Rene Weller
  */
 #include "EditorCommon.h"
 
@@ -54,10 +55,9 @@ namespace edt {
  * the two colourings cannot be confused with one another at a glance. The hue steps by the golden
  * angle from group to group; when there is more than one group the brightness is stepped in three
  * as well, so two groups that landed on nearby hues still tell apart.
- *
- * @param c  the group index as presetClusterOf() gives it, 0 .. numPresetClusters() - 1; negative
- *           means the preset is in no group
- * @return   the group's colour, opaque; a neutral grey for a negative index
+ * @param[in] c  the group index as presetClusterOf() gives it, 0 .. numPresetClusters() - 1; negative means the preset
+ *               is in no group
+ * @return the group's colour, opaque; a neutral grey for a negative index
  */
 juce::Colour clusterColour(int c)
 {

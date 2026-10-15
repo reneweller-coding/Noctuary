@@ -17,6 +17,7 @@
  * sorted list, the Gaussian radius follows the local density of the map, and the blend of every
  * parameter respects its kind -- floats in the skew domain, integers rounded, choices and
  * switches taken from the strongest neighbour.
+ * @author Rene Weller
  */
 #include "ambient/PresetMap.h"
 #include "ambient/PresetMeta.h"

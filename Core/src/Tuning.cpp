@@ -17,6 +17,7 @@
  * cent (HarmonicEntropy.inc, since 25.09.2026; before, the Tenney height of the nearest simple
  * fraction within ten cents); the cluster brain uses it to prefer the intervals a just scale makes
  * consonant.
+ * @author Rene Weller
  */
 #include "ambient/Tuning.h"
 #include "ambient/Params.h"
@@ -56,11 +57,11 @@ const double Otonal[]     = { 1, 9.0/8, 5.0/4, 11.0/8, 3.0/2, 7.0/4 };          
 /**
  * @brief Builds a BuiltinDef from a ratio table, taking the degree count from the array's size so
  *        that it cannot be miscounted.
+ * @param[in] name    the display name, the same text as in ScaleNames
+ * @param[in] period  ratio of the repeating interval (2 = octave, 3 = tritave)
+ * @param[in] r       the ratio table, ratios[0] == 1, ascending, all below the period
+ * @return the definition Builtins holds
  * @tparam N      the number of ratios in the table, deduced
- * @param name    the display name, the same text as in ScaleNames
- * @param period  ratio of the repeating interval (2 = octave, 3 = tritave)
- * @param r       the ratio table, ratios[0] == 1, ascending, all below the period
- * @return        the definition Builtins holds
  */
 template <size_t N> constexpr BuiltinDef def(const char* name, double period, const double (&r)[N])
 { return { name, period, static_cast<int>(N), r }; }
@@ -87,8 +88,8 @@ static_assert(NumBuiltins == UserScaleIndex, "scale name table and built-in tabl
 
 /**
  * @brief Copies a name into the scale's fixed buffer, truncated to fit and always NUL-terminated.
- * @param s     the scale whose name is set
- * @param name  the text to copy; longer than FixedScale::name holds, it is cut
+ * @param[in,out] s     the scale whose name is set
+ * @param[in]     name  the text to copy; longer than FixedScale::name holds, it is cut
  */
 void copyName(FixedScale& s, const char* name)
 {

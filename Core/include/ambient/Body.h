@@ -13,6 +13,7 @@
  * a send of the finished mix and returned to it. Nothing here is a reverb: a reverb is a
  * statistical tail, this is a handful of pitched resonances, which is exactly the difference the
  * ear hears between a room and a body.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -56,8 +57,8 @@ public:
      *
      * The pan magnitudes come from the seed, so a seed always puts the same mode in the same
      * place; the next set() is forced to rebuild the coefficients. Not for the audio thread.
-     * @param sampleRate  the engine's rate in Hz; every coefficient is computed against it
-     * @param seed        seeds the body's own generator, which draws the twelve pan magnitudes
+     * @param[in] sampleRate  the engine's rate in Hz; every coefficient is computed against it
+     * @param[in] seed        seeds the body's own generator, which draws the twelve pan magnitudes
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
@@ -69,11 +70,12 @@ public:
      * Every block from the parameters. The five arguments are clamped and compared with what the
      * last call saw, and nothing is rebuilt unless one of them moved -- the brain's root changes
      * only every few minutes. A rebuild is twelve cos and twelve exp plus the normalisation.
-     * @param material      which ratio set and damping (clamped into BodyMaterial)
-     * @param baseHz        frequency of the first mode in Hz, clamped 20 .. 2000
-     * @param decaySeconds  T60 of the first mode, 0.05 .. 30 s; the higher modes lose it at the material's rate
-     * @param tone          0 .. 1: at 0 the body is dark and only the low modes speak, at 1 the high modes are as loud as the low ones
-     * @param spread        0 .. 1: how far the modes fan out from the centre, neighbouring modes on opposite sides
+     * @param[in] material      which ratio set and damping (clamped into BodyMaterial)
+     * @param[in] baseHz        frequency of the first mode in Hz, clamped 20 .. 2000
+     * @param[in] decaySeconds  T60 of the first mode, 0.05 .. 30 s; the higher modes lose it at the material's rate
+     * @param[in] tone          0 .. 1: at 0 the body is dark and only the low modes speak, at 1 the high modes are as
+     *                          loud as the low ones
+     * @param[in] spread        0 .. 1: how far the modes fan out from the centre, neighbouring modes on opposite sides
      */
     void set(BodyMaterialE material, float baseHz, float decaySeconds, float tone, float spread);
     /**
@@ -84,11 +86,12 @@ public:
      *
      * Audio thread. Returns at once when `level` is zero; after the block every resonator's guard
      * runs (Resonator::guard). The gain is `level` times the normalisation set() computed.
-     * @param in     n samples of the mono send (the sum of the mix)
-     * @param outL   left output, the body ADDED to what is already there
-     * @param outR   right output, likewise
-     * @param n      samples in the block
-     * @param level  the Body knob; 0 does nothing at all, 1 puts the body about at the level of the dry mix it answers
+     * @param[in]     in     n samples of the mono send (the sum of the mix)
+     * @param[in,out] outL   left output, the body ADDED to what is already there
+     * @param[in,out] outR   right output, likewise
+     * @param[in]     n      samples in the block
+     * @param[in]     level  the Body knob; 0 does nothing at all, 1 puts the body about at the level of the dry mix it
+     *                       answers
      */
     void process(const float* in, float* outL, float* outR, int n, float level);
     /** @brief Silences the twelve resonators; the coefficients stay. */

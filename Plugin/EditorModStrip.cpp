@@ -21,6 +21,7 @@
  * The envelope editor's arithmetic is in one place on purpose: envGeom() gives the geometry of a
  * row, envToXY() and envFromXY() map through it in both directions, and paintEnv() and the mouse
  * handlers use nothing else, so what is grabbed is what is seen.
+ * @author Rene Weller
  */
 #include "EditorCommon.h"
 
@@ -271,13 +272,12 @@ namespace {
  *        colour when the row is in use, and the zero line across it.
  *
  * The line is the zero of the curve: the middle for a bipolar shape, the floor (lineY) for a level.
- *
- * @param g      the strip's graphics context
- * @param r      the row's curve rectangle, in the strip's pixels
- * @param lit    whether the row does anything (a depth above zero; a source's envelope that is heard):
- *               lit rows get their edge in @p c, unlit ones the plain card edge
- * @param c      the row's family colour, the accent for an LFO and the foreground colour for an envelope
- * @param lineY  the y of the zero line, or negative for the rectangle's vertical centre
+ * @param[in,out] g      the strip's graphics context
+ * @param[in]     r      the row's curve rectangle, in the strip's pixels
+ * @param[in]     lit    whether the row does anything (a depth above zero; a source's envelope that is heard): lit rows
+ *                       get their edge in @p c, unlit ones the plain card edge
+ * @param[in]     c      the row's family colour, the accent for an LFO and the foreground colour for an envelope
+ * @param[in]     lineY  the y of the zero line, or negative for the rectangle's vertical centre
  */
 void curveFrame(juce::Graphics& g, juce::Rectangle<int> r, bool lit, juce::Colour c, float lineY = -1.0f)
 {

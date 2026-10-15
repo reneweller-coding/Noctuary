@@ -16,6 +16,7 @@
  * test (Tests/selftest.cpp) walks paramTable() and is where a missing text shows up. The section
  * comments inside the tables follow the panel, and the dates in them say when a family of parameters
  * arrived.
+ * @author Rene Weller
  */
 #include "ambient/Help.h"
 #include <cstring>
@@ -580,8 +581,8 @@ const HelpEntry Help[] = {
  * env5_depth -> envN_depth, dly2_mix -> dly_mix.
  *
  * Returns whether anything changed.
- * @param key  a parameter key from paramTable()
- * @return     the family template, or the key itself when it belongs to no family
+ * @param[in] key  a parameter key from paramTable()
+ * @return the family template, or the key itself when it belongs to no family
  */
 std::string familyKey(const char* key)
 {

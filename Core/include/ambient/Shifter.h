@@ -15,6 +15,7 @@
  *
  * N samples late, which a loop that circles for seconds does not notice. Buffers are allocated in
  * prepare() only; process() may run in place.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -36,14 +37,14 @@ public:
                          Hop = 1024;   ///< hop in samples: a quarter frame, so four frames overlap
     /**
      * @brief Allocates the rings, spectra and window and clears the state.
-     * @param sampleRate  unused: the frame is fixed in samples, so the shift is exact at every rate
+     * @param[in] sampleRate  unused: the frame is fixed in samples, so the shift is exact at every rate
      */
     void prepare(double sampleRate);
     /** @brief Silences both channels' rings and spectra and restarts the hop counter. */
     void reset();
     /**
      * @brief The shift in semitones, from the next frame on.
-     * @param semitones  -36 .. +36 (clamped); 0 passes the signal through, N samples late
+     * @param[in] semitones  -36 .. +36 (clamped); 0 passes the signal through, N samples late
      */
     void setSemitones(float semitones);
     /**
@@ -52,12 +53,11 @@ public:
      * Every sample is pushed into the input ring and pulled from the overlap-add ring; every Hop
      * samples one frame per channel is analysed and resynthesised (frame()). In place is allowed:
      * each input sample is read before its output is written.
-     *
-     * @param inL   left input
-     * @param inR   right input
-     * @param outL  left output (may alias @p inL)
-     * @param outR  right output (may alias @p inR)
-     * @param n     samples
+     * @param[in]     inL   left input
+     * @param[in]     inR   right input
+     * @param[in,out] outL  left output (may alias @p inL)
+     * @param[in,out] outR  right output (may alias @p inR)
+     * @param[in]     n     samples
      */
     void process(const float* inL, const float* inR, float* outL, float* outR, int n);
     /** @return the delay through the shifter in samples, always N */
@@ -86,8 +86,7 @@ private:
      * Peaks are local maxima over two bins either side and no more than 70 dB under the loudest;
      * a peak's region runs to the trough before the next peak. Called from process() every Hop
      * samples.
-     *
-     * @param c  the channel
+     * @param[in,out] c  the channel
      */
     void frame(Channel& c);
     Channel m_ch[2];               ///< left and right

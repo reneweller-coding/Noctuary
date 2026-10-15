@@ -35,6 +35,7 @@
  * Murmur, Bowl, Ice, Drops, Clip -- SourcesNear.cpp) and the signals after them (Whistler to
  * Dial). SourceSlot is the one class that renders all of them, a block at a time, into the
  * voice; prepare() does every allocation on the message thread and render() never allocates.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -190,10 +191,9 @@ struct Wavetable {
      * to the next rather than fading, the total mass is the blend of the two totals, and the
      * hollow is gone (Roma, Green and Tremblay; measured in the selftest: the energy halfway
      * doubles, and the spread of the spectrum collapses from five partials to none).
-     *
-     * @param pos        0 .. 1 across the frames (clamped)
-     * @param out        receives TablePartials amplitudes
-     * @param transport  0 = the linear blend, 1 = the transport interpolation, between = a mix of the two
+     * @param[in]  pos        0 .. 1 across the frames (clamped)
+     * @param[out] out        receives TablePartials amplitudes
+     * @param[in]  transport  0 = the linear blend, 1 = the transport interpolation, between = a mix of the two
      */
     void spectrumAt(float pos, float* out, float transport = 0.0f) const;
     /**
@@ -205,34 +205,34 @@ struct Wavetable {
      *
      * A power-of-two frame goes through the FFT; any other length is summed bin by bin. Each
      * frame is normalised to unit energy. Message thread: allocates the transform.
-     *
-     * @param mono      the samples
-     * @param n         how many
-     * @param frameLen  samples per cycle (at least 8)
-     * @return          true when at least one frame was analysed
+     * @param[in] mono      the samples
+     * @param[in] n         how many
+     * @param[in] frameLen  samples per cycle (at least 8)
+     * @return true when at least one frame was analysed
+     * @pre called on the message thread
      */
     bool analyse(const float* mono, int n, int frameLen = 2048);
 };
 
 /**
  * @brief One of the five generated tables (built on first use, or by SourceSlot::prepare).
- * @param index  0 .. NumTables-2 (the last index is the user slot); clamped
- * @return       the table
+ * @param[in] index  0 .. NumTables-2 (the last index is the user slot); clamped
+ * @return the table
  */
 const Wavetable& builtinTable(int index);   ///< 0 .. NumTables-2 (the last index is the user slot)
 
 /**
  * @brief Base pitch from a texture file name: a trailing "_A3" / "-C#4" / " Bb2" note token before
  *        the extension (as written by Tools/TextureGen) gives the frequency at A4 = 440 Hz; 0 if none.
- * @param fileName  the file's name or path; nullptr gives 0
- * @return          the frequency in Hz, or 0 when the name carries no note
+ * @param[in] fileName  the file's name or path; nullptr gives 0
+ * @return the frequency in Hz, or 0 when the name carries no note
  */
 double baseHzFromName(const char* fileName);
 /**
  * @brief Whether the file name marks the clip as seamless ("_loop" or "-loop" anywhere before the
  *        extension, any case): the Stretch type then wraps without a crossfade.
- * @param fileName  the file's name or path; nullptr gives false
- * @return          true for a seamless clip
+ * @param[in] fileName  the file's name or path; nullptr gives false
+ * @return true for a seamless clip
  */
 bool loopFromName(const char* fileName);
 
@@ -383,9 +383,8 @@ public:
      *        the string, the built-in cycle tables.
      *
      * Message thread, once per voice (and again at a sample-rate change).
-     *
-     * @param sampleRate  in Hz
-     * @param seed        the slot's own random stream
+     * @param[in] sampleRate  in Hz
+     * @param[in] seed        the slot's own random stream
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
@@ -394,8 +393,7 @@ public:
      * A fresh note (the voice was idle) draws new phasor phases, silences the bank, kills the
      * grains, restarts the stretch read from Position, blows the pipe from rest, puts the stick to
      * a still bowl, starts a new phrase and plays the clip again; a retrigger changes nothing.
-     *
-     * @param fresh  true when the voice's envelope was idle
+     * @param[in] fresh  true when the voice's envelope was idle
      */
     void noteOn(bool fresh);
     /**
@@ -407,16 +405,15 @@ public:
      * inside); every other type renders mono into a scratch buffer that the level and an
      * equal-power pan then place -- except a spread unison bank, which writes two channels of its
      * own. A change of type starts the new type clean.
-     *
-     * @param outL       left, added to
-     * @param outR       right, added to
-     * @param n          samples, at most ControlBlock; 0 (or type Off) only records the type
-     * @param noteHz     the voice's frequency in Hz (tuning, glides, tide and doppler included)
-     * @param p          the slot's settings
-     * @param table      the Harmonic table (built-in or user), or nullptr
-     * @param texture    the slot's clip, or nullptr
-     * @param driftRate  the voice's drift rate in Hz, for the slot's pitch drift (0 falls back to 0.05)
-     * @param cycles     the Wavetable type's cycle table, or nullptr
+     * @param[in,out] outL       left, added to
+     * @param[in,out] outR       right, added to
+     * @param[in]     n          samples, at most ControlBlock; 0 (or type Off) only records the type
+     * @param[in]     noteHz     the voice's frequency in Hz (tuning, glides, tide and doppler included)
+     * @param[in]     p          the slot's settings
+     * @param[in]     table      the Harmonic table (built-in or user), or nullptr
+     * @param[in]     texture    the slot's clip, or nullptr
+     * @param[in]     driftRate  the voice's drift rate in Hz, for the slot's pitch drift (0 falls back to 0.05)
+     * @param[in]     cycles     the Wavetable type's cycle table, or nullptr
      */
     void render(float* outL, float* outR, int n, double noteHz, const SlotParams& p,
                 const Wavetable* table, const Texture* texture, float driftRate,
@@ -425,9 +422,10 @@ public:
     /**
      * @brief For pictures (message thread, torn reads cost a pixel): the bank's partial amplitudes as
      *        they are being summed, and the grains that are sounding.
-     * @param out       receives the amplitudes
-     * @param maxCount  room in @p out
-     * @return          how many were written (the bank's active entries, at most @p maxCount)
+     * @param[out] out       receives the amplitudes
+     * @param[in]  maxCount  room in @p out
+     * @return how many were written (the bank's active entries, at most @p maxCount)
+     * @pre called on the message thread
      */
     int displayAmps(float* out, int maxCount) const
     {
@@ -444,10 +442,10 @@ public:
     };
     /**
      * @brief The grains sounding right now, for the picture.
-     * @param out       receives one entry per live grain
-     * @param maxCount  room in @p out
-     * @param clipLen   the clip's length in samples, to give positions as 0 .. 1
-     * @return          how many were written
+     * @param[out] out       receives one entry per live grain
+     * @param[in]  maxCount  room in @p out
+     * @param[in]  clipLen   the clip's length in samples, to give positions as 0 .. 1
+     * @return how many were written
      */
     int displayGrains(GrainInfo* out, int maxCount, int clipLen) const;
     /**
@@ -463,62 +461,62 @@ public:
 private:
     /**
      * @brief The Harmonic type: the table's spectrum at the (drifting) position, rendered by the bank.
-     * @param out    mono output (or the left channel when @p outR is given)
-     * @param n      samples
-     * @param hz     the slot's pitch in Hz
-     * @param p      the settings
-     * @param table  the spectra
-     * @param dt     the block's length in seconds
-     * @param outR   the right channel for a spread unison bank, or nullptr
+     * @param[in,out] out    mono output (or the left channel when @p outR is given)
+     * @param[in]     n      samples
+     * @param[in]     hz     the slot's pitch in Hz
+     * @param[in]     p      the settings
+     * @param[in]     table  the spectra
+     * @param[in]     dt     the block's length in seconds
+     * @param[in,out] outR   the right channel for a spread unison bank, or nullptr
      */
     void renderWavetable(float* out, int n, double hz, const SlotParams& p, const Wavetable* table, float dt, float* outR = nullptr);
     /**
      * @brief The Wavetable type: single cycles read as samples, band-limited per octave, a phase per copy.
-     * @param out    mono output (or the left channel when @p outR is given)
-     * @param n      samples
-     * @param hz     the slot's pitch in Hz
-     * @param p      the settings
-     * @param table  the cycles
-     * @param dt     the block's length in seconds
-     * @param outR   the right channel for a spread unison bank, or nullptr
+     * @param[in,out] out    mono output (or the left channel when @p outR is given)
+     * @param[in]     n      samples
+     * @param[in]     hz     the slot's pitch in Hz
+     * @param[in]     p      the settings
+     * @param[in]     table  the cycles
+     * @param[in]     dt     the block's length in seconds
+     * @param[in,out] outR   the right channel for a spread unison bank, or nullptr
      */
     void renderCycles(float* out, int n, double hz, const SlotParams& p, const CycleTable* table, float dt, float* outR = nullptr);
     /**
      * @brief Additive in a slot: the voice's spectrum formula on the slot's own single bank.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the slot's pitch in Hz
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the slot's pitch in Hz
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderAdditive(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief The phasor bank's block: targets, then the sum. `uni` copies of the spectrum end to end;
      *        with more than one and an `outR`, they are spread across the field and it writes stereo.
-     * @param spec  the TablePartials amplitudes to head for
-     * @param H     how many of them are below Nyquist (from setBankPitch)
-     * @param n     samples
-     * @param out   mono output, or the left channel
-     * @param uni   copies of the spectrum in the flat bank
-     * @param outR  the right channel when the copies are spread, or nullptr
+     * @param[in]     spec  the TablePartials amplitudes to head for
+     * @param[in]     H     how many of them are below Nyquist (from setBankPitch)
+     * @param[in]     n     samples
+     * @param[in,out] out   mono output, or the left channel
+     * @param[in]     uni   copies of the spectrum in the flat bank
+     * @param[in,out] outR  the right channel when the copies are spread, or nullptr
      */
     void renderBank(const float* spec, int H, int n, float* out, int uni = 1, float* outR = nullptr);
     /**
      * @brief Rotations and stereo weights for `uni` copies around `hz`, detuned by `cents` end to end and
      *        placed across `width`. Returns how many partials of one copy fit below Nyquist.
-     * @param hz        the slot's pitch in Hz
-     * @param p         the settings (unison, uniDetune, uniWidth, pan)
-     * @param partials  how many partials each copy renders
-     * @return          how many partials of one copy fit below Nyquist
+     * @param[in] hz        the slot's pitch in Hz
+     * @param[in] p         the settings (unison, uniDetune, uniWidth, pan)
+     * @param[in] partials  how many partials each copy renders
+     * @return how many partials of one copy fit below Nyquist
      */
     int  setBankPitch(double hz, const SlotParams& p, int partials);
     /**
      * @brief Two-operator FM with a DC blocker; the index shrinks above 3 kHz and wanders with Pos Drift.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the carrier's pitch in Hz
-     * @param p    the settings (fmRatio, fmIndex, positionDrift)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the carrier's pitch in Hz
+     * @param[in]     p    the settings (fmRatio, fmIndex, positionDrift)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderFm(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
@@ -526,43 +524,42 @@ private:
      *
      * Writes the left channel into @p outL and the right into m_scratch; the caller adds both.
      * The instrument's largest single cost, and written accordingly (Sources.cpp).
-     *
-     * @param outL   the left channel
-     * @param n      samples
-     * @param hz     the slot's pitch in Hz (for Follow = Note)
-     * @param speed  the playback speed for Follow = Free: the slot's pitch over the note's
-     * @param p      the settings
-     * @param tex    the clip, or nullptr (silence)
-     * @param dt     the block's length in seconds
+     * @param[in,out] outL   the left channel
+     * @param[in]     n      samples
+     * @param[in]     hz     the slot's pitch in Hz (for Follow = Note)
+     * @param[in]     speed  the playback speed for Follow = Free: the slot's pitch over the note's
+     * @param[in]     p      the settings
+     * @param[in]     tex    the clip, or nullptr (silence)
+     * @param[in]     dt     the block's length in seconds
      */
     void renderTexture(float* outL, int n, double hz, double speed, const SlotParams& p, const Texture* tex, float dt);
     /**
      * @brief Ten colours of noise, one generator per ear, each normalised so Level means the same loudness.
-     * @param outL  the left channel; the right goes into m_scratch
-     * @param n     samples
-     * @param hz    the slot's pitch in Hz, for the Band colour tracking the note
-     * @param p     the settings (noise, noiseQ, positionDrift)
-     * @param dt    the block's length in seconds
+     * @param[in,out] outL  the left channel; the right goes into m_scratch
+     * @param[in]     n     samples
+     * @param[in]     hz    the slot's pitch in Hz, for the Band colour tracking the note
+     * @param[in]     p     the settings (noise, noiseQ, positionDrift)
+     * @param[in]     dt    the block's length in seconds
      */
     void renderNoise(float* outL, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief Paulstretch over the clip: pulls from the overlap-add ring and calls stretchFrame() when it runs dry.
-     * @param out    mono output
-     * @param n      samples
-     * @param hz     the slot's pitch in Hz (for Follow = Note)
-     * @param speed  the resampling speed for Follow = Free
-     * @param p      the settings (stretch, xfade, grainMs as the window, position)
-     * @param tex    the clip, or nullptr
-     * @param dt     the block's length in seconds
+     * @param[in,out] out    mono output
+     * @param[in]     n      samples
+     * @param[in]     hz     the slot's pitch in Hz (for Follow = Note)
+     * @param[in]     speed  the resampling speed for Follow = Free
+     * @param[in]     p      the settings (stretch, xfade, grainMs as the window, position)
+     * @param[in]     tex    the clip, or nullptr
+     * @param[in]     dt     the block's length in seconds
      */
     void renderStretch(float* out, int n, double hz, double speed, const SlotParams& p, const Texture* tex, float dt);
     /**
      * @brief A bowed string: two waveguides meeting at the bow, the Stribeck friction between them (Sources.cpp).
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the string's pitch in Hz
-     * @param p    the settings (bowForce, bowSpeed, position as the bow's place)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the string's pitch in Hz
+     * @param[in]     p    the settings (bowForce, bowSpeed, position as the bow's place)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderBow(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
@@ -570,157 +567,160 @@ private:
      *        slot's Pan like every other mono type.
      *
      * The flute: a jet-drive waveguide after Cook, Position the embouchure that overblows it.
-     *
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the pipe's pitch in Hz
-     * @param p    the settings (bowForce as breath, bowSpeed as the jet's noise, position)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the pipe's pitch in Hz
+     * @param[in]     p    the settings (bowForce as breath, bowSpeed as the jet's noise, position)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderFlute(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief Bowl and Ice: a modal body under a stick, the bow's friction driving doublet modes.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the lowest mode's pitch in Hz
-     * @param p    the settings (bowForce, bowSpeed, position as the stick's place, positionDrift as the doublet's split)
-     * @param dt   the block's length in seconds
-     * @param ice  false for the singing bowl's modes, true for the ice's dense, short ones with the slip clock
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the lowest mode's pitch in Hz
+     * @param[in]     p    the settings (bowForce, bowSpeed, position as the stick's place, positionDrift as the
+     *                     doublet's split)
+     * @param[in]     dt   the block's length in seconds
+     * @param[in]     ice  false for the singing bowl's modes, true for the ice's dense, short ones with the slip clock
      */
     void renderRub(float* out, int n, double hz, const SlotParams& p, float dt, bool ice);
     /**
-     * @brief Speech without words on a radio: a glottal pulse through walking formants, syllables and pauses, the carrier's hiss and squelch.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the voice's pitch in Hz
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @brief Speech without words on a radio: a glottal pulse through walking formants, syllables and pauses, the
+     *        carrier's hiss and squelch.
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the voice's pitch in Hz
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderMurmur(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief Water falling into a vessel, after van den Doel: rising bubbles on a Poisson clock and the vessel's ring.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the note, for Pitch = Note bubbles on its partials
-     * @param p    the settings (density, bright as the bubble size, position as the vessel)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the note, for Pitch = Note bubbles on its partials
+     * @param[in]     p    the settings (density, bright as the bubble size, position as the vessel)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderDrops(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A VLF whistler: a tone falling as one over the square of time, a thread of noise under it.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   where the whistle ends, in Hz
-     * @param p    the settings (bright as the start, bowSpeed as the tau)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   where the whistle ends, in Hz
+     * @param[in]     p    the settings (bright as the start, bowSpeed as the tau)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderWhistler(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A seed pod shaken: bursts of filtered grains on a slow hand.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the rattle's resonance in Hz
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the rattle's resonance in Hz
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderShaker(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief Struck bronze: a modal bank of five doublets, ringing and beating.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the strike tone in Hz
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the strike tone in Hz
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderChime(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A Geiger-Mueller tube: discharges on a Poisson clock at Density a second, now and then a shower.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the click's resonance in Hz
-     * @param p    the settings (density)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the click's resonance in Hz
+     * @param[in]     p    the settings (density)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderGeiger(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A fluorescent tube: the starter's clicks, the choke's hum at twice the mains, the tube's hiss.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the note (the hum sits on the mains, Position choosing 50 or 60 Hz)
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the note (the hum sits on the mains, Position choosing 50 or 60 Hz)
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderTube(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief The Krell's machines: FM steered by a Roessler attractor, wandering and never repeating.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the centre of the band the pitch wanders in, Hz
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the centre of the band the pitch wanders in, Hz
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderKrell(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A deep-space beacon's packet: a chirp, then eight bits of frequency-shift keying, repeated.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the space frequency in Hz (the mark a major third over it)
-     * @param p    the settings
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the space frequency in Hz (the mark a major third over it)
+     * @param[in]     p    the settings
+     * @param[in]     dt   the block's length in seconds
      */
     void renderBeacon(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A number station: five-figure groups in Morse at Speed words a minute, under the ionosphere's flutter.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the keyed tone in Hz
-     * @param p    the settings (bowSpeed as words per minute, position for letters, bright as the flutter)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the keyed tone in Hz
+     * @param[in]     p    the settings (bowSpeed as words per minute, position for letters, bright as the flutter)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderMorse(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief A shortwave set with its dial turned: sliding heterodyne whistles over the band's noise.
-     * @param out  mono output
-     * @param n    samples
-     * @param hz   the centre of the whistles' band in Hz
-     * @param p    the settings (position for how many whistles, bright for the noise)
-     * @param dt   the block's length in seconds
+     * @param[in,out] out  mono output
+     * @param[in]     n    samples
+     * @param[in]     hz   the centre of the whistles' band in Hz
+     * @param[in]     p    the settings (position for how many whistles, bright for the noise)
+     * @param[in]     dt   the block's length in seconds
      */
     void renderDial(float* out, int n, double hz, const SlotParams& p, float dt);
     /**
      * @brief Clip: the slot's recording played straight through, once, from Position -- a voice on a
      *        radio, a launch, a recording of Mars -- at its own speed (Pitch = Free) or pitched to the
      *        note. Writes left into outL and right into m_scratch, as the granular Texture does.
-     * @param outL   the left channel
-     * @param n      samples
-     * @param hz     the slot's pitch in Hz (for Pitch = Note)
-     * @param speed  the playback speed for Pitch = Free
-     * @param p      the settings
-     * @param tex    the clip, or nullptr
-     * @param dt     the block's length in seconds
+     * @param[in,out] outL   the left channel
+     * @param[in]     n      samples
+     * @param[in]     hz     the slot's pitch in Hz (for Pitch = Note)
+     * @param[in]     speed  the playback speed for Pitch = Free
+     * @param[in]     p      the settings
+     * @param[in]     tex    the clip, or nullptr
+     * @param[in]     dt     the block's length in seconds
      */
     void renderClip(float* outL, int n, double hz, double speed, const SlotParams& p, const Texture* tex, float dt);
     /**
      * @brief A clip played back from its band model: an oscillator and a band of noise per band, pitch and speed apart.
-     * @param out        mono output
-     * @param n          samples
-     * @param transpose  the factor on every band's frequency (the note over the clip's pitch, or the slot's ratio)
-     * @param p          the settings (specRate, specBreath, position)
-     * @param tex        the clip with its model, or nullptr
-     * @param dt         the block's length in seconds
+     * @param[in,out] out        mono output
+     * @param[in]     n          samples
+     * @param[in]     transpose  the factor on every band's frequency (the note over the clip's pitch, or the slot's
+     *                           ratio)
+     * @param[in]     p          the settings (specRate, specBreath, position)
+     * @param[in]     tex        the clip with its model, or nullptr
+     * @param[in]     dt         the block's length in seconds
      */
     void renderSpectral(float* out, int n, double transpose, const SlotParams& p, const Texture* tex, float dt);
     /**
-     * @brief One Paulstretch frame: window the clip at the read position, keep the magnitudes, draw new phases, overlap-add.
-     * @param p     the settings
-     * @param tex   the clip
-     * @param rate  the resampling step through the clip (the pitch)
-     * @param N     the window length, a power of two between StretchMinN and StretchMaxN
+     * @brief One Paulstretch frame: window the clip at the read position, keep the magnitudes, draw new phases,
+     *        overlap-add.
+     * @param[in] p     the settings
+     * @param[in] tex   the clip
+     * @param[in] rate  the resampling step through the clip (the pitch)
+     * @param[in] N     the window length, a power of two between StretchMinN and StretchMaxN
      */
     void stretchFrame(const SlotParams& p, const Texture* tex, double rate, int N);
     /**
      * @brief The shared real transform of one size, built on first request (prepare() asks for every size).
-     * @param n  the transform length
+     * @param[in] n  the transform length
      * @return   the transform; shared, read-only after prepare(): one per size
      */
     static const RealFft& stretchFft(int n);   ///< shared, read-only after prepare(): one per size

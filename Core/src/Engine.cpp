@@ -22,6 +22,7 @@
  * inside renderChunk. The comments above the texture setters and above waitForQuiet() explain the
  * one rule that keeps the two apart: a buffer is only written once every block that could still be
  * holding it has ended.
+ * @author Rene Weller
  */
 #include <chrono>
 #include <thread>
@@ -449,11 +450,10 @@ void Engine::waitForQuiet()
  *
  * Message thread, on a copy that is not yet published. The mean is summed in double and taken out
  * in place; a mean under a millionth is left alone, so a clip that is already centred is not touched.
- *
- * @param p       the first sample of the run; a null pointer or a count of zero does nothing
- * @param count   how many samples the run holds, `stride` apart
- * @param stride  the step between two samples of the run: 1 for a mono buffer, 2 for one channel
- *                of an interleaved stereo pair
+ * @param[in,out] p       the first sample of the run; a null pointer or a count of zero does nothing
+ * @param[in]     count   how many samples the run holds, `stride` apart
+ * @param[in]     stride  the step between two samples of the run: 1 for a mono buffer, 2 for one channel of an
+ *                        interleaved stereo pair
  */
 static void removeOffset(float* p, size_t count, size_t stride)
 {
@@ -472,8 +472,7 @@ static void removeOffset(float* p, size_t count, size_t stride)
  * Called by every texture setter and by makeTexture(), on the buffer that is about to be published
  * and before Texture::measure(), so the audio thread never plays a clip with a direct current in it
  * and the measurements describe the clip as it will be heard.
- *
- * @param t  the texture whose mono and lr buffers are corrected in place
+ * @param[in,out] t  the texture whose mono and lr buffers are corrected in place
  */
 static void removeOffset(Texture& t)
 {

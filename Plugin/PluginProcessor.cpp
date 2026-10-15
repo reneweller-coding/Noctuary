@@ -13,6 +13,7 @@
  * The standalone's own headers are included under `JucePlugin_Build_Standalone` right below.
  * For the standalone's settings file: the same one JUCE saves the state into when the window is
  * closed. Reaching it here is what lets the session be written while the app is still running.
+ * @author Rene Weller
  */
 #include "PluginProcessor.h"
 #include "ambient/WavFile.h"
@@ -897,12 +898,11 @@ void NoctuaryProcessor::applyNearAuto(int soundIndex)
  * The loudness of every preset was measured from a twelve-second render (Tools/preset_map.py
  * for the built-ins, measure_packs.py for the library). A preset that was never measured has
  * none, and is then left alone rather than guessed at.
- * @param index  the preset just loaded, whose measured loudness (ambient::presetMeta) is matched
  */
-void NoctuaryProcessor::applyLevelMatch(int index)
+void NoctuaryProcessor::applyLevelMatch(int presetIndex)
 {
-    if (!m_levelMatch || index < 0 || index >= numPresetMeta()) return;
-    const float loud = presetMeta(index).m_loudDb;
+    if (!m_levelMatch || presetIndex < 0 || presetIndex >= numPresetMeta()) return;
+    const float loud = presetMeta(presetIndex).m_loudDb;
     if (loud >= -0.5f || loud < -80.0f) return;         // 0 means "never measured"
     constexpr float Target = -20.5f;                   // the measured median of the built-in presets
     if (auto* p = m_apvts.getParameter(paramDesc(ParamIdE::MASTER_GAIN).m_key)) {

@@ -25,6 +25,7 @@
  * ambient_banktest) and the real-input FFT's (FftChecks.h). Some tests need the measured preset
  * map (Tools/preset_map.py) and say so and return when it is the stub. The near-layer test
  * switches stdout to unbuffered first so that a crash leaves its probes behind.
+ * @author Rene Weller
  */
 #include "ambient/Engine.h"
 #include "ambient/MainStack.h"
@@ -90,9 +91,8 @@ static int failures = 0;
  *
  * A failed check never aborts the run -- every test function carries on, so one run reports every
  * failure in the program. The shared check headers below use the same macro.
- *
- * @param cond  the condition that has to hold
- * @param msg   what was being checked, as a C string, printed only on failure
+ * @param[in] cond  the condition that has to hold
+ * @param[in] msg   what was being checked, as a C string, printed only on failure
  */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 #include "ConvolverChecks.h"   // the convolver's checks, shared with ambient_convtest
@@ -114,11 +114,10 @@ struct Stats {
  * The engine must have been prepared; the block count is derived from its own sample rate. Nearly
  * every engine-level check in this file is built on this: render, then compare the Stats, or
  * capture the samples and take a Goertzel of a window.
- *
- * @param e        the engine to run, prepared, with whatever notes and parameters the test set
- * @param seconds  how long to render, in seconds of the engine's sample rate
- * @param capture  if not null, every rendered sample is appended, interleaved left, right
- * @return         RMS, peak and the count of non-finite samples over the whole stretch
+ * @param[in,out] e        the engine to run, prepared, with whatever notes and parameters the test set
+ * @param[in]     seconds  how long to render, in seconds of the engine's sample rate
+ * @param[in,out] capture  if not null, every rendered sample is appended, interleaved left, right
+ * @return RMS, peak and the count of non-finite samples over the whole stretch
  */
 Stats render(Engine& e, double seconds, std::vector<float>* capture = nullptr)
 {
@@ -565,12 +564,11 @@ void testSpace()
  * frequency", which is what a pitch, a partial or a sideband check needs, and only that. The value
  * is a power proportional to N times the energy at the bin, so it is compared against another
  * goertzel() of the same length and never read in absolute terms.
- *
- * @param x   the samples (one channel)
- * @param n   how many of them
- * @param hz  the frequency to measure, in hertz
- * @param sr  the sample rate of @p x, in hertz
- * @return    the power at @p hz, unnormalised (compare, do not read)
+ * @param[in] x   the samples (one channel)
+ * @param[in] n   how many of them
+ * @param[in] hz  the frequency to measure, in hertz
+ * @param[in] sr  the sample rate of @p x, in hertz
+ * @return the power at @p hz, unnormalised (compare, do not read)
  */
 double goertzel(const float* x, int n, double hz, double sr)
 {
@@ -2376,19 +2374,19 @@ struct TestSink : OscSink {
     ControlEvent m_lastEvent{ ControlEvent::TypeE::NOTE_ON, 0, 0.0f };   ///< the most recent control event
     /**
      * @brief Records a parameter written in its own units.
-     * @param id  which parameter
-     * @param v   the value, as the dispatcher resolved it
+     * @param[in] id  which parameter
+     * @param[in] v   the value, as the dispatcher resolved it
      */
     void setParam(ParamIdE id, float v) override { m_last[static_cast<int>(id)] = v; m_set[static_cast<int>(id)] = true; }
     /**
      * @brief Records a parameter written normalised, mapped linearly onto its range so the tests compare one table.
-     * @param id  which parameter
-     * @param n   the value in 0..1
+     * @param[in] id  which parameter
+     * @param[in] n   the value in 0..1
      */
     void setParamNormalised(ParamIdE id, float n) override { const ParamDesc& d = paramDesc(id); m_last[static_cast<int>(id)] = d.m_min + (d.m_max - d.m_min) * n; m_set[static_cast<int>(id)] = true; }
     /**
      * @brief Counts a control event and keeps it as the last one.
-     * @param e  the event (note, preset, cosmos preset ...)
+     * @param[in] e  the event (note, preset, cosmos preset ...)
      */
     void event(const ControlEvent& e) override { ++m_events; m_lastEvent = e; }
 };
@@ -2399,13 +2397,13 @@ struct TestSink : OscSink {
  * Writes the address, the type-tag string (a comma followed by @p tags) and the arguments in
  * order, each padded to a multiple of four bytes; used both for the parser checks and for the real
  * UDP loopback through OscServer.
- *
- * @param out      the buffer to write into; the caller guarantees room for the message
- * @param address  the OSC address, e.g. "/ambient/param/cutoff"
- * @param tags     the type tags without the leading comma: 'f' float, 'i' int32, 's' string
- * @param floats   the numeric arguments, one per 'f' or 'i' tag in order (an 'i' is truncated from the float); may be null when there are none
- * @param strings  the string arguments, one per 's' tag in order; may be null when there are none
- * @return         how many bytes of @p out the message occupies
+ * @param[in,out] out      the buffer to write into; the caller guarantees room for the message
+ * @param[in]     address  the OSC address, e.g. "/ambient/param/cutoff"
+ * @param[in]     tags     the type tags without the leading comma: 'f' float, 'i' int32, 's' string
+ * @param[in]     floats   the numeric arguments, one per 'f' or 'i' tag in order (an 'i' is truncated from the float);
+ *                         may be null when there are none
+ * @param[in]     strings  the string arguments, one per 's' tag in order; may be null when there are none
+ * @return how many bytes of @p out the message occupies
  */
 static size_t oscBuild(char* out, const char* address, const char* tags, const float* floats, const char* const* strings)
 {

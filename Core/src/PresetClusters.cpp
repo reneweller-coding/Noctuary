@@ -10,6 +10,7 @@
  * CLAP chose a preset's "sounds like" phrases from (PresetMeta::phrase), handed out by index to the
  * browser's info card (PresetText.cpp). Both tables are written by Tools/library/map_all.py and
  * never by hand; this file only answers the questions PresetMeta.h declares over them.
+ * @author Rene Weller
  */
 #include "ambient/PresetMeta.h"
 #include <cmath>
@@ -40,9 +41,9 @@ const char* presetPhrase(int index)
 }
 
 /**
- * @param m  the measured metadata of one preset; only its cluster field is read
- * @return   the stored cluster when it is valid, else the nearest centroid, else -1 when no
- *           clusters were generated at all
+ * @param[in] m  the measured metadata of one preset; only its cluster field is read
+ * @return the stored cluster when it is valid, else the nearest centroid, else -1 when no clusters were generated at
+ *         all
  */
 int presetClusterOf(const PresetMeta& m)
 {

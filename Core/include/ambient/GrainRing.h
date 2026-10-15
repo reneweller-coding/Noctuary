@@ -10,6 +10,7 @@
  * r^0..r^7 and turned by r^8. A ring needs one change to that: both places the interpolation
  * reads are folded back into the ring before the gather -- by a compare and a subtract rather
  * than a mask, so a ring does not have to be a power of two long.
+ * @author Rene Weller
  */
 #pragma once
 #include "Simd.h"
@@ -58,18 +59,14 @@ namespace detail {
  * by r^8, the frames through a gather); on NEON four, with the interpolation scalar because NEON
  * has no gather; the tail -- and the whole loop without VEC -- is the scalar form. On return the
  * grain's pos is advanced by rate * count and folded, and its phasor stands at the next sample.
- *
- * @tparam CH   1 for a mono ring, 2 for an interleaved stereo pair (the right channel is read
- *              from the odd cells)
- * @tparam VEC  whether the vector path may be taken; false is the reference the self test holds
- *              the true path against
- * @param ring   the ring's samples, `cap` frames of CH channels
- * @param cap    frames in the ring
- * @param g      the grain: pos, rate, window phasor and gains are read, pos and the phasor written
- * @param oL     left output, `count` samples, added into
- * @param oR     right output, `count` samples, added into (the same signal as the left for a
- *               mono ring)
- * @param count  samples to render; g.pos + g.rate * count must stay below 2 * cap - 1
+ * @param[in]     ring   the ring's samples, `cap` frames of CH channels
+ * @param[in]     cap    frames in the ring
+ * @param[in,out] g      the grain: pos, rate, window phasor and gains are read, pos and the phasor written
+ * @param[in,out] oL     left output, `count` samples, added into
+ * @param[in,out] oR     right output, `count` samples, added into (the same signal as the left for a mono ring)
+ * @param[in]     count  samples to render; g.pos + g.rate * count must stay below 2 * cap - 1
+ * @tparam CH   1 for a mono ring, 2 for an interleaved stereo pair (the right channel is read from the odd cells)
+ * @tparam VEC  whether the vector path may be taken; false is the reference the self test holds the true path against
  */
 template <int CH, bool VEC>
 inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, float* oR, int count)
@@ -238,14 +235,13 @@ inline void ringGrainBody(const float* ring, int cap, RingGrain& g, float* oL, f
  *
  * Audio thread, once per grain per block, from the Cloud's and the Memory's grain loops; takes
  * the vector path this translation unit was compiled with (see ringGrainPath()).
- *
- * @param ring      the ring's samples
- * @param cap       frames in the ring
- * @param channels  1 for mono, 2 for an interleaved stereo pair; anything else reads as mono
- * @param g         the grain to render and advance
- * @param oL        left output, added into
- * @param oR        right output, added into
- * @param count     samples to render this block
+ * @param[in]     ring      the ring's samples
+ * @param[in]     cap       frames in the ring
+ * @param[in]     channels  1 for mono, 2 for an interleaved stereo pair; anything else reads as mono
+ * @param[in,out] g         the grain to render and advance
+ * @param[in,out] oL        left output, added into
+ * @param[in,out] oR        right output, added into
+ * @param[in]     count     samples to render this block
  */
 inline void renderRingGrain(const float* ring, int cap, int channels, RingGrain& g, float* oL, float* oR, int count)
 {
@@ -275,13 +271,13 @@ inline const char* ringGrainPath()
 
 /**
  * @brief The same arithmetic without the vector path, so the self test can hold the two against each other.
- * @param ring      the ring's samples
- * @param cap       frames in the ring
- * @param channels  1 for mono, 2 for an interleaved stereo pair; anything else reads as mono
- * @param g         the grain to render and advance
- * @param oL        left output, added into
- * @param oR        right output, added into
- * @param count     samples to render this block
+ * @param[in]     ring      the ring's samples
+ * @param[in]     cap       frames in the ring
+ * @param[in]     channels  1 for mono, 2 for an interleaved stereo pair; anything else reads as mono
+ * @param[in,out] g         the grain to render and advance
+ * @param[in,out] oL        left output, added into
+ * @param[in,out] oR        right output, added into
+ * @param[in]     count     samples to render this block
  */
 inline void renderRingGrainScalar(const float* ring, int cap, int channels, RingGrain& g, float* oL, float* oR, int count)
 {

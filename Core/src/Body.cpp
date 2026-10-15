@@ -10,6 +10,7 @@
  * the mono send and adds each mode to its own side of the stereo field, then guards the resonators
  * once a block. The engine calls prepare() once, set() per block from the parameters and the
  * brain's root, and process() on the audio thread after the mix it answers is finished.
+ * @author Rene Weller
  */
 #include "ambient/Body.h"
 #include <cmath>

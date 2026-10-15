@@ -18,6 +18,7 @@
  * resonance, and either builds the cascade (zBuildCascade) or sets the modal bank (ZModal::set);
  * per sample it runs one or the other. The corner tables themselves are generated
  * (Core/src/ZPlaneBank.inc).
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -86,9 +87,8 @@ extern const ZCornerSpec ZCorners[ZShapes][8];
  * The pole bandwidth is floored at 0.5 Hz; a zeroRatio of 0 gives sections without zeros; the
  * gain of section i is tilt^i. Pure arithmetic, but zInterpolate caches its results per shape so
  * this runs once per corner, not per voice.
- *
- * @param c  the corner
- * @return   the frame, `used` set to the number of frequencies before the first 0
+ * @param[in] c  the corner
+ * @return the frame, `used` set to the number of frequencies before the first 0
  */
 ZFrame zFrameFromSpec(const ZCornerSpec& c);
 /**
@@ -98,12 +98,11 @@ ZFrame zFrameFromSpec(const ZCornerSpec& c);
  * beforehand by zWarmShapes), so a call is eight weights over a few numbers per section. At z = 0
  * it is exactly the bilinear interpolation of the near face. A zero that exists in every corner is
  * interpolated; if any corner has none, the section has none.
- *
- * @param shape  0 .. ZShapes-1 (clamped)
- * @param x      the point's X, 0 .. 1 (clamped)
- * @param y      the point's Y, 0 .. 1 (clamped)
- * @param z      the point's Transform, 0 .. 1 (clamped); 0 is the filter as it was before the third axis
- * @return       the frame at that point, `used` the fewest sections of any corner
+ * @param[in] shape  0 .. ZShapes-1 (clamped)
+ * @param[in] x      the point's X, 0 .. 1 (clamped)
+ * @param[in] y      the point's Y, 0 .. 1 (clamped)
+ * @param[in] z      the point's Transform, 0 .. 1 (clamped); 0 is the filter as it was before the third axis
+ * @return the frame at that point, `used` the fewest sections of any corner
  */
 ZFrame zInterpolate(int shape, float x, float y, float z = 0.0f);
 
@@ -129,7 +128,7 @@ class ZModal {
 public:
     /**
      * @brief Remembers the sample rate every mode's angle and radius are computed from, and clears the state.
-     * @param sr  sample rate in Hz
+     * @param[in] sr  sample rate in Hz
      */
     void prepare(float sr) { m_sr = sr; reset(); }
     /** @brief Silences every mode on both channels; the coefficients stay. */
@@ -145,19 +144,18 @@ public:
      * at its own frequency and the section's gain as its weight; the bank is normalised on the
      * expected power of the weights rather than on the sum of the peaks, so six modes and two come
      * out at the same level. Control rate, audio thread.
-     *
-     * @param f             the frame (from zInterpolate, scaled by the voice)
-     * @param decaySeconds  T60 of the lowest mode, 0.02 .. 40 s (clamped)
-     * @param damp          0 .. 1, how much shorter the high modes ring
+     * @param[in] f             the frame (from zInterpolate, scaled by the voice)
+     * @param[in] decaySeconds  T60 of the lowest mode, 0.02 .. 40 s (clamped)
+     * @param[in] damp          0 .. 1, how much shorter the high modes ring
      */
     void set(const ZFrame& f, float decaySeconds, float damp);
     /** @return how many modes are ringing after the last set() */
     int  used() const { return m_used; }
     /**
      * @brief One sample of one channel through the bank: every mode is run and the outputs add.
-     * @param ch  0 left, 1 right (each mode keeps a state per channel)
-     * @param x   the input sample
-     * @return    the sum of the modes, normalised
+     * @param[in] ch  0 left, 1 right (each mode keeps a state per channel)
+     * @param[in] x   the input sample
+     * @return the sum of the modes, normalised
      */
     inline float tick(int ch, float x)
     {
@@ -192,9 +190,8 @@ public:
      * @brief |H(f)| of the whole bank, for the display: the modes add, they do not multiply.
      *
      * Sums the complex responses, phases included, and takes the magnitude of the sum.
-     *
-     * @param hz  the frequency to evaluate at, in Hz (clamped to 1 .. half the sample rate)
-     * @return    the magnitude, normalised as tick() is
+     * @param[in] hz  the frequency to evaluate at, in Hz (clamped to 1 .. half the sample rate)
+     * @return the magnitude, normalised as tick() is
      */
     float magnitudeAt(float hz) const;
 
@@ -234,24 +231,23 @@ struct ZBiquad {
      * The pole radius is capped at 0.99995 (about 0.4 s of ringing) so no interpolated point can
      * blow up; in practice the gain is applied by zBuildCascade, which normalises the section over
      * its whole grid, so this leaves b0 at 1.
-     *
-     * @param s   the section
-     * @param sr  sample rate in Hz
+     * @param[in] s   the section
+     * @param[in] sr  sample rate in Hz
      */
     void set(const ZSection& s, float sr);
     /**
      * @brief |H| at the given angular frequency (radians per sample), for the cascade normalisation.
-     * @param w  the angular frequency, 0 .. pi
-     * @return   the magnitude response there
+     * @param[in] w  the angular frequency, 0 .. pi
+     * @return the magnitude response there
      */
     float magnitudeAt(float w) const;
     /**
      * @brief |H|^2 from precomputed cos/sin of w and 2w (the normalisation grid).
-     * @param c1  cos(w)
-     * @param s1  sin(w)
-     * @param c2  cos(2w)
-     * @param s2  sin(2w)
-     * @return    the squared magnitude response at w
+     * @param[in] c1  cos(w)
+     * @param[in] s1  sin(w)
+     * @param[in] c2  cos(2w)
+     * @param[in] s2  sin(2w)
+     * @return the squared magnitude response at w
      */
     float magSqAt(float c1, float s1, float c2, float s2) const
     {
@@ -261,8 +257,8 @@ struct ZBiquad {
     }
     /**
      * @brief One sample through the section.
-     * @param x  the input
-     * @return   the output
+     * @param[in] x  the input
+     * @return the output
      */
     inline float tick(float x)
     {
@@ -295,7 +291,7 @@ struct ZBiquad {
     }
     /**
      * @brief Takes the coefficients of another section, keeping this one's state (the right channel copies the left's).
-     * @param o  the section to copy from
+     * @param[in] o  the section to copy from
      */
     void copyCoefficients(const ZBiquad& o) { m_b0 = o.m_b0; m_b1 = o.m_b1; m_b2 = o.m_b2; m_a1 = o.m_a1; m_a2 = o.m_a2; }
     /** @brief Clears the state; the coefficients stay. */
@@ -328,11 +324,10 @@ void zWarmShapes();
  * points (a bell then keeps unity background and boosts only its peak), capped at 30 dB; the
  * product of the sections down each point gives the cascade's peak. Control rate, audio thread;
  * zWarmTables() must have run.
- *
- * @param f   the frame
- * @param ch  receives f.used sections' coefficients (their state is left alone)
- * @param sr  sample rate in Hz
- * @return    the make-up gain for the cascade's output, 1e-4 .. 16
+ * @param[in]  f   the frame
+ * @param[out] ch  receives f.used sections' coefficients (their state is left alone)
+ * @param[in]  sr  sample rate in Hz
+ * @return the make-up gain for the cascade's output, 1e-4 .. 16
  */
 float zBuildCascade(const ZFrame& f, ZBiquad* ch, float sr);
 
@@ -345,10 +340,10 @@ struct Resonator {
           m_s2 = 0.0f;   ///< the output before that
     /**
      * @brief Tunes the resonator.
-     * @param hz    centre frequency in Hz (clamped to 20 .. 0.45 sr)
-     * @param bw    bandwidth in Hz (clamped to 1 .. 0.2 sr); the pole radius is exp(-pi bw / sr)
-     * @param gain  the peak gain
-     * @param sr    sample rate in Hz
+     * @param[in] hz    centre frequency in Hz (clamped to 20 .. 0.45 sr)
+     * @param[in] bw    bandwidth in Hz (clamped to 1 .. 0.2 sr); the pole radius is exp(-pi bw / sr)
+     * @param[in] gain  the peak gain
+     * @param[in] sr    sample rate in Hz
      */
     void set(float hz, float bw, float gain, float sr)
     {
@@ -361,8 +356,8 @@ struct Resonator {
     }
     /**
      * @brief One sample through the resonator.
-     * @param in  the input
-     * @return    the output
+     * @param[in] in  the input
+     * @return the output
      */
     inline float tick(float in)
     {

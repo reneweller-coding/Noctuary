@@ -16,6 +16,7 @@
  * outgrows the 32-bit length fields is capped at 0xFFFFFFFF there, which is what every other WAV
  * writer does and what readWavChannels (WavFile.cpp) knows to expect. The Quest app and any host
  * without a writer of its own record through this; the desktop plugin records through JUCE.
+ * @author Rene Weller
  */
 #include "ambient/Recorder.h"
 #include <chrono>

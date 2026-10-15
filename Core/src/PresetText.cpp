@@ -7,6 +7,7 @@
  * called. Ours is not written by hand and not invented: the first half comes from what the preset
  * measured (the same ranks the map is laid out from), the second from what its settings actually
  * switch on. Nothing here is a guess -- if the line says "the Cosmos is open", cosmos_send is up.
+ * @author Rene Weller
  */
 #include "ambient/Presets.h"
 #include "ambient/PresetMeta.h"
@@ -29,10 +30,9 @@ namespace {
  *
  * The settings string is "key=value;key=value". Only a handful of keys are ever asked for, so it
  * is walked rather than parsed into a map.
- *
- * @param settings  the preset's settings string; nullptr is treated as empty
- * @param key       the parameter key to look for, matched whole (not as a prefix)
- * @return          the text between '=' and the next ';', or "" when the key is absent
+ * @param[in] settings  the preset's settings string; nullptr is treated as empty
+ * @param[in] key       the parameter key to look for, matched whole (not as a prefix)
+ * @return the text between '=' and the next ';', or "" when the key is absent
  */
 std::string valueOf(const char* settings, const char* key)
 {
@@ -52,11 +52,11 @@ std::string valueOf(const char* settings, const char* key)
 
 /**
  * @brief The value written for one key, read as a number.
- * @param settings  the preset's settings string
- * @param key       the parameter key to look for
- * @param fallback  what to answer when the preset does not mention the key -- the caller passes
- *                  the parameter's default where the question depends on it
- * @return          the value as atof reads it, or @p fallback when the key is absent
+ * @param[in] settings  the preset's settings string
+ * @param[in] key       the parameter key to look for
+ * @param[in] fallback  what to answer when the preset does not mention the key -- the caller passes the parameter's
+ *                      default where the question depends on it
+ * @return the value as atof reads it, or @p fallback when the key is absent
  */
 float numberOf(const char* settings, const char* key, float fallback = 0.0f)
 {
@@ -68,9 +68,8 @@ float numberOf(const char* settings, const char* key, float fallback = 0.0f)
 
 /**
  * @brief "a, b and c" out of a list -- the last comma is what makes a sentence read as English.
- * @param v  the items in the order they are said
- * @return   the items joined with ", " and a final " and "; empty for an empty list, the item alone
- *           for one
+ * @param[in] v  the items in the order they are said
+ * @return the items joined with ", " and a final " and "; empty for an empty list, the item alone for one
  */
 std::string listOf(const std::vector<std::string>& v)
 {
@@ -87,9 +86,8 @@ std::string listOf(const std::vector<std::string>& v)
  *
  * The names are the choice names of the source slots (SourceTypeNames, Sources.h) as they stand
  * in a preset's settings; "Wavetable" is the pre-format-2 spelling of "Table" and reads the same.
- *
- * @param type  the source type as written in the settings, e.g. "Additive" or "Clip"
- * @return      a noun phrase with its article, or nullptr for "Off" and for a type without a word
+ * @param[in] type  the source type as written in the settings, e.g. "Additive" or "Clip"
+ * @return a noun phrase with its article, or nullptr for "Off" and for a type without a word
  */
 const char* sourceWord(const std::string& type)
 {

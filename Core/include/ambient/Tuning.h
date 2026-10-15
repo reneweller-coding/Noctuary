@@ -11,6 +11,7 @@
  * -- the yardstick the conductor, the portamento gravity and the near events judge intervals by.
  * Everything here is framework-free and allocation-free once a FixedScale exists, so a scale can be
  * built on the message thread and handed to the audio thread by value.
+ * @author Rene Weller
  */
 #pragma once
 #include <cstddef>
@@ -31,11 +32,11 @@ struct FixedScale {
  *
  * Index 0 is 12-TET, computed as 2^(i/12); the others copy their just-ratio table. Message thread
  * (it only writes into @p out, never allocates).
- *
- * @param index  which built-in table, in the order of ScaleNames (Params.h); the user and timbre
- *               slots (UserScaleIndex and above) are not tables and give false
- * @param out    receives count, period, ratios and name; untouched when the index is unknown
- * @return       true when @p out was filled
+ * @param[in]  index  which built-in table, in the order of ScaleNames (Params.h); the user and timbre slots
+ *                    (UserScaleIndex and above) are not tables and give false
+ * @param[out] out    receives count, period, ratios and name; untouched when the index is unknown
+ * @return true when @p out was filled
+ * @pre called on the message thread
  */
 bool makeBuiltinScale(int index, FixedScale& out);
 
@@ -47,10 +48,9 @@ bool makeBuiltinScale(int index, FixedScale& out);
  * the period. Lines starting with '!' are comments. A value's kind is decided by the value alone,
  * not by any comment following it on the same line. The result is only written into @p out when
  * the whole file parsed, so a failed parse leaves the previous scale standing.
- *
- * @param text  the whole file as a NUL-terminated string; nullptr is refused
- * @param out   receives the scale (name "Scala" when the description line is empty)
- * @return      true when @p out holds a valid scale with 1 .. Max degrees and a period above 1
+ * @param[in]  text  the whole file as a NUL-terminated string; nullptr is refused
+ * @param[out] out   receives the scale (name "Scala" when the description line is empty)
+ * @return true when @p out holds a valid scale with 1 .. Max degrees and a period above 1
  */
 bool parseScala(const char* text, FixedScale& out);
 
@@ -66,13 +66,12 @@ bool parseScala(const char* text, FixedScale& out);
  *
  * Pure arithmetic, safe on the audio thread. When snapping, the period itself (degree 0 of the
  * next octave) is a candidate too, so the top key of an octave can land on the octave.
- *
- * @param s           the scale to read the ratios from
- * @param midiNote    the key, any integer (keys below the root go down by periods)
- * @param rootNote    the key that sounds ratios[0], as a MIDI note number
- * @param refA4       the reference pitch of MIDI note 69 in Hz (the Ref Pitch parameter)
- * @param snapToKeys  the key mapping, see above
- * @return            the frequency in Hz
+ * @param[in] s           the scale to read the ratios from
+ * @param[in] midiNote    the key, any integer (keys below the root go down by periods)
+ * @param[in] rootNote    the key that sounds ratios[0], as a MIDI note number
+ * @param[in] refA4       the reference pitch of MIDI note 69 in Hz (the Ref Pitch parameter)
+ * @param[in] snapToKeys  the key mapping, see above
+ * @return the frequency in Hz
  */
 double scaleFrequency(const FixedScale& s, int midiNote, int rootNote, double refA4, bool snapToKeys = true);
 
@@ -86,9 +85,8 @@ double scaleFrequency(const FixedScale& s, int midiNote, int rootNote, double re
  * just intervals it agrees with the Tenney height it replaced (25.09.2026) within a few hundredths
  * -- the fifth 0.30, the fourth 0.21, 5/4 0.17, 16/15 0.11 -- and between them it no longer jumps:
  * a tempered major third is 0.15 where the old step function gave it 0.11.
- *
- * @param ratio  frequency ratio of the two tones, any positive value (0 or less gives 0)
- * @return       the consonance, 0.05 .. 1
+ * @param[in] ratio  frequency ratio of the two tones, any positive value (0 or less gives 0)
+ * @return the consonance, 0.05 .. 1
  */
 double intervalConsonance(double ratio);
 

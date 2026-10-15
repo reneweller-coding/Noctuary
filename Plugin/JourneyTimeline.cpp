@@ -1,6 +1,7 @@
 /**
  * @file JourneyTimeline.cpp
  * @brief The journeys over time (JourneyTimeline.h).
+ * @author Rene Weller
  */
 #include "JourneyTimeline.h"
 
@@ -11,10 +12,18 @@
 
 namespace {
 
-/** @brief A step's average length, its crossfade and its dwell. @param s the step @return seconds */
+/**
+ * @brief A step's average length, its crossfade and its dwell.
+ * @param[in] s  the step
+ * @return seconds
+ */
 double stepSeconds(const ambient::JourneyStep& s) { return 0.5 * (s.m_fadeLo + s.m_fadeHi) + 0.5 * (s.m_dwellLo + s.m_dwellHi); }
 
-/** @brief A journey's average length. @param j the journey @return seconds */
+/**
+ * @brief A journey's average length.
+ * @param[in] j  the journey
+ * @return seconds
+ */
 double journeySeconds(const ambient::Journey& j)
 {
     double t = 0.0;
@@ -22,7 +31,12 @@ double journeySeconds(const ambient::Journey& j)
     return t;
 }
 
-/** @brief Whether two journeys are the same row of the same presets. @param a one @param b the other @return true then */
+/**
+ * @brief Whether two journeys are the same row of the same presets.
+ * @param[in] a  one
+ * @param[in] b  the other
+ * @return true then
+ */
 bool sameJourney(const ambient::Journey& a, const ambient::Journey& b)
 {
     if (a.m_name != b.m_name || a.m_steps.size() != b.m_steps.size()) return false;

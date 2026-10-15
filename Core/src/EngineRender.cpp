@@ -5,6 +5,7 @@
  *        master.
  *
  * Split out of Engine.cpp.
+ * @author Rene Weller
  */
 #include "ambient/Engine.h"
 #include "ambient/PresetMap.h"

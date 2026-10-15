@@ -18,6 +18,7 @@
  * Everything is allocated in prepare(); process() may run in place, since the input sample is
  * read before the output sample is written. The shift ratio is set by setSemitones() and is read
  * at the next frame.
+ * @author Rene Weller
  */
 #include "ambient/Shifter.h"
 #include <algorithm>

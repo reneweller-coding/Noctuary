@@ -17,6 +17,7 @@
  * at the end of the file -- Fft, and the RealFft built on it -- are the engine's only Fourier
  * transforms outside the Room's own stepwise one (Convolution.cpp): the Nebula, the spectral
  * shifter, the Memory, the spectral source and the CycleTable builder all use them.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -38,20 +39,20 @@ class FreqShifter {
 public:
     /**
      * @brief Takes the sample rate and clears the all-pass chains and the oscillator.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The shift and the mix, once a block.
-     * @param shiftHz  how far every partial moves, in Hz; negative moves the spectrum down
-     * @param mix      0 .. 1 wet against dry
+     * @param[in] shiftHz  how far every partial moves, in Hz; negative moves the spectrum down
+     * @param[in] mix      0 .. 1 wet against dry
      */
     void set(float shiftHz, float mix) { m_shift = shiftHz; m_mix = clampv(mix, 0.0f, 1.0f); }
     /**
      * @brief Shifts a block in place.
-     * @param L  left channel, n samples, replaced by the mix
-     * @param R  right channel, likewise
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples, replaced by the mix
+     * @param[in,out] R  right channel, likewise
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
 private:
@@ -71,9 +72,9 @@ private:
         float m_delayed = 0.0f;   ///< chain A's last output: A lags B by one sample, so A is handed out a sample late to line them up
         /**
          * @brief One sample through both chains.
-         * @param in  the input sample
-         * @param re  receives the in-phase output (chain A, delayed a sample)
-         * @param im  receives the quadrature output (chain B)
+         * @param[in]  in  the input sample
+         * @param[out] re  receives the in-phase output (chain A, delayed a sample)
+         * @param[out] im  receives the quadrature output (chain B)
          */
         void tick(float in, float& re, float& im);
     };
@@ -98,21 +99,21 @@ class CombResonator {
 public:
     /**
      * @brief Sizes the delay lines for 20 Hz at this rate and clears them.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The comb's tuning, feedback and mix, once a block.
-     * @param freqHz    the fundamental in Hz, clamped 20 .. 4000
-     * @param feedback  the loop gain, clamped 0 .. 0.97
-     * @param mix       0 .. 1 wet against dry
+     * @param[in] freqHz    the fundamental in Hz, clamped 20 .. 4000
+     * @param[in] feedback  the loop gain, clamped 0 .. 0.97
+     * @param[in] mix       0 .. 1 wet against dry
      */
     void set(float freqHz, float feedback, float mix);
     /**
      * @brief Runs a block in place.
-     * @param L  left channel, n samples, replaced by the mix
-     * @param R  right channel, likewise
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples, replaced by the mix
+     * @param[in,out] R  right channel, likewise
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
 private:
@@ -143,21 +144,21 @@ class VowelFilter {
 public:
     /**
      * @brief Takes the rate, seeds the drift and resets the filters.
-     * @param sampleRate  the engine's rate in Hz
-     * @param seed        seeds the filter's own generator, which drives the vowel drift
+     * @param[in] sampleRate  the engine's rate in Hz
+     * @param[in] seed        seeds the filter's own generator, which drives the vowel drift
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
      * @brief The mix and the morph rate, once a block.
-     * @param mix     0 .. 1 wet against dry
-     * @param rateHz  how fast the vowel wanders, in new targets per second (a Drifter's rate)
+     * @param[in] mix     0 .. 1 wet against dry
+     * @param[in] rateHz  how fast the vowel wanders, in new targets per second (a Drifter's rate)
      */
     void set(float mix, float rateHz) { m_mix = clampv(mix, 0.0f, 1.0f); m_rate = rateHz; }
     /**
      * @brief Runs a block in place.
-     * @param L  left channel, n samples, replaced by the mix
-     * @param R  right channel, likewise
-     * @param n  samples in the block
+     * @param[in,out] L  left channel, n samples, replaced by the mix
+     * @param[in,out] R  right channel, likewise
+     * @param[in]     n  samples in the block
      */
     void process(float* L, float* R, int n);
 private:
@@ -182,19 +183,19 @@ class PitchShifter {
 public:
     /**
      * @brief Sizes the delay line (0.2 s) and sets the 80 ms window.
-     * @param sampleRate  the engine's rate in Hz
+     * @param[in] sampleRate  the engine's rate in Hz
      */
     void prepare(double sampleRate);
     /**
      * @brief The interval, once a block.
-     * @param st  semitones, positive up; the read rate becomes 2^(st / 12)
+     * @param[in] st  semitones, positive up; the read rate becomes 2^(st / 12)
      */
     void setSemitones(float st);
     /**
      * @brief Shifts a block; wet only.
-     * @param in   n input samples
-     * @param out  n shifted samples (may not be the input)
-     * @param n    samples in the block
+     * @param[in]     in   n input samples
+     * @param[in,out] out  n shifted samples (may not be the input)
+     * @param[in]     n    samples in the block
      */
     void process(const float* in, float* out, int n);
 private:
@@ -218,14 +219,14 @@ class Fft {
 public:
     /**
      * @brief Builds the twiddle and bit-reversal tables for a size.
-     * @param n  the transform length, a power of two (2048 by default)
+     * @param[in] n  the transform length, a power of two (2048 by default)
      */
     explicit Fft(int n = 2048);
     /**
      * @brief Transforms in place.
-     * @param re       n real parts, replaced by the spectrum's (or the signal's, on the way back)
-     * @param im       n imaginary parts, likewise
-     * @param inverse  false for the forward transform, true for the inverse scaled by 1 / n
+     * @param[in,out] re       n real parts, replaced by the spectrum's (or the signal's, on the way back)
+     * @param[in,out] im       n imaginary parts, likewise
+     * @param[in]     inverse  false for the forward transform, true for the inverse scaled by 1 / n
      */
     void transform(float* re, float* im, bool inverse) const;
     /**
@@ -270,7 +271,7 @@ class RealFft {
 public:
     /**
      * @brief Builds the half-length complex transform, the rotation table and the scratch half.
-     * @param n  the real transform length, a power of two (2048 by default)
+     * @param[in] n  the real transform length, a power of two (2048 by default)
      */
     explicit RealFft(int n = 2048);
     /**
@@ -283,9 +284,9 @@ public:
      *
      * x[0 .. n-1] real in; re/im[0 .. n/2] out. The bins above n/2 are filled with the conjugate
      * mirror as well, so a caller that walks the whole array reads what Fft would have left there.
-     * @param x   n real samples; may be the same array as re
-     * @param re  n floats, receives the real parts of the spectrum
-     * @param im  n floats, receives the imaginary parts
+     * @param[in]     x   n real samples; may be the same array as re
+     * @param[in,out] re  n floats, receives the real parts of the spectrum
+     * @param[in,out] im  n floats, receives the imaginary parts
      */
     void forward(const float* x, float* re, float* im) const;
     /**
@@ -293,9 +294,9 @@ public:
      *
      * re/im[0 .. n/2] in (whatever is above n/2 is ignored); x[0 .. n-1] real out. The scaling is
      * Fft's: the round trip returns what went in.
-     * @param re  the real parts of the spectrum
-     * @param im  the imaginary parts
-     * @param x   n floats, receives the signal; may be the same array as re
+     * @param[in]     re  the real parts of the spectrum
+     * @param[in]     im  the imaginary parts
+     * @param[in,out] x   n floats, receives the signal; may be the same array as re
      */
     void inverse(const float* re, const float* im, float* x) const { inverse(re, im, x, m_work.data()); }
     /**
@@ -306,10 +307,10 @@ public:
      * (the spectral source keeps one per size for all of them) has to take this one: the other
      * writes into the instance, and a shared instance that writes is a race waiting for the day
      * somebody renders two voices at once.
-     * @param re       the real parts of the spectrum
-     * @param im       the imaginary parts
-     * @param x        n floats, receives the signal; may be the same array as re
-     * @param scratch  n/2 floats of working space; may be im itself
+     * @param[in]     re       the real parts of the spectrum
+     * @param[in]     im       the imaginary parts
+     * @param[in,out] x        n floats, receives the signal; may be the same array as re
+     * @param[in,out] scratch  n/2 floats of working space; may be im itself
      */
     void inverse(const float* re, const float* im, float* x, float* scratch) const;
 private:
@@ -334,22 +335,22 @@ public:
                          Hop = 512;   ///< samples between frames: a quarter of the frame
     /**
      * @brief Allocates the two channels' buffers, builds the window and seeds the phase generators.
-     * @param sampleRate  the engine's rate (unused: the frame is fixed in samples)
-     * @param seed        seeds the two channels' phase generators
+     * @param[in] sampleRate  the engine's rate (unused: the frame is fixed in samples)
+     * @param[in] seed        seeds the two channels' phase generators
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
      * @brief The smear, once a block.
-     * @param smear  0 = follows the input, 1 = frozen
+     * @param[in] smear  0 = follows the input, 1 = frozen
      */
     void set(float smear);
     /**
      * @brief Wet output only (latency N samples).
-     * @param inL   left input, n samples
-     * @param inR   right input
-     * @param wetL  receives n samples of the left texture
-     * @param wetR  receives the right
-     * @param n     samples in the block
+     * @param[in]  inL   left input, n samples
+     * @param[in]  inR   right input
+     * @param[out] wetL  receives n samples of the left texture
+     * @param[out] wetR  receives the right
+     * @param[in]  n     samples in the block
      */
     void process(const float* inL, const float* inR, float* wetL, float* wetR, int n);
 private:
@@ -366,7 +367,7 @@ private:
     };
     /**
      * @brief One frame of one channel: window, transform, smooth the magnitudes, random phases, back, overlap-add.
-     * @param c  the channel
+     * @param[in,out] c  the channel
      */
     void frame(Channel& c);
     Channel m_ch[2];   ///< left and right

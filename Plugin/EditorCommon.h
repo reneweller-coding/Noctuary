@@ -11,6 +11,7 @@
  * (EditorMatrix.cpp) and the browser (EditorBrowse.cpp) draw with the frame, the axes and the
  * filter curve below. Everything lives in namespace edt, which the last line opens for the whole
  * editor, so the .cpp files write Pad and displayFrame without a prefix.
+ * @author Rene Weller
  */
 #pragma once
 #include "PluginEditor.h"
@@ -87,8 +88,8 @@ const juce::Colour VoiceHue = ui::VoiceCol, ForeHue = ui::ForeCol, BackHue = ui:
 
 /**
  * @brief A parameter's raw value by key, for the displays (they read the host's atomics, never the engine's).
- * @param proc  the processor whose parameter tree is read
- * @param key   the parameter's key (ambient::ParamDesc::key)
+ * @param[in,out] proc  the processor whose parameter tree is read
+ * @param[in]     key   the parameter's key (ambient::ParamDesc::key)
  * @return the raw value, or 0 for a key the tree does not have
  */
 inline float rawParam(NoctuaryProcessor& proc, const char* key)
@@ -109,8 +110,8 @@ struct FilterCurve {
     /**
      * @brief Reads the filter's and the Z-plane's parameters from the tree and builds the Z frame
      *        the engine would build at this point (a biquad cascade, or the modal bank in Modal).
-     * @param proc        the processor whose parameters are read
-     * @param sampleRate  the rate the response is computed at, in Hz
+     * @param[in,out] proc        the processor whose parameters are read
+     * @param[in]     sampleRate  the rate the response is computed at, in Hz
      */
     void capture(NoctuaryProcessor& proc, float sampleRate)
     {
@@ -146,7 +147,7 @@ struct FilterCurve {
 
     /**
      * @brief Linear magnitude at a frequency, the two branches combined as the voice combines them.
-     * @param hz  the frequency in Hz
+     * @param[in] hz  the frequency in Hz
      * @return the linear gain: filter times Z in series, a mix of the two in parallel, 1 with both off
      */
     float magnitude(float hz) const
@@ -168,7 +169,7 @@ struct FilterCurve {
 
     /**
      * @brief The voice filter alone, for the response display's first curve.
-     * @param hz  the frequency in Hz
+     * @param[in] hz  the frequency in Hz
      * @return its linear gain, 1 while the filter is off
      */
     float branchFilter(float hz) const
@@ -178,7 +179,7 @@ struct FilterCurve {
 
     /**
      * @brief The Z-plane alone, for the response display's second curve.
-     * @param hz  the frequency in Hz
+     * @param[in] hz  the frequency in Hz
      * @return its linear gain (the cascade with its normalisation, or the modal bank), 1 with no sections in use
      */
     float branchZ(float hz) const
@@ -230,10 +231,10 @@ struct FilterCurve {
 
 /**
  * @brief The rounded, translucent frame every display sits in, with its title in the corner.
- * @param g      the graphics context
- * @param r      the display's bounds
- * @param title  drawn small in the top left, in the group's hue
- * @param c      the group's hue (the title's colour)
+ * @param[in,out] g      the graphics context
+ * @param[in]     r      the display's bounds
+ * @param[in]     title  drawn small in the top left, in the group's hue
+ * @param[in]     c      the group's hue (the title's colour)
  */
 inline void displayFrame(juce::Graphics& g, juce::Rectangle<int> r, const juce::String& title, juce::Colour c)
 {
@@ -251,8 +252,8 @@ inline void displayFrame(juce::Graphics& g, juce::Rectangle<int> r, const juce::
  * @{ */
 /**
  * @brief The x of a frequency on the log axis.
- * @param plot  the plot area
- * @param hz    the frequency in Hz, clamped to 20 .. 20000
+ * @param[in] plot  the plot area
+ * @param[in] hz    the frequency in Hz, clamped to 20 .. 20000
  * @return the x in the plot's coordinates
  */
 inline float xForHz(juce::Rectangle<float> plot, float hz)
@@ -262,8 +263,8 @@ inline float xForHz(juce::Rectangle<float> plot, float hz)
 }
 /**
  * @brief The y of a level on the linear dB axis, -36 dB at the bottom and +12 dB at the top.
- * @param plot  the plot area
- * @param db    the level in dB, clamped to the axis
+ * @param[in] plot  the plot area
+ * @param[in] db    the level in dB, clamped to the axis
  * @return the y in the plot's coordinates
  */
 inline float yForDb(juce::Rectangle<float> plot, float db)
@@ -274,8 +275,8 @@ inline float yForDb(juce::Rectangle<float> plot, float db)
 /**
  * @brief Draws the grid: faint lines at the decades' 1-2-5 frequencies, the 0 dB line, and the
  *        labels 100, 1k and 10k along the bottom.
- * @param g     the graphics context
- * @param plot  the plot area
+ * @param[in,out] g     the graphics context
+ * @param[in]     plot  the plot area
  */
 inline void drawAxes(juce::Graphics& g, juce::Rectangle<float> plot)
 {
@@ -305,8 +306,8 @@ public:
     /**
      * @brief Builds the table: the header labels, the scrolling content, the add and clear buttons,
      *        and pulls the engine's matrix.
-     * @param p          the processor whose engine holds the matrix
-     * @param onChanged  called after every edit the table pushed to the engine
+     * @param[in,out] p          the processor whose engine holds the matrix
+     * @param[in]     onChanged  called after every edit the table pushed to the engine
      */
     RouteTable(NoctuaryProcessor& p, std::function<void()> onChanged);
     ~RouteTable() override;
@@ -325,7 +326,7 @@ private:
     void addRow();
     /**
      * @brief Removes one route and pushes.
-     * @param index  the row, 0-based
+     * @param[in] index  the row, 0-based
      */
     void removeRow(int index);
     NoctuaryProcessor& m_proc;   ///< the processor whose engine the matrix lives in
@@ -349,13 +350,13 @@ private:
 
 /**
  * @brief The colour a modulation source is drawn in, everywhere it appears.
- * @param s  the source
+ * @param[in] s  the source
  * @return its colour (EditorModStrip.cpp)
  */
 juce::Colour sourceColour(ambient::ModSourceE s);
 /**
  * @brief The colour a preset family is drawn in on the map and in the list.
- * @param f  the family index; the built-in families have fixed colours, later ones a golden-angle hue
+ * @param[in] f  the family index; the built-in families have fixed colours, later ones a golden-angle hue
  * @return its colour (EditorBrowse.cpp)
  */
 juce::Colour familyColour(int f);

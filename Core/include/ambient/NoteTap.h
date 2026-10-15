@@ -8,6 +8,7 @@
  * was played in: the conductors run at the chunk's rate). A key played on a keyboard is not written: it came in as MIDI
  * already. When the voices are released all at once (allNotesOff: a preset leaving, a panic) every note a conductor
  * held gets its off. Fixed capacity, no allocation: the audio thread fills it and the same thread empties it.
+ * @author Rene Weller
  */
 #pragma once
 #include <cstdint>
@@ -28,7 +29,14 @@ struct NoteTap {
     int m_count = 0;                           ///< how many of notes[] are valid
     /** @brief Forgets the notes of the last block. */
     void clear() { m_count = 0; }
-    /** @brief Adds a note (dropped when full). */
+    /**
+     * @brief Adds a note (dropped when full).
+     * @param[in] offset    the sample in the block
+     * @param[in] channel   the MIDI channel
+     * @param[in] pitch     the MIDI note
+     * @param[in] velocity  the velocity, 0..1
+     * @param[in] on        true for a note-on
+     */
     void add(int offset, int channel, int pitch, float velocity, bool on)
     {
         if (m_count >= Capacity || pitch < 0 || pitch > 127) return;

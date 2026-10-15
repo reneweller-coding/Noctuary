@@ -14,6 +14,7 @@
  * along a smoothstep from where it started to the next waypoint over that waypoint's travel time,
  * then holds it there for the hold time, then goes on to the next point, looping or stopping at
  * the end. Nothing here allocates; parse() works in a fixed buffer of Route::MaxPoints waypoints.
+ * @author Rene Weller
  */
 #include "ambient/Route.h"
 #include "ambient/Presets.h"

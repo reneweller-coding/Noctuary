@@ -11,6 +11,7 @@
  * unit, WavFile.cpp). All of it runs on a loader or message thread -- a decode takes milliseconds
  * and allocates -- and never on the audio thread; what comes out is a plain block of floats that
  * the Texture, the user wavetable and the convolution Room then read without further ado.
+ * @author Rene Weller
  */
 #pragma once
 #include <string>
@@ -27,9 +28,8 @@ namespace ambient {
  * ask "is this loadable" without knowing which of the two spellings arrived.
  *
  * Only opens the file to see that it exists; nothing is decoded.
- *
- * @param path  the path as the preset or pack names it; nullptr or empty gives an empty string
- * @return      the path that exists (@p path itself or its .flac twin), or "" when neither does
+ * @param[in] path  the path as the preset or pack names it; nullptr or empty gives an empty string
+ * @return the path that exists (@p path itself or its .flac twin), or "" when neither does
  */
 std::string resolveAudioFile(const char* path);
 
@@ -38,11 +38,10 @@ std::string resolveAudioFile(const char* path);
  *
  * Reads a file and folds every channel into one, each at 1/channels. Goes through
  * readWavChannels, so WAV and FLAC are both accepted and the .flac beside a named .wav counts.
- *
- * @param path        the file as named (see resolveAudioFile)
- * @param mono        receives the mixed-down samples; cleared on failure
- * @param sampleRate  receives the file's sample rate in Hz (untouched on failure)
- * @return            true when at least one sample was read
+ * @param[in]  path        the file as named (see resolveAudioFile)
+ * @param[out] mono        receives the mixed-down samples; cleared on failure
+ * @param[out] sampleRate  receives the file's sample rate in Hz (untouched on failure)
+ * @return true when at least one sample was read
  */
 bool readWavMono(const char* path, std::vector<float>& mono, int& sampleRate);
 
@@ -55,12 +54,11 @@ bool readWavMono(const char* path, std::vector<float>& mono, int& sampleRate);
  *
  * With more than two channels the odd ones are averaged to the left and the even ones to the right,
  * so nothing a player's own file holds is quietly dropped.
- *
- * @param path        the file as named (see resolveAudioFile)
- * @param left        receives the left (or only) channel; cleared first
- * @param right       receives the right channel, or stays empty for a mono file
- * @param sampleRate  receives the file's sample rate in Hz
- * @return            false when the file is missing, unreadable or empty
+ * @param[in]  path        the file as named (see resolveAudioFile)
+ * @param[out] left        receives the left (or only) channel; cleared first
+ * @param[out] right       receives the right channel, or stays empty for a mono file
+ * @param[out] sampleRate  receives the file's sample rate in Hz
+ * @return false when the file is missing, unreadable or empty
  */
 bool readWavStereo(const char* path, std::vector<float>& left, std::vector<float>& right, int& sampleRate);
 
@@ -72,11 +70,10 @@ bool readWavStereo(const char* path, std::vector<float>& left, std::vector<float
  * whose stated length is clipped to what the file really holds, so a recording cut off by pulling
  * the plug (length 0xFFFFFFFF) reads to its end instead of asking for sixteen gigabytes. A file
  * whose first four bytes say "fLaC" is decoded as FLAC whatever its name.
- *
- * @param path        the file as named (see resolveAudioFile)
- * @param channels    receives one vector per channel, all the same length; cleared first
- * @param sampleRate  receives the file's sample rate in Hz
- * @return            true when at least one frame was read
+ * @param[in]  path        the file as named (see resolveAudioFile)
+ * @param[out] channels    receives one vector per channel, all the same length; cleared first
+ * @param[out] sampleRate  receives the file's sample rate in Hz
+ * @return true when at least one frame was read
  */
 bool readWavChannels(const char* path, std::vector<std::vector<float>>& channels, int& sampleRate);
 
@@ -90,11 +87,10 @@ bool readWavChannels(const char* path, std::vector<std::vector<float>>& channels
  *
  * A frame length written into the file name ("-WT512", "_wt1024") is honoured after the chunks and
  * before the detector, and a stated length longer than the file is ignored.
- *
- * @param path      the file as named (see resolveAudioFile); a Surge .wt is tried first
- * @param mono      receives the samples, consecutive cycles end to end; cleared on failure
- * @param cycleLen  receives the samples per cycle, 0 on failure
- * @return          true when samples were read and a cycle length above zero was found
+ * @param[in]  path      the file as named (see resolveAudioFile); a Surge .wt is tried first
+ * @param[out] mono      receives the samples, consecutive cycles end to end; cleared on failure
+ * @param[out] cycleLen  receives the samples per cycle, 0 on failure
+ * @return true when samples were read and a cycle length above zero was found
  */
 bool readWavetableFile(const char* path, std::vector<float>& mono, int& cycleLen);
 

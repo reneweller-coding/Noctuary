@@ -14,6 +14,7 @@
  * the packs are held by pointer and stay put until clearPresetPacks(). The same file also owns the
  * library roots -- where sample files named relative to the library are looked for -- and the near
  * layer's Auto draw, the hash that gives a pack preset its foreground.
+ * @author Rene Weller
  */
 #include "ambient/Presets.h"
 #include "ambient/PresetMeta.h"
@@ -128,8 +129,7 @@ struct NearAutoPack  {
  * used to be rebuilt every time, so loading 42 packs of 200 presets did 176 000 entries' worth of
  * work instead of 8400, three filesystem path resolutions each. That was 678 ms of the 2.1 s
  * before the window appeared, and 0.4 s of every offline render.
- *
- * @param pk  the pack, already in packs() (its index there is what viewPacks() records)
+ * @param[in] pk  the pack, already in packs() (its index there is what viewPacks() records)
  */
 void appendViews(const Pack& pk)
 {
@@ -190,8 +190,8 @@ void rebuildViews()
 /**
  * @brief The string without leading and trailing blanks, tabs and carriage returns -- the last for
  *        pack files written on Windows and read elsewhere.
- * @param s  the text as read
- * @return   the trimmed copy
+ * @param[in] s  the text as read
+ * @return the trimmed copy
  */
 std::string trim(const std::string& s)
 {
@@ -203,10 +203,10 @@ std::string trim(const std::string& s)
 
 /**
  * @brief Splits a string at every occurrence of a separator, keeping empty fields.
- * @param s    the text
- * @param sep  the separator character ('|' between the fields of a pack line, ' ' inside the
- *             metadata field, ';' between the folders of AMBIENT_PACKS)
- * @return     the fields, one more than there are separators; a single empty string for empty input
+ * @param[in] s    the text
+ * @param[in] sep  the separator character ('|' between the fields of a pack line, ' ' inside the metadata field, ';'
+ *                 between the folders of AMBIENT_PACKS)
+ * @return the fields, one more than there are separators; a single empty string for empty input
  */
 std::vector<std::string> split(const std::string& s, char sep)
 {
@@ -225,10 +225,8 @@ std::vector<std::string> split(const std::string& s, char sep)
  * one, so such a pack is read with the old name translated -- every pack in the library, and every
  * pack anybody wrote, keeps the sound it was voiced with. A pack that says "format 2" means what it
  * says.
- *
- * @param settings  the preset's "key=value;..." settings as the old pack wrote them
- * @return          the same settings with every whole "_type=Wavetable" value turned into
- *                  "_type=Harmonic"
+ * @param[in] settings  the preset's "key=value;..." settings as the old pack wrote them
+ * @return the same settings with every whole "_type=Wavetable" value turned into "_type=Harmonic"
  */
 std::string migrateFormat1(std::string settings)
 {
@@ -459,10 +457,9 @@ namespace {
  * The draw is a hash, not a random number: FNV-1a over the preset's name (and a salt per
  * question), folded to [0, 1). A preset asks three questions -- whether it gets a foreground at
  * all, which one, and how often it speaks -- and gets the same three answers every time.
- *
- * @param text  the preset's name, hashed byte by byte
- * @param salt  which question is being asked (1, 2 or 3 in nearAutoPick), mixed into the seed
- * @return      the top 53 bits of the finalised hash as a double in [0, 1)
+ * @param[in] text  the preset's name, hashed byte by byte
+ * @param[in] salt  which question is being asked (1, 2 or 3 in nearAutoPick), mixed into the seed
+ * @return the top 53 bits of the finalised hash as a double in [0, 1)
  */
 double hashUnit(const char* text, unsigned salt)
 {

@@ -14,6 +14,7 @@
  * bin's magnitude with the Smear coefficient, gives every bin a fresh random phase and overlap-adds
  * the real inverse. Everything here runs on the audio thread except the constructors and prepare(),
  * which allocate. ringRead() and sin01() come from Effects.h and Dsp.h.
+ * @author Rene Weller
  */
 #include "ambient/Cosmos.h"
 #include "ambient/Effects.h"
@@ -25,8 +26,8 @@ namespace ambient {
 namespace {
 /**
  * @brief The smallest power of two that is at least @p n: the ring sizes, so a mask can wrap them.
- * @param n  the number of samples a ring has to hold
- * @return   the first power of two >= n (1 for n <= 1)
+ * @param[in] n  the number of samples a ring has to hold
+ * @return the first power of two >= n (1 for n <= 1)
  */
 int pow2At(int n) { int p = 1; while (p < n) p <<= 1; return p; }
 /**

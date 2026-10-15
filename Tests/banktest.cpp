@@ -10,6 +10,11 @@
  *
  * The bank lives entirely in a header, so unlike the convolver's test there is no .cpp to compile
  * beside it: the variants differ only in what they are allowed to define and include.
+ * @author Rene Weller
+ *
+ * @par Compile Flags:
+ *   @arg @c AMBIENT_NEON_SHIM - the NEON build on x86
+ *   @arg @c AMBIENT_EXPECT_PATH - the vector path the build expects; the test fails when Simd.h chose another
  */
 #include "ambient/Simd.h"
 #include "ambient/GrainRing.h"
@@ -24,8 +29,8 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
  * @brief Records one check: prints a FAIL line with the file and line and counts it when @p cond is false.
  *
  * BankChecks.h is written against this macro and is included right after it is defined.
- * @param cond  the condition that has to hold
- * @param msg   what was measured, as the FAIL line prints it
+ * @param[in] cond  the condition that has to hold
+ * @param[in] msg   what was measured, as the FAIL line prints it
  */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 

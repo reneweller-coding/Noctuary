@@ -27,6 +27,7 @@
  * one ModMatrix; once per control block it steps the modulators, fills the source table and lets
  * the matrix sum into a per-parameter offset that readParams() adds to every parameter it reads.
  * Nothing here allocates: every table is a fixed array.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -105,8 +106,8 @@ public:
     /**
      * @brief Seeds the generator, puts the phase where the shape should start, and draws the first
      *        random pair and the first holds.
-     * @param seed     the generator's seed
-     * @param phase01  the starting phase, wrapped into 0..1
+     * @param[in] seed     the generator's seed
+     * @param[in] phase01  the starting phase, wrapped into 0..1
      */
     void reset(uint64_t seed, float phase01);
     /**
@@ -116,12 +117,11 @@ public:
      * StepRandom holds are redrawn with the last hold carried over, so neither steps at the wrap;
      * a phase that rounds to exactly one is pulled just under it, because wrapping that gave a
      * jump one control block before the cycle ended. Control rate, once per block.
-     *
-     * @param dt     seconds since the last step
-     * @param spec   the settings for this block; spec.phase is added to the running phase and
-     *               spec.depth scales the result
-     * @param table  the user wavetable for the Table shape, or null (a sine stands in)
-     * @return       the value, -1..1 times spec.depth
+     * @param[in] dt     seconds since the last step
+     * @param[in] spec   the settings for this block; spec.phase is added to the running phase and spec.depth scales the
+     *                   result
+     * @param[in] table  the user wavetable for the Table shape, or null (a sine stands in)
+     * @return the value, -1..1 times spec.depth
      */
     float step(float dt, const LfoSpec& spec, const Wavetable* table);
     /** @brief The last value step() returned. @return -1..1 times the depth */
@@ -131,17 +131,17 @@ public:
     /**
      * @brief Puts the phase somewhere: a synced LFO is set onto the clock's position every block, a
      *        Retrigger one back to its start at a phrase.
-     * @param p  the phase; wrapped into 0..1
+     * @param[in] p  the phase; wrapped into 0..1
      */
     void  setPhase(float p) { m_phase = p - std::floor(p); }
     /**
      * @brief The shape at a phase, without stepping: the editor draws a whole cycle with this.
-     * @param spec     which shape (and which table frame)
-     * @param phase01  the phase, wrapped into 0..1
-     * @param table    the user wavetable for the Table shape, or null
-     * @param live     a running LFO whose random pair and holds the Random and StepRandom shapes
-     *                 read, or null for a fixed stand-in pattern
-     * @return         -1..1, before any depth
+     * @param[in] spec     which shape (and which table frame)
+     * @param[in] phase01  the phase, wrapped into 0..1
+     * @param[in] table    the user wavetable for the Table shape, or null
+     * @param[in] live     a running LFO whose random pair and holds the Random and StepRandom shapes read, or null for
+     *                     a fixed stand-in pattern
+     * @return -1..1, before any depth
      */
     static float shapeAt(const LfoSpec& spec, float phase01, const Wavetable* table,
                          const Lfo* live = nullptr);
@@ -204,28 +204,30 @@ public:
      *
      * Fewer than two points
      * is a constant. A sustain or loop index the new count no longer holds is dropped.
-     *
-     * @param points  the breakpoints, copied
-     * @param count   how many, 0 .. MaxEnvPoints
-     * @return        false for a null pointer, a count out of range or times that go backwards;
-     *                the shape is then unchanged
+     * @param[in] points  the breakpoints, copied
+     * @param[in] count   how many, 0 .. MaxEnvPoints
+     * @return false for a null pointer, a count out of range or times that go backwards; the shape is then unchanged
      */
     bool set(const EnvPoint* points, int count);
     /** @brief How many breakpoints the shape has. @return 0 .. MaxEnvPoints */
     int  count() const { return m_count; }
-    /** @brief One breakpoint. @param i 0 .. count() - 1 @return the point */
+    /**
+     * @brief One breakpoint.
+     * @param[in] i  0 .. count() - 1
+     * @return the point
+     */
     const EnvPoint& point(int i) const { return m_points[i]; }
     /**
      * @brief Chooses the point SustainLoop holds at while the note is down.
-     * @param index  -1 = none
+     * @param[in] index  -1 = none
      */
     void setSustain(int index) { m_sustain = index; }
     /** @brief The sustain point. @return its index, -1 = none */
     int  sustain() const { return m_sustain; }
     /**
      * @brief Chooses the two points Loop and SustainLoop cycle between.
-     * @param from  the loop's first point
-     * @param to    its last; the loop is honoured only when to > from and both exist
+     * @param[in] from  the loop's first point
+     * @param[in] to    its last; the loop is honoured only when to > from and both exist
      */
     void setLoop(int from, int to) { m_loopFrom = from; m_loopTo = to; }
     /** @brief The loop's first point. @return its index, -1 = none */
@@ -241,12 +243,10 @@ public:
      * `held` is whether the note is still down. The time is folded into the loop, held at the
      * sustain point or clamped to the end as the mode says (readTime() gives that time), then the
      * segment it falls in is interpolated with the curve of the point that begins it.
-     *
-     * @param seconds  time since the envelope started, in the shape's own seconds (the caller has
-     *                 divided by Time)
-     * @param mode     how it runs
-     * @param held     whether the note is still down (SustainLoop listens to it)
-     * @return         the value, -1..1 as the points are
+     * @param[in] seconds  time since the envelope started, in the shape's own seconds (the caller has divided by Time)
+     * @param[in] mode     how it runs
+     * @param[in] held     whether the note is still down (SustainLoop listens to it)
+     * @return the value, -1..1 as the points are
      */
     float at(float seconds, EnvModeE mode, bool held) const;
     /**
@@ -255,33 +255,30 @@ public:
      *
      * A release continues from here, so the value does not
      * jump from where the shape was being held to where the clock has run on to meanwhile.
-     *
-     * @param seconds  the clock's time, in the shape's own seconds
-     * @param mode     how it runs
-     * @param held     whether the note is still down
-     * @return         the time in the shape, 0 .. length()
+     * @param[in] seconds  the clock's time, in the shape's own seconds
+     * @param[in] mode     how it runs
+     * @param[in] held     whether the note is still down
+     * @return the time in the shape, 0 .. length()
      */
     float readTime(float seconds, EnvModeE mode, bool held) const;
 
     /**
-     * @brief Text form: "t:v:c/t:v:c/...", optionally followed by "!s<index>" for the sustain point and
-     *        "!l<from>-<to>" for the loop.
+     * @brief Text form: "t:v:c/t:v:c/...", optionally followed by "!s\<index\>" for the sustain point and
+     *        "!l\<from\>-\<to\>" for the loop.
      *
      * Times in seconds. The marker is '!' and not '|' because a
      * pack line splits its fields on '|' -- an envelope with a loop used to tear the line apart.
      * A point's curve may be left out and reads as 0. The whole string is parsed before the shape
      * is touched, so a bad one leaves the shape as it was.
-     *
-     * @param text  the shape
-     * @return      false for a null pointer, a point that does not parse, too many points, or
-     *              times that go backwards
+     * @param[in] text  the shape
+     * @return false for a null pointer, a point that does not parse, too many points, or times that go backwards
      */
     bool parse(const char* text);
     /**
      * @brief The shape as parse() text, with the "!s" and "!l" markers where they are set.
-     * @param buf  the buffer
-     * @param cap  its size in bytes
-     * @return     characters written, or 0 when the text did not fit
+     * @param[in,out] buf  the buffer
+     * @param[in]     cap  its size in bytes
+     * @return characters written, or 0 when the text did not fit
      */
     int  write(char* buf, size_t cap) const;
 
@@ -389,15 +386,15 @@ enum class ModSourceE : int {
 constexpr int NumModSources = static_cast<int>(ModSourceE::COUNT);   ///< sources in the table
 /**
  * @brief The name of a source as the matrix text spells it ("lfo1", "env2", "macro_a", "lorenz_x", ...).
- * @param s  the source; anything out of range reads as "none"
- * @return   a static string, never null
+ * @param[in] s  the source; anything out of range reads as "none"
+ * @return a static string, never null
  */
-const char* modSourceName(ModSourceE);
+const char* modSourceName(ModSourceE s);
 /**
  * @brief The inverse of modSourceName(): a source from its name.
- * @param name  the spelling, case-sensitive ("none" is ModSource::None)
- * @param out   receives the source on success and is left alone otherwise
- * @return      false for a null pointer or a name that is not in the table
+ * @param[in]  name  the spelling, case-sensitive ("none" is ModSource::None)
+ * @param[out] out   receives the source on success and is left alone otherwise
+ * @return false for a null pointer or a name that is not in the table
  */
 bool modSourceFromName(const char* name, ModSourceE& out);
 
@@ -426,25 +423,29 @@ class ModMatrix {
 public:
     /** @brief How many rows are in use. @return 0 .. MaxModRoutes */
     int  count() const { return m_count; }
-    /** @brief One row. @param i 0 .. count() - 1 @return the row */
+    /**
+     * @brief One row.
+     * @param[in] i  0 .. count() - 1
+     * @return the row
+     */
     const ModRoute& route(int i) const { return m_routes[i]; }
     /** @brief Forgets every row. */
     void clear() { m_count = 0; }
     /**
      * @brief Appends a row.
-     * @param r  the row
-     * @return   false when the matrix is full
+     * @param[in] r  the row
+     * @return false when the matrix is full
      */
     bool add(const ModRoute& r) { if (m_count >= MaxModRoutes) return false; m_routes[m_count++] = r; return true; }
     /**
      * @brief Removes one row and closes the gap, keeping the order of the rest.
-     * @param i  0 .. count() - 1
-     * @return   false for an index outside the rows
+     * @param[in] i  0 .. count() - 1
+     * @return false for an index outside the rows
      */
     bool remove(int i);
 
     /**
-     * @brief Text form, one row per ';': "<source>><target>:<depth>[:<via>][:u]"
+     * @brief Text form, one row per ';': "\<source\>>\<target\>:\<depth\>[:\<via\>][:u]"
      * @code{.unparsed}
      *   "lfo1>cutoff:0.4;env2>z_x:-0.25:macro_a;lfo3>shimmer:0.6:none:u"
      * @endcode
@@ -452,17 +453,15 @@ public:
      * a number (a NaN is refused, since it would poison every target); the optional fields after
      * it are a via source and the flag "u", in either order. The whole text is parsed before the
      * rows are touched, so a bad one leaves the matrix as it was.
-     *
-     * @param text  the rows
-     * @return      false for a null pointer, an unknown source, target or via, a bad depth, or
-     *              more rows than MaxModRoutes
+     * @param[in] text  the rows
+     * @return false for a null pointer, an unknown source, target or via, a bad depth, or more rows than MaxModRoutes
      */
     bool parse(const char* text);
     /**
      * @brief The rows as parse() text.
-     * @param buf  the buffer
-     * @param cap  its size in bytes
-     * @return     characters written, or 0 when they did not fit
+     * @param[in,out] buf  the buffer
+     * @param[in]     cap  its size in bytes
+     * @return characters written, or 0 when they did not fit
      */
     int  write(char* buf, size_t cap) const;
 
@@ -475,9 +474,8 @@ public:
      * so one number means the same on a cutoff in hertz and on a mix in 0..1. Adds into `out`;
      * the caller clears it first (the engine also zeroes the performance parameters afterwards,
      * Engine::stepModulation).
-     *
-     * @param sourceValues  one value per ModSource, -1..1, indexed by the enum
-     * @param out           NumParams entries, added into
+     * @param[in]     sourceValues  one value per ModSource, -1..1, indexed by the enum
+     * @param[in,out] out           NumParams entries, added into
      */
     void apply(const float* sourceValues, float* out) const;
 

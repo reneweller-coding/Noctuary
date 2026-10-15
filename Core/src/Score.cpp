@@ -16,6 +16,7 @@
  * way the hand would sweep it; a choice, a switch or an integer does not travel at all and flips
  * when the ramp is over. load() and save() are the file forms and allocate, so they belong on the
  * message thread; parse() and write() work on memory the caller owns.
+ * @author Rene Weller
  */
 #include "ambient/Score.h"
 #include <cmath>

@@ -22,6 +22,7 @@
  * include the measurement modes (--measure, --bands, --tonal, --loudness, --tap, --skip, --hour),
  * the stems, a score, a journey, the near layer's options, the pack loader and --bench, and main()
  * adds --batch. Each option is described where it is parsed.
+ * @author Rene Weller
  */
 #include "ambient/Engine.h"
 #include "ambient/MainStack.h"
@@ -60,9 +61,9 @@ namespace {
  * A file goes in through Engine::setNearTexture, a folder through Engine::setNearTextures; the
  * base pitch is middle C unless the name says otherwise, and a "loop" in the name makes the clip
  * seamless (loopFromName). Prints what it loaded on stdout.
- * @param engine  the engine to hand the clip or the pool to; may be called before or after prepare
- * @param path    a WAV/FLAC/AIFF file, or a folder of them
- * @return        false when nothing readable was found at @p path
+ * @param[in,out] engine  the engine to hand the clip or the pool to; may be called before or after prepare
+ * @param[in]     path    a WAV/FLAC/AIFF file, or a folder of them
+ * @return false when nothing readable was found at @p path
  */
 bool loadNearClips(Engine& engine, const std::string& path)
 {
@@ -106,11 +107,11 @@ bool loadNearClips(Engine& engine, const std::string& path)
 
 /**
  * @brief Writes interleaved samples as a 32-bit float WAV (RIFF, format 3), the way the plugin reads them back.
- * @param path         the file to create or overwrite
- * @param interleaved  the samples, frame by frame, channels interleaved
- * @param channels     channels per frame (1 for a tap, 2 for the mix and the stems)
- * @param sampleRate   sample rate in Hz for the header
- * @return             false when the file could not be opened or the write failed
+ * @param[in] path         the file to create or overwrite
+ * @param[in] interleaved  the samples, frame by frame, channels interleaved
+ * @param[in] channels     channels per frame (1 for a tap, 2 for the mix and the stems)
+ * @param[in] sampleRate   sample rate in Hz for the header
+ * @return false when the file could not be opened or the write failed
  */
 bool writeWav(const std::string& path, const std::vector<float>& interleaved, int channels, int sampleRate)
 {
@@ -146,8 +147,8 @@ namespace {
  * @brief In-place radix-2 FFT on interleaved real/imag, n a power of two.
  *
  * Forward transform, no scaling; the two arrays are the real and imaginary parts, each of length n.
- * @param re  real parts in, real parts of the spectrum out
- * @param im  imaginary parts in (zeros for a real signal), imaginary parts of the spectrum out
+ * @param[in,out] re  real parts in, real parts of the spectrum out
+ * @param[in,out] im  imaginary parts in (zeros for a real signal), imaginary parts of the spectrum out
  */
 void fft(std::vector<float>& re, std::vector<float>& im)
 {
@@ -200,11 +201,11 @@ bool g_printBands = false;
  * Prints the `measure:` line (descriptors, peak, click, DC, mono loss, evolution, roughness, wet and
  * the sample hash), then the `timbre:` line of sixteen cepstral means and sixteen spreads, and with
  * g_printBands the `bands:` line. A render shorter than 4096 samples prints a silent measure line.
- * @param L       the left channel of the whole render; the settled half is its second half
- * @param R       the right channel, the same length
- * @param sr      sample rate in Hz
- * @param voices  the voice count to print, averaged over the settled half by the caller
- * @param stemE   energies of the four stems over the settled half, or null (wet is then 0)
+ * @param[in] L       the left channel of the whole render; the settled half is its second half
+ * @param[in] R       the right channel, the same length
+ * @param[in] sr      sample rate in Hz
+ * @param[in] voices  the voice count to print, averaged over the settled half by the caller
+ * @param[in] stemE   energies of the four stems over the settled half, or null (wet is then 0)
  */
 void printMeasurements(const std::vector<float>& L, const std::vector<float>& R, int sr, double voices,
                        const double* stemE = nullptr)
@@ -485,11 +486,11 @@ struct TonalProbe { double m_staticShare = 0.0, m_bassDb = 0.0, m_rms = -120.0; 
  * for @p seconds, and keeps the last two thirds as the settled part, as every other measurement
  * here. The spectrum is 32768-point Hann windows at half overlap, averaged. The engine is left
  * reset and silent.
- * @param engine   the engine with its preset applied and prepared at @p sr
- * @param sr       sample rate in Hz
- * @param seconds  length of each pass; the first third is discarded
- * @return         the three numbers, or a default-constructed TonalProbe when a pass was too short
- *                 for one window or came out silent
+ * @param[in,out] engine   the engine with its preset applied and prepared at @p sr
+ * @param[in]     sr       sample rate in Hz
+ * @param[in]     seconds  length of each pass; the first third is discarded
+ * @return the three numbers, or a default-constructed TonalProbe when a pass was too short for one window or came out
+ *         silent
  */
 TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
 {
@@ -573,10 +574,10 @@ TonalProbe tonalProbe(Engine& engine, int sr, double seconds)
  * journey's steps crossfaded on a second engine -- and then writes the WAV and the stems, or with
  * --measure prints the descriptors instead. --tonal prints its line and returns before rendering;
  * the --list-* options and --bench print and return without an engine run.
- * @param argc  argument count
- * @param argv  the options of the file header and the ones parsed below; main() has taken --batch out
- * @return 0 on success, 1 when a file could not be written or a sample came out non-finite, 2 for a
- *         command-line error (unknown option, preset, parameter or unreadable file)
+ * @param[in]     argc  argument count
+ * @param[in,out] argv  the options of the file header and the ones parsed below; main() has taken --batch out
+ * @return 0 on success, 1 when a file could not be written or a sample came out non-finite, 2 for a command-line error
+ *         (unknown option, preset, parameter or unreadable file)
  */
 static int runOnce(int argc, char** argv)
 {
@@ -642,7 +643,7 @@ static int runOnce(int argc, char** argv)
         // rather than read its numbers -- a learned audio embedding, say. 22.05 kHz is plenty for
         // that and keeps a whole library's worth of excerpts to a few gigabytes.
         else if (a == "--tap") tapPath = next();
-        // --tap-dir <dir>: the same excerpt, named after the preset, so a whole batch can write
+        // --tap-dir \<dir\>: the same excerpt, named after the preset, so a whole batch can write
         // its taps without a --tap per preset. The name is the preset's, with everything that is
         // not a letter or a digit turned into an underscore -- the rule measure_packs.py uses.
         else if (a == "--tap-dir") tapDir = next();
@@ -691,13 +692,13 @@ static int runOnce(int argc, char** argv)
             if (!engine.setModMatrixText(text.c_str())) { std::fprintf(stderr, "bad matrix text\n"); return 2; }
             std::printf("matrix: %d route(s)\n", engine.modMatrix().count());
         }
-        else if (a == "--env") {   // --env <1..6> "<breakpoints>"
+        else if (a == "--env") {   // --env <1..6> "\<breakpoints\>"
             const int idx = std::atoi(next().c_str()) - 1;
             const std::string text = next();
             if (!engine.setEnvShape(idx, text.c_str())) { std::fprintf(stderr, "bad envelope %d\n", idx + 1); return 2; }
             std::printf("env %d: %d points\n", idx + 1, engine.envShape(idx).count());
         }
-        else if (a == "--src-env") {   // --src-env <1..4> "<breakpoints>": a source's own envelope (its Env set to Own)
+        else if (a == "--src-env") {   // --src-env <1..4> "\<breakpoints\>": a source's own envelope (its Env set to Own)
             const int idx = std::atoi(next().c_str()) - 1;
             const std::string text = next();
             if (!engine.setSrcEnvShape(idx, text.c_str())) { std::fprintf(stderr, "bad source envelope %d\n", idx + 1); return 2; }
@@ -1305,10 +1306,10 @@ static int runOnce(int argc, char** argv)
  * pack files once instead of eight thousand times. On this machine that was 0.7 s a preset.
  *
  * Without --batch this is runOnce() and nothing else.
- * @param argc  argument count, as the runtime hands it over
- * @param argv  the options; --batch FILE is taken out here, the rest goes to runOnce()
- * @return runOnce()'s code; in a batch the last non-zero code of any preset, 2 when the list
- *         could not be read or names nothing
+ * @param[in]     argc  argument count, as the runtime hands it over
+ * @param[in,out] argv  the options; --batch FILE is taken out here, the rest goes to runOnce()
+ * @return runOnce()'s code; in a batch the last non-zero code of any preset, 2 when the list could not be read or names
+ *         nothing
  */
 int main(int argc, char** argv)
 {

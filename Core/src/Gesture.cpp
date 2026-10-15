@@ -9,6 +9,7 @@
  * gesture and its text form, the default vocabulary of mappings and the eight macros, and the
  * mapping text format the settings file keeps. Nothing here allocates, and every change to the
  * mapping table publishes its count last, so the audio thread never acts on a half-written entry.
+ * @author Rene Weller
  */
 #include "ambient/Gesture.h"
 #include <chrono>
@@ -34,11 +35,10 @@ const char* const InputNames[NumGestureInputs] = {
  * NaN -- which this function used to hand on, straight into the host's parameters, because a
  * comparison against NaN is false and clampv lets it through. An empty range means nothing was
  * measured: the input reads as the bottom of it.
- *
- * @param v   the raw value (a height, a reach or a distance in metres)
- * @param lo  the value that reads as 0
- * @param hi  the value that reads as 1
- * @return    (v - lo) / (hi - lo) clamped to 0 .. 1; 0 when the range is empty
+ * @param[in] v   the raw value (a height, a reach or a distance in metres)
+ * @param[in] lo  the value that reads as 0
+ * @param[in] hi  the value that reads as 1
+ * @return (v - lo) / (hi - lo) clamped to 0 .. 1; 0 when the range is empty
  */
 float norm01(float v, float lo, float hi)
 {

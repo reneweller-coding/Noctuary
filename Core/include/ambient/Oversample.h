@@ -36,6 +36,7 @@
  * scalar sums it replaced. So each history is now a Line: the newest sample is multiplied on its
  * own, the vector sum reads only samples written a call or more ago, and the line runs down a
  * buffer and jumps back to its top every 64 samples instead of wrapping.
+ * @author Rene Weller
  */
 #pragma once
 #include "Simd.h"
@@ -62,15 +63,15 @@ constexpr const char* DotPath = "scalar";
 
 /**
  * @brief A length rounded up to whole vectors.
- * @param n  the length
- * @return   n rounded up to a multiple of Pad
+ * @param[in] n  the length
+ * @return n rounded up to a multiple of Pad
  */
 constexpr int padded(int n) { return (n + Pad - 1) / Pad * Pad; }
 
 /**
  * @brief The modified Bessel function of the first kind, order zero, by its power series.
- * @param x  the argument, 0 .. 20 in practice
- * @return   I0(x)
+ * @param[in] x  the argument, 0 .. 20 in practice
+ * @return I0(x)
  */
 inline double besselI0(double x)
 {
@@ -90,9 +91,8 @@ inline double besselI0(double x)
  * h[n] = 0.5 sinc((n - c) / 2) w(n), c = (N - 1) / 2 odd. The odd-indexed taps are zero except
  * the centre, which is exactly one half; the even-indexed ones are stored, scaled so that they
  * sum to one half, which puts the DC gain of the whole filter at one.
- *
- * @param out  receives the (N + 1) / 2 even-indexed taps, h[0], h[2], ..., h[N - 1]
- * @param n    the length, 4m + 3, at most 51
+ * @param[out] out  receives the (N + 1) / 2 even-indexed taps, h[0], h[2], ..., h[N - 1]
+ * @param[in]  n    the length, 4m + 3, at most 51
  */
 inline void design(float* out, int n)
 {
@@ -116,10 +116,10 @@ inline void design(float* out, int n)
 
 /**
  * @brief The sum of h[k] v[k] over a padded length, as a vector sum.
- * @param h  the taps, n of them (zero past the real ones)
- * @param v  the history, n readable floats
- * @param n  a multiple of Pad
- * @return   the sum
+ * @param[in] h  the taps, n of them (zero past the real ones)
+ * @param[in] v  the history, n readable floats
+ * @param[in] n  a multiple of Pad
+ * @return the sum
  */
 inline float dot(const float* h, const float* v, int n)
 {
@@ -157,14 +157,21 @@ struct Line {
 
     /** @brief Silence. */
     void reset() { std::memset(m_buf, 0, sizeof(m_buf)); m_pos = Cap; }
-    /** @brief Takes the newest sample. @param x the sample */
+    /**
+     * @brief Takes the newest sample.
+     * @param[in] x  the sample
+     */
     void push(float x)
     {
         if (m_pos == 0) { std::memcpy(m_buf + Cap + 1, m_buf, P * sizeof(float)); m_pos = Cap; }
         else --m_pos;
         m_buf[m_pos] = x;
     }
-    /** @brief A sample of the history. @param k how many samples ago, 0 .. P @return it */
+    /**
+     * @brief A sample of the history.
+     * @param[in] k  how many samples ago, 0 .. P
+     * @return it
+     */
     float at(int k) const { return m_buf[m_pos + k]; }
     /** @brief The P samples before the newest, oldest last: what a sum reads. @return their start */
     const float* older() const { return m_buf + m_pos + 1; }
@@ -195,9 +202,9 @@ struct Stage {
     /**
      * @brief One sample in, two out at twice the rate: y[2n] from the filtering branch, y[2n+1]
      *        the input delayed by M samples (the centre tap, one half, times the gain of two).
-     * @param line  the input's history
-     * @param x     the input sample
-     * @param y     receives the two output samples, in time order
+     * @param[in,out] line  the input's history
+     * @param[in]     x     the input sample
+     * @param[out]    y     receives the two output samples, in time order
      */
     void up(HistoryT& line, float x, float* y) const
     {
@@ -208,11 +215,11 @@ struct Stage {
     /**
      * @brief Two samples in at twice the rate, one out: the even one through the filtering branch,
      *        the odd one through the centre tap, M + 1 samples late.
-     * @param e     the even samples' history
-     * @param o     the odd samples' history
-     * @param even  the first sample of the pair, v[2n]
-     * @param odd   the second, v[2n + 1]
-     * @return      w[n] = sum h[2j] v[2n - 2j] + 0.5 v[2(n - M - 1) + 1]
+     * @param[in,out] e     the even samples' history
+     * @param[in,out] o     the odd samples' history
+     * @param[in]     even  the first sample of the pair, v[2n]
+     * @param[in]     odd   the second, v[2n + 1]
+     * @return w[n] = sum h[2j] v[2n - 2j] + 0.5 v[2(n - M - 1) + 1]
      */
     float down(HistoryT& e, HistoryT& o, float even, float odd) const
     {
@@ -244,11 +251,10 @@ public:
 
     /**
      * @brief One sample through the curve at four times the rate.
-     *
+     * @param[in] x  the input sample at the base rate
+     * @param[in] f  the curve
+     * @return f(x), band-limited and Latency samples late
      * @tparam F  callable `float(float)`: the memoryless curve, evaluated four times per call
-     * @param x   the input sample at the base rate
-     * @param f   the curve
-     * @return    f(x), band-limited and Latency samples late
      */
     template <class FT>
     float process(float x, FT&& f)
@@ -296,12 +302,11 @@ public:
 
     /**
      * @brief One stereo sample through the process at twice the rate.
-     *
-     * @tparam F  callable `void(float l, float r, float& yl, float& yr)`, called twice per call, in
-     *            time order: the process, which keeps its own state
-     * @param l   the left sample at the base rate, replaced by the process's output, Latency late
-     * @param r   the right sample, the same
-     * @param f   the process
+     * @param[in,out] l  the left sample at the base rate, replaced by the process's output, Latency late
+     * @param[in,out] r  the right sample, the same
+     * @param[in]     f  the process
+     * @tparam F  callable `void(float l, float r, float& yl, float& yr)`, called twice per call, in time order: the
+     *         process, which keeps its own state
      */
     template <class FT>
     void process(float& l, float& r, FT&& f)

@@ -25,6 +25,7 @@
  * The copies are made from each frame's Fourier coefficients rather than by filtering samples, so a
  * level is the same waveform with its upper octave of harmonics taken away -- exactly, and with the
  * phases of everything that remains. A frame's DC is dropped on the way.
+ * @author Rene Weller
  */
 #pragma once
 #include <complex>
@@ -62,14 +63,14 @@ struct CycleTable {
 
     /**
      * @brief Samples per stored cycle at a level: 4096 halved per level, never under 32.
-     * @param level  0 (finest) .. Levels - 1
-     * @return       the cycle length in samples, a power of two
+     * @param[in] level  0 (finest) .. Levels - 1
+     * @return the cycle length in samples, a power of two
      */
     static int levelLength(int level)    { const int n = StoreLen >> level; return n < 32 ? 32 : n; }
     /**
      * @brief Highest harmonic a level keeps: 512 halved per level, never under 1 -- an eighth of the level's length.
-     * @param level  0 (finest) .. Levels - 1
-     * @return       the harmonic count
+     * @param[in] level  0 (finest) .. Levels - 1
+     * @return the harmonic count
      */
     static int levelHarmonics(int level) { const int h = (StoreLen / 8) >> level; return h < 1 ? 1 : h; }
 
@@ -80,9 +81,9 @@ struct CycleTable {
     bool empty() const { return m_frames <= 0; }
     /**
      * @brief The stored cycle of frame f at a level; readable from index -1 to levelLength(level) + 1.
-     * @param level  0 .. Levels - 1
-     * @param f      the frame, 0 .. frames - 1
-     * @return       a pointer at the cycle's sample 0, with the guards either side of it
+     * @param[in] level  0 .. Levels - 1
+     * @param[in] f      the frame, 0 .. frames - 1
+     * @return a pointer at the cycle's sample 0, with the guards either side of it
      */
     const float* cycle(int level, int f) const
     {
@@ -93,10 +94,10 @@ struct CycleTable {
      * @brief One sample of frame f at a level, at `phase` in [0, 1): Catmull-Rom through four samples.
      *
      * Audio thread; the guards make the four-point read safe at both ends of the cycle.
-     * @param level  the level cycleLevelFor() chose for the note
-     * @param f      the frame, 0 .. frames - 1
-     * @param phase  the phase accumulator's value in cycles, [0, 1)
-     * @return       the interpolated sample
+     * @param[in] level  the level cycleLevelFor() chose for the note
+     * @param[in] f      the frame, 0 .. frames - 1
+     * @param[in] phase  the phase accumulator's value in cycles, [0, 1)
+     * @return the interpolated sample
      */
     float sample(int level, int f, double phase) const
     {
@@ -124,10 +125,10 @@ struct CycleTable {
      *
      * Each cycle is analysed into its harmonics (an FFT for a power-of-two length, the plain sum
      * otherwise) and the table is then made by buildFromHarmonics(). Not for the audio thread.
-     * @param mono      the samples, n of them
-     * @param n         how many samples there are
-     * @param cycleLen  samples per cycle, at least 8; see detectCycleLength()
-     * @return          true when a table was built; on false the table is left empty
+     * @param[in] mono      the samples, n of them
+     * @param[in] n         how many samples there are
+     * @param[in] cycleLen  samples per cycle, at least 8; see detectCycleLength()
+     * @return true when a table was built; on false the table is left empty
      */
     bool build(const float* mono, int n, int cycleLen);
     /**
@@ -139,8 +140,8 @@ struct CycleTable {
      * The loudest frame (by Parseval) is brought to TargetRms and every frame scaled by the same
      * gain; each level's copy is synthesised by an inverse FFT of the harmonics it keeps. At most
      * MaxFrames frames are taken. Not for the audio thread.
-     * @param frameCoefficients  one vector per frame; harmonics beyond the 512th are ignored
-     * @return                   true when a table was built; false for no frames or all-silent ones, the table then empty
+     * @param[in] frameCoefficients  one vector per frame; harmonics beyond the 512th are ignored
+     * @return true when a table was built; false for no frames or all-silent ones, the table then empty
      */
     bool buildFromHarmonics(const std::vector<std::vector<std::complex<double>>>& frameCoefficients);
     /** @brief Empties the table and frees its memory. */
@@ -153,10 +154,10 @@ struct CycleTable {
  * It moves
  * toward a richer level only with ten per cent to spare, so a pitch that hovers on a boundary does
  * not flip between two levels. `current` < 0 means there is no previous level.
- * @param hz          the cycle's frequency in Hz
- * @param sampleRate  the engine's rate in Hz
- * @param current     the level the voice read last time, or a negative number for none
- * @return            0 .. CycleTable::Levels - 1
+ * @param[in] hz          the cycle's frequency in Hz
+ * @param[in] sampleRate  the engine's rate in Hz
+ * @param[in] current     the level the voice read last time, or a negative number for none
+ * @return 0 .. CycleTable::Levels - 1
  */
 int cycleLevelFor(double hz, double sampleRate, int current);
 
@@ -167,9 +168,9 @@ int cycleLevelFor(double hz, double sampleRate, int current);
  * except at WaveEdit's size (64 x 256 samples), where the wave's continuity decides between 64
  * cycles of 256 and eight frames of 2048. A file of at most 4096 samples that is no multiple of 2048
  * is one cycle of its own length; a longer one is cut at 1024, 512 or 256 if one of them divides it.
- * @param mono  the file's samples
- * @param n     how many there are
- * @return      the cycle length in samples to hand to CycleTable::build(); 0 for no samples at all
+ * @param[in] mono  the file's samples
+ * @param[in] n     how many there are
+ * @return the cycle length in samples to hand to CycleTable::build(); 0 for no samples at all
  */
 int detectCycleLength(const float* mono, int n);
 
@@ -180,8 +181,8 @@ int detectCycleLength(const float* mono, int n);
  * pulse, band-limited to the full 512 harmonics), and Organ, Vocal, Glass and Metal written from the
  * Harmonic type's spectra. Built on first use -- which Source slots do in prepare(), never on the
  * audio thread.
- * @param index  0 Classic, 1 Organ, 2 Vocal, 3 Glass, 4 Metal; anything outside is clamped
- * @return       the table, which lives for the process
+ * @param[in] index  0 Classic, 1 Organ, 2 Vocal, 3 Glass, 4 Metal; anything outside is clamped
+ * @return the table, which lives for the process
  */
 const CycleTable& builtinCycleTable(int index);
 

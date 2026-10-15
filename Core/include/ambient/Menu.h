@@ -10,6 +10,7 @@
  * While the menu is open the clutched parameter mappings are suspended, so
  * choosing an item never moves the sound. Framework-free: the host draws the
  * menu and executes the actions (presets, morph, recording, calibration).
+ * @author Rene Weller
  */
 #pragma once
 #include "Gesture.h"
@@ -32,8 +33,8 @@ constexpr int MenuItems = static_cast<int>(MenuActionE::COUNT);   ///< rows of t
 
 /**
  * @brief The caption the host draws for a row, in capitals as the menu shows them.
- * @param a  the item
- * @return   its label ("MORPH ON/OFF", "A = NOW", ...), "" for None, Count or anything else
+ * @param[in] a  the item
+ * @return its label ("MORPH ON/OFF", "A = NOW", ...), "" for None, Count or anything else
  */
 inline const char* menuLabel(MenuActionE a)
 {
@@ -75,11 +76,9 @@ public:
      * has been seen open since the menu opened or last fired -- it must open again before it can
      * fire a second time. The layer's suspension and the eased openness for drawing are updated
      * here as well.
-     *
-     * @param dt  seconds since the previous frame
-     * @param g   the gesture layer: LeftPinch, RightPinch and RightHeight are read, its
-     *            suspension is written
-     * @return    the row fired this frame, or MenuAction::None
+     * @param[in]     dt  seconds since the previous frame
+     * @param[in,out] g   the gesture layer: LeftPinch, RightPinch and RightHeight are read, its suspension is written
+     * @return the row fired this frame, or MenuAction::None
      */
     MenuActionE update(double dt, GestureLayer& g)
     {

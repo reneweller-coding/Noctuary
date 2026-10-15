@@ -10,6 +10,7 @@
  * machine. Nothing here allocates or keeps global state except the one sine table, which is built
  * on first use; every struct is small enough to live inside its owner and to be reset by
  * assignment.
+ * @author Rene Weller
  */
 #pragma once
 #include <cstdint>
@@ -23,17 +24,17 @@ constexpr float  TwoPi = 6.28318530717959f;   ///< 2 pi in single precision: rad
 
 /**
  * @brief Clamps a value into [lo, hi]; the only clamp the engine uses, so that ints and floats read alike.
+ * @param[in] v   the value
+ * @param[in] lo  the lower bound
+ * @param[in] hi  the upper bound (lo when hi < lo: the first comparison wins)
+ * @return v held inside the bounds
  * @tparam T  any type with operator<
- * @param v   the value
- * @param lo  the lower bound
- * @param hi  the upper bound (lo when hi < lo: the first comparison wins)
- * @return    v held inside the bounds
  */
 template <class T> inline T clampv(T v, T lo, T hi) { return v < lo ? lo : (v > hi ? hi : v); }
 /**
  * @brief Decibels to a linear amplitude gain.
- * @param db  the level in dB (0 is unity, -6 about a half)
- * @return    10^(db / 20)
+ * @param[in] db  the level in dB (0 is unity, -6 about a half)
+ * @return 10^(db / 20)
  */
 inline float dbToGain(float db) { return std::pow(10.0f, db * 0.05f); }
 
@@ -48,7 +49,8 @@ struct Rng {
     uint64_t m_s = 0x9E3779B97F4A7C15ull;   ///< the generator's state; never zero after seed()
     /**
      * @brief Sets the state from a seed and discards the first two outputs.
-     * @param v  any 64-bit seed; the state is scrambled with two odd constants so nearby seeds diverge, and a zero state is nudged to 1
+     * @param[in] v  any 64-bit seed; the state is scrambled with two odd constants so nearby seeds diverge, and a zero
+     *               state is nudged to 1
      */
     void seed(uint64_t v) { m_s = v * 0x9E3779B97F4A7C15ull + 0xD1B54A32D192ED03ull; if (m_s == 0) m_s = 1; next(); next(); }
     /**
@@ -68,8 +70,8 @@ struct Rng {
     float bipolar() { return uniform() * 2.0f - 1.0f; }
     /**
      * @brief A uniform integer below a bound.
-     * @param n  the exclusive upper bound; 0 or less gives 0
-     * @return   an int in [0, n)
+     * @param[in] n  the exclusive upper bound; 0 or less gives 0
+     * @return an int in [0, n)
      */
     int   below(int n) { return n <= 0 ? 0 : static_cast<int>(next() % static_cast<uint64_t>(n)); }
     /**
@@ -103,16 +105,16 @@ inline const SineTable& sineTable() { static const SineTable t; return t; }
 /**
  * @brief Cosine/sine of a phase in [0,1), from the sine table. Used to seed and to step the rotating
  *        phasors that stand in for every per-sample std::sin/std\::cos in the engine.
- * @param phase01  the phase in cycles, [0,1) (a phase outside is wrapped by sin01)
- * @param c        receives cos(2 pi phase01)
- * @param s        receives sin(2 pi phase01)
+ * @param[in]  phase01  the phase in cycles, [0,1) (a phase outside is wrapped by sin01)
+ * @param[out] c        receives cos(2 pi phase01)
+ * @param[out] s        receives sin(2 pi phase01)
  */
 inline void phasorFrom(double phase01, float& c, float& s);
 
 /**
  * @brief sin(2 pi phase) from the table, linearly interpolated.
- * @param phase01  the phase in cycles; [0,1) is the fast path, anything else is wrapped first
- * @return         the sine, within the table's interpolation error (about -80 dB)
+ * @param[in] phase01  the phase in cycles; [0,1) is the fast path, anything else is wrapped first
+ * @return the sine, within the table's interpolation error (about -80 dB)
  */
 inline float sin01(double phase01)
 {
@@ -154,7 +156,7 @@ class Drifter {
 public:
     /**
      * @brief Draws the first two knots and a random starting point between them.
-     * @param r  the owner's generator
+     * @param[in,out] r  the owner's generator
      */
     void init(Rng& r)
     {
@@ -163,10 +165,11 @@ public:
     }
     /**
      * @brief Advances the curve by a stretch of time and returns its value.
-     * @param dtSeconds  seconds since the last call
-     * @param rateHz     knots per second on average; the actual period is jittered by the scale drawn at each knot
-     * @param r          the owner's generator, for the next knot when one is passed
-     * @return           the current value in [-1,1]
+     * @param[in]     dtSeconds  seconds since the last call
+     * @param[in]     rateHz     knots per second on average; the actual period is jittered by the scale drawn at each
+     *                           knot
+     * @param[in,out] r          the owner's generator, for the next knot when one is passed
+     * @return the current value in [-1,1]
      */
     float update(float dtSeconds, float rateHz, Rng& r)
     {
@@ -215,15 +218,16 @@ public:
     };
     /**
      * @brief Sets the rate the coefficients are computed against; call before setTimes().
-     * @param sr  the engine's rate in Hz
+     * @param[in] sr  the engine's rate in Hz
+     * @pre called before setTimes()
      */
     void setSampleRate(double sr) { m_sr = sr; }
     /**
      * @brief Sets the four segments.
-     * @param attackS   attack time in seconds: how long the level takes to reach 1 (at least 0.5 ms)
-     * @param decayS    decay time in seconds: the one-pole towards the sustain, three time constants
-     * @param sustain   the sustain level, 0 .. 1; under 1e-4 the envelope goes Idle after the decay
-     * @param releaseS  release time in seconds, five time constants
+     * @param[in] attackS   attack time in seconds: how long the level takes to reach 1 (at least 0.5 ms)
+     * @param[in] decayS    decay time in seconds: the one-pole towards the sustain, three time constants
+     * @param[in] sustain   the sustain level, 0 .. 1; under 1e-4 the envelope goes Idle after the decay
+     * @param[in] releaseS  release time in seconds, five time constants
      */
     void setTimes(float attackS, float decayS, float sustain, float releaseS)
     {
@@ -244,7 +248,7 @@ public:
      * four to five dB after a two-second crossfade. The attack is one pole toward 1.3, so its level
      * after n samples is 1.3 (1 - (1 - aCoef)^n) in closed form; past the attack it lands where the
      * decay would have left it, at the sustain.
-     * @param seconds  how long the note has been sounding; 0 or less is a plain noteOn()
+     * @param[in] seconds  how long the note has been sounding; 0 or less is a plain noteOn()
      */
     void noteOnAged(float seconds)
     {
@@ -314,9 +318,9 @@ public:
 private:
     /**
      * @brief One-pole coefficient for a segment.
-     * @param seconds  the segment's nominal length (floored at 0.5 ms)
-     * @param k        how many time constants the segment is taken to span
-     * @return         1 - exp(-1 / (tau sr)) with tau = seconds / k
+     * @param[in] seconds  the segment's nominal length (floored at 0.5 ms)
+     * @param[in] k        how many time constants the segment is taken to span
+     * @return 1 - exp(-1 / (tau sr)) with tau = seconds / k
      */
     float coef(float seconds, float k) const
     {
@@ -348,9 +352,9 @@ struct Svf {
           m_k = 1.0f;   ///< the damping, 1 / Q; the band pass times k has unity gain at the cutoff
     /**
      * @brief Coefficients from a cutoff and a 0 .. 1 resonance.
-     * @param cutoffHz   the cutoff in Hz, clamped between 10 Hz and 0.45 of the rate
-     * @param resonance  0 .. 1, mapped to a damping of 2 (Q 0.5) down to 0.1 (Q 10)
-     * @param sr         the sample rate in Hz
+     * @param[in] cutoffHz   the cutoff in Hz, clamped between 10 Hz and 0.45 of the rate
+     * @param[in] resonance  0 .. 1, mapped to a damping of 2 (Q 0.5) down to 0.1 (Q 10)
+     * @param[in] sr         the sample rate in Hz
      */
     void set(float cutoffHz, float resonance, float sr)
     {
@@ -358,21 +362,21 @@ struct Svf {
     }
     /**
      * @brief Coefficients from a cutoff and a Q.
-     * @param cutoffHz  the cutoff in Hz
-     * @param q         the quality factor, floored at 0.05
-     * @param sr        the sample rate in Hz
+     * @param[in] cutoffHz  the cutoff in Hz
+     * @param[in] q         the quality factor, floored at 0.05
+     * @param[in] sr        the sample rate in Hz
      */
     void setQ(float cutoffHz, float q, float sr) { setK(cutoffHz, 1.0f / std::max(q, 0.05f), sr); }
     /**
      * @brief Takes another filter's coefficients, leaving this one's state alone.
-     * @param o  the filter to copy a1, a2, a3 and k from
+     * @param[in] o  the filter to copy a1, a2, a3 and k from
      */
     void copyCoefficients(const Svf& o) { m_a1 = o.m_a1; m_a2 = o.m_a2; m_a3 = o.m_a3; m_k = o.m_k; }
     /**
      * @brief Coefficients from a cutoff and the damping itself.
-     * @param cutoffHz  the cutoff in Hz, clamped between 10 Hz and 0.45 of the rate
-     * @param damping   k = 1 / Q; 2 is critically damped
-     * @param sr        the sample rate in Hz
+     * @param[in] cutoffHz  the cutoff in Hz, clamped between 10 Hz and 0.45 of the rate
+     * @param[in] damping   k = 1 / Q; 2 is critically damped
+     * @param[in] sr        the sample rate in Hz
      */
     void setK(float cutoffHz, float damping, float sr)
     {
@@ -385,10 +389,10 @@ struct Svf {
     }
     /**
      * @brief All three outputs at once (band-pass has unity gain at the cutoff).
-     * @param in  the input sample
-     * @param lp  receives the low pass
-     * @param bp  receives the band pass (multiply by k for unity at the cutoff)
-     * @param hp  receives the high pass
+     * @param[in]  in  the input sample
+     * @param[out] lp  receives the low pass
+     * @param[out] bp  receives the band pass (multiply by k for unity at the cutoff)
+     * @param[out] hp  receives the high pass
      */
     inline void tick(float in, float& lp, float& bp, float& hp)
     {
@@ -401,8 +405,8 @@ struct Svf {
     }
     /**
      * @brief The low pass alone.
-     * @param in  the input sample
-     * @return    the low-pass output
+     * @param[in] in  the input sample
+     * @return the low-pass output
      */
     inline float lp(float in)
     {
@@ -428,19 +432,20 @@ struct Smoother {
           m_coef = 0.001f;   ///< the one-pole coefficient, from setTime()
     /**
      * @brief Sets the time constant.
-     * @param seconds  the time constant (floored at 0.1 ms): about 63 % of a step in this time, 99 % in five times it
-     * @param sr       how many times a second next() will be called
+     * @param[in] seconds  the time constant (floored at 0.1 ms): about 63 % of a step in this time, 99 % in five times
+     *                     it
+     * @param[in] sr       how many times a second next() will be called
      */
     void setTime(float seconds, double sr) { m_coef = 1.0f - std::exp(-1.0f / (std::max(seconds, 1e-4f) * static_cast<float>(sr))); }
     /**
      * @brief One step towards the target.
-     * @param target  where the value is heading
-     * @return        the value after the step
+     * @param[in] target  where the value is heading
+     * @return the value after the step
      */
     inline float next(float target) { m_value += (target - m_value) * m_coef; return m_value; }
     /**
      * @brief Jumps to a value without smoothing, as at prepare or a preset load.
-     * @param v  the new value
+     * @param[in] v  the new value
      */
     void snap(float v) { m_value = v; }
 };
@@ -465,9 +470,9 @@ struct Smoother {
  * to within 1.3 dB across the whole knob. A much louder input does lose level (about 9 dB at 0.8),
  * and that is not a fault to compensate: past the first fold the fundamental itself is being
  * folded away, which is exactly the effect being asked for.
- * @param x       the input sample
- * @param amount  the Fold knob, 0 .. 1: drive (1 + 9 amount, a third more on the positive half) and mix at once
- * @return        x itself at 0; otherwise x moved towards the folded, made-up copy by amount
+ * @param[in] x       the input sample
+ * @param[in] amount  the Fold knob, 0 .. 1: drive (1 + 9 amount, a third more on the positive half) and mix at once
+ * @return x itself at 0; otherwise x moved towards the folded, made-up copy by amount
  */
 inline float wavefold(float x, float amount)
 {
@@ -483,8 +488,8 @@ inline float wavefold(float x, float amount)
  *
  * The saturation of the voice filter's drive, the ladder's feedback and the patina: odd harmonics
  * that grow gently with the level, no corner until the hard limit.
- * @param x  the input sample
- * @return   the clipped sample, always within [-1, 1]
+ * @param[in] x  the input sample
+ * @return the clipped sample, always within [-1, 1]
  */
 inline float softClip(float x)
 {

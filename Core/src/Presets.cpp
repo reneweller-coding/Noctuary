@@ -31,6 +31,7 @@
  * metadata in PresetMeta.cpp. Everything here is plain constant data, readable from any thread;
  * paramValueFromText is the one piece of logic and is what applyPreset (Presets.h), the editor's
  * paste of a settings string and the tests use to turn a value's text into a parameter value.
+ * @author Rene Weller
  */
 #include <cmath>
 #include "ambient/Presets.h"
@@ -12323,9 +12324,9 @@ const Preset Presets[] = {
  *        here so they live in this translation unit's anonymous namespace next to the built-ins.
  *
  * Each .inc defines a `const Preset k<Bank>Presets[]` table, a `const unsigned char
- * k<Bank>PresetCategory[]` with the family of every entry (255 for the Off entry at index 0, which
+ * k\<Bank\>PresetCategory[]` with the family of every entry (255 for the Off entry at index 0, which
  * has none) and, for the banks with named families, a `const char* const
- * k<Bank>PresetsFamilyNames[]`.
+ * k\<Bank\>PresetsFamilyNames[]`.
  * Cosmos, Strike and Near come from Tools/make_layer_presets.py, the Z-plane bank (one preset per
  * filter shape, in the shapes' own families) from Tools/make_zplane_bank.py; none of them is edited
  * by hand. The accessors below are the only way out of this namespace.

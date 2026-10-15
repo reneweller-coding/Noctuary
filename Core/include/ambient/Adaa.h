@@ -8,6 +8,7 @@
  * Esqueda, Parker and Valimaki, IEEE SPL 2017) evaluates the curve's antiderivative instead and
  * differentiates it across the sample interval -- the curve convolved with a one-sample rectangle --
  * which takes the aliases down by the order of twenty decibels for half a sample of delay.
+ * @author Rene Weller
  */
 #pragma once
 #include <cmath>
@@ -21,9 +22,8 @@ namespace ambient {
  * also cancel to |x| - log 2 with a loss of digits. The form used here, |x| + log1p(exp(-2|x|)) - log 2,
  * is exact for every magnitude: the exponential only ever sees a non-positive argument, and log1p
  * keeps the small correction term accurate near zero.
- *
- * @param x  the input sample (any magnitude)
- * @return   log(cosh(x)), non-negative, with log(cosh(0)) = 0
+ * @param[in] x  the input sample (any magnitude)
+ * @return log(cosh(x)), non-negative, with log(cosh(0)) = 0
  */
 inline double logCosh(double x)
 {
@@ -48,8 +48,8 @@ struct TanhAdaa {
 
     /**
      * @brief Saturates one sample.
-     * @param x  the input sample
-     * @return   tanh of the input, antialiased to first order and delayed by half a sample
+     * @param[in] x  the input sample
+     * @return tanh of the input, antialiased to first order and delayed by half a sample
      */
     float operator()(float x)
     {

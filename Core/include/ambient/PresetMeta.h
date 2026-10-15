@@ -12,6 +12,7 @@
  * table followed by the metadata of every loaded pack, indexed exactly as numPresets() counts,
  * so a caller never needs to know where the built-ins end. The clusters and the phrase table
  * (PresetClusters.cpp) are generated too.
+ * @author Rene Weller
  */
 #pragma once
 #include <cstdint>
@@ -85,14 +86,14 @@ constexpr int NumMapDescriptors = 9;   ///< bright motion width noisy bass densi
 int               numPresetClusters();
 /**
  * @brief The name of a cluster, for the browser.
- * @param cluster  0 .. numPresetClusters()-1
- * @return         the name, or "" when out of range
+ * @param[in] cluster  0 .. numPresetClusters()-1
+ * @return the name, or "" when out of range
  */
 const char*       presetClusterName(int cluster);
 /**
  * @brief The centroid of a cluster in descriptor space.
- * @param cluster  0 .. numPresetClusters()-1
- * @return         NumMapDescriptors values in the order of NumMapDescriptors' comment, or nullptr when out of range
+ * @param[in] cluster  0 .. numPresetClusters()-1
+ * @return NumMapDescriptors values in the order of NumMapDescriptors' comment, or nullptr when out of range
  */
 const float*      presetClusterCentre(int cluster);
 /**
@@ -112,8 +113,8 @@ int               presetClusterOf(const PresetMeta&);
 int               numPresetPhrases();
 /**
  * @brief One phrase of the vocabulary, as PresetMeta::phrase indexes it.
- * @param index  0 .. numPresetPhrases()-1
- * @return       "" when out of range or not generated
+ * @param[in] index  0 .. numPresetPhrases()-1
+ * @return "" when out of range or not generated
  */
 const char*       presetPhrase(int index);
 
@@ -124,22 +125,22 @@ const char*       presetPhrase(int index);
 int               numPresetMeta();
 /**
  * @brief The metadata of one preset, built-in or pack, indexed as numPresets() counts.
- * @param index  0 .. numPresetMeta()-1
- * @return       the entry, or a neutral one (everything 0.5, no tags, no cluster) when out of range
+ * @param[in] index  0 .. numPresetMeta()-1
+ * @return the entry, or a neutral one (everything 0.5, no tags, no cluster) when out of range
  */
 const PresetMeta& presetMeta(int index);
 /** @return built-in families plus one per pack */
 int               numPresetFamilies();
 /**
  * @brief The name of a family, for the browser's list.
- * @param family  0 .. numPresetFamilies()-1: a built-in family, then the packs in load order
- * @return        the built-in family's name or the pack's name, "" when out of range
+ * @param[in] family  0 .. numPresetFamilies()-1: a built-in family, then the packs in load order
+ * @return the built-in family's name or the pack's name, "" when out of range
  */
 const char*       presetFamilyName(int family);
 /**
  * @brief The name of a tag bit.
- * @param bit  0 .. NumPresetTags-1
- * @return     the name ("Dark", "Bright", ...), or "" when out of range
+ * @param[in] bit  0 .. NumPresetTags-1
+ * @return the name ("Dark", "Bright", ...), or "" when out of range
  */
 const char*       presetTagName(int bit);
 
@@ -150,16 +151,16 @@ const char*       presetTagName(int bit);
 int               builtinPresetMetaCount();
 /**
  * @brief One built-in preset's metadata.
- * @param index  0 .. builtinPresetMetaCount()-1
- * @return       the entry, or a neutral one when out of range
+ * @param[in] index  0 .. builtinPresetMetaCount()-1
+ * @return the entry, or a neutral one when out of range
  */
 const PresetMeta& builtinPresetMeta(int index);
 /** @return how many built-in families the generated table names */
 int               builtinPresetFamilyCount();
 /**
  * @brief The name of a built-in family.
- * @param family  0 .. builtinPresetFamilyCount()-1
- * @return        the name, or "" when out of range
+ * @param[in] family  0 .. builtinPresetFamilyCount()-1
+ * @return the name, or "" when out of range
  */
 const char*       builtinPresetFamilyName(int family);
 

@@ -35,6 +35,7 @@
  * ```
  * The grain loop is the vector kernel of the texture sources (GrainRing.h). Buffers are allocated
  * in prepare() only.
+ * @author Rene Weller
  */
 #pragma once
 #include "Dsp.h"
@@ -69,43 +70,44 @@ public:
      * The history is eight seconds plus slack (a transposed grain reads faster than the head
      * writes). The loop and resonator coefficients that depend on the rate are recomputed, and if
      * a harmony is already known the resonators are rebuilt for the new rate. Not for the audio thread.
-     * @param sampleRate  the engine's rate in Hz
-     * @param seed        seeds the cloud's own generator: onsets, grain lengths, pans and transpositions
+     * @param[in] sampleRate  the engine's rate in Hz
+     * @param[in] seed        seeds the cloud's own generator: onsets, grain lengths, pans and transpositions
      */
     void prepare(double sampleRate, uint64_t seed);
     /**
      * @brief The five grain parameters, once a block; each is clamped.
-     * @param densityPerSec  mean grains per second, 0.1 .. 200
-     * @param sizeMs         mean grain length in ms, 5 .. 2000 (each grain draws 0.7 .. 1.3 of it)
-     * @param pitch          0 .. 1: the chance a grain takes a fixed transposition (mostly an octave up or down, sometimes a fifth or two octaves up) instead of a two per cent detune
-     * @param spraySec       how far back in the history a grain may start, 0 .. 3.5 s
-     * @param level          the cloud's output gain, 0 .. 2, glided across the sub-block
+     * @param[in] densityPerSec  mean grains per second, 0.1 .. 200
+     * @param[in] sizeMs         mean grain length in ms, 5 .. 2000 (each grain draws 0.7 .. 1.3 of it)
+     * @param[in] pitch          0 .. 1: the chance a grain takes a fixed transposition (mostly an octave up or down,
+     *                           sometimes a fifth or two octaves up) instead of a two per cent detune
+     * @param[in] spraySec       how far back in the history a grain may start, 0 .. 3.5 s
+     * @param[in] level          the cloud's output gain, 0 .. 2, glided across the sub-block
      */
     void set(float densityPerSec, float sizeMs, float pitch, float spraySec, float level);
     /**
      * @brief The feedback loop, once a block.
      *
      * Feedback 0..1 (1 holds at the loop's ceiling) and the loop's low-pass in hertz.
-     * @param feedback  0 .. 1, scaled by the loop gain inside and throttled by the loop's own level
-     * @param toneHz    the loop's one-pole low pass, 100 .. 20000 Hz (and under 0.45 of the rate)
+     * @param[in] feedback  0 .. 1, scaled by the loop gain inside and throttled by the loop's own level
+     * @param[in] toneHz    the loop's one-pole low pass, 100 .. 20000 Hz (and under 0.45 of the rate)
      */
     void setLoop(float feedback, float toneHz);
     /**
      * @brief The loop's transposition on every pass, in semitones; 0 is off.
      *
      * Switching the shift on from 0 resets the spectral shifter, so it starts from silence.
-     * @param semitones  -24 .. 24; 0 bypasses the shifter
+     * @param[in] semitones  -24 .. 24; 0 bypasses the shifter
      */
     void setShift(float semitones);
     /**
      * @brief Transposition of every grain in semitones, and the scatter over the scale's intervals, 0..1.
-     * @param transposeSemitones  -24 .. 24, applied to every grain as a ratio
-     * @param scatter             0 .. 1; see the file comment and drawRatio()
+     * @param[in] transposeSemitones  -24 .. 24, applied to every grain as a ratio
+     * @param[in] scatter             0 .. 1; see the file comment and drawRatio()
      */
     void setScatter(float transposeSemitones, float scatter);
     /**
      * @brief 0: Poisson onsets, as always; towards 1 the onsets excite each other and come in flocks.
-     * @param swarm  0 .. 1, the Hawkes branching ratio being 0.9 of it
+     * @param[in] swarm  0 .. 1, the Hawkes branching ratio being 0.9 of it
      */
     void setSwarm(float swarm);
     /**
@@ -113,10 +115,11 @@ public:
      *
      * A change of mode clears the other kind's state; a change of notes rebuilds the resonators if
      * the harmony is known.
-     * @param amount        the resonators' mix against the dry grains, 0 .. 1, glided
-     * @param mode          0 the phasor band pass, 1 the feedback comb
-     * @param notes         which notes get a resonator: 0 the scale, 1 the chord on the root, 2 root and fifth, 3 octaves
-     * @param decaySeconds  time to -60 dB, 0.05 .. 30 s
+     * @param[in] amount        the resonators' mix against the dry grains, 0 .. 1, glided
+     * @param[in] mode          0 the phasor band pass, 1 the feedback comb
+     * @param[in] notes         which notes get a resonator: 0 the scale, 1 the chord on the root, 2 root and fifth, 3
+     *                          octaves
+     * @param[in] decaySeconds  time to -60 dB, 0.05 .. 30 s
      */
     void setResonators(float amount, int mode, int notes, float decaySeconds);
     /**
@@ -125,9 +128,9 @@ public:
      * The music the scatter and the resonators follow: the scale, the frequency of its tonic and of
      * the conductor's root. Cheap to call on every block -- the tables are rebuilt only when one of
      * the three has moved.
-     * @param scale    the scale that is playing (Tuning.h); a degree of zero is taken as the tonic
-     * @param tonicHz  the frequency of the scale's first degree in Hz; ignored if not above 1 or not finite
-     * @param rootHz   the conductor's root in Hz, likewise; the scatter's intervals are measured from it
+     * @param[in] scale    the scale that is playing (Tuning.h); a degree of zero is taken as the tonic
+     * @param[in] tonicHz  the frequency of the scale's first degree in Hz; ignored if not above 1 or not finite
+     * @param[in] rootHz   the conductor's root in Hz, likewise; the scatter's intervals are measured from it
      */
     void setHarmony(const FixedScale& scale, double tonicHz, double rootHz);
     /**
@@ -138,11 +141,11 @@ public:
      * the cloud; identical channels give exactly the cloud the mono sum would.
      *
      * Audio thread, any n; the work runs in sub-blocks of Sub samples.
-     * @param inL   left input, n samples (the far bus)
-     * @param inR   right input
-     * @param outL  left output; the cloud is added to what is there
-     * @param outR  right output, likewise
-     * @param n     samples in the block
+     * @param[in]     inL   left input, n samples (the far bus)
+     * @param[in]     inR   right input
+     * @param[in,out] outL  left output; the cloud is added to what is there
+     * @param[in,out] outR  right output, likewise
+     * @param[in]     n     samples in the block
      */
     void process(const float* inL, const float* inR, float* outL, float* outR, int n);
     /**
@@ -161,8 +164,8 @@ public:
     int       intervalCount() const { return m_numIv; }
     /**
      * @brief One scatter interval, most consonant first.
-     * @param k  0 .. intervalCount() - 1
-     * @return   the interval as a frequency ratio, within an octave either way
+     * @param[in] k  0 .. intervalCount() - 1
+     * @return the interval as a frequency ratio, within an octave either way
      */
     float     interval(int k) const { return m_iv[k]; }
     /**
@@ -172,8 +175,8 @@ public:
     int       resonatorCount() const { return m_numRes; }
     /**
      * @brief One resonator's note.
-     * @param k  0 .. resonatorCount() - 1
-     * @return   its frequency in Hz
+     * @param[in] k  0 .. resonatorCount() - 1
+     * @return its frequency in Hz
      */
     float     resonatorHz(int k) const { return m_resHz[k]; }
     /**
@@ -192,8 +195,8 @@ private:
      * The hazard -- the intensity integrated over time -- against an exponential draw: Poisson at
      * Swarm 0, a Hawkes process with a quarter-second kernel above it, the base rate reduced so
      * the mean density stays what the knob says.
-     * @param w0  the history's write frame at the start of the sub-block
-     * @param m   samples in the sub-block
+     * @param[in] w0  the history's write frame at the start of the sub-block
+     * @param[in] m   samples in the sub-block
      */
     void   spawnSub(int w0, int m);
     /**
@@ -202,8 +205,8 @@ private:
      * The grain starts far enough behind the write head that it is still behind it when it ends,
      * read faster than the head moves; where the history is too short for that the grain is
      * shortened, and dropped if that leaves under 32 samples. Nothing happens at MaxGrains.
-     * @param w0      the history's write frame at the start of the sub-block
-     * @param offset  the sample within the sub-block the grain begins at
+     * @param[in] w0      the history's write frame at the start of the sub-block
+     * @param[in] offset  the sample within the sub-block the grain begins at
      */
     void   spawn(int w0, int offset);
     /**
@@ -216,7 +219,7 @@ private:
     double drawRatio();
     /**
      * @brief Renders every live grain into its bus for the sub-block and retires the ones that ended.
-     * @param m  samples in the sub-block
+     * @param[in] m  samples in the sub-block
      */
     void   renderGrains(int m);
     /**
@@ -226,9 +229,9 @@ private:
      * Tone, a DC blocker, the ADAA saturation, the throttle on the loop's own mean level and, when
      * a shift is set, the spectral shifter; its output goes into the loop ring for the next
      * sub-block. The tail counter is refreshed while anything is audible.
-     * @param m     samples in the sub-block
-     * @param outL  left output for the sub-block; the cloud is added
-     * @param outR  right output, likewise
+     * @param[in]     m     samples in the sub-block
+     * @param[in,out] outL  left output for the sub-block; the cloud is added
+     * @param[in,out] outR  right output, likewise
      */
     void   mixSub(int m, float* outL, float* outR);
     /**
@@ -237,9 +240,9 @@ private:
      * Band: the phasor filter of Mathews and Smith, one rotation per sample, the angle gliding to
      * its target. Comb: one feedback comb per note, its delay the period less the one-pole's lag,
      * its gain set for -60 dB in the ring time.
-     * @param m     samples in the sub-block
-     * @param wetL  left wet sum, m samples, added to
-     * @param wetR  right wet sum, likewise
+     * @param[in]     m     samples in the sub-block
+     * @param[in,out] wetL  left wet sum, m samples, added to
+     * @param[in,out] wetR  right wet sum, likewise
      */
     void   runResonators(int m, float* wetL, float* wetR);
     /**

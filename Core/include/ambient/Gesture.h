@@ -10,6 +10,7 @@
  * Inputs are normalised to 0..1 (tilts and head angles are mapped from -1..1).
  * The layer never writes parameters itself; update() hands (ParamId, value) to a
  * sink so each host can route it into its own parameter system.
+ * @author Rene Weller
  */
 #pragma once
 #include "Params.h"
@@ -41,15 +42,15 @@ enum class GestureInputE : int {
 constexpr int NumGestureInputs = static_cast<int>(GestureInputE::COUNT);   ///< size of the input table
 /**
  * @brief The name of an input as the mapping text spells it ("HandDistance", "LeftPinch", ...).
- * @param in  the input; Count and anything out of range read as "none"
- * @return    a static string, never null
+ * @param[in] in  the input; COUNT and anything out of range read as "none"
+ * @return a static string, never null
  */
-const char* gestureInputName(GestureInputE);
+const char* gestureInputName(GestureInputE in);
 /**
  * @brief The inverse of gestureInputName(): an input from its name.
- * @param name  the spelling, case-sensitive; "none" and "-" mean Count (no input, always engaged)
- * @param out   receives the input on success and is left alone otherwise
- * @return      false for a null pointer or a name that is not in the table
+ * @param[in]  name  the spelling, case-sensitive; "none" and "-" mean Count (no input, always engaged)
+ * @param[out] out   receives the input on success and is left alone otherwise
+ * @return false for a null pointer or a name that is not in the table
  */
 bool gestureInputFromName(const char* name, GestureInputE& out);
 
@@ -94,14 +95,14 @@ public:
      * @{ */
     /**
      * @brief Sets one input directly, already normalised (an OSC controller, a knob, a macro).
-     * @param in          the input; anything out of range is ignored
-     * @param normalised  its value, clamped to 0 .. 1
+     * @param[in] in          the input; anything out of range is ignored
+     * @param[in] normalised  its value, clamped to 0 .. 1
      */
     void setInput(GestureInputE in, float normalised);
     /**
      * @brief The current value of an input.
-     * @param in  the input; a real one, not Count
-     * @return    its last value, 0 .. 1
+     * @param[in] in  the input; a real one, not Count
+     * @return its last value, 0 .. 1
      */
     float input(GestureInputE in) const { return m_inputs[static_cast<int>(in)].load(std::memory_order_relaxed); }
     /** @} */
@@ -113,30 +114,29 @@ public:
      * distance likewise), tilt is folded from -1..1 into 0..1. While a calibration is running the
      * raw extremes are collected here. It is also the sign that real hands exist: the rest zone
      * only ever engages after this has been called once.
-     *
-     * @param hand   0 left, 1 right (only the lowest bit counts)
-     * @param x      metres to the right of the stage origin
-     * @param y      metres up: the height
-     * @param z      metres back, so -z is the reach in front of the head
-     * @param pinch  pinch strength 0 .. 1
-     * @param tilt   palm roll -1 .. 1
+     * @param[in] hand   0 left, 1 right (only the lowest bit counts)
+     * @param[in] x      metres to the right of the stage origin
+     * @param[in] y      metres up: the height
+     * @param[in] z      metres back, so -z is the reach in front of the head
+     * @param[in] pinch  pinch strength 0 .. 1
+     * @param[in] tilt   palm roll -1 .. 1
      */
     void setHand(int hand, float x, float y, float z, float pinch, float tilt);
     /**
      * @brief The head's orientation, from a headset or a head tracker.
-     * @param yawDeg    -90 .. 90 degrees, mapped onto HeadYaw 0 .. 1 (clamped)
-     * @param pitchDeg  the same for HeadPitch
-     * @param rollDeg   the same for HeadRoll
+     * @param[in] yawDeg    -90 .. 90 degrees, mapped onto HeadYaw 0 .. 1 (clamped)
+     * @param[in] pitchDeg  the same for HeadPitch
+     * @param[in] rollDeg   the same for HeadRoll
      */
     void setHead(float yawDeg, float pitchDeg, float rollDeg);
     /**
      * @brief Sets the six calibrated bounds directly (from a saved calibration, or a host's own numbers).
-     * @param heightLow   metres of hand height that read as 0
-     * @param heightHigh  metres that read as 1
-     * @param reachNear   metres of reach (-z) that read as 0
-     * @param reachFar    metres that read as 1
-     * @param distNear    hand distance in metres that reads as 0
-     * @param distFar     hand distance that reads as 1
+     * @param[in] heightLow   metres of hand height that read as 0
+     * @param[in] heightHigh  metres that read as 1
+     * @param[in] reachNear   metres of reach (-z) that read as 0
+     * @param[in] reachFar    metres that read as 1
+     * @param[in] distNear    hand distance in metres that reads as 0
+     * @param[in] distFar     hand distance that reads as 1
      */
     void setCalibration(float heightLow, float heightHigh, float reachNear, float reachFar, float distNear, float distFar);
 
@@ -149,8 +149,7 @@ public:
      * gathered in setHand() and finishCalibration() takes them over at the end -- only where a
      * range wide enough to be believed was explored (a quarter metre of height, twenty
      * centimetres of distance, fifteen of reach), with five per cent of it cut from each end.
-     *
-     * @param seconds  how long to watch, at least half a second
+     * @param[in] seconds  how long to watch, at least half a second
      */
     void  startCalibration(float seconds);
     /** @brief Whether a calibration is running. @return true until its time is up */
@@ -158,6 +157,8 @@ public:
     /**
      * @brief Whether real hand data (setHand: the Quest app, or its bridge over OSC) arrived in the last @p seconds
      *        (01.10.2026: the panel shows the headset's controls only while a headset sends, or when asked to). Any thread.
+     * @param[in] seconds  the time looked back
+     * @return true when hand data arrived in it
      */
     bool handsRecently(double seconds) const;
     /** @brief How far the running calibration has come. @return 0..1; 1 when none is running */
@@ -166,17 +167,16 @@ public:
      * @brief "hLow hHigh rNear rFar dNear dFar" for persistence.
      *
      * The six calibrated bounds in metres, space-separated, each in printf's shortest form.
-     * @param out       the buffer
-     * @param capacity  its size in bytes
-     * @return          what snprintf returns: the length written, or the length that would have
-     *                  been needed when it did not fit
+     * @param[in,out] out       the buffer
+     * @param[in]     capacity  its size in bytes
+     * @return what snprintf returns: the length written, or the length that would have been needed when it did not fit
      */
     int   writeCalibration(char* out, int capacity) const;
     /**
      * @brief Reads the six numbers writeCalibration() wrote and sets the calibration from them.
-     * @param text  "hLow hHigh rNear rFar dNear dFar"
-     * @return      false for a null pointer, fewer than six numbers, or a range whose high end is
-     *              not above its low end; nothing is changed then
+     * @param[in] text  "hLow hHigh rNear rFar dNear dFar"
+     * @return false for a null pointer, fewer than six numbers, or a range whose high end is not above its low end;
+     *         nothing is changed then
      */
     bool  parseCalibration(const char* text);
     /**
@@ -206,14 +206,14 @@ public:
      * @brief While suspended (a menu is open), clutched mappings hold their values.
      *
      * Unclutched mappings (the macros, the head) keep moving. Any thread.
-     * @param s  true to suspend
+     * @param[in] s  true to suspend
      */
     void setSuspended(bool s) { m_suspended.store(s, std::memory_order_relaxed); }
     /** @brief Whether the clutched mappings are held. @return the flag setSuspended() set */
     bool suspended() const { return m_suspended.load(std::memory_order_relaxed); }
     /**
      * @brief Rest zone: share of the calibrated height below which both hands count as resting (0 = off).
-     * @param share  0 .. 1 of the height range; 0 switches the rest zone off
+     * @param[in] share  0 .. 1 of the height range; 0 switches the rest zone off
      */
     void  setRestZone(float share) { m_restZone = share; }
     /** @brief The rest-zone share. @return what setRestZone() set; 0.08 by default */
@@ -228,16 +228,16 @@ public:
     int  numMappings() const { return m_numMappings.load(std::memory_order_acquire); }
     /**
      * @brief One row.
-     * @param i  0 .. numMappings() - 1
-     * @return   the row
+     * @param[in] i  0 .. numMappings() - 1
+     * @return the row
      */
     const GestureMapping& mapping(int i) const { return m_maps[i]; }
     /** @brief Zero FIRST, so the audio thread stops reading before the table underneath it is rewritten. */
     void clearMappings() { m_numMappings.store(0, std::memory_order_release); }
     /**
      * @brief Appends a row with a fresh running state and publishes the new count once it is written.
-     * @param m  the row
-     * @return   false when the table is full
+     * @param[in] m  the row
+     * @return false when the table is full
      */
     bool addMapping(const GestureMapping& m);
     /**
@@ -259,18 +259,17 @@ public:
      * The first four fields are required, the rest take the defaults of GestureMapping; a line
      * may end in a comment introduced by the hash sign, and empty lines are skipped. The whole
      * text is parsed before the table is touched, so a bad line leaves the mappings as they were.
-     *
-     * @param text  the lines
-     * @return      false for a null pointer, an unknown input or parameter key, a line with fewer
-     *              than four fields, or more rows than MaxMappings
+     * @param[in] text  the lines
+     * @return false for a null pointer, an unknown input or parameter key, a line with fewer than four fields, or more
+     *         rows than MaxMappings
      */
     bool parseMappings(const char* text);
     /**
      * @brief The rows as text parseMappings() reads: one line each, "none" for no clutch, 1 or 0 for
      *        invert, the parameter by its key.
-     * @param out       the buffer
-     * @param capacity  its size in bytes; writing stops once it is full
-     * @return          characters written (the sum of what snprintf returned)
+     * @param[in,out] out       the buffer
+     * @param[in]     capacity  its size in bytes; writing stops once it is full
+     * @return characters written (the sum of what snprintf returned)
      */
     int  writeMappings(char* out, int capacity) const;
     /** @} */
@@ -287,11 +286,11 @@ public:
      * value towards that target with the row's one-pole, and calls the sink when the value moved
      * (or has never been sent). A row's first sight of its input primes the value at the input's
      * position, so the glide starts from where the hand is rather than from zero.
-     *
+     * @param[in] dt    seconds in this block
+     * @param[in] sink  receives (parameter, new value) for every row that moved
+     * @return how many rows called the sink
+     * @pre called on the audio thread
      * @tparam Sink  anything callable as sink(ParamId, float)
-     * @param dt     seconds in this block
-     * @param sink   receives (parameter, new value) for every row that moved
-     * @return       how many rows called the sink
      */
     template <class SinkT>
     int update(double dt, SinkT&& sink)

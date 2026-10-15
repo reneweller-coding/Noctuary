@@ -10,6 +10,7 @@
  * three formant band passes, the circuit models linearised -- for the display, without touching a
  * voice. The formant table the Formant model morphs through lives here as well, since both set()
  * and magnitude() read it: the one to tune three band passes, the other to draw them.
+ * @author Rene Weller
  */
 #include "ambient/Filter.h"
 #include <complex>
@@ -33,9 +34,8 @@ const float Formants[5][3] = { { 325.0f, 700.0f, 2530.0f }, { 450.0f, 800.0f, 28
  * two neighbouring vowels each formant is interpolated in log frequency as well, so the sweep
  * moves evenly in pitch. Called by set() when the Formant model is chosen and by magnitude() for
  * the display.
- *
- * @param cutoffHz  the filter's Cutoff in Hz; clamped to 40 Hz .. 18 kHz for the sweep
- * @param out       receives the three formant frequencies in Hz, lowest first
+ * @param[in]  cutoffHz  the filter's Cutoff in Hz; clamped to 40 Hz .. 18 kHz for the sweep
+ * @param[out] out       receives the three formant frequencies in Hz, lowest first
  */
 void formantsAt(float cutoffHz, float* out)
 {
@@ -54,9 +54,8 @@ void formantsAt(float cutoffHz, float* out)
  * and turned presets down by up to sixteen decibels for it (26.09.2026, "Envelope Hollow" among
  * them, found moving the Ladder's presets to the Moog). Held at a loop gain of 0.8 there: at the
  * highest Resonance the corner stops near 14 kHz, 9 kHz on the knob.
- *
- * @param k  the ladder's feedback
- * @return   the ceiling for g1, 1 where k cannot reach the loop gain at all
+ * @param[in] k  the ladder's feedback
+ * @return the ceiling for g1, 1 where k cannot reach the loop gain at all
  */
 float ladderCeiling(float k)
 {

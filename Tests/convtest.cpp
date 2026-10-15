@@ -7,6 +7,12 @@
  * with. Tests/CMakeLists.txt builds this file three ways on x86 -- with NoctuaryCore (AVX2), through
  * the NEON path on the x86 shim, and scalar -- and the Android build of it is the real NEON path.
  * Each variant says which path it expects, and a variant that did not get it fails.
+ * @author Rene Weller
+ *
+ * @par Compile Flags:
+ *   @arg @c AMBIENT_NEON_SHIM - the NEON build on x86
+ *   @arg @c AMBIENT_NEON_SHIM_NOFMA - the NEON build on x86 without fused multiply-add
+ *   @arg @c AMBIENT_EXPECT_PATH - the vector path the build expects; the test fails when Simd.h chose another
  */
 #include "ambient/Convolution.h"
 #include "ambient/Dsp.h"
@@ -22,8 +28,8 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
  * @brief Records one check: prints a FAIL line with the file and line and counts it when @p cond is false.
  *
  * ConvolverChecks.h is written against this macro and is included right after it is defined.
- * @param cond  the condition that has to hold
- * @param msg   what was measured, as the FAIL line prints it
+ * @param[in] cond  the condition that has to hold
+ * @param[in] msg   what was measured, as the FAIL line prints it
  */
 #define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
 

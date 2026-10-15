@@ -39,6 +39,13 @@
  * -128 dB of the signal for a quiet or a pushed input, but only -33 to -52 dB with the cutoff swept
  * up to 21 kHz at a resonance of 0.8, where three leave -72 to -103.
  * The models are templates, as in Ephemeris, on `float` and on F4.
+ * @author Rene Weller
+ *
+ * @par Compile Flags:
+ *   @arg @c AMBIENT_SCALAR_LANES - the four lanes as plain floats even where SSE is there (the scalar reference of the
+ *                                  filter tests)
+ *   @arg @c AMBIENT_CIRCUIT_NEWTON - Newton steps per sample of the circuit filters (3 unless the build sets another
+ *                                    number)
  */
 #pragma once
 #include "Simd.h"
@@ -97,7 +104,7 @@ inline F4 mad(F4 a, F4 b, F4 c) { return { _mm_add_ps(_mm_mul_ps(a.v, b.v), c.v)
 #endif
 inline F4 splat(F4*, float x) { return { _mm_set1_ps(x) }; }   ///< one value in every lane (tagged by the pointer's type)
 inline F4 pack(float l, float r) { return { _mm_setr_ps(l, r, 0.0f, 0.0f) }; }   ///< two samples into lanes 0 and 1
-/** @brief Lanes 0 and 1 out again. @param x the lanes @param l receives lane 0 @param r receives lane 1 */
+/** @brief Lanes 0 and 1 out again. @param[in] x the lanes @param[out] l receives lane 0 @param[out] r receives lane 1 */
 inline void unpack(F4 x, float& l, float& r) { l = _mm_cvtss_f32(x.m_v); r = _mm_cvtss_f32(_mm_shuffle_ps(x.m_v, x.m_v, 1)); }
 #else
 constexpr const char* LanePath = "scalar"; ///< the path F4 was compiled with
@@ -105,32 +112,125 @@ constexpr const char* LanePath = "scalar"; ///< the path F4 was compiled with
 struct F4 {
     float m_v[4];   ///< the lanes: left, right, two unused
 };
-inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] + b.m_v[i]; return o; }   ///< lane by lane
-inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] - b.m_v[i]; return o; }   ///< lane by lane
-inline F4 operator*(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] * b.m_v[i]; return o; }   ///< lane by lane
-inline F4 operator/(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] / b.m_v[i]; return o; }   ///< lane by lane
-inline F4 operator-(F4 a) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = -a.m_v[i]; return o; }   ///< negation
-inline F4 vmin(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = std::min(a.m_v[i], b.m_v[i]); return o; }   ///< lane by lane
-inline F4 vmax(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = std::max(a.m_v[i], b.m_v[i]); return o; }   ///< lane by lane
-inline F4 mad(F4 a, F4 b, F4 c) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] * b.m_v[i] + c.m_v[i]; return o; }   ///< a b + c
-inline F4 splat(F4*, float x) { return { { x, x, x, x } }; }   ///< one value in every lane (tagged by the pointer's type)
-inline F4 pack(float l, float r) { return { { l, r, 0.0f, 0.0f } }; }   ///< two samples into lanes 0 and 1
-/** @brief Lanes 0 and 1 out again. @param x the lanes @param l receives lane 0 @param r receives lane 1 */
+/**
+ * lane by lane
+ * @param[in] a  the first lanes
+ * @param[in] b  the second lanes
+ * @return the sums
+ */
+inline F4 operator+(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] + b.m_v[i]; return o; }
+/**
+ * lane by lane
+ * @param[in] a  the first lanes
+ * @param[in] b  the second lanes
+ * @return the differences
+ */
+inline F4 operator-(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] - b.m_v[i]; return o; }
+/**
+ * lane by lane
+ * @param[in] a  the first lanes
+ * @param[in] b  the second lanes
+ * @return the products
+ */
+inline F4 operator*(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] * b.m_v[i]; return o; }
+/**
+ * lane by lane
+ * @param[in] a  the dividends
+ * @param[in] b  the divisors
+ * @return the quotients
+ */
+inline F4 operator/(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] / b.m_v[i]; return o; }
+/**
+ * negation
+ * @param[in] a  the lanes
+ * @return their negation
+ */
+inline F4 operator-(F4 a) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = -a.m_v[i]; return o; }
+/**
+ * lane by lane
+ * @param[in] a  the first lanes
+ * @param[in] b  the second lanes
+ * @return the smaller of each pair
+ */
+inline F4 vmin(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = std::min(a.m_v[i], b.m_v[i]); return o; }
+/**
+ * lane by lane
+ * @param[in] a  the first lanes
+ * @param[in] b  the second lanes
+ * @return the larger of each pair
+ */
+inline F4 vmax(F4 a, F4 b) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = std::max(a.m_v[i], b.m_v[i]); return o; }
+/**
+ * a b + c
+ * @param[in] a  the first factors
+ * @param[in] b  the second factors
+ * @param[in] c  the addends
+ * @return a b + c per lane
+ */
+inline F4 mad(F4 a, F4 b, F4 c) { F4 o; for (int i = 0; i < 4; ++i) o.m_v[i] = a.m_v[i] * b.m_v[i] + c.m_v[i]; return o; }
+/**
+ * one value in every lane (tagged by the pointer's type)
+ * @param[in] x  the value
+ * @return the value in every lane
+ */
+inline F4 splat(F4*, float x) { return { { x, x, x, x } }; }
+/**
+ * two samples into lanes 0 and 1
+ * @param[in] l  the left sample
+ * @param[in] r  the right sample
+ * @return the lanes
+ */
+inline F4 pack(float l, float r) { return { { l, r, 0.0f, 0.0f } }; }
+/**
+ * @brief Lanes 0 and 1 out again.
+ * @param[in]  x  the lanes
+ * @param[out] l  receives lane 0
+ * @param[out] r  receives lane 1
+ */
 inline void unpack(F4 x, float& l, float& r) { l = x.m_v[0]; r = x.m_v[1]; }
 #endif
 
 // The same few operations on a plain float, so every model also compiles for one lane.
-inline float vmin(float a, float b) { return std::min(a, b); }         ///< min
-inline float vmax(float a, float b) { return std::max(a, b); }         ///< max
-inline float mad(float a, float b, float c) { return a * b + c; }      ///< a b + c
-inline float splat(float*, float x) { return x; }                      ///< the value itself
-/** @brief A constant in every lane of V. @tparam V float or F4 @param x the constant @return it, broadcast */
+/**
+ * min
+ * @param[in] a  the first value
+ * @param[in] b  the second value
+ * @return the smaller
+ */
+inline float vmin(float a, float b) { return std::min(a, b); }
+/**
+ * max
+ * @param[in] a  the first value
+ * @param[in] b  the second value
+ * @return the larger
+ */
+inline float vmax(float a, float b) { return std::max(a, b); }
+/**
+ * a b + c
+ * @param[in] a  the first factor
+ * @param[in] b  the second factor
+ * @param[in] c  the addend
+ * @return a b + c
+ */
+inline float mad(float a, float b, float c) { return a * b + c; }
+/**
+ * @brief The value itself: one lane (tagged by the pointer's type).
+ * @param[in] x  the value
+ * @return the value
+ */
+inline float splat(float*, float x) { return x; }
+/**
+ * @brief A constant in every lane of V.
+ * @param[in] x  the constant
+ * @return it, broadcast
+ * @tparam V float or F4
+ */
 template <class VT> inline VT lanes(float x) { return splat(static_cast<VT*>(nullptr), x); }
 
 /**
  * @brief tanh by Lambert's continued fraction (7th order), exact to 1e-7 inside +-4.97 and held there.
- * @param x  the argument
- * @return   tanh(x)
+ * @param[in] x  the argument
+ * @return tanh(x)
  */
 template <class VT>
 inline VT ftanh(VT x)
@@ -145,12 +245,12 @@ inline VT ftanh(VT x)
 /**
  * @brief The Moog transistor ladder (Huovilainen 2004; solved implicitly as D'Angelo and Välimäki 2014):
  *        v0' = w (tanh(x - k v3) - tanh v0), vi' = w (tanh v(i-1) - tanh vi).
- * @param v  the four stage voltages (in: the last sample's, the Newton start; out: this sample's)
- * @param s  the four trapezoidal states
- * @param x  the input
- * @param g  tan(pi fc / fs)
- * @param k  the resonance feedback (4: self-oscillation)
- * @return   the fourth stage
+ * @param[in,out] v  the four stage voltages (in: the last sample's, the Newton start; out: this sample's)
+ * @param[in,out] s  the four trapezoidal states
+ * @param[in]     x  the input
+ * @param[in]     g  tan(pi fc / fs)
+ * @param[in]     k  the resonance feedback (4: self-oscillation)
+ * @return the fourth stage
  */
 template <class VT>
 inline VT ladderMoog(VT* v, VT* s, VT x, VT g, VT k)
@@ -180,14 +280,14 @@ inline VT ladderMoog(VT* v, VT* s, VT x, VT g, VT k)
 /**
  * @brief An OTA cascade (the Prophet's SSM2040 / CEM3320, the Juno's IR3109): four buffered OTA stages,
  *        vi' = w tanh(d (ai - vi)) / d with a0 = x - k tanh(r v3) / r and ai = v(i-1).
- * @param v  the four stage voltages (the Newton start in, this sample's out)
- * @param s  the four trapezoidal states
- * @param x  the input
- * @param g  tan(pi fc / fs)
- * @param k  the resonance feedback (4: self-oscillation)
- * @param d  the stages' drive, their saturation
- * @param r  the resonance VCA's saturation
- * @return   the fourth stage
+ * @param[in,out] v  the four stage voltages (the Newton start in, this sample's out)
+ * @param[in,out] s  the four trapezoidal states
+ * @param[in]     x  the input
+ * @param[in]     g  tan(pi fc / fs)
+ * @param[in]     k  the resonance feedback (4: self-oscillation)
+ * @param[in]     d  the stages' drive, their saturation
+ * @param[in]     r  the resonance VCA's saturation
+ * @return the fourth stage
  */
 template <class VT>
 inline VT otaCascade(VT* v, VT* s, VT x, VT g, VT k, float d, float r)
@@ -223,13 +323,13 @@ inline VT otaCascade(VT* v, VT* s, VT x, VT g, VT k, float d, float r)
  * N(e) = L tanh(e / L), L = 1.5. The damping grows with the band pass's swing, as the circuit's
  * resonance path saturates (h takes - (v0 - 1.5 tanh(v0 / 1.5)) more): nothing changes in the small-
  * signal range, and a loud input at full resonance stays within a few times itself.
- * @param v      band pass and low pass (the Newton start in, this sample's out)
- * @param s      their trapezoidal states
- * @param x      the input
- * @param g      tan(pi fc / fs)
- * @param R      the damping, Q = 1 / 2R
- * @param morph  0 low pass, 0.5 notch (low pass plus high pass), 1 high pass; the same in every lane
- * @return       the morphed output
+ * @param[in,out] v      band pass and low pass (the Newton start in, this sample's out)
+ * @param[in,out] s      their trapezoidal states
+ * @param[in]     x      the input
+ * @param[in]     g      tan(pi fc / fs)
+ * @param[in]     R      the damping, Q = 1 / 2R
+ * @param[in]     morph  0 low pass, 0.5 notch (low pass plus high pass), 1 high pass; the same in every lane
+ * @return the morphed output
  */
 template <class VT>
 inline VT svfSem(VT* v, VT* s, VT x, VT g, VT R, float morph)
@@ -263,12 +363,12 @@ inline VT svfSem(VT* v, VT* s, VT x, VT g, VT R, float morph)
  *        v0' = w (T(u - v0) - T(v0 - v1)), v1' = w (T(v0 - v1) - T(v1 - v2)),
  *        v2' = w (T(v1 - v2) - T(v2 - v3)), v3' = 2 w T(v2 - v3).
  *        Linear, it oscillates at k = 17 and sqrt 2 times w: the caller passes g / sqrt 2.
- * @param v  the four node voltages (the Newton start in, this sample's out)
- * @param s  the four trapezoidal states
- * @param x  the input
- * @param g  tan(pi fc / fs) / sqrt 2
- * @param k  the feedback (17: self-oscillation)
- * @return   the last node
+ * @param[in,out] v  the four node voltages (the Newton start in, this sample's out)
+ * @param[in,out] s  the four trapezoidal states
+ * @param[in]     x  the input
+ * @param[in]     g  tan(pi fc / fs) / sqrt 2
+ * @param[in]     k  the feedback (17: self-oscillation)
+ * @return the last node
  */
 template <class VT>
 inline VT diodeLadder(VT* v, VT* s, VT x, VT g, VT k)

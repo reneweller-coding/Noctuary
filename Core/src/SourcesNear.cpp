@@ -31,6 +31,7 @@
  * dispatches to on the audio thread, one control block at a time, adding into its output. All of
  * them keep their state in the SourceSlot (Sources.h) and start it afresh at every fresh note and
  * at every change of type, which is what the `Ready_` flags (m_fluteReady, m_rubReady, m_murReady, m_sigReady) are for.
+ * @author Rene Weller
  */
 #include "ambient/Sources.h"
 #include "ambient/Voice.h"     // ControlBlock
@@ -44,8 +45,8 @@ namespace {
 
 /**
  * @brief A one-pole delay's share of a loop, in samples at the fundamental: (1 - g) / g.
- * @param g  the one-pole's coefficient, 0 .. 1 (floored at 0.001 so a closed filter does not divide by zero)
- * @return   the samples to take off the loop's delay line so the loop stays one period long
+ * @param[in] g  the one-pole's coefficient, 0 .. 1 (floored at 0.001 so a closed filter does not divide by zero)
+ * @return the samples to take off the loop's delay line so the loop stays one period long
  */
 inline double onePoleDelay(float g) { return (1.0 - static_cast<double>(g)) / std::max(static_cast<double>(g), 1.0e-3); }
 
@@ -53,9 +54,9 @@ inline double onePoleDelay(float g) { return (1.0 - static_cast<double>(g)) / st
  * @brief The bow's friction, as one function (Sources.cpp keeps its own copy inside the string loop):
  *        the Stribeck curve of the waveguide literature, sticking while the relative velocity is small,
  *        slipping once it is not.
- * @param dv     the relative velocity between the stick (or bow) and the body under it
- * @param slope  how steep the curve falls with |dv|: 5 at no Force, 1 at full, so a heavier hand sticks wider
- * @return       the friction force, dv times the curve, clamped to -1 .. 1
+ * @param[in] dv     the relative velocity between the stick (or bow) and the body under it
+ * @param[in] slope  how steep the curve falls with |dv|: 5 at no Force, 1 at full, so a heavier hand sticks wider
+ * @return the friction force, dv times the curve, clamped to -1 .. 1
  */
 inline float friction(float dv, float slope)
 {
@@ -679,11 +680,11 @@ struct Reso2 { float m_a1, m_a2, m_drive; };
 
 /**
  * @brief Designs a Reso2: the pole radius from the bandwidth, the angle from the frequency.
- * @param hz    the resonance, clamped to 20 Hz .. 0.45 of the sample rate
- * @param q     the quality factor, bandwidth = hz / q (floored at 0.05)
- * @param sr    the sample rate in Hz
- * @param gain  the gain at resonance, applied through the input scale
- * @return      the three coefficients
+ * @param[in] hz    the resonance, clamped to 20 Hz .. 0.45 of the sample rate
+ * @param[in] q     the quality factor, bandwidth = hz / q (floored at 0.05)
+ * @param[in] sr    the sample rate in Hz
+ * @param[in] gain  the gain at resonance, applied through the input scale
+ * @return the three coefficients
  */
 inline Reso2 reso2(double hz, double q, double sr, float gain)
 {
@@ -697,11 +698,11 @@ inline Reso2 reso2(double hz, double q, double sr, float gain)
 }
 /**
  * @brief One sample through a Reso2.
- * @param c   the coefficients
- * @param in  the input sample
- * @param y1  the previous output, updated to this one
- * @param y2  the output before that, updated to the previous one
- * @return    the resonator's output sample
+ * @param[in]     c   the coefficients
+ * @param[in]     in  the input sample
+ * @param[in,out] y1  the previous output, updated to this one
+ * @param[in,out] y2  the output before that, updated to the previous one
+ * @return the resonator's output sample
  */
 inline float resoStep(const Reso2& c, float in, float& y1, float& y2)
 {
@@ -711,8 +712,8 @@ inline float resoStep(const Reso2& c, float in, float& y1, float& y2)
 }
 /**
  * @brief Every note is two seconds at most of state; a resonator that has run away is put back.
- * @param v  a resonator's state
- * @return   whether it is still within +-50, the bound past which the caller resets it
+ * @param[in] v  a resonator's state
+ * @return whether it is still within +-50, the bound past which the caller resets it
  */
 inline bool sane(float v) { return v > -50.0f && v < 50.0f; }
 

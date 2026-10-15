@@ -15,6 +15,7 @@
  * notes the resonators sit on; they are called every block but rebuild only when the harmony has
  * actually moved. The constants below are the loop's gain structure, with the measurements that
  * set them.
+ * @author Rene Weller
  */
 #include "ambient/Cloud.h"
 #include "ambient/Adaa.h"

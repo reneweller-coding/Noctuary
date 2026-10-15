@@ -25,6 +25,7 @@
  * given. Both run on the audio thread; prepare() runs on the message thread once per sample rate
  * and seeds every random stream -- and the order of those seeds is load-bearing, because every
  * preset's random phases and drifts depend on it (the oracle test hears a changed draw).
+ * @author Rene Weller
  */
 #include "ambient/Voice.h"
 #include "ambient/Simd.h"
@@ -45,18 +46,18 @@ namespace {
  * (and Zahorik's -6 dB per doubling, taken over a log-distance plane) wants 20 to 36 dB between
  * the near and the far layer. Exponential in d, so every step of the plane costs the same number
  * of decibels: at Range 20 a note at Depth 0.7 is 14 dB under one at the ear.
- * @param d        the perceived distance, 0 at the ear .. 1 on the horizon
- * @param rangeDb  the dB lost over the whole plane (Depth Range)
- * @return         the linear gain, 1 at the ear
+ * @param[in] d        the perceived distance, 0 at the ear .. 1 on the horizon
+ * @param[in] rangeDb  the dB lost over the whole plane (Depth Range)
+ * @return the linear gain, 1 at the ear
  */
 inline float depthLevel(float d, float rangeDb) { return std::pow(10.0f, -clampv(rangeDb, 0.0f, 60.0f) * d / 20.0f); }
 
 /**
  * @brief The far send's gap at a distance, in samples: Gap ms at the ear, none on the horizon.
- * @param d      the perceived distance, 0 .. 1
- * @param gapMs  Depth Gap, the pre-delay a source at the ear gets before the far reverb
- * @param sr     the sample rate in Hz
- * @return       the delay in samples, at most what the ring holds (prepare() sized it for 80 ms)
+ * @param[in] d      the perceived distance, 0 .. 1
+ * @param[in] gapMs  Depth Gap, the pre-delay a source at the ear gets before the far reverb
+ * @param[in] sr     the sample rate in Hz
+ * @return the delay in samples, at most what the ring holds (prepare() sized it for 80 ms)
  */
 inline float depthGapSamples(float d, float gapMs, double sr)
 {
@@ -67,9 +68,9 @@ constexpr float FarDlyGlide = 0.0005f;   ///< per-sample glide of the far send's
 
 /**
  * @brief A phasor (cosine, sine) at a phase given in cycles: the voice's name for Simd.h's phasorFrom().
- * @param phase01  the phase in cycles, 0 .. 1 (a rotation per sample is given the same way)
- * @param c        receives the cosine
- * @param s        receives the sine
+ * @param[in]  phase01  the phase in cycles, 0 .. 1 (a rotation per sample is given the same way)
+ * @param[out] c        receives the cosine
+ * @param[out] s        receives the sine
  */
 inline void phasorFromPhase(double phase01, float& c, float& s) { phasorFrom(phase01, c, s); }
 
@@ -171,10 +172,9 @@ void Voice::prepare(double sampleRate, uint64_t seed)
  * linear in the model's distance spends most of its perceptual travel in its near half. Depth
  * Law bends it back: d^(1 + 0.85 law), which at 1 is d^1.85, the inverse of that exponent. The
  * ends stay where they are -- 0 is still the ear and 1 is still the horizon.
- *
- * @param d    the model's distance, 0 (the ear) .. 1 (the horizon)
- * @param law  the Depth Law amount, 0 .. 1; at 0 the distance is returned as it is
- * @return     the distance the placement works from, 0 .. 1
+ * @param[in] d    the model's distance, 0 (the ear) .. 1 (the horizon)
+ * @param[in] law  the Depth Law amount, 0 .. 1; at 0 the distance is returned as it is
+ * @return the distance the placement works from, 0 .. 1
  */
 static inline float perceivedDistance(float d, float law)
 {
