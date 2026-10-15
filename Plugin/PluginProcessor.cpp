@@ -1271,6 +1271,15 @@ bool NoctuaryProcessor::startJourney(const ambient::Journey& j)
 
 void NoctuaryProcessor::stopJourney() { journeyPlayer_.stop(); }
 
+void NoctuaryProcessor::skipJourneyTo(int step)
+{
+    if (!journeyPlayer_.running()) return;
+    const ambient::Journey j = journeyPlayer_.journey();
+    journeyPlayer_.start(j, static_cast<uint64_t>(juce::Time::currentTimeMillis()) | 1ull, step);
+    journeyLastTick_ = 0.0;
+    journeyTick();   // that step begins now
+}
+
 juce::String NoctuaryProcessor::journeyStatus() const
 {
     if (!journeyPlayer_.running()) return {};

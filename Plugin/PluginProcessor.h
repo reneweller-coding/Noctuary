@@ -436,6 +436,12 @@ public:
     juce::String journeyStatus() const;
     /** @return the journey being edited or played */
     const ambient::Journey& journey() const { return journey_; }
+    /** @brief The journey being written anew (15.10.2026: the timeline's edits, "Edit a copy"). @param j the journey */
+    void setJourney(const ambient::Journey& j) { journey_ = j; }
+    /** @return the player: the journey under way, its step, the time left in it (the timeline draws it) */
+    const ambient::JourneyPlayer& journeyPlayer() const { return journeyPlayer_; }
+    /** @brief Goes to step @p step of the journey under way (the timeline's click); nothing when none runs. @param step the step */
+    void skipJourneyTo(int step);
     /**
      * @brief the sound preset playing, appended
      * @param dwellLo  shortest hold in seconds

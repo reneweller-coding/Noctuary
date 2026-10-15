@@ -166,6 +166,8 @@ sonifications from NASA, 724 cylinder and early-radio transfers from the Library
 | `docs/concept.md` | Sound-design and architecture notes. | |
 | `docs/Doxyfile` | Doxygen configuration for the C++ sources (below). | Doxygen |
 
+**Around the panel** (15.10.2026): Ctrl+K searches any knob, preset, page or action; the night mode, A|B held for the preset as loaded (and a star while the knobs have moved), the journeys over time, each route's depth in a knob's menu; the first steps on the first start; the standalone's window comes back where it was left, and its audio settings offer ASIO (Windows).
+
 ## With a DAW and other apps
 
 In a DAW Noctuary sends what its conductors play as MIDI (channel 1 the Cluster Brain, 2 the second brain, 3 the

@@ -12,6 +12,7 @@
  */
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "Frame.h"
 
 /** @brief The palette and the two typefaces of the editor; EditorCommon.h gives them shorter names. */
 namespace ui {
@@ -58,6 +59,13 @@ juce::Font title(float height);
  * @return the default face at that height
  */
 juce::Font body(float height);
+
+/**
+ * @brief The family frame's skin in Noctuary's colours (15.10.2026): what the shared parts -- the command palette, the
+ *        first steps -- draw with.
+ * @return the skin
+ */
+const frame::Skin& skin();
 
 } // namespace ui
 

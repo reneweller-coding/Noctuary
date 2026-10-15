@@ -21,6 +21,37 @@ juce::Font body(float height)
     return juce::Font(juce::FontOptions(height));
 }
 
+const frame::Skin& skin()
+{
+    static const frame::Skin s = [] {
+        frame::Skin k;
+        k.name = "Noctuary";
+        k.bg = bg0;
+        k.panel = card.withAlpha(0.92f);
+        k.group = group;
+        k.raised = card.brighter(0.15f);
+        k.edge = cardEdge;
+        k.ink = text;
+        k.dim = dim;
+        k.faint = faint;
+        k.accent = accent;
+        k.onset = live;
+        k.good = foreCol;
+        k.bad = juce::Colour(0xffe05050);
+        k.families[0] = voiceCol;    // Source
+        k.families[1] = accent;      // Filter
+        k.families[2] = morphCol;    // Envelope
+        k.families[3] = live;        // Motion
+        k.families[4] = backCol;     // Space
+        k.decks[0] = voiceCol;
+        k.decks[1] = foreCol;
+        k.decks[2] = backCol;
+        k.radius = 5.0f;
+        return k;
+    }();
+    return s;
+}
+
 } // namespace ui
 
 namespace {

@@ -71,6 +71,41 @@ void fillPresetBox(juce::ComboBox& box)
 namespace {
 }
 
+
+namespace {
+
+/** @brief A source as a person reads it: "lfo1" -> "LFO 1", "macro_a" -> "Macro A", "lorenz_x" -> "Lorenz X". */
+juce::String prettySource(ambient::ModSource s)
+{
+    juce::String t(ambient::modSourceName(s));
+    t = t.replace("_", " ");
+    juce::String out;
+    for (int i = 0; i < t.length(); ++i) {
+        const juce::juce_wchar c = t[i];
+        if (i > 0 && juce::CharacterFunctions::isDigit(c) && !juce::CharacterFunctions::isDigit(t[i - 1]) && t[i - 1] != ' ') out << ' ';
+        out << juce::String::charToString(c);
+    }
+    juce::StringArray words = juce::StringArray::fromTokens(out, " ", "");
+    for (auto& w : words) w = w == "lfo" ? juce::String("LFO") : w.substring(0, 1).toUpperCase() + w.substring(1);
+    return words.joinIntoString(" ");
+}
+
+/** @brief A source's section in the "Modulate with" menu. */
+juce::String sourceSection(const juce::String& name)
+{
+    const juce::String l = name.toLowerCase();
+    if (l.startsWith("lfo")) return "LFOs";
+    if (l.startsWith("env") || l == "amp") return "Envelopes";
+    if (l.startsWith("macro")) return "Macros";
+    if (l.startsWith("kura") || l.startsWith("lenia") || l.startsWith("lorenz") || l.startsWith("rossler") || l.startsWith("cascade")) return "Fields and chaos";
+    if (l.startsWith("note") || l.startsWith("velocity") || l.startsWith("distance") || l.startsWith("random") || l.startsWith("pressure")
+        || l.startsWith("wheel") || l.startsWith("slide"))
+        return "The note and the hands";
+    return "The piece and what it hears";
+}
+
+} // namespace
+
 NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
     : AudioProcessorEditor(p), proc_(p)
 {
@@ -511,6 +546,69 @@ NoctuaryEditor::NoctuaryEditor(NoctuaryProcessor& p)
         for (int r = 0; rt.isNotEmpty() && r < numRoutePresets(); ++r) if (rt == routePreset(r).name) proc_.setRouteText(routePreset(r).points);
         rebuildLayout();
     }
+    // The family's ways around the panel (15.10.2026, Frame.h): the search, the night, the preset held, the journeys
+    // over time, the star beside the Sound box; the palette, the first steps and the timeline over everything.
+    searchIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Search, "Search (Ctrl+K): any knob, preset, page or action by a few letters");
+    searchIcon_->onClick = [this] { openPalette(); };
+    nightIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Night, "Night: the window dim and warm for a dark room");
+    nightIcon_->onClick = [this] { setNight(!night_); };
+    holdIcon_ = std::make_unique<frame::IconButton>(frame::IconButton::Icon::Compare, "Hold to hear the preset as it was loaded; let go for your sound");
+    holdIcon_->onStateChange = [this] { if (holdIcon_->isDown() != holding_) holdPreset(holdIcon_->isDown()); };
+    journeyButton_ = std::make_unique<juce::TextButton>("Journey");
+    journeyButton_->setTooltip("The journeys over time: the one chosen or under way, step by step (a click goes there), and the one being written, to change by hand");
+    journeyButton_->onClick = [this] { if (journeyPanel_ != nullptr) journeyPanel_->open(); };
+    star_ = std::make_unique<juce::Label>();
+    star_->setColour(juce::Label::textColourId, ui::accent);
+    star_->setFont(juce::FontOptions(16.0f, juce::Font::bold));
+    star_->setJustificationType(juce::Justification::centred);
+    star_->setTooltip("The knobs have moved from the preset (Back: choose it again; the disk saves the sound)");
+    for (juce::Component* c : { static_cast<juce::Component*>(searchIcon_.get()), static_cast<juce::Component*>(nightIcon_.get()),
+                                static_cast<juce::Component*>(holdIcon_.get()), static_cast<juce::Component*>(journeyButton_.get()),
+                                static_cast<juce::Component*>(star_.get()) })
+        addAndMakeVisible(c);
+    veil_.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(veil_);
+    palette_ = std::make_unique<frame::CommandPalette>(ui::skin());
+    tour_ = std::make_unique<frame::Tour>(ui::skin());
+    tour_->onDone = [] { frame::Settings::of("Noctuary").setValue("tourDone", "1"); };
+    journeyPanel_ = std::make_unique<JourneyPanel>(proc_, [this](ambient::Journey& j) { return chosenJourney(j); }, [this](int step) { startJourneyAt(step); });
+    for (juce::Component* c : { static_cast<juce::Component*>(palette_.get()), static_cast<juce::Component*>(tour_.get()),
+                                static_cast<juce::Component*>(journeyPanel_.get()) })
+        addChildComponent(c);
+    {   // A knob's menu: its routes, each with its depth to drag and a button to remove it, and every source to add.
+        frame::ModAccess a;
+        a.rowsOn = [this](int id) {
+            std::vector<frame::ModAccess::Row> rows;
+            const ambient::ModMatrix& m = proc_.engine().modMatrix();
+            for (int k = 0; k < m.count(); ++k)
+                if (static_cast<int>(m.route(k).target) == id) {
+                    const juce::String n = prettySource(m.route(k).source);
+                    rows.push_back({ k, n, frame::detail::sourceColour(n, ui::skin()), m.route(k).depth });
+                }
+            return rows;
+        };
+        a.setDepth = [this](int row, float d) { setRouteDepth(row, d); };
+        a.remove = [this](int row) { removeRoute(row); };
+        a.sources = [](int) {
+            std::vector<frame::ModAccess::Source> out;
+            for (int k = 1; k < ambient::kNumModSources; ++k) {
+                const auto s = static_cast<ambient::ModSource>(k);
+                out.push_back({ k, prettySource(s), sourceSection(juce::String(ambient::modSourceName(s))) });
+            }
+            static const juce::StringArray order{ "LFOs", "Envelopes", "Macros", "The note and the hands", "Fields and chaos", "The piece and what it hears" };
+            std::stable_sort(out.begin(), out.end(), [](const frame::ModAccess::Source& x, const frame::ModAccess::Source& y) {
+                return order.indexOf(x.section) < order.indexOf(y.section);
+            });
+            return out;
+        };
+        a.add = [this](int id, int src) { return mod_ != nullptr && mod_->addRoute(static_cast<ambient::ModSource>(src), static_cast<ParamId>(id)); };
+        modulation_ = std::make_unique<frame::ModulationAtKnob>(std::move(a));
+    }
+    // Every knob, switch and chooser says which parameter it is: the search and the shared parts find it (Frame.h).
+    for (auto& c : cells_)
+        if (c.param >= 0 && c.comp != nullptr) c.comp->getProperties().set("frameId", c.param);
+    setNight(frame::Settings::of("Noctuary").value("night") == "1");
+    resized();
     startTimerHz(12);
 }
 
@@ -1052,6 +1150,12 @@ void NoctuaryEditor::resized()
     if (helpIcon_) helpIcon_->setBounds(1224, 8, 28, 24);
     if (settingsIcon_) settingsIcon_->setBounds(1254, 8, 28, 24);
     if (vrButton_) vrButton_->setBounds(1292, 8, 44, 24);
+    // The family's (15.10.2026): the search, the night, the preset held, the journeys; the star beside the Sound box.
+    if (searchIcon_) searchIcon_->setBounds(580, 8, 28, 24);
+    if (nightIcon_) nightIcon_->setBounds(610, 8, 28, 24);
+    if (holdIcon_) holdIcon_->setBounds(640, 8, 28, 24);
+    if (journeyButton_) journeyButton_->setBounds(674, 8, 66, 24);
+    if (star_) star_->setBounds(460, 8, 14, 24);
     if (undoButton_) undoButton_->setBounds(1156, 8, 28, 24);
     if (redoButton_) redoButton_->setBounds(1186, 8, 28, 24);
     if (helpButton_) helpButton_->setBounds(1224, 8, 28, 24);
@@ -1080,6 +1184,15 @@ void NoctuaryEditor::resized()
     // The drag overlay covers everything and catches nothing: it is only ever drawn on.
     dragOverlay_.setBounds(0, 0, W, H);
     dragOverlay_.toFront(false);
+    // The night's veil over the panel, the overlays over the veil.
+    veil_.setBounds(0, 0, W, H);
+    veil_.toFront(false);
+    for (juce::Component* c : { static_cast<juce::Component*>(palette_.get()), static_cast<juce::Component*>(tour_.get()),
+                                static_cast<juce::Component*>(journeyPanel_.get()) })
+        if (c != nullptr) {
+            c->setBounds(0, 0, W, H);
+            if (c->isVisible()) c->toFront(false);
+        }
 
     content_.setSize(std::max(bodyW_, viewport_.getMaximumVisibleWidth()),
                      std::max(bodyH_, viewport_.getMaximumVisibleHeight()));
@@ -1536,27 +1649,12 @@ void NoctuaryEditor::mouseDown(const juce::MouseEvent& e)
     juce::PopupMenu menu;
     menu.addItem(1, proc_.learnTarget() == param ? "Learning... move a controller" : "MIDI Learn", proc_.learnTarget() != param);
     if (cc >= 0) menu.addItem(2, "Clear MIDI (CC " + juce::String(cc) + ")");
-    {   // what modulates this knob, each route removable -- the other side of the cards' menu
-        const ambient::ModMatrix& m = proc_.engine().modMatrix();
-        bool any = false;
-        for (int k = 0; k < m.count(); ++k) {
-            if (static_cast<int>(m.route(k).target) != param) continue;
-            if (!any) { menu.addSeparator(); menu.addSectionHeader("Modulated by"); any = true; }
-            menu.addItem(1000 + k, juce::String(ambient::modSourceName(m.route(k).source)) + "   " + juce::String(m.route(k).depth, 2) + "   (remove)");
-        }
-        if (!any) { menu.addSeparator(); menu.addItem(3, "not modulated -- drag a card from the strip onto the knob", false, false); }
-    }
+    // What modulates this knob -- each route with its depth to drag and a button to remove it -- and every source to add
+    // (15.10.2026, the family's Frame.h; the other side of the cards' menu, and of a card dragged onto the knob).
+    if (modulation_ != nullptr) modulation_->addMenuItems(menu, param);
     menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(e.eventComponent), [this, id](int result) {
         if (result == 1) proc_.armMidiLearn(id);
         else if (result == 2) proc_.clearMidiLearn(id);
-        else if (result >= 1000) {
-            char buf[4096];
-            const int len = proc_.engine().writeModMatrix(buf, sizeof(buf));
-            juce::StringArray rows = juce::StringArray::fromTokens(juce::String(juce::CharPointer_UTF8(buf), static_cast<size_t>(juce::jmax(0, len))), ";", "");
-            rows.remove(result - 1000);
-            proc_.engine().setModMatrixText(rows.joinIntoString(";").toRawUTF8());
-            repaint();
-        }
     });
 }
 
@@ -1681,6 +1779,7 @@ void NoctuaryEditor::randomiseSection(const juce::String& name, bool subtle)
 bool NoctuaryEditor::keyPressed(const juce::KeyPress& k)
 {
     if (k == juce::KeyPress::F1Key) { setPage(help_ && help_->isVisible() ? 0 : 3); return true; }
+    if (k == juce::KeyPress('k', juce::ModifierKeys::commandModifier, 0)) { openPalette(); return true; }
     if (k == juce::KeyPress('z', juce::ModifierKeys::commandModifier, 0)) { doUndo(); return true; }
     if (k == juce::KeyPress('y', juce::ModifierKeys::commandModifier, 0)) { doRedo(); return true; }
     if (k == juce::KeyPress::escapeKey && help_ && help_->isVisible()) { setPage(0); return true; }
@@ -2508,12 +2607,45 @@ void NoctuaryEditor::showSettings()
                 if (recallButton_) recallButton_->setToggleState(proc_.sessionRecall(), juce::dontSendNotification);
             });
     };
+    {
+        auto more = m.moreItems;
+        m.moreItems = [this, more](juce::PopupMenu& menu) {
+            if (more) more(menu);
+            menu.addItem("Night: the window dim and warm", true, night_, [this] { setNight(!night_); });
+            menu.addItem("Journeys over time ...", [this] { if (journeyPanel_ != nullptr) journeyPanel_->open(); });
+            menu.addItem("Search: any knob, preset or action (Ctrl+K) ...", [this] { openPalette(); });
+            menu.addItem("First steps (the tour) ...", [this] { startTour(); });
+        };
+    }
     m.showAbout = [this] { if (aboutButton_ && aboutButton_->onClick) aboutButton_->onClick(); };
     m.show(*settingsIcon_);
 }
 
 void NoctuaryEditor::timerCallback()
 {
+    // The first steps on the first start (not in an automated run).
+    if (tourTicks_ >= 0 && ++tourTicks_ > 20) {
+        tourTicks_ = -1;
+        if (!automated() && frame::Settings::of("Noctuary").value("tourDone").isEmpty()) startTour();
+    }
+    // The star beside the Sound box: the knobs have moved from what the preset put (taken a tick after it came).
+    if (star_ != nullptr && !holding_) {
+        const int idx = proc_.soundPresetIndex();
+        if (idx != presetSeen_) {
+            presetSeen_ = idx;
+            presetSnap_ = takeSnapshot("preset");
+            star_->setText({}, juce::dontSendNotification);
+        } else if (static_cast<int>(presetSnap_.v.size()) == kNumParams) {
+            const Snapshot now = takeSnapshot({});
+            bool moved = false;
+            for (int i = 0; i < kNumParams && !moved; ++i) {
+                if (juce::String(paramTable()[static_cast<size_t>(i)].section) == "Master") continue;   // the level is the room's, not the sound's
+                const float a = now.v[static_cast<size_t>(i)], b = presetSnap_.v[static_cast<size_t>(i)];
+                moved = std::abs(a - b) > 1.0e-4f * (1.0f + std::abs(b));
+            }
+            if (star_->getText().isNotEmpty() != moved) star_->setText(moved ? "*" : "", juce::dontSendNotification);
+        }
+    }
     proc_.engine().soundingNotes(sounding_);
     {   // The frame's tools (01.10.2026): help lit while its page is up; VR while a headset sends (or when asked).
         if (helpIcon_) helpIcon_->setToggleState(help_ && help_->isVisible(), juce::dontSendNotification);
@@ -2949,6 +3081,13 @@ void NoctuaryEditor::parentHierarchyChanged()
         window->setTitleBarButtonsRequired(juce::DocumentWindow::minimiseButton
                                          | juce::DocumentWindow::maximiseButton
                                          | juce::DocumentWindow::closeButton, false);
+    // The standalone's window back where it was left (15.10.2026), once the window has put its content in --
+    // not while pictures are taken (they want the design size), as in the generators; a muted start keeps it.
+    juce::MessageManager::callAsync([safe = juce::Component::SafePointer<NoctuaryEditor>(this)] {
+        const bool pictures = juce::SystemStats::getEnvironmentVariable("AMBIENT_SHOT", "").isNotEmpty()
+                           || juce::SystemStats::getEnvironmentVariable("AMBIENT_MANUAL", "").isNotEmpty();
+        if (safe != nullptr && !pictures) safe->window_.attach(*safe, "Noctuary");
+    });
 }
 
 void NoctuaryEditor::paint(juce::Graphics& g)
@@ -3155,4 +3294,204 @@ void NoctuaryEditor::paintContent(juce::Graphics& g)
             g.setColour(kMorph); g.fillRect(bar.withWidth(bar.getWidth() * pos));
         }
     }
+}
+
+// ---------------------------------------------------------------- ways around the panel (15.10.2026)
+
+bool NoctuaryEditor::automated()
+{
+    for (const char* v : { "AMBIENT_SHOT", "AMBIENT_MANUAL", "AMBIENT_MUTE" })
+        if (juce::SystemStats::getEnvironmentVariable(v, "").isNotEmpty()) return true;
+    return false;
+}
+
+void NoctuaryEditor::openPalette()
+{
+    if (palette_ == nullptr) return;
+    palette_->open(paletteCommands());
+}
+
+bool NoctuaryEditor::revealParam(int id)
+{
+    const int cell = id >= 0 && id < kNumParams ? cellForParam(static_cast<ParamId>(id)) : -1;
+    if (cell < 0) return false;
+    setPage(0);
+    // The tab holding its section, open.
+    for (auto& t : tabRows_)
+        for (size_t p = 0; p < t.pages.size(); ++p)
+            for (const juce::String& name : t.pages[p])
+                if (Section* s = findSection(name); s != nullptr && std::find(s->cells.begin(), s->cells.end(), cell) != s->cells.end()
+                    && static_cast<int>(p) != t.active) {
+                    t.active = static_cast<int>(p);
+                    layoutBody();
+                    content_.repaint();
+                }
+    juce::Component* comp = cells_[static_cast<size_t>(cell)].comp.get();
+    if (comp == nullptr) return false;
+    // Scrolled to it, and lit once the page has laid itself out.
+    if (comp->getParentComponent() == &content_) {
+        const auto r = comp->getBounds();
+        if (!viewport_.getViewArea().contains(r)) viewport_.setViewPosition(std::max(0, r.getX() - 40), std::max(0, r.getY() - 60));
+    }
+    hoveredParam_ = id;
+    repaint();
+    juce::MessageManager::callAsync([safe = juce::Component::SafePointer<juce::Component>(comp)] {
+        if (safe != nullptr && safe->isShowing()) frame::flash(*safe, ui::accent);
+    });
+    return true;
+}
+
+std::vector<frame::CommandPalette::Command> NoctuaryEditor::paletteCommands()
+{
+    using Command = frame::CommandPalette::Command;
+    std::vector<Command> out;
+    auto action = [&out](const juce::String& title, const juce::String& detail, std::function<void()> f) {
+        out.push_back({ title, detail, "Action", false, [f](const juce::String&) { f(); } });
+    };
+    action("Main page", "the panel", [this] { setPage(0); });
+    action("Perform page", "the macros, the morph, the set recorder", [this] { setPage(1); });
+    action("Browse page", "every preset: columns, the map, routes", [this] { setPage(2); });
+    action("Help", "F1: the manual by topic", [this] { setPage(3); });
+    action("Undo", "Ctrl+Z", [this] { doUndo(); });
+    action("Redo", "Ctrl+Y", [this] { doRedo(); });
+    action("A | B", "park the sound, then swap the two", [this] { swapAB(); });
+    if (saveButton_) action("Save the sound as a preset file", "the disk", [this] { saveButton_->triggerClick(); });
+    if (loadButton_) action("Load a preset file", "the folder", [this] { loadButton_->triggerClick(); });
+    if (recButton_) action("Record the output", "a WAV", [this] { recButton_->triggerClick(); });
+    action("Night mode", "the window dim and warm", [this] { setNight(!night_); });
+    action("Journeys over time", "the timeline", [this] { if (journeyPanel_ != nullptr) journeyPanel_->open(); });
+    action("Stop the journey", "", [this] { proc_.stopJourney(); });
+    action("First steps", "the tour of the panel", [this] { startTour(); });
+    action("Settings", "the layout, the headset, the jam, Link", [this] { showSettings(); });
+    static const char* const kModes[3] = { "Layout: Normal", "Layout: Compact", "Layout: Expanded" };
+    for (int i = 0; i < 3; ++i) action(kModes[i], "settings", [this, i] { applyLayoutMode(i); });
+    // The tabs of the paging rows.
+    for (size_t ti = 0; ti < tabRows_.size(); ++ti) {
+        const TabRow& t = tabRows_[ti];
+        const juce::String group = t.group >= 0 && t.group < static_cast<int>(groups_.size()) ? groups_[static_cast<size_t>(t.group)].name : juce::String();
+        for (size_t p = 0; p < t.names.size(); ++p)
+            out.push_back({ group + ": " + juce::String(t.names[p]), "tab", "Page", false, [this, ti, p](const juce::String&) {
+                               setPage(0);
+                               if (ti < tabRows_.size()) {
+                                   tabRows_[ti].active = static_cast<int>(p);
+                                   layoutBody();
+                                   content_.repaint();
+                               }
+                           } });
+    }
+    // Every knob: its tab opens and it lights up; a number after its name sets it.
+    for (const Cell& c : cells_) {
+        if (c.param < 0) continue;
+        const ambient::ParamDesc& d = paramDesc(static_cast<ParamId>(c.param));
+        const bool number = d.kind == ambient::ParamKind::Float || d.kind == ambient::ParamKind::Int;
+        const int id = c.param;
+        out.push_back({ d.name, d.section, "Control", number, [this, id](const juce::String& n) {
+                           if (n.isNotEmpty())
+                               if (auto* p = proc_.apvts.getParameter(paramDesc(static_cast<ParamId>(id)).key)) {
+                                   pushUndo(paramDesc(static_cast<ParamId>(id)).name);
+                                   p->setValueNotifyingHost(p->convertTo0to1(n.getFloatValue()));
+                               }
+                           revealParam(id);
+                       } });
+    }
+    // Every preset of the bank (the packs' too): the Sound box takes it, as a choice there does.
+    for (int i = 0; i < numPresets(); ++i)
+        out.push_back({ preset(i).name, "sound preset", "Preset", false, [this, i](const juce::String&) {
+                           if (soundBox_ != nullptr) soundBox_->setSelectedId(i + 1, juce::sendNotificationSync);
+                       } });
+    return out;
+}
+
+void NoctuaryEditor::startTour()
+{
+    if (tour_ == nullptr) return;
+    setPage(0);
+    std::vector<frame::Tour::Step> steps;
+    if (soundBox_) steps.push_back({ soundBox_.get(), "The sound", "The sound presets, a submenu per family; the disk beside saves the sound as a file, the folder loads one. "
+                                                               "A star beside it says the knobs have moved from the preset." });
+    if (browseButton_) steps.push_back({ browseButton_.get(), "Browse", "Every preset by family, character and motion -- or on the measured map, with routes that walk it." });
+    if (performButton_) steps.push_back({ performButton_.get(), "Perform", "The eight macros as large knobs, the morph between two sounds, the set recorder." });
+    if (mod_) steps.push_back({ mod_.get(), "Modulation", "Every source as a card: drag one onto a knob and it moves it; a right-click on a knob lists what moves it, "
+                                                         "with each depth to drag." });
+    steps.push_back({ searchIcon_.get(), "Search", "Ctrl+K: any knob, preset, page or action by a few letters -- its tab opens and it lights up. A number after a "
+                                                   "knob's name sets it." });
+    steps.push_back({ holdIcon_.get(), "The preset held", "Hold it to hear the preset as it was loaded; let go for your sound." });
+    steps.push_back({ journeyButton_.get(), "Journeys", "Presets in a row for a whole night: the one under way over time, a click on a step goes there; "
+                                                        "the one being written, to change by hand." });
+    steps.push_back({ nightIcon_.get(), "Night", "The window dim and warm, for a dark room." });
+    if (settingsIcon_) steps.push_back({ settingsIcon_.get(), "Settings", "The layout, the headset, the family jam, Ableton Link -- and these first steps again." });
+    for (auto& s : steps) if (s.target == nullptr) s.title = {};
+    steps.erase(std::remove_if(steps.begin(), steps.end(), [](const frame::Tour::Step& s) { return s.title.isEmpty(); }), steps.end());
+    tour_->start(std::move(steps));
+}
+
+void NoctuaryEditor::setNight(bool on)
+{
+    night_ = on;
+    frame::Settings::of("Noctuary").setValue("night", on ? "1" : "0");
+    veil_.alpha = on ? 0.45f : 0.0f;
+    veil_.setVisible(on);
+    veil_.repaint();
+    if (nightIcon_) nightIcon_->setToggleState(on, juce::dontSendNotification);
+}
+
+void NoctuaryEditor::holdPreset(bool on)
+{
+    if (on == holding_) return;
+    const int idx = proc_.soundPresetIndex();
+    if (on) {
+        if (idx < 0 || idx >= numPresets()) return;
+        held_ = takeSnapshot("held");
+        holding_ = true;
+        proc_.applySoundPreset(idx);   // the preset as it was loaded, heard while held
+    } else {
+        holding_ = false;
+        restore(held_);
+    }
+}
+
+bool NoctuaryEditor::chosenJourney(ambient::Journey& out) const
+{
+    if (journeyBox_ == nullptr) return false;
+    const int id = journeyBox_->getSelectedId();
+    if (id <= 0 || id > journeyFiles_.size()) return false;
+    const juce::File f = journeyFiles_[id - 1];
+    if (!f.existsAsFile()) return false;
+    out = ambient::Journey();
+    out.parse(f.loadFileAsString().toRawUTF8());
+    if (out.name.empty()) out.name = f.getFileNameWithoutExtension().toStdString();
+    return !out.steps.empty();
+}
+
+void NoctuaryEditor::startJourneyAt(int step)
+{
+    if (journeyBox_ == nullptr) return;
+    const int id = journeyBox_->getSelectedId();
+    if (id <= 0 || id > journeyFiles_.size()) return;
+    if (proc_.startJourney(journeyFiles_[id - 1])) proc_.skipJourneyTo(step);
+}
+
+void NoctuaryEditor::setRouteDepth(int row, float depth)
+{
+    char buf[4096];
+    const int len = proc_.engine().writeModMatrix(buf, sizeof(buf));
+    juce::StringArray rows = juce::StringArray::fromTokens(juce::String(juce::CharPointer_UTF8(buf), static_cast<size_t>(juce::jmax(0, len))), ";", "");
+    if (row < 0 || row >= rows.size()) return;
+    juce::StringArray fields = juce::StringArray::fromTokens(rows[row], ":", "");   // <source>><target>:<depth>[:<via>][:u]
+    if (fields.size() < 2) return;
+    fields.set(1, juce::String(juce::jlimit(-1.0f, 1.0f, depth), 3));
+    rows.set(row, fields.joinIntoString(":"));
+    proc_.engine().setModMatrixText(rows.joinIntoString(";").toRawUTF8());
+    if (mod_ != nullptr) mod_->repaint();
+}
+
+void NoctuaryEditor::removeRoute(int row)
+{
+    char buf[4096];
+    const int len = proc_.engine().writeModMatrix(buf, sizeof(buf));
+    juce::StringArray rows = juce::StringArray::fromTokens(juce::String(juce::CharPointer_UTF8(buf), static_cast<size_t>(juce::jmax(0, len))), ";", "");
+    if (row < 0 || row >= rows.size()) return;
+    rows.remove(row);
+    proc_.engine().setModMatrixText(rows.joinIntoString(";").toRawUTF8());
+    repaint();
 }

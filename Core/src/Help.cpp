@@ -1018,7 +1018,13 @@ ON LINUX: every release has an archive for x86-64 (glibc 2.35 or newer: Ubuntu 2
 
     { "Shortcuts and tips",
 R"(F1 or Help          this manual; Escape closes it
-Right-click a knob  MIDI Learn / clear, and the modulation routes that drive it
+Ctrl+K, magnifier   search: any knob, preset, tab or action by a few letters (its tab opens, it lights up;
+                    a number after a knob's name sets it)
+Moon                night: the window dim and warm, for a dark room
+Split square (held) the preset as it was loaded; let go, your sound (a star beside the Sound box: the knobs moved)
+Journey             the journeys over time: the one under way (a click on a step goes there), the one being written
+Right-click a knob  MIDI Learn / clear, each route that drives it with its depth to drag and a button to remove
+                    it, and Modulate with: every source, at a quarter of the knob's range
 Right-click a card  the routes this source drives, each removable
 Drag a card         onto a knob: a new route at a quarter of the target's range
 Window corner       zooms the whole page; the arrangement never reflows

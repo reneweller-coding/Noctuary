@@ -40,6 +40,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "Frame.h"
+#include "JourneyTimeline.h"
 #include "PluginProcessor.h"
 #include "NoctuaryLookAndFeel.h"
 #include "ambient/Modulation.h"
@@ -1516,6 +1517,52 @@ private:
     std::unique_ptr<ModView> mod_;   ///< the strip
     juce::Viewport modPort_;   ///< unused holder for the strip
     std::unique_ptr<juce::TextButton> modButton_;   ///< unused: the strip is always on the main page
+
+    /** @name The family's ways around the panel (15.10.2026, Frame.h, from Empyrean)
+     *  @{ */
+    std::unique_ptr<frame::IconButton> searchIcon_;   ///< the command palette (Ctrl+K): a magnifier
+    std::unique_ptr<frame::IconButton> nightIcon_;    ///< the night mode: a crescent
+    std::unique_ptr<frame::IconButton> holdIcon_;     ///< held: the preset as it was loaded ("A|B")
+    std::unique_ptr<juce::TextButton> journeyButton_; ///< the journeys over time
+    std::unique_ptr<juce::Label> star_;               ///< "*" beside the Sound box while the knobs have moved from the preset
+    std::unique_ptr<frame::CommandPalette> palette_;  ///< over everything while open
+    std::unique_ptr<frame::Tour> tour_;               ///< the first steps
+    std::unique_ptr<JourneyPanel> journeyPanel_;      ///< the journeys over time, an overlay
+    std::unique_ptr<frame::ModulationAtKnob> modulation_;   ///< a knob's menu: its routes with their depths, "Modulate with"
+    frame::WindowKeeper window_;                      ///< the standalone's window back where it was left
+    /** @brief The night's veil: dark and warm over the panel, under the overlays; the mouse goes through it. */
+    struct Veil : juce::Component {
+        float alpha = 0.0f;   ///< how dark
+        /** @brief Dark and warm: little blue for eyes used to the dark. @param g where */
+        void paint(juce::Graphics& g) override { g.fillAll(juce::Colour(0xff0c0703).withAlpha(alpha)); }
+    };
+    Veil veil_;                                       ///< the night's veil
+    bool night_ = false;                              ///< the night mode is on
+    Snapshot held_;                                   ///< the sound while the preset is held
+    bool holding_ = false;                            ///< the preset is held
+    Snapshot presetSnap_;                             ///< the parameters as the preset left them (the star compares)
+    int presetSeen_ = -2;                             ///< the preset presetSnap_ was taken of
+    int tourTicks_ = 0;                               ///< ticks until the first start's tour (-1: considered)
+    /** @brief Whether this is an automated run (AMBIENT_SHOT, AMBIENT_MANUAL, AMBIENT_MUTE): no tour, no window state. @return true then */
+    static bool automated();
+    void openPalette();                               ///< the command palette (Ctrl+K)
+    std::vector<frame::CommandPalette::Command> paletteCommands();   ///< what it can do: actions, pages, knobs, presets
+    /** @brief Shows a parameter's control (the main page, its tab, scrolled to it) and lights it. @param id the parameter @return false without a cell */
+    bool revealParam(int id);
+    void startTour();                                 ///< the first steps, from the first
+    /** @brief The night mode on or off (kept in the instrument's settings). @param on night */
+    void setNight(bool on);
+    /** @brief The preset as it was loaded while held; the sound again when let go. @param on held */
+    void holdPreset(bool on);
+    /** @brief The journey chosen in the Morph section's box. @param out receives it @return false when none is chosen */
+    bool chosenJourney(ambient::Journey& out) const;
+    /** @brief Starts the chosen journey at step @p step (the timeline's click while none runs). @param step the step */
+    void startJourneyAt(int step);
+    /** @brief A route's depth anew, in the matrix text. @param row the route @param depth -1 .. 1 */
+    void setRouteDepth(int row, float depth);
+    /** @brief A route taken out of the matrix text. @param row the route */
+    void removeRoute(int row);
+    /** @} */
 public:
     /** @name The cells the modulation strip needs to find a drop target and to mark modulated knobs.
      *  @{ */

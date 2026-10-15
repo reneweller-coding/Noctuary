@@ -1,5 +1,15 @@
 # Noctuary release notes
 
+## Next (not yet released)
+
+**The ways around the panel** (15.10.2026, the family's Frame.h, from Empyrean): the search (Ctrl+K or the magnifier in
+the header) finds any knob -- its tab opens and it lights up; a number after its name sets it --, any preset, tab or
+action; the first steps on the first start; the night mode (the moon: the window dim and warm); the split square held
+for the preset as it was loaded, and a star beside the Sound box while the knobs have moved from it; the journeys over time (Journey in
+the header: the one under way step by step, a click goes there; the one being written, its steps' times and order
+changed by hand); a knob's right-click menu with each route's depth to drag and every source to add; the standalone's
+window back where it was left (place, size, maximised); ASIO in the standalone's audio settings (Windows).
+
 ## 2.4.0 (03.10.2026): the family plays together
 
 **The family jam** (Settings > Family jam: Off, Lead or Follow; in the plugin and in the standalone). The five
