@@ -1349,12 +1349,12 @@ ModAccess slotMatrix(StoreT& store, std::function<void(int, float)> set, std::fu
         for (int s : slots)
             if (id >= s && id <= s + 2) return -1;   // a slot's own knob
         const auto& dd = store.desc(slots.front() + 1);
-        if (dd.choices == nullptr) return -1;
-        const juce::String knob = detail::loose(store.desc(id).name);
+        if (dd.m_choices == nullptr) return -1;
+        const juce::String knob = detail::loose(store.desc(id).m_name);
         if (knob.isEmpty()) return -1;
         int best = -1, bestScore = 0;
-        for (int t = 1; t <= static_cast<int>(dd.maxValue); ++t) {
-            const juce::String tn = detail::loose(dd.choices[t]);
+        for (int t = 1; t <= static_cast<int>(dd.m_maxValue); ++t) {
+            const juce::String tn = detail::loose(dd.m_choices[t]);
             if (tn.isEmpty()) continue;
             const int score = knob == tn ? 3
                             : knob.endsWith(tn) || (tn.length() >= 4 && knob.startsWith(tn)) ? 2
@@ -1365,7 +1365,7 @@ ModAccess slotMatrix(StoreT& store, std::function<void(int, float)> set, std::fu
     };
     auto sourceName = [&store](int slot, int src) {
         const auto& sd = store.desc(slot);
-        return sd.choices != nullptr && src >= 0 && src <= static_cast<int>(sd.maxValue) ? juce::String(sd.choices[src]) : juce::String(src);
+        return sd.m_choices != nullptr && src >= 0 && src <= static_cast<int>(sd.m_maxValue) ? juce::String(sd.m_choices[src]) : juce::String(src);
     };
     ModAccess a;
     a.m_begin = begin;
@@ -1392,9 +1392,9 @@ ModAccess slotMatrix(StoreT& store, std::function<void(int, float)> set, std::fu
         std::vector<ModAccess::Source> out;
         if (targetOf(id) < 1) return out;
         const auto& sd = store.desc(slotsOf(id).front());
-        if (sd.choices == nullptr) return out;
-        for (int k = 1; k <= static_cast<int>(sd.maxValue); ++k) {
-            const juce::String n(sd.choices[k]);
+        if (sd.m_choices == nullptr) return out;
+        for (int k = 1; k <= static_cast<int>(sd.m_maxValue); ++k) {
+            const juce::String n(sd.m_choices[k]);
             out.push_back({ k, n, detail::sourceSection(n) });
         }
         std::stable_sort(out.begin(), out.end(), [](const ModAccess::Source& x, const ModAccess::Source& y) {
@@ -1408,7 +1408,7 @@ ModAccess slotMatrix(StoreT& store, std::function<void(int, float)> set, std::fu
         if (t < 1) return false;
         for (int s : slotsOf(id))
             if (store.getInt(s) == 0) {   // the first free slot: the source on this target, a quarter of its span
-                if (begin) begin(juce::String("Modulate ") + store.desc(id).name);
+                if (begin) begin(juce::String("Modulate ") + store.desc(id).m_name);
                 set(s + 1, static_cast<float>(t));
                 set(s + 2, 0.25f);
                 set(s, static_cast<float>(source));
