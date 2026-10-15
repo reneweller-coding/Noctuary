@@ -22,9 +22,11 @@
 #include <cstring>
 #include <string>
 
-namespace ambient {
+namespace ambient
+{
 
-namespace {
+namespace
+{
 
 /**
  * @brief One entry per parameter key.
@@ -33,7 +35,11 @@ namespace {
  * key like "src2_pos" is looked up as "srcN_pos", "lfo3_rate" as "lfoN_rate", "dly2_mix" as
  * "dly_mix" -- so the table stays readable and the three slots can never drift apart.
  */
-struct HelpEntry { const char* m_key; const char* m_text; };
+struct HelpEntry
+{
+    const char *m_key;
+    const char *m_text;
+};
 /**
  * @var const char* HelpEntry::m_key
  * @brief The parameter key as Params.h spells it, or a family template with an N in place of the slot digit.
@@ -48,91 +54,148 @@ struct HelpEntry { const char* m_key; const char* m_text; };
  * belongs to. Searched once per parameter when HelpCache is built.
  */
 const HelpEntry Help[] = {
-    { "master_gain", "Output level after the mid/side stage and before the soft clipper. There is no compressor anywhere in this instrument: what you hear is the dynamics of the drone." },
+    { "master_gain",
+      "Output level after the mid/side stage and before the soft clipper. There is no compressor anywhere in this instrument: what you hear is the dynamics of the drone." },
 
     // ---- sources (shared by the four slots)
-    { "srcN_type", "What this slot is. Additive: a bank of partials shaped by tilt, brightness, odd/even and shimmer (in Source 1 the strand bank with unison, detune and stacks). Harmonic: a table of spectra, morphed by Position. Wavetable: single cycles played as samples, as Serum, Vital and Hive play them. FM: a two-operator pair. Texture: a granular player over a loaded clip. Stretch: the same clip as a continuum, spectrally stretched up to a thousand times. Noise: ten colours. Off: silent." },
-    { "osc_level", "Level of Source 1 (the strand bank when Additive, otherwise the slot). Levels of the three sources mix before the filter." },
-    { "srcN_level", "Level of this source. All three sources are normalised so the same Level means about the same loudness, whatever the type." },
-    { "srcN_delay", "Seconds this source stays silent after the note before it enters, up to thirty. The instrument's Envelope section is one envelope for the whole voice, so without this all four sources start together and a preset of a wavetable and a texture is one chord struck twice at once. Give the texture twenty seconds and it is a second instrument arriving under a note that is already sounding. 0 -- the default -- is what every preset did before this existed." },
-    { "srcN_rise", "Seconds the source takes to fade in once its Delay has passed (a smooth curve, not a ramp). Ignored while Delay is 0 and while Env names a shape, which carries its own rise." },
-    { "srcN_env", "A level contour for this source instead of the plain Delay-and-Rise entrance. Own gives it a shape of its own -- drawn on the SOURCES page of the ENV tab, read from 0 (silent) to 1 (the source at its written Level), with its own Mode, Time, Depth and Sync -- and takes none of the six modulation envelopes. Env 1 to 6 borrow one of those instead: the same shape the matrix reads, bipolar (-1 silence, +1 full), with that envelope's Mode and Time. Either way the shape runs from the note, not from the phrase, so every note gets it. Off by default." },
-    { "srcN_env_mode", "How this source's own envelope runs: One Shot plays it once per note, Loop repeats it between its loop points, Sustain Loop holds at its sustain point (or loops) while the note is down and plays the rest from there when it is let go. Heard while the source's Env is Own." },
-    { "srcN_env_time", "Stretches this source's own envelope: 0.05 is twenty times faster, 20 twenty times slower. Ignored while Sync is set." },
-    { "srcN_env_depth", "How much of this source's own envelope is heard: 1 the whole contour, 0 the source at its written Level whatever the shape says." },
+    { "srcN_type",
+      "What this slot is. Additive: a bank of partials shaped by tilt, brightness, odd/even and shimmer (in Source 1 the strand bank with unison, detune and stacks). Harmonic: a table of spectra, morphed by Position. Wavetable: single cycles played as samples, as Serum, Vital and Hive play them. FM: a two-operator pair. Texture: a granular player over a loaded clip. Stretch: the same clip as a continuum, spectrally stretched up to a thousand times. Noise: ten colours. Off: silent." },
+    { "osc_level",
+      "Level of Source 1 (the strand bank when Additive, otherwise the slot). Levels of the three sources mix before the filter." },
+    { "srcN_level",
+      "Level of this source. All three sources are normalised so the same Level means about the same loudness, whatever the type." },
+    { "srcN_delay",
+      "Seconds this source stays silent after the note before it enters, up to thirty. The instrument's Envelope section is one envelope for the whole voice, so without this all four sources start together and a preset of a wavetable and a texture is one chord struck twice at once. Give the texture twenty seconds and it is a second instrument arriving under a note that is already sounding. 0 -- the default -- is what every preset did before this existed." },
+    { "srcN_rise",
+      "Seconds the source takes to fade in once its Delay has passed (a smooth curve, not a ramp). Ignored while Delay is 0 and while Env names a shape, which carries its own rise." },
+    { "srcN_env",
+      "A level contour for this source instead of the plain Delay-and-Rise entrance. Own gives it a shape of its own -- drawn on the SOURCES page of the ENV tab, read from 0 (silent) to 1 (the source at its written Level), with its own Mode, Time, Depth and Sync -- and takes none of the six modulation envelopes. Env 1 to 6 borrow one of those instead: the same shape the matrix reads, bipolar (-1 silence, +1 full), with that envelope's Mode and Time. Either way the shape runs from the note, not from the phrase, so every note gets it. Off by default." },
+    { "srcN_env_mode",
+      "How this source's own envelope runs: One Shot plays it once per note, Loop repeats it between its loop points, Sustain Loop holds at its sustain point (or loops) while the note is down and plays the rest from there when it is let go. Heard while the source's Env is Own." },
+    { "srcN_env_time",
+      "Stretches this source's own envelope: 0.05 is twenty times faster, 20 twenty times slower. Ignored while Sync is set." },
+    { "srcN_env_depth",
+      "How much of this source's own envelope is heard: 1 the whole contour, 0 the source at its written Level whatever the shape says." },
     { "srcN_env_sync", "This source's own envelope spans one note value at the current tempo." },
-    { "partials", "How many harmonics the bank generates, 1 to 32. Partials above Nyquist are simply not made, so nothing aliases at any pitch." },
-    { "tilt", "Spectral tilt: partial h has amplitude h to the power of minus Tilt. 1 is a saw-like slope, 2 a triangle-like one, 0.3 nearly flat." },
-    { "brightness", "A window that fades the upper partials out: at 1 all 32 sound, at 0 only the fundamental. This is what Bloom opens over time." },
-    { "odd_even", "Weight between odd and even harmonics. Negative thins the odd ones, positive the even ones; +1 is a hollow, square-like spectrum." },
-    { "inharmonic", "Stretches the partials away from whole-number ratios like a stiff string or a bell; 0 is exactly harmonic." },
-    { "shimmer", "Each partial has its own slow random drift of amplitude. Shimmer is how deep; this is the breathing of a Rich drone." },
-    { "shimmer_rate", "How fast the partials' amplitudes drift. Slow means a spectrum that changes over a minute, fast a flickering one." },
+    { "partials",
+      "How many harmonics the bank generates, 1 to 32. Partials above Nyquist are simply not made, so nothing aliases at any pitch." },
+    { "tilt",
+      "Spectral tilt: partial h has amplitude h to the power of minus Tilt. 1 is a saw-like slope, 2 a triangle-like one, 0.3 nearly flat." },
+    { "brightness",
+      "A window that fades the upper partials out: at 1 all 32 sound, at 0 only the fundamental. This is what Bloom opens over time." },
+    { "odd_even",
+      "Weight between odd and even harmonics. Negative thins the odd ones, positive the even ones; +1 is a hollow, square-like spectrum." },
+    { "inharmonic",
+      "Stretches the partials away from whole-number ratios like a stiff string or a bell; 0 is exactly harmonic." },
+    { "shimmer",
+      "Each partial has its own slow random drift of amplitude. Shimmer is how deep; this is the breathing of a Rich drone." },
+    { "shimmer_rate",
+      "How fast the partials' amplitudes drift. Slow means a spectrum that changes over a minute, fast a flickering one." },
     { "srcN_partials", "How many harmonics this slot's additive bank generates, 1 to 32." },
-    { "srcN_tilt", "Spectral tilt of this slot's additive bank: partial h has amplitude h to the power of minus Tilt." },
+    { "srcN_tilt",
+      "Spectral tilt of this slot's additive bank: partial h has amplitude h to the power of minus Tilt." },
     { "srcN_bright", "Brightness window of this slot's additive bank: fades the upper partials out." },
-    { "srcN_odd_even", "Odd/even weight of this slot's additive bank; +1 hollow, -1 without the odd harmonics above the fundamental." },
+    { "srcN_odd_even",
+      "Odd/even weight of this slot's additive bank; +1 hollow, -1 without the odd harmonics above the fundamental." },
     { "srcN_inharmonic", "Inharmonic stretch of this slot's additive bank, 0 = harmonic." },
     { "srcN_shimmer", "Depth of the per-partial amplitude drift in this slot's additive bank." },
     { "srcN_shimmer_rate", "Rate of the per-partial amplitude drift in this slot's additive bank." },
     { "srcN_octave", "Transposes the source by octaves. In Source 1 it moves the whole strand bank too." },
-    { "srcN_ratio", "A just ratio to the note (1/1 .. 2/1): 3/2 puts the source a pure fifth up, 7/4 a harmonic seventh. Stays in tune with the scale because it is a ratio, not semitones." },
-    { "srcN_pan", "Where the source sits, left to right. For Source 1 in Additive it shifts the strand bank's wandering centre." },
-    { "srcN_table", "Which table the Harmonic and Wavetable types read: five built in, or User for a file loaded with the button -- a WAV from Serum, Vital or Hive (the frame length is read from the file, 2048 samples otherwise), a Surge .wt, or a single cycle of any length. The Harmonic type hears the file's spectra, the Wavetable type its waveforms." },
-    { "srcN_pos", "Harmonic and Wavetable: the frame position, morphing between frames. Texture: where in the clip the grains start. Noise: the band centre or the colour's character." },
+    { "srcN_ratio",
+      "A just ratio to the note (1/1 .. 2/1): 3/2 puts the source a pure fifth up, 7/4 a harmonic seventh. Stays in tune with the scale because it is a ratio, not semitones." },
+    { "srcN_pan",
+      "Where the source sits, left to right. For Source 1 in Additive it shifts the strand bank's wandering centre." },
+    { "srcN_table",
+      "Which table the Harmonic and Wavetable types read: five built in, or User for a file loaded with the button -- a WAV from Serum, Vital or Hive (the frame length is read from the file, 2048 samples otherwise), a Surge .wt, or a single cycle of any length. The Harmonic type hears the file's spectra, the Wavetable type its waveforms." },
+    { "srcN_pos",
+      "Harmonic and Wavetable: the frame position, morphing between frames. Texture: where in the clip the grains start. Noise: the band centre or the colour's character." },
     { "srcN_pos_drift", "How far Position wanders on its own slow random curve. For FM it wanders the index instead." },
-    { "srcN_fm_ratio", "FM: the modulator's frequency as a multiple of the carrier. Whole numbers are harmonic, fractions clangorous." },
-    { "srcN_fm_index", "FM: how deep the modulator bends the carrier. Automatically reduced on high notes so nothing aliases." },
-    { "srcN_root", "Harmonic: a floor under the fundamental. A table here is a spectrum, and a spectrum cut from a recording keeps what that recording had -- which for a bell, a bowed harmonic or overtone singing is very little at the bottom. Measured over 1200 frames of the library the energy sits at partial 5.8 on average, the fundamental holds a quarter of it, and a quarter of all frames have less than a tenth of their energy there. Played high that is the material speaking; played low it is why such a source sounds thin and seems to work only up top -- what is heard is the sixth partial of a note whose own pitch is not in the sound. Turned up, the fundamental is brought to half the frame's energy and the rest is pulled down to make room, so this moves weight about rather than adding level. At 0 the frame is exactly what was analysed." },
-    { "srcN_unison", "Detuned copies of this source, spread across the field. The main oscillator has had up to six strands with their own detune, drift and place since the instrument began; a slot had one, in mono, and against the bank it sounded exactly as small as that -- which is most of what \"the wavetable sources are thin\" was. The copies are not a second oscillator: the partial bank is one flat list, so a second copy is thirty-two more entries in it at a slightly different pitch, and the same loop steps them all. Two is a body, four is a choir. Energy is divided among them, so this thickens rather than raises the level. One copy is what every preset written before this had." },
-    { "srcN_uni_detune", "Cents between the outermost copies of this source. The copies sit symmetrically about the written pitch, so the sound stays where it was; what changes is that they beat against one another. Ten cents is an ensemble, forty is a chorus that has stopped agreeing." },
-    { "srcN_uni_width", "How far apart the copies are placed across the stereo field. At 0 they sit on top of each other and only beat; at 1 the outermost are hard left and right. Pan then moves the whole group." },
-    { "srcN_interp", "Texture: how the clip is read between two of its samples. Linear draws a straight line, which is what the instrument has always done and what every preset was voiced on. Hermite lays a curve through four samples instead (Catmull-Rom): played above the pitch it was recorded at, the straight line folds what it cannot represent back down as a metallic edge, and played below it, it acts as a gentle treble roll-off -- three to four decibels near the top of the range. The curve does less of both, at two more reads a sample. Which one is right is a matter of taste, not of correctness: a field recording through a granulator is often the better for the softer reading, so Linear stays the default and nothing changes unless this is turned." },
-    { "srcN_density", "Texture: how many grains a second the slot starts, up to two hundred. What decides whether a cloud is heard as a cloud is not this number but Density times Grain -- the overlap, how many grains sound at once. Below about two the ear counts them and the sound is a rattle; from eight it is air. The ceiling used to be sixty a second, which put short grains out of reach of any real density: at sixty milliseconds it allowed an overlap of three and a half however far the knob was turned." },
-    { "srcN_grain", "Texture: the length of one grain in milliseconds. Short grains smear the clip into a texture, long ones keep its identity. Stretch: the spectral window -- short is grainy and quick to follow the clip, long (the top third of the range) is the smooth, frozen continuum of a Paulstretch." },
-    { "srcN_transport", "Harmonic: how the frames morph. At 0 the amplitudes are blended, which is what every wavetable does and why a morph between two formants sounds hollow halfway -- the old peak fades out, the new one fades in, and between them the energy dips. At 1 the morph is the displacement interpolation of optimal transport: each frame's spectrum is read as a distribution of mass over the partials and the mass is carried from where it sits in one frame to where it sits in the next, so a peak slides through the partials between rather than fading across them, and the energy halfway is what it should be (Roma, Green and Tremblay, audio morphing by optimal transport; along one axis the Wasserstein barycentre is exact and cheap). Position Drift and everything else read the table as before; only what lies between two frames changes." },
-    { "srcN_spec_rate", "Spectral: how fast the model of the clip is read, as a multiple of the speed it was recorded at. This is the point of the type: the note sets the pitch and Rate sets the speed, and neither touches the other. At 1 the recording runs at its own pace, at 4 it hurries, and at 0 the read head stands still and the clip becomes a single held chord -- one moment of a recording, sustained for as long as the note lasts and transposed wherever it is played." },
+    { "srcN_fm_ratio",
+      "FM: the modulator's frequency as a multiple of the carrier. Whole numbers are harmonic, fractions clangorous." },
+    { "srcN_fm_index",
+      "FM: how deep the modulator bends the carrier. Automatically reduced on high notes so nothing aliases." },
+    { "srcN_root",
+      "Harmonic: a floor under the fundamental. A table here is a spectrum, and a spectrum cut from a recording keeps what that recording had -- which for a bell, a bowed harmonic or overtone singing is very little at the bottom. Measured over 1200 frames of the library the energy sits at partial 5.8 on average, the fundamental holds a quarter of it, and a quarter of all frames have less than a tenth of their energy there. Played high that is the material speaking; played low it is why such a source sounds thin and seems to work only up top -- what is heard is the sixth partial of a note whose own pitch is not in the sound. Turned up, the fundamental is brought to half the frame's energy and the rest is pulled down to make room, so this moves weight about rather than adding level. At 0 the frame is exactly what was analysed." },
+    { "srcN_unison",
+      "Detuned copies of this source, spread across the field. The main oscillator has had up to six strands with their own detune, drift and place since the instrument began; a slot had one, in mono, and against the bank it sounded exactly as small as that -- which is most of what \"the wavetable sources are thin\" was. The copies are not a second oscillator: the partial bank is one flat list, so a second copy is thirty-two more entries in it at a slightly different pitch, and the same loop steps them all. Two is a body, four is a choir. Energy is divided among them, so this thickens rather than raises the level. One copy is what every preset written before this had." },
+    { "srcN_uni_detune",
+      "Cents between the outermost copies of this source. The copies sit symmetrically about the written pitch, so the sound stays where it was; what changes is that they beat against one another. Ten cents is an ensemble, forty is a chorus that has stopped agreeing." },
+    { "srcN_uni_width",
+      "How far apart the copies are placed across the stereo field. At 0 they sit on top of each other and only beat; at 1 the outermost are hard left and right. Pan then moves the whole group." },
+    { "srcN_interp",
+      "Texture: how the clip is read between two of its samples. Linear draws a straight line, which is what the instrument has always done and what every preset was voiced on. Hermite lays a curve through four samples instead (Catmull-Rom): played above the pitch it was recorded at, the straight line folds what it cannot represent back down as a metallic edge, and played below it, it acts as a gentle treble roll-off -- three to four decibels near the top of the range. The curve does less of both, at two more reads a sample. Which one is right is a matter of taste, not of correctness: a field recording through a granulator is often the better for the softer reading, so Linear stays the default and nothing changes unless this is turned." },
+    { "srcN_density",
+      "Texture: how many grains a second the slot starts, up to two hundred. What decides whether a cloud is heard as a cloud is not this number but Density times Grain -- the overlap, how many grains sound at once. Below about two the ear counts them and the sound is a rattle; from eight it is air. The ceiling used to be sixty a second, which put short grains out of reach of any real density: at sixty milliseconds it allowed an overlap of three and a half however far the knob was turned." },
+    { "srcN_grain",
+      "Texture: the length of one grain in milliseconds. Short grains smear the clip into a texture, long ones keep its identity. Stretch: the spectral window -- short is grainy and quick to follow the clip, long (the top third of the range) is the smooth, frozen continuum of a Paulstretch." },
+    { "srcN_transport",
+      "Harmonic: how the frames morph. At 0 the amplitudes are blended, which is what every wavetable does and why a morph between two formants sounds hollow halfway -- the old peak fades out, the new one fades in, and between them the energy dips. At 1 the morph is the displacement interpolation of optimal transport: each frame's spectrum is read as a distribution of mass over the partials and the mass is carried from where it sits in one frame to where it sits in the next, so a peak slides through the partials between rather than fading across them, and the energy halfway is what it should be (Roma, Green and Tremblay, audio morphing by optimal transport; along one axis the Wasserstein barycentre is exact and cheap). Position Drift and everything else read the table as before; only what lies between two frames changes." },
+    { "srcN_spec_rate",
+      "Spectral: how fast the model of the clip is read, as a multiple of the speed it was recorded at. This is the point of the type: the note sets the pitch and Rate sets the speed, and neither touches the other. At 1 the recording runs at its own pace, at 4 it hurries, and at 0 the read head stands still and the clip becomes a single held chord -- one moment of a recording, sustained for as long as the note lasts and transposed wherever it is played." },
     { "srcN_spec_breath", "Spectral: which half of the model is favoured. The analysis split every band into a partial and a band of noise by measuring how far its content stood above the local noise floor. At the negative end only the partials are rebuilt, and a rain recording turns into a chord of the frequencies hiding in it; at the positive end only the noise is, and a struck bell turns into the wind that has its shape. In the middle the clip is put back together as it was measured." },
-    { "srcN_bow_force", "Force. Bow: how hard the bow presses on the string -- light and the string slips almost all the time, which is the airy, breathy end of a bowed note; heavy and it sticks for most of each period and releases suddenly, the Helmholtz motion and the full tone. Flute: the breath pressure; a light breath does not speak, a heavy one drives the jet towards its limit. Bowl and Ice: how hard the stick presses. Murmur: the effort of the voice -- level, an open mouth, a harder tone." },
-    { "srcN_bow_speed", "Speed. Bow: how fast the bow travels; with Force it decides whether the string sticks or slips, and the pair is the bowing gesture. Flute: the noise the air carries, part of it into the pipe and part straight out -- the breathiness. Bowl and Ice: how fast the stick rubs, and below a twentieth it is lifted and the body only rings. Murmur: how fast the syllables come, three to six a second." },
-    { "srcN_role", "Which of the voice's notes this slot sounds in. All: every note, as it always did. Lowest, Inner, Highest: the note's place in what its owner is sounding right now -- the register is the role in this music, and the cello under the chord need not also be the chime on top of it. The place is re-read as the cluster changes, and the slot fades over a second and a half, so a note that stops being the top hands the chime on rather than keeping it. A preset that says nothing here has every slot on All." },
-    { "srcN_stretch", "Stretch: how many times slower than life the clip is read. 1 is the recording as it is; 40 turns twenty seconds into a quarter of an hour; 1000 turns them into a night. Pitch is unaffected -- it is set by Follow and the octave and ratio, before the stretch." },
-    { "srcN_xfade", "Stretch: the crossfade at the loop's seam, as a fraction of the clip, so the end runs into the start without a bump. Ignored for a clip whose file name carries _loop: that one is seamless already and wraps straight round." },
+    { "srcN_bow_force",
+      "Force. Bow: how hard the bow presses on the string -- light and the string slips almost all the time, which is the airy, breathy end of a bowed note; heavy and it sticks for most of each period and releases suddenly, the Helmholtz motion and the full tone. Flute: the breath pressure; a light breath does not speak, a heavy one drives the jet towards its limit. Bowl and Ice: how hard the stick presses. Murmur: the effort of the voice -- level, an open mouth, a harder tone." },
+    { "srcN_bow_speed",
+      "Speed. Bow: how fast the bow travels; with Force it decides whether the string sticks or slips, and the pair is the bowing gesture. Flute: the noise the air carries, part of it into the pipe and part straight out -- the breathiness. Bowl and Ice: how fast the stick rubs, and below a twentieth it is lifted and the body only rings. Murmur: how fast the syllables come, three to six a second." },
+    { "srcN_role",
+      "Which of the voice's notes this slot sounds in. All: every note, as it always did. Lowest, Inner, Highest: the note's place in what its owner is sounding right now -- the register is the role in this music, and the cello under the chord need not also be the chime on top of it. The place is re-read as the cluster changes, and the slot fades over a second and a half, so a note that stops being the top hands the chime on rather than keeping it. A preset that says nothing here has every slot on All." },
+    { "srcN_stretch",
+      "Stretch: how many times slower than life the clip is read. 1 is the recording as it is; 40 turns twenty seconds into a quarter of an hour; 1000 turns them into a night. Pitch is unaffected -- it is set by Follow and the octave and ratio, before the stretch." },
+    { "srcN_xfade",
+      "Stretch: the crossfade at the loop's seam, as a fraction of the clip, so the end runs into the start without a bump. Ignored for a clip whose file name carries _loop: that one is seamless already and wraps straight round." },
     { "srcN_density", "Texture: how many grains start per second. Noise Crackle: how many crackles." },
-    { "srcN_density_sync", "Ties the grain (or crackle) rate to the tempo: one per chosen note value instead of Density per second." },
-    { "srcN_follow", "Texture and Stretch: Note pitches the clip to the played note (the clip is assumed recorded at its named pitch, the _A3 in its name); Free plays it at its own speed, with octave and ratio as a multiplier. For Stretch the pitch is applied before the stretch, so a chromatic sample plays across the keyboard without the high notes getting shorter. Noise Band/Wind: the band follows the note." },
-    { "srcN_grains", "Texture: how many grains may sound at once, up to 64. More grains, denser and smoother; the level is normalised for the overlap." },
-    { "srcN_spread", "Texture: scatters each grain's start point around Position, as a fraction of the clip. At 1 a grain may come from anywhere." },
-    { "srcN_noise", "The noise colour: White, Pink (-3 dB/oct), Brown (-6), Blue (+3), Violet (+6), Grey (flat to the ear), Band (a resonant band at Position), Wind (a wandering band), Crackle (sparse impulses), Digital (sample-and-hold)." },
+    { "srcN_density_sync",
+      "Ties the grain (or crackle) rate to the tempo: one per chosen note value instead of Density per second." },
+    { "srcN_follow",
+      "Texture and Stretch: Note pitches the clip to the played note (the clip is assumed recorded at its named pitch, the _A3 in its name); Free plays it at its own speed, with octave and ratio as a multiplier. For Stretch the pitch is applied before the stretch, so a chromatic sample plays across the keyboard without the high notes getting shorter. Noise Band/Wind: the band follows the note." },
+    { "srcN_grains",
+      "Texture: how many grains may sound at once, up to 64. More grains, denser and smoother; the level is normalised for the overlap." },
+    { "srcN_spread",
+      "Texture: scatters each grain's start point around Position, as a fraction of the clip. At 1 a grain may come from anywhere." },
+    { "srcN_noise",
+      "The noise colour: White, Pink (-3 dB/oct), Brown (-6), Blue (+3), Violet (+6), Grey (flat to the ear), Band (a resonant band at Position), Wind (a wandering band), Crackle (sparse impulses), Digital (sample-and-hold)." },
     { "srcN_noise_q", "Width of the Band and Wind colours: 0 wide open, 1 a whistle." },
-    { "srcN_drift", "A slow, independent pitch drift of this source in cents. Three sources on just ratios each drifting on their own curve beat like real instruments in a changing room, never symmetrically." },
+    { "srcN_drift",
+      "A slow, independent pitch drift of this source in cents. Three sources on just ratios each drifting on their own curve beat like real instruments in a changing room, never symmetrically." },
 
     // ---- strands (Source 1 additive only)
-    { "strands", "How many detuned or stacked copies of the bank a voice plays, 1 to 6. Each has its own pitch drift and pan." },
+    { "strands",
+      "How many detuned or stacked copies of the bank a voice plays, 1 to 6. Each has its own pitch drift and pan." },
     { "detune", "Spread of the strands in cents around the note. 0 with Stack Detune is a single beat-free bank." },
-    { "drift", "Depth of each strand's slow random pitch drift in cents -- the tape-like wobble of an old analogue pad, but never a step." },
+    { "drift",
+      "Depth of each strand's slow random pitch drift in cents -- the tape-like wobble of an old analogue pad, but never a step." },
     { "drift_rate", "How fast the pitch drift moves. Very slow is a drone that leans; fast is vibrato-like." },
     { "spread", "Stereo spread of the strands around the voice's wandering centre." },
-    { "bloom", "How much of the brightness is held back at the start of a note and opened over Bloom Time -- a spectrum that blossoms." },
+    { "bloom",
+      "How much of the brightness is held back at the start of a note and opened over Bloom Time -- a spectrum that blossoms." },
     { "bloom_time", "Seconds the bloom takes to open fully, with a gentle start." },
-    { "stack", "Places the strands on pure ratios instead of detuning them: octaves, fifths, a just major or minor chord, seventh, harmonics or subharmonics -- one key becomes a just chord." },
-    { "rate_wander", "Every voice's drift, shimmer and breath rates themselves wander by up to an octave on a slow curve, so five minutes never look like the five before." },
-    { "freeze", "Holds the spectrum and pitch still: shimmer, pitch drift, breath and bloom stop moving. The envelopes and effects keep their own time." },
+    { "stack",
+      "Places the strands on pure ratios instead of detuning them: octaves, fifths, a just major or minor chord, seventh, harmonics or subharmonics -- one key becomes a just chord." },
+    { "rate_wander",
+      "Every voice's drift, shimmer and breath rates themselves wander by up to an octave on a slow curve, so five minutes never look like the five before." },
+    { "freeze",
+      "Holds the spectrum and pitch still: shimmer, pitch drift, breath and bloom stop moving. The envelopes and effects keep their own time." },
 
     // ---- foundation
-    { "sub_level", "Level of the sub voice, a sine (with Tone, a little more) one or two octaves under the brain's root, mono, injected after the mid/side stage so Bass Mono cannot thin it." },
-    { "sub_octave", "How far under the root the sub sits: one octave (65-123 Hz under a C3-B3 root) or two (33-62 Hz). Two since 25.09.2026, which is the register a dark-ambient sub lives in -- 25 to 70 Hz, under the drone's own fundamental rather than inside it; one octave puts it where the pads' low end already is." },
+    { "sub_level",
+      "Level of the sub voice, a sine (with Tone, a little more) one or two octaves under the brain's root, mono, injected after the mid/side stage so Bass Mono cannot thin it." },
+    { "sub_octave",
+      "How far under the root the sub sits: one octave (65-123 Hz under a C3-B3 root) or two (33-62 Hz). Two since 25.09.2026, which is the register a dark-ambient sub lives in -- 25 to 70 Hz, under the drone's own fundamental rather than inside it; one octave puts it where the pads' low end already is." },
     { "sub_glide", "Seconds the sub takes to slide to a new root, in the log domain." },
-    { "sub_binaural", "Offsets the sub's left and right frequencies by this many hertz -- a binaural beat inside the bass." },
+    { "sub_binaural",
+      "Offsets the sub's left and right frequencies by this many hertz -- a binaural beat inside the bass." },
     { "sub_tone", "Adds a little second and third harmonic to the sub so it is audible on small speakers." },
-    { "sub_source", "Root follows the brain's root. Difference follows the combination tone of the two lowest sounding voices (their frequency difference), folded into the sub's octave -- the ghost bass of a just chord." },
-    { "pad_low_cut", "Partials below this frequency fall away at 12 dB per octave, leaving the bottom to the sub and keeping wide pads out of the sub's register." },
+    { "sub_source",
+      "Root follows the brain's root. Difference follows the combination tone of the two lowest sounding voices (their frequency difference), folded into the sub's octave -- the ghost bass of a just chord." },
+    { "pad_low_cut",
+      "Partials below this frequency fall away at 12 dB per octave, leaving the bottom to the sub and keeping wide pads out of the sub's register." },
 
     // ---- air
     { "air", "Level of the breath layer: filtered noise inside every voice, following its pitch and its distance." },
     { "air_color", "Centre of the air band as a multiple of the note's fundamental." },
     { "air_q", "Narrowness of the air band. High Q is a whistling resonance, low a broad hiss." },
-    { "air_mode", "Band: one wandering band pass. Ghost: the noise through six sharp resonators on the note's harmonics 1 2 3 5 7 9, so the harmony is filtered out of the chaos." },
+    { "air_mode",
+      "Band: one wandering band pass. Ghost: the noise through six sharp resonators on the note's harmonics 1 2 3 5 7 9, so the harmony is filtered out of the chaos." },
 
     // ---- envelope
     { "attack", "Seconds the voice takes to swell in. Minutes are allowed." },
@@ -141,87 +204,136 @@ const HelpEntry Help[] = {
     { "release", "Seconds the voice takes to fade after the note ends -- up to two minutes." },
 
     // ---- filter
-    { "filter_on", "Switches the voice filter in or out. Off leaves the sources to the z-plane alone (or dry, if that is off too)." },
-    { "filter_model", "The filter's character behind the same knobs: LP 6/12/24 low passes, HP 12, BP 12, Notch, Peak (a bell), Ladder (four-pole with saturating feedback), Comb (tuned to Cutoff, a resonating body), Formant (a vowel). Then five analogue filters modelled on their circuits, running at twice the rate: Moog (the transistor ladder, warm, its resonance singing exactly on Cutoff), SEM (Oberheim's 12 dB state-variable filter, soft and wide, with Morph from low pass through notch to high pass), Prophet (the Prophet-5's cascade, its resonance saturating first, so it stays round when pushed), Juno (the Juno's cleaner cascade, the classic pad) and Diode (the EMS and TB-303 ladder, thinner and more nasal). On these five Drive pushes the circuit itself instead of a clip ahead of it." },
+    { "filter_on",
+      "Switches the voice filter in or out. Off leaves the sources to the z-plane alone (or dry, if that is off too)." },
+    { "filter_model",
+      "The filter's character behind the same knobs: LP 6/12/24 low passes, HP 12, BP 12, Notch, Peak (a bell), Ladder (four-pole with saturating feedback), Comb (tuned to Cutoff, a resonating body), Formant (a vowel). Then five analogue filters modelled on their circuits, running at twice the rate: Moog (the transistor ladder, warm, its resonance singing exactly on Cutoff), SEM (Oberheim's 12 dB state-variable filter, soft and wide, with Morph from low pass through notch to high pass), Prophet (the Prophet-5's cascade, its resonance saturating first, so it stays round when pushed), Juno (the Juno's cleaner cascade, the classic pad) and Diode (the EMS and TB-303 ladder, thinner and more nasal). On these five Drive pushes the circuit itself instead of a clip ahead of it." },
     { "cutoff", "The filter's frequency. Key Track, Env Amount, Drift and the voice's distance move it from here." },
-    { "resonance", "Emphasis at the cutoff. On the Ladder it self-oscillates near the top; on the Comb it deepens the dips between the peaks. Prophet, Juno and Diode begin to sing on their own just at 1, the Moog stops a hair short of it and rings for a moment after every change -- all of them on Cutoff, so with Key Track at 1 the ringing plays the note. The SEM stays a filter, its Q reaching about 40." },
-    { "filter_env", "How far the amplitude envelope opens the filter, in octaves times four. Negative closes it as the note swells." },
+    { "resonance",
+      "Emphasis at the cutoff. On the Ladder it self-oscillates near the top; on the Comb it deepens the dips between the peaks. Prophet, Juno and Diode begin to sing on their own just at 1, the Moog stops a hair short of it and rings for a moment after every change -- all of them on Cutoff, so with Key Track at 1 the ringing plays the note. The SEM stays a filter, its Q reaching about 40." },
+    { "filter_env",
+      "How far the amplitude envelope opens the filter, in octaves times four. Negative closes it as the note swells." },
     { "filter_drift", "Depth of the cutoff's slow random wander, in octaves times two." },
     { "keytrack", "How much the cutoff follows the note: 1 keeps the same partials in the passband on every key." },
-    { "filter_drive", "Soft saturation ahead of the filter, level-compensated: adds harmonics, not loudness. On Moog, SEM, Prophet, Juno and Diode it is the level into the circuit, whose own stages saturate -- the way these filters were overdriven." },
-    { "filter_morph", "The SEM's response: low pass at 0, a notch at 0.5 (low pass and high pass together, a hole at Cutoff), high pass at 1, and every blend on the way. Slowly modulated it moves a drone's colour without the sound of a sweep. Only the SEM listens to it." },
-    { "filter_fold", "A wavefolder after both filters. Drive flattens what will not fit; a folder turns it back on itself, and a wave mirrored at the fold grows a family of high partials that no saturation makes -- the metallic edge of an industrial record. The positive half folds a third sooner than the negative one, which is where the even harmonics and the body come from. Off at 0." },
+    { "filter_drive",
+      "Soft saturation ahead of the filter, level-compensated: adds harmonics, not loudness. On Moog, SEM, Prophet, Juno and Diode it is the level into the circuit, whose own stages saturate -- the way these filters were overdriven." },
+    { "filter_morph",
+      "The SEM's response: low pass at 0, a notch at 0.5 (low pass and high pass together, a hole at Cutoff), high pass at 1, and every blend on the way. Slowly modulated it moves a drone's colour without the sound of a sweep. Only the SEM listens to it." },
+    { "filter_fold",
+      "A wavefolder after both filters. Drive flattens what will not fit; a folder turns it back on itself, and a wave mirrored at the fold grows a family of high partials that no saturation makes -- the metallic edge of an industrial record. The positive half folds a third sooner than the negative one, which is where the even harmonics and the body come from. Off at 0." },
 
     // ---- z-plane
-    { "z_mode", "Off, or the z-plane filter in Series (it hears the voice filter, Mix is its dry/wet) or Replace (it is the only filter)." },
-    { "z_route", "With both filters on: Series puts the z-plane after the voice filter; Parallel feeds both the dry sum and Mix balances them." },
-    { "z_shape", "One of sixteen frame sets, four frames on the corners of a square: vowel morphs, bell clusters, resonator banks, the sweeps." },
-    { "z_z", "The third axis of the cube. X and Y move the point around a square of four filters; Transform lifts it out of that square towards a fourth of its own -- usually the same shape far more resonant, sometimes its peaks turned into notches, sometimes an octave up. What that is depends on the shape, and it is written down for each of them in Tools/make_zplane_bank.py. At 0 the filter is exactly the square it always was, which is why every preset made before this knob existed still sounds the way it did." },
-    { "z_decay", "Modal only: how long the lowest mode rings, from a tap to forty seconds. This is a T60 -- the time the mode takes to fall by 60 dB -- so 8 s means a struck bell that is still audibly there after eight. Every resonator is normalised to unity gain at its own frequency, so a long decay makes the instrument ring, not clip." },
-    { "z_damp", "Modal only: how much shorter the higher modes ring than the lowest. At 0 every mode holds for the same time, which no real object does and which is exactly why it sounds unreal in a useful way. At 1 the decay time is inversely proportional to frequency, which is roughly what wood, metal and skin do. Between them is where most objects live." },
-    { "z_x", "The point's horizontal position in the frame square; the filter interpolates the four corners' poles and zeros." },
+    { "z_mode",
+      "Off, or the z-plane filter in Series (it hears the voice filter, Mix is its dry/wet) or Replace (it is the only filter)." },
+    { "z_route",
+      "With both filters on: Series puts the z-plane after the voice filter; Parallel feeds both the dry sum and Mix balances them." },
+    { "z_shape",
+      "One of sixteen frame sets, four frames on the corners of a square: vowel morphs, bell clusters, resonator banks, the sweeps." },
+    { "z_z",
+      "The third axis of the cube. X and Y move the point around a square of four filters; Transform lifts it out of that square towards a fourth of its own -- usually the same shape far more resonant, sometimes its peaks turned into notches, sometimes an octave up. What that is depends on the shape, and it is written down for each of them in Tools/make_zplane_bank.py. At 0 the filter is exactly the square it always was, which is why every preset made before this knob existed still sounds the way it did." },
+    { "z_decay",
+      "Modal only: how long the lowest mode rings, from a tap to forty seconds. This is a T60 -- the time the mode takes to fall by 60 dB -- so 8 s means a struck bell that is still audibly there after eight. Every resonator is normalised to unity gain at its own frequency, so a long decay makes the instrument ring, not clip." },
+    { "z_damp",
+      "Modal only: how much shorter the higher modes ring than the lowest. At 0 every mode holds for the same time, which no real object does and which is exactly why it sounds unreal in a useful way. At 1 the decay time is inversely proportional to frequency, which is roughly what wood, metal and skin do. Between them is where most objects live." },
+    { "z_x",
+      "The point's horizontal position in the frame square; the filter interpolates the four corners' poles and zeros." },
     { "z_y", "The point's vertical position in the frame square." },
     { "z_rate", "How fast the point wanders around (X, Y) on two slow random curves." },
     { "z_depth", "How far the point wanders." },
     { "z_res", "Narrows every section's bandwidth: 1 is a quarter of the frame's, 0 double." },
     { "z_keytrack", "Moves the whole frame with the note's pitch (1 = fully)." },
-    { "z_mix", "Dry/wet of the z-plane stage -- or, in Parallel, the balance between the voice filter and the z-plane." },
+    { "z_mix",
+      "Dry/wet of the z-plane stage -- or, in Parallel, the balance between the voice filter and the z-plane." },
 
     // ---- space
-    { "depth", "How deep the brain places its notes: 40 % land close, 60 % deep into the background, scaled by this. Per unit distance a voice loses 2.5 octaves of cutoff and 6 dB, and is heard only through the far reverb." },
-    { "keys_depth", "The plane MIDI keys are played on (0 = at the ear, 1 = infinite background). The brain has Depth." },
+    { "depth",
+      "How deep the brain places its notes: 40 % land close, 60 % deep into the background, scaled by this. Per unit distance a voice loses 2.5 octaves of cutoff and 6 dB, and is heard only through the far reverb." },
+    { "keys_depth",
+      "The plane MIDI keys are played on (0 = at the ear, 1 = infinite background). The brain has Depth." },
     { "pan_drift", "How far each voice's centre wanders left and right on its own slow curve." },
-    { "itd", "Time Width: the interaural time difference, up to 0.65 ms, applied to the far ear from the voice's pan -- width from time, not from level." },
-    { "arc", "The hour-scale arc: one very slow drift that leans on density, brightness and depth, so the whole night has a shape." },
+    { "itd",
+      "Time Width: the interaural time difference, up to 0.65 ms, applied to the far ear from the voice's pan -- width from time, not from level." },
+    { "arc",
+      "The hour-scale arc: one very slow drift that leans on density, brightness and depth, so the whole night has a shape." },
     { "arc_period", "Minutes the arc takes for one swing." },
-    { "brain_dejavu", "Deja vu, after Mutable Instruments' Marbles. The conductor keeps a ring of Loop places holding the last notes it chose; each choice moves one place round the ring, and with this probability the note already there is played again instead of the fresh one -- which then stays. At 1 the loop plays round and round; below it, fresh notes seep into the loop at the rate the knob leaves them, so a figure returns and slowly mutates -- the middle ground between a loop and a random walk that generative music lives on. A note the ring offers that is still sounding is passed over. 0 draws nothing and changes nothing." },
-    { "brain_loop", "How many places the deja-vu ring has: the length of the figure that can come back. Short loops are riffs, long ones are memories." },
-    { "brain_spread", "The shape of the conductor's random draws -- how loud a note is, how long it holds. At 0.5 the draw is uniform, as it always was. Towards 0 it gathers round the middle: every note about as loud and as long as the last. Towards 1 it is pushed to the extremes: soft or loud, short or long, and seldom in between, which is Marbles' bimodal setting and a surprisingly musical one for a drone -- a few long anchors and short passing notes rather than a grey average." },
-    { "brain_bias", "Moves the centre of the conductor's random draws: positive and the notes come louder and longer, negative and they come softer and shorter. 0 leaves the draw where it was." },
-    { "chaos_period", "The time scale of the two strange attractors the matrix can read as lorenz_x/y/z and rossler_x/y/z: about the time between the Lorenz system's lobe changes, and about one turn of the Roessler spiral. Deterministic chaos -- never the same path twice, never a cycle, never a step -- which is what an LFO cannot give and filtered noise cannot either: the motion has a shape and a memory without ever repeating. The Lorenz coordinates swing between two centres and cross at irregular moments; the Roessler x and y circle slowly and almost regularly -- measured, its best self-match at any lag is 0.95, so it is nearly a cycle -- and its z stays low and then climbs suddenly, once a turn or so, by an amount that is not the same twice; routed at a filter or a distance that climb is an event that was caused rather than scheduled. The Lorenz system, by contrast, never comes back at all (0.40 at its best lag). Computed only while a route reads one of them." },
-    { "keys_filter", "How pressure, slide and bend are smoothed between the controller's messages. Classic is a fixed thirty milliseconds. One Euro is the filter of Casiez, Roussel and Vogel (2012): a cutoff that follows the speed of the movement, about half a hertz for a hand at rest -- which takes the sensor's jitter out of a held note, where a fixed thirty milliseconds lets most of it through -- and twenty and more for a hand that moves, so a fast gesture is followed at once. The speed is read from how far the value still has to travel, because a controller speaks in steps and a derivative between two messages is nothing." },
-    { "transpose", "A pure interval on everything that sounds: a fourth (4:3), a fifth (3:2) or an octave, up or down, the interval keys of SOMA's Terra. It glides there at an octave in two seconds and stops exactly on the ratio, so a press is a slide and every interval inside the chord is kept -- all the voices move together, and the Foundation with them. Map it to a switch or a footswitch and a drone can be lifted a fifth for a passage and set down again." },
-    { "partial_spread", "The partials of the additive bank spread across the stereo field one by one, each at its own place, the pattern turning once every fifty seconds (Madrona Labs' Sumu spreads its partials this way). The fundamental and its neighbours are not favoured: neighbours in the series sit far apart, by the golden angle, so nothing harmonically related clumps to one side. Equal power per partial, so the mono sum keeps its level. The whole voice is still placed by its distance and pan as before; this is width inside the note rather than around it, and the two are composed rather than multiplied: a strand panned hard carries its field onto that ear, keeping every partial, instead of thinning out the ones that lean the other way. 0 is the bank as it always was, summed once." },
+    { "brain_dejavu",
+      "Deja vu, after Mutable Instruments' Marbles. The conductor keeps a ring of Loop places holding the last notes it chose; each choice moves one place round the ring, and with this probability the note already there is played again instead of the fresh one -- which then stays. At 1 the loop plays round and round; below it, fresh notes seep into the loop at the rate the knob leaves them, so a figure returns and slowly mutates -- the middle ground between a loop and a random walk that generative music lives on. A note the ring offers that is still sounding is passed over. 0 draws nothing and changes nothing." },
+    { "brain_loop",
+      "How many places the deja-vu ring has: the length of the figure that can come back. Short loops are riffs, long ones are memories." },
+    { "brain_spread",
+      "The shape of the conductor's random draws -- how loud a note is, how long it holds. At 0.5 the draw is uniform, as it always was. Towards 0 it gathers round the middle: every note about as loud and as long as the last. Towards 1 it is pushed to the extremes: soft or loud, short or long, and seldom in between, which is Marbles' bimodal setting and a surprisingly musical one for a drone -- a few long anchors and short passing notes rather than a grey average." },
+    { "brain_bias",
+      "Moves the centre of the conductor's random draws: positive and the notes come louder and longer, negative and they come softer and shorter. 0 leaves the draw where it was." },
+    { "chaos_period",
+      "The time scale of the two strange attractors the matrix can read as lorenz_x/y/z and rossler_x/y/z: about the time between the Lorenz system's lobe changes, and about one turn of the Roessler spiral. Deterministic chaos -- never the same path twice, never a cycle, never a step -- which is what an LFO cannot give and filtered noise cannot either: the motion has a shape and a memory without ever repeating. The Lorenz coordinates swing between two centres and cross at irregular moments; the Roessler x and y circle slowly and almost regularly -- measured, its best self-match at any lag is 0.95, so it is nearly a cycle -- and its z stays low and then climbs suddenly, once a turn or so, by an amount that is not the same twice; routed at a filter or a distance that climb is an event that was caused rather than scheduled. The Lorenz system, by contrast, never comes back at all (0.40 at its best lag). Computed only while a route reads one of them." },
+    { "keys_filter",
+      "How pressure, slide and bend are smoothed between the controller's messages. Classic is a fixed thirty milliseconds. One Euro is the filter of Casiez, Roussel and Vogel (2012): a cutoff that follows the speed of the movement, about half a hertz for a hand at rest -- which takes the sensor's jitter out of a held note, where a fixed thirty milliseconds lets most of it through -- and twenty and more for a hand that moves, so a fast gesture is followed at once. The speed is read from how far the value still has to travel, because a controller speaks in steps and a derivative between two messages is nothing." },
+    { "transpose",
+      "A pure interval on everything that sounds: a fourth (4:3), a fifth (3:2) or an octave, up or down, the interval keys of SOMA's Terra. It glides there at an octave in two seconds and stops exactly on the ratio, so a press is a slide and every interval inside the chord is kept -- all the voices move together, and the Foundation with them. Map it to a switch or a footswitch and a drone can be lifted a fifth for a passage and set down again." },
+    { "partial_spread",
+      "The partials of the additive bank spread across the stereo field one by one, each at its own place, the pattern turning once every fifty seconds (Madrona Labs' Sumu spreads its partials this way). The fundamental and its neighbours are not favoured: neighbours in the series sit far apart, by the golden angle, so nothing harmonically related clumps to one side. Equal power per partial, so the mono sum keeps its level. The whole voice is still placed by its distance and pan as before; this is width inside the note rather than around it, and the two are composed rather than multiplied: a strand panned hard carries its field onto that ear, keeping every partial, instead of thinning out the ones that lean the other way. 0 is the bank as it always was, summed once." },
     { "lenia_rate", "How many steps a second the Lenia field takes. Lenia (Chan 2019) is Conway's Life taken to the continuum: real-valued cells on a small torus, a ring-shaped neighbourhood and a smooth growth rule, so blobs drift, pulse, split and die by their own neighbours' doing rather than by a clock or a random stream. The matrix reads it at four points as the sources lenia1 to lenia4, one near each corner, and the field is only computed while a route uses one of them -- a patch that does not costs nothing for it. Slow rates make it a tide, fast ones a weather." },
-    { "lenia_growth", "The centre of the Lenia growth rule: how much company a cell wants around it before it grows rather than decays. The classic setting is 0.15; lower makes a sparser, wandering field, higher a denser, pulsing one, and at the ends of the range the field tends to die or to fill up, at which point it is reseeded with a few soft blobs and goes on." },
-    { "sub_pulse", "The Foundation pulses at the Binaural rate: a raised cosine on its level, full at the top of every cycle and down by this amount at the bottom, with no corner anywhere. Binaural alone makes a beat only in the brainstem, where the two ears' phases are compared; an amplitude modulation is a beat on the basilar membrane itself, and it drives the auditory steady-state response of the cortex several times harder -- which is why the entrainment literature has moved to this hybrid of the two. Whether a few hertz of pulse entrain anything worth the name is a less settled question than its advocates say (the systematic reviews call the evidence inconsistent); what this builds is the modulation, not the claim. Needs a Binaural rate to pulse at; with Binaural at 0 it stands still and does nothing." },
-    { "fb_bias", "The feedback shaper's operating point follows the bass. A static curve makes the same harmonics whatever came before it; a transformer or a capacitor-coupled tube stage does not -- low-frequency energy charges the coupling and shifts where on the curve the signal is being bent, so a bass swell changes how the highs distort, which is much of what an analogue stage's warmth is (the reactive nonlinearities of the wave-digital literature, Chowdhury among others). This is the cheapest honest form of that: the loop's content below sixty hertz, rectified and followed at five hertz, pushes the shaper's input off centre as the bass rises -- in the curve's own units after Drive, by up to 1.2, most of it there once the bass is a hundredth of full scale -- the loop throttles itself to small levels, so an offset proportional to them would never be heard, and one that rode on Drive would push the signal off the end of the curve -- so second harmonics come and go with the bass. Rides on Drive; 0 is the shaper as it always was." },
-    { "far_comod", "The whole background breathes to one slow random envelope -- a new target about nine times a second, a smooth curve between -- so that every band of it rises and falls together. Hall, Haggard and Fernandes (1984) found that a tone in a noise whose bands move together is heard ten to fifteen decibels further down than in a noise whose bands move independently: the ear groups what moves together into one object and listens past it. Nothing in the foreground follows the envelope, which is what makes the foreground the thing heard past it. Full is a hundred per cent depth, which is the condition the effect was measured under and more than a background usually wants; 0 is the background as it always was." },
-    { "near_ild", "The near field. The head model is a far-field one: it knows the shadow a head casts above a kilohertz, and nothing about a source within reach. Within a metre the wavefront is curved and the two ears are at measurably different distances from it, so the level difference grows at every frequency and most of all at the low ones -- twenty decibels and more at two hundred hertz for a source by the ear (Brungart and Rabinowitz 1999). That growth is the ear's own cue for closeness, which no presence filter gives it. A shelf below a kilohertz: cut on the far ear by up to eighteen decibels, lifted on the near one by up to four, scaled by how far to the side the voice sits and by the square of its nearness (Depth 0 is by the ear, and it is gone by the middle of the room). A voice in the centre gets nothing from it, as it should: both ears are the same distance from what is straight ahead." },
-    { "brain_cascade", "Events that cause events. The conductor's clock draws every gap afresh and remembers nothing, which is the most even a random clock can be -- and nothing in nature is that even: a gust brings gusts, one crack in cooling wood brings the next. This makes the clock a Hawkes process: each event lifts the rate by a jump that decays over half a mean gap, so notes arrive in caused clusters with quiet between them rather than at their steady average. At full, one event breeds about two-thirds of another and the conductor fires roughly three times as often as Rate alone would have it. 0 is the clock as it always was." },
-    { "brain_surprise", "How unpredictable the conductor aims to be, on the entropy of the intervals it has recently chosen: 0 is a machine repeating one figure, 1 is as unpredictable as twelve pitch classes allow. This is the target; Homeostat is how hard the conductor steers towards it. Predictive-coding accounts of listening put attention between two failures -- nothing surprising and the ear stops attending, everything surprising and it gives up -- and the middle of this knob is the middle of that." },
-    { "brain_homeostat", "How hard the conductor holds its interval entropy at Surprise. When the recent choices have become more predictable than asked, the draw is flattened so the unlikely notes get their turn; when they have become more random than asked, it is sharpened towards the best-fitting notes. In Chords mode the same lean widens or narrows the little noise on the choice. Needs a few events of history before it says anything; at 0 nothing leans and the choice is as it always was." },
-    { "purity_adapt", "Adaptive intonation. A note that starts is tuned pure against the notes already sounding -- nearest small-integer ratio to each of them, weighted by simplicity -- rather than against the root, and keeps that offset for as long as it sounds; capped at thirty cents. Such offsets accumulate: a progression through pure fifths and thirds walks away by a syntonic comma (21.5 cents) per cycle, which is why fixed just intonation either drifts or sours. So a common offset shared by every voice pays the drift back at three cents a minute, below the ear's threshold for a moving pitch, and because all the voices move together every interval stays exactly as pure as it was. Works on top of Purity and the scale; 0 is the tuning as it always was." },
-    { "arc_clock", "The arc follows the clock instead of its own slow drift. A piece that runs all night can know what time it is -- the idea of the generative apps, Eno's Reflection and Endel among them -- so that its dawn and the real one coincide: the night's bottom is at four in the morning, its top at four in the afternoon, a cosine between, and Arc and Arc Harmony still decide how far that leans on the sound. Arc Period is ignored while this is on. Switching either way glides over twenty seconds rather than jumping. Off, the arc is exactly the drift it always was." },
+    { "lenia_growth",
+      "The centre of the Lenia growth rule: how much company a cell wants around it before it grows rather than decays. The classic setting is 0.15; lower makes a sparser, wandering field, higher a denser, pulsing one, and at the ends of the range the field tends to die or to fill up, at which point it is reseeded with a few soft blobs and goes on." },
+    { "sub_pulse",
+      "The Foundation pulses at the Binaural rate: a raised cosine on its level, full at the top of every cycle and down by this amount at the bottom, with no corner anywhere. Binaural alone makes a beat only in the brainstem, where the two ears' phases are compared; an amplitude modulation is a beat on the basilar membrane itself, and it drives the auditory steady-state response of the cortex several times harder -- which is why the entrainment literature has moved to this hybrid of the two. Whether a few hertz of pulse entrain anything worth the name is a less settled question than its advocates say (the systematic reviews call the evidence inconsistent); what this builds is the modulation, not the claim. Needs a Binaural rate to pulse at; with Binaural at 0 it stands still and does nothing." },
+    { "fb_bias",
+      "The feedback shaper's operating point follows the bass. A static curve makes the same harmonics whatever came before it; a transformer or a capacitor-coupled tube stage does not -- low-frequency energy charges the coupling and shifts where on the curve the signal is being bent, so a bass swell changes how the highs distort, which is much of what an analogue stage's warmth is (the reactive nonlinearities of the wave-digital literature, Chowdhury among others). This is the cheapest honest form of that: the loop's content below sixty hertz, rectified and followed at five hertz, pushes the shaper's input off centre as the bass rises -- in the curve's own units after Drive, by up to 1.2, most of it there once the bass is a hundredth of full scale -- the loop throttles itself to small levels, so an offset proportional to them would never be heard, and one that rode on Drive would push the signal off the end of the curve -- so second harmonics come and go with the bass. Rides on Drive; 0 is the shaper as it always was." },
+    { "far_comod",
+      "The whole background breathes to one slow random envelope -- a new target about nine times a second, a smooth curve between -- so that every band of it rises and falls together. Hall, Haggard and Fernandes (1984) found that a tone in a noise whose bands move together is heard ten to fifteen decibels further down than in a noise whose bands move independently: the ear groups what moves together into one object and listens past it. Nothing in the foreground follows the envelope, which is what makes the foreground the thing heard past it. Full is a hundred per cent depth, which is the condition the effect was measured under and more than a background usually wants; 0 is the background as it always was." },
+    { "near_ild",
+      "The near field. The head model is a far-field one: it knows the shadow a head casts above a kilohertz, and nothing about a source within reach. Within a metre the wavefront is curved and the two ears are at measurably different distances from it, so the level difference grows at every frequency and most of all at the low ones -- twenty decibels and more at two hundred hertz for a source by the ear (Brungart and Rabinowitz 1999). That growth is the ear's own cue for closeness, which no presence filter gives it. A shelf below a kilohertz: cut on the far ear by up to eighteen decibels, lifted on the near one by up to four, scaled by how far to the side the voice sits and by the square of its nearness (Depth 0 is by the ear, and it is gone by the middle of the room). A voice in the centre gets nothing from it, as it should: both ears are the same distance from what is straight ahead." },
+    { "brain_cascade",
+      "Events that cause events. The conductor's clock draws every gap afresh and remembers nothing, which is the most even a random clock can be -- and nothing in nature is that even: a gust brings gusts, one crack in cooling wood brings the next. This makes the clock a Hawkes process: each event lifts the rate by a jump that decays over half a mean gap, so notes arrive in caused clusters with quiet between them rather than at their steady average. At full, one event breeds about two-thirds of another and the conductor fires roughly three times as often as Rate alone would have it. 0 is the clock as it always was." },
+    { "brain_surprise",
+      "How unpredictable the conductor aims to be, on the entropy of the intervals it has recently chosen: 0 is a machine repeating one figure, 1 is as unpredictable as twelve pitch classes allow. This is the target; Homeostat is how hard the conductor steers towards it. Predictive-coding accounts of listening put attention between two failures -- nothing surprising and the ear stops attending, everything surprising and it gives up -- and the middle of this knob is the middle of that." },
+    { "brain_homeostat",
+      "How hard the conductor holds its interval entropy at Surprise. When the recent choices have become more predictable than asked, the draw is flattened so the unlikely notes get their turn; when they have become more random than asked, it is sharpened towards the best-fitting notes. In Chords mode the same lean widens or narrows the little noise on the choice. Needs a few events of history before it says anything; at 0 nothing leans and the choice is as it always was." },
+    { "purity_adapt",
+      "Adaptive intonation. A note that starts is tuned pure against the notes already sounding -- nearest small-integer ratio to each of them, weighted by simplicity -- rather than against the root, and keeps that offset for as long as it sounds; capped at thirty cents. Such offsets accumulate: a progression through pure fifths and thirds walks away by a syntonic comma (21.5 cents) per cycle, which is why fixed just intonation either drifts or sours. So a common offset shared by every voice pays the drift back at three cents a minute, below the ear's threshold for a moving pitch, and because all the voices move together every interval stays exactly as pure as it was. Works on top of Purity and the scale; 0 is the tuning as it always was." },
+    { "arc_clock",
+      "The arc follows the clock instead of its own slow drift. A piece that runs all night can know what time it is -- the idea of the generative apps, Eno's Reflection and Endel among them -- so that its dawn and the real one coincide: the night's bottom is at four in the morning, its top at four in the afternoon, a cosine between, and Arc and Arc Harmony still decide how far that leans on the sound. Arc Period is ignored while this is on. Switching either way glides over twenty seconds rather than jumping. Off, the arc is exactly the drift it always was." },
     { "arc_sync", "Ties the arc's period to the tempo, in bars, instead of minutes." },
-    { "presence", "A broad bell at 2-5 kHz on the near plane only (up to 6 dB), gone on the far plane -- foreground articulation the way Rich carves it." },
-    { "breath", "Every voice's distance itself wanders by up to this much of the plane (0.35 at 1): the room breathes." },
+    { "presence",
+      "A broad bell at 2-5 kHz on the near plane only (up to 6 dB), gone on the far plane -- foreground articulation the way Rich carves it." },
+    { "breath",
+      "Every voice's distance itself wanders by up to this much of the plane (0.35 at 1): the room breathes." },
     { "breath_rate", "How fast the distances breathe. 0.03 Hz is half a minute per swing." },
-    { "phase_width", "Two all-pass stages per ear whose corners drift in opposite directions: the phase between left and right changes slowly and the room seems to change size rather than the sound to move. Off at 0." },
+    { "phase_width",
+      "Two all-pass stages per ear whose corners drift in opposite directions: the phase between left and right changes slowly and the room seems to change size rather than the sound to move. Off at 0." },
     { "phase_rate", "How fast the phase field drifts. Keep it slow: the effect is space, not tremolo." },
-    { "haas", "The Haas trick, done to one band only. Delaying a whole channel by ten to thirty milliseconds widens it and destroys it in mono. Between about 1.2 and 4 kHz, where the ear takes its direction from level rather than from time, each side is given the other side's delayed band six decibels down: the edges open and the bass and the top stay exactly where they were. Off at 0." },
-    { "haas_time", "How far that band is delayed. Twelve to eighteen milliseconds is the studio figure: long enough to be a separate arrival, short enough that the ear fuses it with the original instead of hearing an echo." },
-    { "binaural", "Headphones turns the stereo picture into a binaural one: the pan becomes an angle round the head, the interaural delay follows Woodworth's head model (0.65 ms at ninety degrees), the head shadow is at full strength whatever Time Width says, and a source behind the head gets the lower pinna notch that tells back from front. With a headset or an OSC head tracker sending /ambient/head, the whole field turns against the head, so a voice stays where it is in the room while you look round. On speakers leave it off." },
-    { "externalise", "The two cues a headphone image needs to sit outside the head: the notch the pinna cuts into what arrives from the side, and the reflection off the shoulder a quarter of a millisecond later. Both follow each voice's own position. On speakers leave it off." },
-    { "doppler", "As a voice breathes closer or further away its pitch bends a little, the way a moving source does. A few cents at most; the ear reads approach and retreat from it." },
+    { "haas",
+      "The Haas trick, done to one band only. Delaying a whole channel by ten to thirty milliseconds widens it and destroys it in mono. Between about 1.2 and 4 kHz, where the ear takes its direction from level rather than from time, each side is given the other side's delayed band six decibels down: the edges open and the bass and the top stay exactly where they were. Off at 0." },
+    { "haas_time",
+      "How far that band is delayed. Twelve to eighteen milliseconds is the studio figure: long enough to be a separate arrival, short enough that the ear fuses it with the original instead of hearing an echo." },
+    { "binaural",
+      "Headphones turns the stereo picture into a binaural one: the pan becomes an angle round the head, the interaural delay follows Woodworth's head model (0.65 ms at ninety degrees), the head shadow is at full strength whatever Time Width says, and a source behind the head gets the lower pinna notch that tells back from front. With a headset or an OSC head tracker sending /ambient/head, the whole field turns against the head, so a voice stays where it is in the room while you look round. On speakers leave it off." },
+    { "externalise",
+      "The two cues a headphone image needs to sit outside the head: the notch the pinna cuts into what arrives from the side, and the reflection off the shoulder a quarter of a millisecond later. Both follow each voice's own position. On speakers leave it off." },
+    { "doppler",
+      "As a voice breathes closer or further away its pitch bends a little, the way a moving source does. A few cents at most; the ear reads approach and retreat from it." },
 
     // ---- ensemble
     { "ens_mix", "Amount of the ensemble (a slow stereo chorus) on the near bus." },
     { "ens_depth", "Modulation depth of the ensemble's delay lines." },
     { "ens_rate", "Speed of the ensemble's modulation." },
-    { "ens_mode", "Velvet is the decorrelator the literature settled on: each channel is convolved with its own sparse random sequence of plus and minus one impulses -- velvet noise -- which is spectrally flat, so the two channels come apart without the sound being coloured and without anything being modulated. Chorus is the three modulated taps. Microshift is the studio's other way of widening: the two channels detuned a few cents in opposite directions and delayed by different amounts, with nothing moving. It survives a mono sum, which a deep chorus at 13 to 22 ms does not -- that is a comb filter waiting to be summed. In this mode Depth is the detune (up to 12 cents) and Rate a very slow wander of it, so the two sides never settle into a fixed phase." },
+    { "ens_mode",
+      "Velvet is the decorrelator the literature settled on: each channel is convolved with its own sparse random sequence of plus and minus one impulses -- velvet noise -- which is spectrally flat, so the two channels come apart without the sound being coloured and without anything being modulated. Chorus is the three modulated taps. Microshift is the studio's other way of widening: the two channels detuned a few cents in opposite directions and delayed by different amounts, with nothing moving. It survives a mono sum, which a deep chorus at 13 to 22 ms does not -- that is a comb filter waiting to be summed. In this mode Depth is the detune (up to 12 cents) and Rate a very slow wander of it, so the two sides never settle into a fixed phase." },
     { "ensemble_sync", "Ties the ensemble's rate to the tempo." },
 
     // ---- delays
-    { "dly_time_l", "Left delay time in seconds. The two sides are independent: asymmetry is what makes the space wide." },
+    { "dly_time_l",
+      "Left delay time in seconds. The two sides are independent: asymmetry is what makes the space wide." },
     { "dly_time_r", "Right delay time in seconds." },
     { "dly_sync_l", "Ties the left delay time to a note value at the current tempo; the knob is then ignored." },
     { "dly_sync_r", "Ties the right delay time to a note value at the current tempo." },
     { "dly_feedback", "How much of the delay returns into itself. Near 1 the echoes last for minutes." },
     { "dly_cross", "How much the left echo feeds the right and vice versa -- ping-pong at 1." },
     { "dly_damp", "Low-pass in the feedback path: each repeat darker than the last." },
-    { "dly_duck", "The echoes make room. While the input is loud the high cut inside the feedback loop drops, so a fresh attack does not have to fight the brightness of the last one's tail; as the note settles the loop opens again over about a second. It is the same idea as Unmask in the far reverb -- get out of the way of what is being played -- applied to the delay. At 0 the loop behaves exactly as it always did." },
-    { "dly_absorb", "Absorption: with Absorb up, the loop also loses its low end and its high cut moves down as Feedback rises, so long echoes drown into a warm fog instead of merely getting quieter." },
+    { "dly_duck",
+      "The echoes make room. While the input is loud the high cut inside the feedback loop drops, so a fresh attack does not have to fight the brightness of the last one's tail; as the note settles the loop opens again over about a second. It is the same idea as Unmask in the far reverb -- get out of the way of what is being played -- applied to the delay. At 0 the loop behaves exactly as it always did." },
+    { "dly_absorb",
+      "Absorption: with Absorb up, the loop also loses its low end and its high cut moves down as Feedback rises, so long echoes drown into a warm fog instead of merely getting quieter." },
     { "dly_mix", "Level of the echoes on the near (dry) bus." },
     { "dly_to_far", "Level of the echoes sent into the far reverb instead: echoes that recede into the background." },
 
@@ -233,132 +345,202 @@ const HelpEntry Help[] = {
     { "far_size", "Size of the far reverb's space (its delay lines)." },
     { "far_decay", "Decay time of the far reverb in seconds -- tens of seconds are the point." },
     { "far_damp", "High-frequency damping inside the far reverb: darker with every reflection." },
-    { "far_predelay", "Milliseconds before the far reverb starts, for everything that reaches it. Since 25.09.2026 the gap that says \"in front of the room\" belongs to the source and follows its distance (Space: Gap), so this is only the hall's own offset and stands near zero by default: a source on the horizon has no gap between its sound and its room, and a pre-delay here would give it one." },
-    { "depth_range", "How many decibels a source loses between the ear and the horizon. Six was the old law, and six decibels is a step, not a distance: the guide's three planes are 0 to -6, -10 to -18 and -20 to -36 dB under the foreground, and the ear reads depth as the difference between them. Exponential in the distance, so every step of the plane costs the same. At 20 a note at Depth 0.7 stands 14 dB under one at the ear and one on the horizon 20 under it; 30 and more is Lustmord's abyss, where the background is felt rather than heard." },
-    { "depth_predelay", "The gap a source at the ear leaves between its direct sound and its far reverb, in milliseconds; a source on the horizon leaves none. Pre-delay is the distance knob a mixer reaches for before the reverb amount: fifty milliseconds at thirty per cent reads as nearer than none at fifteen. Here it is not a knob on the hall but a cue of the source, per voice, shrinking with the distance -- so an approaching event closes its gap as it comes." },
-    { "depth_width", "How wide a source's strands and partials fan out at the ear, as a share of Spread; on the horizon they fan out fully. Width by plane: the guide wants the near layer placeable (20 to 40 per cent, a correlation of 0.5 to 0.9) and the far layer a surround (90 to 100 per cent), and nothing in the instrument told the width where a note stood until 25.09.2026. Far Width on the far reverb still narrows the background's tail if a preset asks for that funnel." },
-    { "send_lowcut", "A high-pass in front of every reverb -- the near room, the far hall and the convolution room -- so that nothing under it is ever thrown into a tail. The first rule of reverb in the production guide: filter the send, 150 to 300 Hz, before the room and not on its return. Fundamentals fed into a hall come back as a low-frequency mass that no Low Cut on the tail removes, because by then they have recirculated for the length of the decay. The three Low Cut knobs stay what they were, filters on the tails; this is the one ahead of them. Second order, -3 dB at the number; 20 Hz switches it off." },
-    { "sub_harmonics", "The residue of the Foundation: its second and third harmonic, at -24 and -27 dB under the fundamental at full, made from the sub's own phase so they are exact and alias nothing. A small speaker cannot move at forty hertz, and a sub of one sine is simply absent on it; the ear rebuilds the missing fundamental from its harmonics (the residue pitch, Schouten 1940), so with them the note is still heard where it cannot be felt. 0.6 by default, which is -28 and -31 dB." },
-    { "sub_beat", "A second sine this many hertz above the Foundation, in both ears alike, so the pair's level swells and fades once every 1/Beat seconds: 0.1 to 0.4 is the slow breath of a Lustmord sub, two and a half to ten seconds a cycle, felt as the room itself breathing. This is a beat on the basilar membrane -- both sines reach each ear -- where Binaural is a beat made between the ears; Binaural changes nothing when the two channels are summed, this survives mono. The two share the level, so the peak stays where the sub alone peaked; the trough is silence." },
-    { "far_asym", "Stretches the right half of the reverb's lines and delays its output slightly, so the two ears hear different reflections." },
+    { "far_predelay",
+      "Milliseconds before the far reverb starts, for everything that reaches it. Since 25.09.2026 the gap that says \"in front of the room\" belongs to the source and follows its distance (Space: Gap), so this is only the hall's own offset and stands near zero by default: a source on the horizon has no gap between its sound and its room, and a pre-delay here would give it one." },
+    { "depth_range",
+      "How many decibels a source loses between the ear and the horizon. Six was the old law, and six decibels is a step, not a distance: the guide's three planes are 0 to -6, -10 to -18 and -20 to -36 dB under the foreground, and the ear reads depth as the difference between them. Exponential in the distance, so every step of the plane costs the same. At 20 a note at Depth 0.7 stands 14 dB under one at the ear and one on the horizon 20 under it; 30 and more is Lustmord's abyss, where the background is felt rather than heard." },
+    { "depth_predelay",
+      "The gap a source at the ear leaves between its direct sound and its far reverb, in milliseconds; a source on the horizon leaves none. Pre-delay is the distance knob a mixer reaches for before the reverb amount: fifty milliseconds at thirty per cent reads as nearer than none at fifteen. Here it is not a knob on the hall but a cue of the source, per voice, shrinking with the distance -- so an approaching event closes its gap as it comes." },
+    { "depth_width",
+      "How wide a source's strands and partials fan out at the ear, as a share of Spread; on the horizon they fan out fully. Width by plane: the guide wants the near layer placeable (20 to 40 per cent, a correlation of 0.5 to 0.9) and the far layer a surround (90 to 100 per cent), and nothing in the instrument told the width where a note stood until 25.09.2026. Far Width on the far reverb still narrows the background's tail if a preset asks for that funnel." },
+    { "send_lowcut",
+      "A high-pass in front of every reverb -- the near room, the far hall and the convolution room -- so that nothing under it is ever thrown into a tail. The first rule of reverb in the production guide: filter the send, 150 to 300 Hz, before the room and not on its return. Fundamentals fed into a hall come back as a low-frequency mass that no Low Cut on the tail removes, because by then they have recirculated for the length of the decay. The three Low Cut knobs stay what they were, filters on the tails; this is the one ahead of them. Second order, -3 dB at the number; 20 Hz switches it off." },
+    { "sub_harmonics",
+      "The residue of the Foundation: its second and third harmonic, at -24 and -27 dB under the fundamental at full, made from the sub's own phase so they are exact and alias nothing. A small speaker cannot move at forty hertz, and a sub of one sine is simply absent on it; the ear rebuilds the missing fundamental from its harmonics (the residue pitch, Schouten 1940), so with them the note is still heard where it cannot be felt. 0.6 by default, which is -28 and -31 dB." },
+    { "sub_beat",
+      "A second sine this many hertz above the Foundation, in both ears alike, so the pair's level swells and fades once every 1/Beat seconds: 0.1 to 0.4 is the slow breath of a Lustmord sub, two and a half to ten seconds a cycle, felt as the room itself breathing. This is a beat on the basilar membrane -- both sines reach each ear -- where Binaural is a beat made between the ears; Binaural changes nothing when the two channels are summed, this survives mono. The two share the level, so the peak stays where the sub alone peaked; the trough is silence." },
+    { "far_asym",
+      "Stretches the right half of the reverb's lines and delays its output slightly, so the two ears hear different reflections." },
     { "far_highcut", "Low-pass on the far reverb's tail." },
-    { "far_lowcut", "High-pass on the far reverb's tail, 12 dB/oct, off at 20 Hz. The other end of the funnel a mixing engineer puts on a reverb return: dense tails and synthetic textures pile up between 200 and 450 Hz, and that is exactly where a background stops being behind the music and starts covering it. Somewhere between 300 and 500 Hz the tail loses its weight and lays itself behind the notes instead of over them." },
-    { "near_lowcut", "The same for the near room: the small reverb's own low end, taken out so the foreground keeps its body." },
-    { "room_lowcut", "The same for the convolution room. Real impulse responses of large spaces carry a lot of low-mid energy, which is what makes them sound real and what makes them muddy in a mix." },
-    { "subsonic", "A steep high-pass (24 dB/oct) on the finished output, off at 0. Below about 20 Hz there is nothing to hear, but there is plenty to move: it takes headroom, it drives amplifiers and speaker cones for nothing, and it makes mastering processors distort early. Off by default and adjustable rather than fixed, because the Foundation two octaves under a low root reaches about 16 Hz -- a mastering engineer's 20 Hz cut would take this instrument's deepest tone with it. Set it under the lowest note you actually want." },
-    { "vec_amount", "How much of the Vector: at 0 each source slot plays at the level it is set to and nothing here does anything. Turned up, the levels are taken over by a point in a square (X, Y) whose corners are the four source slots -- the Prophet VS and Wavestation idea, where the timbre is a place rather than a setting." },
+    { "far_lowcut",
+      "High-pass on the far reverb's tail, 12 dB/oct, off at 20 Hz. The other end of the funnel a mixing engineer puts on a reverb return: dense tails and synthetic textures pile up between 200 and 450 Hz, and that is exactly where a background stops being behind the music and starts covering it. Somewhere between 300 and 500 Hz the tail loses its weight and lays itself behind the notes instead of over them." },
+    { "near_lowcut",
+      "The same for the near room: the small reverb's own low end, taken out so the foreground keeps its body." },
+    { "room_lowcut",
+      "The same for the convolution room. Real impulse responses of large spaces carry a lot of low-mid energy, which is what makes them sound real and what makes them muddy in a mix." },
+    { "subsonic",
+      "A steep high-pass (24 dB/oct) on the finished output, off at 0. Below about 20 Hz there is nothing to hear, but there is plenty to move: it takes headroom, it drives amplifiers and speaker cones for nothing, and it makes mastering processors distort early. Off by default and adjustable rather than fixed, because the Foundation two octaves under a low root reaches about 16 Hz -- a mastering engineer's 20 Hz cut would take this instrument's deepest tone with it. Set it under the lowest note you actually want." },
+    { "vec_amount",
+      "How much of the Vector: at 0 each source slot plays at the level it is set to and nothing here does anything. Turned up, the levels are taken over by a point in a square (X, Y) whose corners are the four source slots -- the Prophet VS and Wavestation idea, where the timbre is a place rather than a setting." },
     { "vec_x", "Left to right in the square: Source 1 at the left edge, Source 2 at the right." },
     { "vec_y", "Bottom to top: Source 3 at the top left, Source 4 at the top right." },
-    { "vec_wander", "The point drifts on its own by this much, on two slow curves that share no ratio, so it never traces the same path twice." },
+    { "vec_wander",
+      "The point drifts on its own by this much, on two slow curves that share no ratio, so it never traces the same path twice." },
     { "vec_rate", "How fast it drifts. Drone rates: a whole cycle takes minutes at the low end." },
     { "far_freeze", "Holds the far reverb's tail forever: an instant infinite pad of whatever was in it." },
-    { "far_unmask", "The background steps aside for the foreground, band by band: while a voice sounds, the far reverb and the convolution room lose that part of the spectrum and let it back in when the voice goes. A dense pad keeps its own notes audible instead of swallowing them. Seven bands an octave apart from 150 Hz to 4.8 kHz since 25.09.2026 (the production guide asks for six to eight), so the background gives way only where the foreground actually is; the guide's depth is two to four decibels, which is where a tenth to a fifth of the knob lands for a foreground at -20 dBFS in the band it ducks (measured: 0.3 takes 5.8 dB out there, and 0.6 at 200 Hz)." },
-    { "body_level", "Level of the resonating body: twelve modes tuned to the root, fed from the finished mix and returned to it. Not a reverb -- a reverb is a statistical tail, this is a handful of pitched resonances, which is the difference the ear hears between a room and an instrument." },
-    { "body_material", "Which set of mode ratios: Wood (a soundboard's irregular low modes), Plate (the stretched series of flat metal), Bell (hum, prime, tierce, quint, nominal), String (harmonic with a little stiffness)." },
-    { "body_pitch", "What the body is tuned to, as a multiple of the brain's root. 1 is the root itself; 0.5 puts the body an octave below the music, which is what a large soundboard does." },
-    { "body_decay", "How long the lowest mode rings. The higher modes die away faster, at a rate that belongs to the material." },
-    { "body_tone", "Tilts the modes: at 0 only the low ones speak (dark and wooden), at 1 the high ones are as loud (bright and metallic)." },
-    { "body_spread", "How far the modes are scattered across the stereo field. A body is not a point source; this is what makes it read as width rather than as movement." },
-    { "patina", "The master's age: tape wow, the highs a worn machine no longer carries, a noise floor under the music, gentle saturation. Off at 0, and then not computed at all. Most of what separates a recording from a render." },
+    { "far_unmask",
+      "The background steps aside for the foreground, band by band: while a voice sounds, the far reverb and the convolution room lose that part of the spectrum and let it back in when the voice goes. A dense pad keeps its own notes audible instead of swallowing them. Seven bands an octave apart from 150 Hz to 4.8 kHz since 25.09.2026 (the production guide asks for six to eight), so the background gives way only where the foreground actually is; the guide's depth is two to four decibels, which is where a tenth to a fifth of the knob lands for a foreground at -20 dBFS in the band it ducks (measured: 0.3 takes 5.8 dB out there, and 0.6 at 200 Hz)." },
+    { "body_level",
+      "Level of the resonating body: twelve modes tuned to the root, fed from the finished mix and returned to it. Not a reverb -- a reverb is a statistical tail, this is a handful of pitched resonances, which is the difference the ear hears between a room and an instrument." },
+    { "body_material",
+      "Which set of mode ratios: Wood (a soundboard's irregular low modes), Plate (the stretched series of flat metal), Bell (hum, prime, tierce, quint, nominal), String (harmonic with a little stiffness)." },
+    { "body_pitch",
+      "What the body is tuned to, as a multiple of the brain's root. 1 is the root itself; 0.5 puts the body an octave below the music, which is what a large soundboard does." },
+    { "body_decay",
+      "How long the lowest mode rings. The higher modes die away faster, at a rate that belongs to the material." },
+    { "body_tone",
+      "Tilts the modes: at 0 only the low ones speak (dark and wooden), at 1 the high ones are as loud (bright and metallic)." },
+    { "body_spread",
+      "How far the modes are scattered across the stereo field. A body is not a point source; this is what makes it read as width rather than as movement." },
+    { "patina",
+      "The master's age: tape wow, the highs a worn machine no longer carries, a noise floor under the music, gentle saturation. Off at 0, and then not computed at all. Most of what separates a recording from a render." },
     { "patina_wow", "Depth of the wow and flutter: a wavering pitch, slow and irregular with a little 6 Hz on top." },
-    { "patina_hiss", "The noise floor, a touch louder when the tape is carrying more (that is modulation noise, and it is what makes a floor sound like tape rather than like dither)." },
+    { "patina_hiss",
+      "The noise floor, a touch louder when the tape is carrying more (that is modulation noise, and it is what makes a floor sound like tape rather than like dither)." },
     { "patina_age", "How much top end the machine has lost: from untouched down to about 4 kHz." },
-    { "far_diffuse", "Modulated all-passes in front of the far reverb: the tail arrives instead of starting. At zero the reverb answers immediately, as it always has; turned up, the first reflections smear into a slow swell that takes a second to become a room." },
-    { "far_rotate", "The whole background slowly turns: the far field's left and right rotate into each other on a minute-scale curve. Depth of the turn." },
-    { "far_mode", "Rotating is Colourless with the feedback changed: the line lengths stop wobbling and the feedback matrix turns instead -- eight rotations on pairs of lines, their angles advancing at a few hundredths of a hertz, in front of the reflection the network always had. Rotations and reflections are lossless whatever their angles, so the loop stays exactly energy-preserving while its modes are continually re-mixed rather than re-tuned: no pitch modulation anywhere in the tail, and a band pattern that drifts from moment to moment instead of ringing in one place (after Schlecht and Habets, time-varying feedback matrices). Colourless is Scattering with the eight line lengths replaced by a set searched offline for the flattest response, so the tail rings less at the lengths' own frequencies. Classic is the network as it always was: eight delay lines behind four all-passes. Scattering puts a short all-pass inside every line's loop, so each pass round the network scatters every echo into many: the echo density grows much faster (a quarter more of the tail is dense after 50 ms, measured) and the late tail is at least as smooth as before. Same decay, same level, a denser texture of tail -- after Schlecht and Habets." },
-    { "far_unmask_return", "Seconds the far reverb and the room take to come back after the foreground has ducked them (the duck itself takes twenty milliseconds). Half a second is the production guide's release and the default since 25.09.2026 (it was 1.2); at five to ten the horizon's return after a near event is a gesture of its own." },
-    { "far_unmask_spread", "How far a loud low band of the foreground also ducks the far reverb's bands above it. Masking in the ear is asymmetric: a low tone masks the frequencies above it far more than those below (the upward spread of masking), so a bass note in front should thin the background's middle as well as its bottom. At 0 the seven bands are independent." },
-    { "far_width", "The width of the background alone, before it is added to the foreground. A mix in which everything is spread as far as it will go has no depth left -- it is a flat wall. Pulling the far plane in towards the centre while the foreground stays wide is the funnel that reads as distance: the ear is drawn into the middle of the horizon. 1 is the reverb as it made itself, 0 a mono background, and above 1 wider." },
-    { "blur_mix", "A spectral smear on the near bus itself, ahead of the effects: every attack is wiped into texture, notes flow into each other. Mix of the blurred signal (latency 43 ms on the blurred part)." },
-    { "blur_smear", "How much the blur smears: 0 follows the input closely, 1 is a spectral freeze that only lets new energy in slowly." },
+    { "far_diffuse",
+      "Modulated all-passes in front of the far reverb: the tail arrives instead of starting. At zero the reverb answers immediately, as it always has; turned up, the first reflections smear into a slow swell that takes a second to become a room." },
+    { "far_rotate",
+      "The whole background slowly turns: the far field's left and right rotate into each other on a minute-scale curve. Depth of the turn." },
+    { "far_mode",
+      "Rotating is Colourless with the feedback changed: the line lengths stop wobbling and the feedback matrix turns instead -- eight rotations on pairs of lines, their angles advancing at a few hundredths of a hertz, in front of the reflection the network always had. Rotations and reflections are lossless whatever their angles, so the loop stays exactly energy-preserving while its modes are continually re-mixed rather than re-tuned: no pitch modulation anywhere in the tail, and a band pattern that drifts from moment to moment instead of ringing in one place (after Schlecht and Habets, time-varying feedback matrices). Colourless is Scattering with the eight line lengths replaced by a set searched offline for the flattest response, so the tail rings less at the lengths' own frequencies. Classic is the network as it always was: eight delay lines behind four all-passes. Scattering puts a short all-pass inside every line's loop, so each pass round the network scatters every echo into many: the echo density grows much faster (a quarter more of the tail is dense after 50 ms, measured) and the late tail is at least as smooth as before. Same decay, same level, a denser texture of tail -- after Schlecht and Habets." },
+    { "far_unmask_return",
+      "Seconds the far reverb and the room take to come back after the foreground has ducked them (the duck itself takes twenty milliseconds). Half a second is the production guide's release and the default since 25.09.2026 (it was 1.2); at five to ten the horizon's return after a near event is a gesture of its own." },
+    { "far_unmask_spread",
+      "How far a loud low band of the foreground also ducks the far reverb's bands above it. Masking in the ear is asymmetric: a low tone masks the frequencies above it far more than those below (the upward spread of masking), so a bass note in front should thin the background's middle as well as its bottom. At 0 the seven bands are independent." },
+    { "far_width",
+      "The width of the background alone, before it is added to the foreground. A mix in which everything is spread as far as it will go has no depth left -- it is a flat wall. Pulling the far plane in towards the centre while the foreground stays wide is the funnel that reads as distance: the ear is drawn into the middle of the horizon. 1 is the reverb as it made itself, 0 a mono background, and above 1 wider." },
+    { "blur_mix",
+      "A spectral smear on the near bus itself, ahead of the effects: every attack is wiped into texture, notes flow into each other. Mix of the blurred signal (latency 43 ms on the blurred part)." },
+    { "blur_smear",
+      "How much the blur smears: 0 follows the input closely, 1 is a spectral freeze that only lets new energy in slowly." },
 
     // ---- feedback
-    { "fb_bus", "The mixed output returns, low-passed and saturated, into the near bus before the filters and effects -- throttled by the output level so it hisses and holds instead of running away." },
+    { "fb_bus",
+      "The mixed output returns, low-passed and saturated, into the near bus before the filters and effects -- throttled by the output level so it hisses and holds instead of running away." },
     { "fb_fm", "The returned output phase-modulates every partial of every voice (To Pitch): the sound bends itself." },
     { "fb_tone", "Low-pass on the feedback path." },
     { "fb_drive", "Saturation in the feedback path." },
     { "fb_tape", "Tape in the loop: asymmetric saturation, wow and flutter, a level-dependent noise floor." },
 
     // ---- room
-    { "early_level", "The room's early reflections, from its geometry rather than from a reverb's statistics: the six surfaces of a shoebox, each with its own delay and direction, added to the foreground. What the ear takes the size of a room and the distance of a source from is not the tail but the first arrivals -- when they come and from where -- and unlike the far reverb this part moves when the sound does: the source position follows the sounding voices' own pan and distance. Off at 0, and then not computed." },
-    { "early_size", "The room's longest dimension in metres. The shoebox is that by four fifths by nine twentieths, proportions with no simple ratio between them so the room's own modes do not pile up; the first reflections arrive at the times those dimensions imply, from about ten milliseconds in a small room to over a hundred in a hall." },
-    { "early_absorb", "How much each surface takes out of a reflection, and how dark what comes back is. At 0 the walls are stone and the reflections go on bouncing; at 1 they are cloth and the room answers once and stops." },
-    { "early_width", "How far apart the six surfaces are placed in the stereo picture. 1 puts each where its own direction says; below that the room narrows towards the centre, above it opens past the speakers." },
-    { "room_level", "Level of the convolution room, an extra reverb from a loaded impulse response (or the built-in dark hall), in parallel on the far plane." },
-    { "room_to_far", "How much of the room's return is sent on into the far reverb: the production guide's serial rooms, ten to twenty per cent of the main room into the room behind it, so the horizon sounds like the same place going on rather than a second, foreign one -- the trick behind Lustmord's endless rooms. Taken before the room is ducked under the foreground, and nothing at all while Room Level is 0. 0.15 by default since 25.09.2026." },
-    { "far_mid_lowcut", "A high-pass on the middle of the far reverb's return, second order, with its sides left alone. The production guide thinks of a return in mid and side: the sides of the far room may be as wide as they like, its centre is cut from 300 Hz so the low middle of the stereo image belongs to the near plane and the sub. 20 Hz switches it off. 300 by default since 25.09.2026." },
-    { "sub_ceiling", "The Foundation's own limiter, in dBFS at the output (the master gain is taken into account). A beating sub (Beat, Pulse) swings its peaks by up to six decibels, and summed straight into the master it drove the output's soft clipper, which then pumped everything else with it; the production guide limits the sub alone before the sum, at -6 dBFS. It holds a peak at once, acts on it within five milliseconds and lets go over half a second, slow enough that a 25 Hz sine is not distorted by its own limiter." },
+    { "early_level",
+      "The room's early reflections, from its geometry rather than from a reverb's statistics: the six surfaces of a shoebox, each with its own delay and direction, added to the foreground. What the ear takes the size of a room and the distance of a source from is not the tail but the first arrivals -- when they come and from where -- and unlike the far reverb this part moves when the sound does: the source position follows the sounding voices' own pan and distance. Off at 0, and then not computed." },
+    { "early_size",
+      "The room's longest dimension in metres. The shoebox is that by four fifths by nine twentieths, proportions with no simple ratio between them so the room's own modes do not pile up; the first reflections arrive at the times those dimensions imply, from about ten milliseconds in a small room to over a hundred in a hall." },
+    { "early_absorb",
+      "How much each surface takes out of a reflection, and how dark what comes back is. At 0 the walls are stone and the reflections go on bouncing; at 1 they are cloth and the room answers once and stops." },
+    { "early_width",
+      "How far apart the six surfaces are placed in the stereo picture. 1 puts each where its own direction says; below that the room narrows towards the centre, above it opens past the speakers." },
+    { "room_level",
+      "Level of the convolution room, an extra reverb from a loaded impulse response (or the built-in dark hall), in parallel on the far plane." },
+    { "room_to_far",
+      "How much of the room's return is sent on into the far reverb: the production guide's serial rooms, ten to twenty per cent of the main room into the room behind it, so the horizon sounds like the same place going on rather than a second, foreign one -- the trick behind Lustmord's endless rooms. Taken before the room is ducked under the foreground, and nothing at all while Room Level is 0. 0.15 by default since 25.09.2026." },
+    { "far_mid_lowcut",
+      "A high-pass on the middle of the far reverb's return, second order, with its sides left alone. The production guide thinks of a return in mid and side: the sides of the far room may be as wide as they like, its centre is cut from 300 Hz so the low middle of the stereo image belongs to the near plane and the sub. 20 Hz switches it off. 300 by default since 25.09.2026." },
+    { "sub_ceiling",
+      "The Foundation's own limiter, in dBFS at the output (the master gain is taken into account). A beating sub (Beat, Pulse) swings its peaks by up to six decibels, and summed straight into the master it drove the output's soft clipper, which then pumped everything else with it; the production guide limits the sub alone before the sum, at -6 dBFS. It holds a peak at once, acts on it within five milliseconds and lets go over half a second, slow enough that a 25 Hz sine is not distorted by its own limiter." },
     { "room_source", "What the room reverberates: the far sends (before the far reverb) or the finished near bus." },
     { "room_predelay", "Milliseconds before the room's response starts." },
     { "room_highcut", "Low-pass on the room's tail." },
-    { "room_morph", "Crossfades between the two loaded impulses, A and B: one room becomes another over as long as you like. The two are blended inside the one convolution, so a morph costs what one room costs. A pack preset brings its B with it; one that names its room but no B plays A alone, whatever B was loaded before." },
+    { "room_morph",
+      "Crossfades between the two loaded impulses, A and B: one room becomes another over as long as you like. The two are blended inside the one convolution, so a morph costs what one room costs. A pack preset brings its B with it; one that names its room but no B plays A alone, whatever B was loaded before." },
 
     // ---- cosmos
-    { "cosmos_send", "How much of the near bus goes into the Cosmos path (frequency shifter, resonator, vowel, nebula). The dry signal is untouched; Cosmos is additive." },
-    { "cosmos_shift", "Frequency shift in hertz: every partial moves by the same amount, so the harmonic series becomes inharmonic. The right channel shifts 3 % less." },
+    { "cosmos_send",
+      "How much of the near bus goes into the Cosmos path (frequency shifter, resonator, vowel, nebula). The dry signal is untouched; Cosmos is additive." },
+    { "cosmos_shift",
+      "Frequency shift in hertz: every partial moves by the same amount, so the harmonic series becomes inharmonic. The right channel shifts 3 % less." },
     { "cosmos_shift_drift", "Lets the shift wander slowly around its value." },
     { "cosmos_res", "Level of the comb resonator tuned to the brain's root." },
     { "cosmos_res_pitch", "The resonator's pitch as a multiple of the root." },
     { "cosmos_res_fb", "Resonator feedback: how long it rings." },
     { "cosmos_vowel", "The vowel filter's position, a-e-i-o-u." },
     { "cosmos_vowel_rate", "How fast the vowel wanders." },
-    { "cosmos_nebula", "Mix of the Nebula: a spectral smear that scatters the phases of the spectrum, a frozen cloud at full Smear." },
+    { "cosmos_nebula",
+      "Mix of the Nebula: a spectral smear that scatters the phases of the spectrum, a frozen cloud at full Smear." },
     { "cosmos_smear", "How much the Nebula smears; 1 is a spectral freeze." },
-    { "cosmos_shimmer", "Feeds the far reverb's pitch-shifted previous block back into its input: the rising cloud. Regulated by the reverb level so it cannot run into the clipper." },
-    { "cosmos_shimmer_pitch", "The shimmer's transposition: an octave up, a fifth, a fourth, an octave and a fifth, an octave down, two up." },
+    { "cosmos_shimmer",
+      "Feeds the far reverb's pitch-shifted previous block back into its input: the rising cloud. Regulated by the reverb level so it cannot run into the clipper." },
+    { "cosmos_shimmer_pitch",
+      "The shimmer's transposition: an octave up, a fifth, a fourth, an octave and a fifth, an octave down, two up." },
     { "cosmos_return", "How much of the Cosmos path returns to the near plane." },
     { "cosmos_to_far", "How much of the Cosmos path goes into the far reverb." },
 
     // ---- cloud
-    { "cloud_send", "How much of the recent foreground the granular cloud takes. What comes back lands on the far plane, behind everything, unless To Near brings some of it forward." },
-    { "cloud_to_near", "How much of the cloud comes back in front instead of behind. The cloud has always returned to the far bus alone -- it was built as a background that the far reverb smears, and at 0 that is exactly what it still is. Turned up, the same grains are shared between the two planes at equal power, so the cloud moves forward without there being more of it. If you have ever turned the Send all the way up and wondered where it went, it went behind you." },
+    { "cloud_send",
+      "How much of the recent foreground the granular cloud takes. What comes back lands on the far plane, behind everything, unless To Near brings some of it forward." },
+    { "cloud_to_near",
+      "How much of the cloud comes back in front instead of behind. The cloud has always returned to the far bus alone -- it was built as a background that the far reverb smears, and at 0 that is exactly what it still is. Turned up, the same grains are shared between the two planes at equal power, so the cloud moves forward without there being more of it. If you have ever turned the Send all the way up and wondered where it went, it went behind you." },
     { "cloud_density", "Grains per second in the cloud." },
     { "cloud_sync", "Ties the cloud's grain rate to the tempo." },
     { "cloud_size", "Length of the cloud's grains in milliseconds." },
-    { "cloud_pitch", "Transposition of the cloud's grains: octaves and fifths, the cloud a register above the voices." },
+    { "cloud_pitch",
+      "Transposition of the cloud's grains: octaves and fifths, the cloud a register above the voices." },
     { "cloud_spray", "How far back in time (seconds) the grains are taken from." },
     { "cloud_level", "Level of the cloud, dropped into the far reverb." },
-    { "cloud_feedback", "How much of the cloud goes back into its own history: grains of grains, transpositions that stack. Saturated without aliasing and held at a ceiling, so 1 sustains instead of running away." },
+    { "cloud_feedback",
+      "How much of the cloud goes back into its own history: grains of grains, transpositions that stack. Saturated without aliasing and held at a ceiling, so 1 sustains instead of running away." },
     { "cloud_tone", "Low-pass in the cloud's feedback loop: how much brightness each pass keeps." },
     { "cloud_transpose", "Transposes every grain of the cloud, in semitones." },
-    { "cloud_scatter", "Spreads the grains over the intervals of the scale that is playing, measured from the conductor's root: octaves first, then fifths and fourths, then the rest -- the whole scale at a half. Beyond a half the grains begin to leave the scale; at 1 they are free." },
-    { "cloud_swarm", "Grains in flocks: every grain makes the next more likely for a moment (a Hawkes process), at the same mean density." },
-    { "cloud_resonance", "Mix of the resonators on the scale's notes. Each grain excites one of them, and it rings on after its grain has ended." },
-    { "cloud_res_mode", "Band: one resonance per note, which glides when the root moves. Comb: a tuned comb, every harmonic of the note ringing." },
-    { "cloud_res_notes", "Which notes the resonators sit on, in the two octaves above C3: the whole scale, the chord on the conductor's root, its fifths, or its octaves." },
+    { "cloud_scatter",
+      "Spreads the grains over the intervals of the scale that is playing, measured from the conductor's root: octaves first, then fifths and fourths, then the rest -- the whole scale at a half. Beyond a half the grains begin to leave the scale; at 1 they are free." },
+    { "cloud_swarm",
+      "Grains in flocks: every grain makes the next more likely for a moment (a Hawkes process), at the same mean density." },
+    { "cloud_resonance",
+      "Mix of the resonators on the scale's notes. Each grain excites one of them, and it rings on after its grain has ended." },
+    { "cloud_res_mode",
+      "Band: one resonance per note, which glides when the root moves. Comb: a tuned comb, every harmonic of the note ringing." },
+    { "cloud_res_notes",
+      "Which notes the resonators sit on, in the two octaves above C3: the whole scale, the chord on the conductor's root, its fifths, or its octaves." },
     { "cloud_res_decay", "How long the cloud's resonators ring, in seconds to -60 dB." },
-    { "cloud_shift", "Transposes the cloud's feedback loop on every pass -- an octave, a fifth or a fourth, up or down -- in the spectrum, so a spiral of grains climbs or sinks cleanly. Needs Feedback." },
-    { "cosmos_shimmer_mode", "Which shifter the shimmer loop uses. Spectral moves every partial in the spectrum and stays clean however often the loop comes round; Grain is the two-head shifter the shimmer always had, with its flutter." },
+    { "cloud_shift",
+      "Transposes the cloud's feedback loop on every pass -- an octave, a fifth or a fourth, up or down -- in the spectrum, so a spiral of grains climbs or sinks cleanly. Needs Feedback." },
+    { "cosmos_shimmer_mode",
+      "Which shifter the shimmer loop uses. Spectral moves every partial in the spectrum and stays clean however often the loop comes round; Grain is the two-head shifter the shimmer always had, with its flutter." },
     // ---- memory
     { "mem_send", "How much of the foreground goes into the Memory, a long drifting sound memory beside the Cosmos." },
     { "mem_return", "Level of the Memory back on the near plane." },
     { "mem_to_far", "Level of the Memory into the background, where the far reverb takes it." },
-    { "mem_lines", "How many delay lines the memory is divided into: two long ones, four, or eight shorter ones. Changing it re-divides what the memory holds." },
-    { "mem_size", "How long the longest line repeats, in seconds; the others step down from it to six tenths, every length a prime number of samples." },
-    { "mem_blur", "Exchange between the lines: at 0 every line is its own echo, towards 1 every echo runs through all of them, and beyond a half the echoes scatter into a space. It never changes the level." },
-    { "mem_drift", "The lines slide against each other and wander across the stereo field, bent by a slow chaotic signal -- at most 15 cents of pitch, so the echoes move and the notes do not warble." },
+    { "mem_lines",
+      "How many delay lines the memory is divided into: two long ones, four, or eight shorter ones. Changing it re-divides what the memory holds." },
+    { "mem_size",
+      "How long the longest line repeats, in seconds; the others step down from it to six tenths, every length a prime number of samples." },
+    { "mem_blur",
+      "Exchange between the lines: at 0 every line is its own echo, towards 1 every echo runs through all of them, and beyond a half the echoes scatter into a space. It never changes the level." },
+    { "mem_drift",
+      "The lines slide against each other and wander across the stereo field, bent by a slow chaotic signal -- at most 15 cents of pitch, so the echoes move and the notes do not warble." },
     { "mem_hold", "How long a memory lasts: 4 seconds to -60 dB at 0, many minutes near 1, for ever at 1." },
-    { "mem_age", "How much darker a memory grows as it fades: the highs go faster than the lows, at the same rate in every line." },
+    { "mem_age",
+      "How much darker a memory grows as it fades: the highs go faster than the lows, at the same rate in every line." },
     { "mem_renew", "What arrives pushes out what the memory holds, the harder the louder it is." },
-    { "mem_drive", "Saturation in the loop, without aliasing: a hot memory holds at its limit and grows a little darker on every pass, as tape does." },
+    { "mem_drive",
+      "Saturation in the loop, without aliasing: a hot memory holds at its limit and grows a little darker on every pass, as tape does." },
     { "mem_recall", "Grains played out of the whole memory instead of its echoes." },
-    { "mem_seek", "How much the recalled grains prefer stretches whose notes fit the scale and what came in during the last seconds, against chance." },
+    { "mem_seek",
+      "How much the recalled grains prefer stretches whose notes fit the scale and what came in during the last seconds, against chance." },
     { "mem_grain", "Length of the recalled grains, in milliseconds." },
     { "mem_freeze", "Holds what the memory has, exactly, and takes nothing new in." },
-    { "mem_reverse", "Runs the memory's tape backwards: what was recorded plays backwards, and what is recorded now comes back as it went in." },
+    { "mem_reverse",
+      "Runs the memory's tape backwards: what was recorded plays backwards, and what is recorded now comes back as it went in." },
     { "mem_half", "Runs the memory's tape at half speed: what was recorded plays an octave down and twice as long." },
     { "mem_erase", "Empties the memory, and keeps it empty while on." },
 
     // ---- master
-    { "master_tilt", "One broad see-saw around the pivot: turn it down and the whole instrument leans dark, up and it leans open. A single tilt does more for an ambient mix than any equaliser with more knobs, because it never carves a hole." },
-    { "tilt_pivot", "The frequency the tilt turns around: everything below moves one way, everything above the other." },
-    { "bass_mono", "Below this frequency the side channel is removed: a mono low end, the foundation of a wide picture." },
+    { "master_tilt",
+      "One broad see-saw around the pivot: turn it down and the whole instrument leans dark, up and it leans open. A single tilt does more for an ambient mix than any equaliser with more knobs, because it never carves a hole." },
+    { "tilt_pivot",
+      "The frequency the tilt turns around: everything below moves one way, everything above the other." },
+    { "bass_mono",
+      "Below this frequency the side channel is removed: a mono low end, the foundation of a wide picture." },
     { "side_air", "A broad bell at 3 kHz on the side channel, up to +6 dB: air in the width." },
-    { "mono_guard", "A safety net for mono. Everything in this instrument is built to widen -- all-pass phase width, asymmetric delays, a reverb whose two sides are deliberately different -- and a drone that sounds gigantic in stereo can lose most of itself when a phone, a club system or a radio sums it to mono. With this on, the side channel is measured against the mid over about a second and a half, and if the side really is the louder of the two the width is eased back, by at most a quarter and at about two per cent a second. It never touches the middle of the mix, only how far the sides may go, and on anything that is already mono-safe it does nothing at all. Off if you would rather have the width and check the mono sum yourself." },
+    { "mono_guard",
+      "A safety net for mono. Everything in this instrument is built to widen -- all-pass phase width, asymmetric delays, a reverb whose two sides are deliberately different -- and a drone that sounds gigantic in stereo can lose most of itself when a phone, a club system or a radio sums it to mono. With this on, the side channel is measured against the mid over about a second and a half, and if the side really is the louder of the two the width is eased back, by at most a quarter and at about two per cent a second. It never touches the middle of the mix, only how far the sides may go, and on anything that is already mono-safe it does nothing at all. Off if you would rather have the width and check the mono sum yourself." },
     { "width", "Stereo width: 1 as recorded, above widens, 0 mono." },
 
     // ---- cluster brain
-    { "brain_on", "The conductor: chooses notes from the scale, places them on the planes, holds them for minutes and lets them go. Off, only your keys play." },
+    { "brain_on",
+      "The conductor: chooses notes from the scale, places them on the planes, holds them for minutes and lets them go. Off, only your keys play." },
     { "brain_density", "How many notes the brain keeps sounding at once." },
     { "brain_rate", "Seconds between the brain's decisions (a new note or a release), on average." },
     { "brain_sync", "Ties the brain's decision rate to the tempo -- a decision every so many bars." },
@@ -366,23 +548,35 @@ const HelpEntry Help[] = {
     { "brain_hold_max", "Longest time the brain holds a note, in seconds." },
     { "brain_low", "Lowest MIDI note the brain may choose." },
     { "brain_high", "Highest MIDI note the brain may choose." },
-    { "brain_consonance", "How strongly the brain prefers consonant intervals to the notes already sounding. 1 is pure, 0 anything goes." },
-    { "press_distance", "How far a key's pressure pulls its voice towards the listener. Press harder and the note steps out of the background into the foreground -- brighter, louder, drier, all at once, because the plane decides all of that." },
-    { "press_bright", "How much pressure opens (or, negative, closes) the voice's brightness on top of the plane change." },
+    { "brain_consonance",
+      "How strongly the brain prefers consonant intervals to the notes already sounding. 1 is pure, 0 anything goes." },
+    { "press_distance",
+      "How far a key's pressure pulls its voice towards the listener. Press harder and the note steps out of the background into the foreground -- brighter, louder, drier, all at once, because the plane decides all of that." },
+    { "press_bright",
+      "How much pressure opens (or, negative, closes) the voice's brightness on top of the plane change." },
     { "press_level", "How much pressure raises the voice's level." },
     { "slide_cutoff", "How far a sideways slide (CC 74 on an MPE controller) moves that voice's filter, in octaves." },
     { "slide_z", "How far the slide moves that voice's point in the z-plane filter." },
-    { "bend_range", "Pitch bend range in semitones. With MPE every finger bends on its own channel; without it the wheel bends everything." },
-    { "mpe", "MPE: channels 2 to 16 each carry one note with its own bend, pressure and slide, the way a Seaboard or Linnstrument plays. Off, pressure and the wheel apply to every sounding voice." },
+    { "bend_range",
+      "Pitch bend range in semitones. With MPE every finger bends on its own channel; without it the wheel bends everything." },
+    { "mpe",
+      "MPE: channels 2 to 16 each carry one note with its own bend, pressure and slide, the way a Seaboard or Linnstrument plays. Off, pressure and the wheel apply to every sounding voice." },
     { "brain_quantize", "Holds the conductor's decisions until the next note value of the clock: the notes land on the grid instead of wherever the dice fell. Free is how it has always worked." },
-    { "auto_mode", "Free is the conductor as it has always been: notes start and stop on their own timers, so the cluster breathes but never really moves. Chords keeps it full and exchanges one voice at a time -- the chord travels instead of churning. Everything else in this section only matters in Chords." },
-    { "auto_rate", "Seconds between exchanges. Long is the point: at a minute apart a listener hears a harmony that is going somewhere without ever catching it move." },
+    { "auto_mode",
+      "Free is the conductor as it has always been: notes start and stop on their own timers, so the cluster breathes but never really moves. Chords keeps it full and exchanges one voice at a time -- the chord travels instead of churning. Everything else in this section only matters in Chords." },
+    { "auto_rate",
+      "Seconds between exchanges. Long is the point: at a minute apart a listener hears a harmony that is going somewhere without ever catching it move." },
     { "auto_sync", "Puts the exchanges on the clock instead of the seconds knob: one every so many bars." },
-    { "auto_lead", "How far the exchanged voice may travel, in semitones. Small is voice leading -- the note that leaves is replaced by one near it, and the ear hears the chord shift rather than one note being cut and another started. Large lets the harmony jump." },
-    { "auto_tension", "How strictly the arriving note has to fit the ones that stay. At 0 only notes that sit well against the whole chord are considered; turned up, the progression is allowed to lean." },
-    { "auto_root_move", "How often an exchange also moves the root. Without it the harmony circles one centre for ever; with it the piece travels -- and the Foundation travels with it, since the sub stands on the root unless its Source says otherwise. It applies in both conductor modes: in Chords it is the whole of the chance, in Free it is added to the smaller one Wander already carries." },
-    { "auto_step", "Exchange a voice now, whatever the timer says. It is a trigger, not a setting: switch it on and it fires and switches itself back off, so a controller, a macro or the button on the panel can drive the progression by hand." },
-    { "brain2_on", "A second conductor, normally for the background: its own register, pace, density and plane, on the first one's root plus an interval. Two of them make a slow counterpoint that neither would play alone." },
+    { "auto_lead",
+      "How far the exchanged voice may travel, in semitones. Small is voice leading -- the note that leaves is replaced by one near it, and the ear hears the chord shift rather than one note being cut and another started. Large lets the harmony jump." },
+    { "auto_tension",
+      "How strictly the arriving note has to fit the ones that stay. At 0 only notes that sit well against the whole chord are considered; turned up, the progression is allowed to lean." },
+    { "auto_root_move",
+      "How often an exchange also moves the root. Without it the harmony circles one centre for ever; with it the piece travels -- and the Foundation travels with it, since the sub stands on the root unless its Source says otherwise. It applies in both conductor modes: in Chords it is the whole of the chance, in Free it is added to the smaller one Wander already carries." },
+    { "auto_step",
+      "Exchange a voice now, whatever the timer says. It is a trigger, not a setting: switch it on and it fires and switches itself back off, so a controller, a macro or the button on the panel can drive the progression by hand." },
+    { "brain2_on",
+      "A second conductor, normally for the background: its own register, pace, density and plane, on the first one's root plus an interval. Two of them make a slow counterpoint that neither would play alone." },
     { "brain2_density", "How many notes the second conductor keeps sounding." },
     { "brain2_rate", "Seconds between the second conductor's decisions." },
     { "brain2_hold_min", "Shortest time the second conductor holds a note." },
@@ -390,53 +584,80 @@ const HelpEntry Help[] = {
     { "brain2_low", "Lowest note the second conductor may choose." },
     { "brain2_high", "Highest note the second conductor may choose." },
     { "brain2_depth", "The plane the second conductor plays on: 1 puts it deep in the background behind the first." },
-    { "brain2_interval", "Semitones between the first conductor's root and the second's. 7 makes it answer a fifth up, -12 an octave down." },
+    { "brain2_interval",
+      "Semitones between the first conductor's root and the second's. 7 makes it answer a fifth up, -12 an octave down." },
     { "brain2_consonance", "How strongly the second conductor prefers consonant intervals to its own root." },
-    { "brain_even", "How strongly the conductor prefers chords whose notes are spread evenly round the octave. Tymoczko showed that the chords which can be joined to their neighbours by small movements are the nearly even ones, and that those are the chords Western music actually uses -- evenness is not a taste but the property that lets a chord MOVE, where a cluster can only leap. Set this against Harmonic, which pulls the other way, towards low harmonics and octave doublings; the two together are a spread-against-rooted control that neither has on its own." },
-    { "brain_smooth", "Which voice moves. Normally the conductor retires whichever voice has been sounding longest -- a rule about time that knows nothing about where the chord would land -- and then looks for a replacement. With this up it tries every voice and keeps the exchange that moves the chord the shortest distance for what it gains. That distance is the voice-leading distance of Tymoczko's geometry: the smallest total travel over all ways of pairing the old chord with the new one. In the free mode -- the one nearly every preset uses -- it reads as the step size of a wandering voice instead: a candidate is weighted by how far it stands from the note chosen before it, so the conductor steps oftener than it leaps and a leap stays possible. At 0 neither applies and the draw is exactly what it always was." },
-    { "brain_blend", "How a chord arrives. Rasch measured the onset spread of real ensembles at thirty to fifty milliseconds, and Bregman's rule is that tones starting together are heard as one object while tones starting apart are heard as separate voices. The conductor normally brings its voices in one at a time, minutes apart, so every voice is its own object. Turned up, the notes that fill an empty chord arrive together -- inside thirty milliseconds at the top -- and fuse into one sound. At 0 nothing changes." },
-    { "purity_guard", "The fluctuation guard. Fastl and Zwicker: the sensation of fluctuation peaks at four hertz and is gone by about twenty; roughness takes over near seventy. Between two and eight hertz a beating chord is heard as wobble, which in a sleep concert is the one thing it must not be. Purity Drift makes beats without knowing where they land; the BEAT source already measures where they landed. Above zero the guard reins the drift in while the beat sits in that band, so it slows back out of it; below zero it does the opposite and seeks the wobble out. It works on the drift's excursion, not on Purity itself: a Purity that already puts the beat in the band is left where you put it. At 0 the drift is exactly what it was." },
-    { "match", "Partials placed on the degrees of the current scale instead of on the harmonic series -- Sethares' other direction. The Timbre scale takes a spectrum and finds its scale; this takes a scale and bends the spectrum until that scale is the smooth one: each partial moves to the nearest degree, counted in periods from the fundamental. For 12-TET the seventh partial moves from 3369 cents to 3400 and the fifth from 2786 to 2800, small moves, and after them a tempered chord stops beating; for Bohlen-Pierce it makes the spectrum the tritave scale was always waiting for. Works on Source 1's additive bank and on the conductor's Timbre ear alike. Has no effect with the Timbre scale, which is itself computed from the spectrum -- the two would chase each other in a circle." },
-    { "arc_harmony", "How far the hour-scale arc leans on the harmony as well as on density, brightness and depth. Lerdahl and Krumhansl modelled tonal tension -- distance from home and surface dissonance -- and tested it against listeners; this instrument's proxies for those are the conductor's Harmonic, Key and Consonance, so the arc's rise loosens all three and its fall tightens them. The climax of the night is then denser, brighter and further from home, and the return is a return. At 0 the arc leaves the harmony alone." },
-    { "elev_near", "Height of the foreground, from a little below the ear to overhead. The ear hears up and down at the pinna: a notch between about six and ten kilohertz whose frequency rises with elevation (Hebrank and Wright 1974), and Blauert's directional band near 8 kHz that says \"above\". Both are small filters, not a measured head. A voice takes its height from where it stands between the two planes, so this and Elev Far together tilt the whole landscape. Heard through the same notch as Externalise, and it brings that path in on its own; 0 is the flat field the instrument always had." },
-    { "elev_far", "Height of the background. Set it above the foreground and the drones are the sky; below, and they are the ground the foreground stands on. See Elev Near for what the ear is being told." },
-    { "depth_law", "Bends the depth axis so that the knob is linear in HEARD distance rather than in the model's. Perceived distance grows with physical distance as roughly a power of a half (Zahorik: the pooled exponent is about 0.54), so a plane that is linear in level and reverb spends most of its perceptual travel in its near half. At 1 the plane is d^1.85, the inverse of that exponent: the far half of the knob then sounds as far again as the near half. The ends do not move -- 0 is still the ear, 1 the horizon." },
-    { "far_envelop", "The sense of being inside the room, as distinct from how wide the source is. Bradley and Soulodre found it in late lateral energy at LOW frequencies, under about 500 Hz -- exactly where this instrument's background has the least side, because the funnel narrows it and Bass Mono folds it. This lifts the far bus's side channel in the band between Bass Mono's corner and 500 Hz -- up to six decibels on the band, three measured on the finished output, where the reverb's own low end was never wide to begin with -- and leaves the mid alone. It starts where Bass Mono ends on purpose: anything lower would be lifted here and removed again at the master." },
-    { "brain_key", "How strongly the conductor prefers the stable degrees of the key it finds itself in. Nothing sets that key: it is measured from what has actually been sounding and for how long, and on an instrument whose notes last minutes the duration is the only weighting that means anything. The stabilities are the ones Krumhansl and Kessler measured from listeners in 1982 -- the tonic highest, then the fifth, then the third, then the rest of the scale, then the notes outside it -- and the key itself is found by correlating what is sounding against all twenty-four of those profiles. That is on 12-TET, where major and minor are the right context. On every other scale the profile is the scale's own since 25.09.2026: each degree weighs what its consonance with the tonic says, spread like the listeners' profile -- on Harmonic 8-16 the key is the overtone series, on a Phrygian scale the flat second belongs -- and Thirds and Seconds tilt it, so a family that avoids thirds no longer has a key that asks for them. On a scale that does not repeat at the octave there is no key at all. The correlation is the confidence, and it does the weighting: a passage with no key in it pulls at nothing. Turned up, the music acquires a home it keeps returning to, and the root wanders to stable degrees rather than away from them, which is what a modulation is. At 0 the conductor hears intervals and no key at all, exactly as it always did." },
-    { "brain_harmonic", "How much the conductor judges a chord by whether the WHOLE of it fits one harmonic series, rather than only by how its pairs sound. The two are not the same question, and for more than two voices they can disagree flatly: scored pairwise, a stack of fifths beats a just major triad, and a plain segment of the harmonic series comes last of all, because neighbouring members of one series make complicated ratios two at a time however perfectly the set fits together. Turned up, the conductor looks for the chord with one root -- which is what listeners respond to at least as strongly as they respond to the absence of beating. 0 is the pairwise judgement it always had. Since 25.09.2026 the harmonics carry the prime limit of the other knobs: with Thirds below zero a harmonic whose number holds the five (5, 10, 15 ...) counts less, down to a fifth at -1, and Seventh lifts the sevenths (7, 14 ...) -- so a dark family can listen for rootedness without being pulled into the major triad, which is the most harmonic set there is. Utonal adds the mirror image." },
-    { "brain_spacing", "How the conductor treats two notes that fall inside one critical band. Above zero it avoids them: tones closer than about an equivalent rectangular bandwidth excite overlapping places on the basilar membrane, and the ear fuses them into one rough sound rather than hearing two, so a cluster spread wider than a critical band stays audible as separate voices. Below zero it seeks them out, which is what a cluster is for. 0 leaves the choice as it always was." },
-    { "brain_timbre", "How much the conductor judges an interval by the spectrum it actually plays rather than by the ratio alone. The ratio score says a fifth is consonant because 3:2 is simple. The spectrum score (after Sethares) sums the roughness of every pair of partials the two tones would make -- the bank's own tilt, brightness, odd/even weight and inharmonic stretch -- so with an inharmonic timbre the consonant intervals move, as they do on a bell or a stretched string, and the conductor moves with them. 0 is the ratio score it always had." },
+    { "brain_even",
+      "How strongly the conductor prefers chords whose notes are spread evenly round the octave. Tymoczko showed that the chords which can be joined to their neighbours by small movements are the nearly even ones, and that those are the chords Western music actually uses -- evenness is not a taste but the property that lets a chord MOVE, where a cluster can only leap. Set this against Harmonic, which pulls the other way, towards low harmonics and octave doublings; the two together are a spread-against-rooted control that neither has on its own." },
+    { "brain_smooth",
+      "Which voice moves. Normally the conductor retires whichever voice has been sounding longest -- a rule about time that knows nothing about where the chord would land -- and then looks for a replacement. With this up it tries every voice and keeps the exchange that moves the chord the shortest distance for what it gains. That distance is the voice-leading distance of Tymoczko's geometry: the smallest total travel over all ways of pairing the old chord with the new one. In the free mode -- the one nearly every preset uses -- it reads as the step size of a wandering voice instead: a candidate is weighted by how far it stands from the note chosen before it, so the conductor steps oftener than it leaps and a leap stays possible. At 0 neither applies and the draw is exactly what it always was." },
+    { "brain_blend",
+      "How a chord arrives. Rasch measured the onset spread of real ensembles at thirty to fifty milliseconds, and Bregman's rule is that tones starting together are heard as one object while tones starting apart are heard as separate voices. The conductor normally brings its voices in one at a time, minutes apart, so every voice is its own object. Turned up, the notes that fill an empty chord arrive together -- inside thirty milliseconds at the top -- and fuse into one sound. At 0 nothing changes." },
+    { "purity_guard",
+      "The fluctuation guard. Fastl and Zwicker: the sensation of fluctuation peaks at four hertz and is gone by about twenty; roughness takes over near seventy. Between two and eight hertz a beating chord is heard as wobble, which in a sleep concert is the one thing it must not be. Purity Drift makes beats without knowing where they land; the BEAT source already measures where they landed. Above zero the guard reins the drift in while the beat sits in that band, so it slows back out of it; below zero it does the opposite and seeks the wobble out. It works on the drift's excursion, not on Purity itself: a Purity that already puts the beat in the band is left where you put it. At 0 the drift is exactly what it was." },
+    { "match",
+      "Partials placed on the degrees of the current scale instead of on the harmonic series -- Sethares' other direction. The Timbre scale takes a spectrum and finds its scale; this takes a scale and bends the spectrum until that scale is the smooth one: each partial moves to the nearest degree, counted in periods from the fundamental. For 12-TET the seventh partial moves from 3369 cents to 3400 and the fifth from 2786 to 2800, small moves, and after them a tempered chord stops beating; for Bohlen-Pierce it makes the spectrum the tritave scale was always waiting for. Works on Source 1's additive bank and on the conductor's Timbre ear alike. Has no effect with the Timbre scale, which is itself computed from the spectrum -- the two would chase each other in a circle." },
+    { "arc_harmony",
+      "How far the hour-scale arc leans on the harmony as well as on density, brightness and depth. Lerdahl and Krumhansl modelled tonal tension -- distance from home and surface dissonance -- and tested it against listeners; this instrument's proxies for those are the conductor's Harmonic, Key and Consonance, so the arc's rise loosens all three and its fall tightens them. The climax of the night is then denser, brighter and further from home, and the return is a return. At 0 the arc leaves the harmony alone." },
+    { "elev_near",
+      "Height of the foreground, from a little below the ear to overhead. The ear hears up and down at the pinna: a notch between about six and ten kilohertz whose frequency rises with elevation (Hebrank and Wright 1974), and Blauert's directional band near 8 kHz that says \"above\". Both are small filters, not a measured head. A voice takes its height from where it stands between the two planes, so this and Elev Far together tilt the whole landscape. Heard through the same notch as Externalise, and it brings that path in on its own; 0 is the flat field the instrument always had." },
+    { "elev_far",
+      "Height of the background. Set it above the foreground and the drones are the sky; below, and they are the ground the foreground stands on. See Elev Near for what the ear is being told." },
+    { "depth_law",
+      "Bends the depth axis so that the knob is linear in HEARD distance rather than in the model's. Perceived distance grows with physical distance as roughly a power of a half (Zahorik: the pooled exponent is about 0.54), so a plane that is linear in level and reverb spends most of its perceptual travel in its near half. At 1 the plane is d^1.85, the inverse of that exponent: the far half of the knob then sounds as far again as the near half. The ends do not move -- 0 is still the ear, 1 the horizon." },
+    { "far_envelop",
+      "The sense of being inside the room, as distinct from how wide the source is. Bradley and Soulodre found it in late lateral energy at LOW frequencies, under about 500 Hz -- exactly where this instrument's background has the least side, because the funnel narrows it and Bass Mono folds it. This lifts the far bus's side channel in the band between Bass Mono's corner and 500 Hz -- up to six decibels on the band, three measured on the finished output, where the reverb's own low end was never wide to begin with -- and leaves the mid alone. It starts where Bass Mono ends on purpose: anything lower would be lifted here and removed again at the master." },
+    { "brain_key",
+      "How strongly the conductor prefers the stable degrees of the key it finds itself in. Nothing sets that key: it is measured from what has actually been sounding and for how long, and on an instrument whose notes last minutes the duration is the only weighting that means anything. The stabilities are the ones Krumhansl and Kessler measured from listeners in 1982 -- the tonic highest, then the fifth, then the third, then the rest of the scale, then the notes outside it -- and the key itself is found by correlating what is sounding against all twenty-four of those profiles. That is on 12-TET, where major and minor are the right context. On every other scale the profile is the scale's own since 25.09.2026: each degree weighs what its consonance with the tonic says, spread like the listeners' profile -- on Harmonic 8-16 the key is the overtone series, on a Phrygian scale the flat second belongs -- and Thirds and Seconds tilt it, so a family that avoids thirds no longer has a key that asks for them. On a scale that does not repeat at the octave there is no key at all. The correlation is the confidence, and it does the weighting: a passage with no key in it pulls at nothing. Turned up, the music acquires a home it keeps returning to, and the root wanders to stable degrees rather than away from them, which is what a modulation is. At 0 the conductor hears intervals and no key at all, exactly as it always did." },
+    { "brain_harmonic",
+      "How much the conductor judges a chord by whether the WHOLE of it fits one harmonic series, rather than only by how its pairs sound. The two are not the same question, and for more than two voices they can disagree flatly: scored pairwise, a stack of fifths beats a just major triad, and a plain segment of the harmonic series comes last of all, because neighbouring members of one series make complicated ratios two at a time however perfectly the set fits together. Turned up, the conductor looks for the chord with one root -- which is what listeners respond to at least as strongly as they respond to the absence of beating. 0 is the pairwise judgement it always had. Since 25.09.2026 the harmonics carry the prime limit of the other knobs: with Thirds below zero a harmonic whose number holds the five (5, 10, 15 ...) counts less, down to a fifth at -1, and Seventh lifts the sevenths (7, 14 ...) -- so a dark family can listen for rootedness without being pulled into the major triad, which is the most harmonic set there is. Utonal adds the mirror image." },
+    { "brain_spacing",
+      "How the conductor treats two notes that fall inside one critical band. Above zero it avoids them: tones closer than about an equivalent rectangular bandwidth excite overlapping places on the basilar membrane, and the ear fuses them into one rough sound rather than hearing two, so a cluster spread wider than a critical band stays audible as separate voices. Below zero it seeks them out, which is what a cluster is for. 0 leaves the choice as it always was." },
+    { "brain_timbre",
+      "How much the conductor judges an interval by the spectrum it actually plays rather than by the ratio alone. The ratio score says a fifth is consonant because 3:2 is simple. The spectrum score (after Sethares) sums the roughness of every pair of partials the two tones would make -- the bank's own tilt, brightness, odd/even weight and inharmonic stretch -- so with an inharmonic timbre the consonant intervals move, as they do on a bell or a stretched string, and the conductor moves with them. 0 is the ratio score it always had." },
     { "brain_wander", "How readily the brain's root moves to a new centre over time." },
 
     // ---- tuning
-    { "scale", "The tuning: just scales, 12-TET, Bohlen-Pierce, User for a loaded Scala file, or Timbre. Timbre is not a table: it is the scale THIS sound asks for, computed while it plays. The instrument's own roughness curve is swept across the octave -- how rough the timbre is against a transposed copy of itself -- and wherever the curve dips, a degree goes. For a harmonic spectrum those dips are just intonation, to within a couple of cents, which is the reason just intonation exists at all; turn Inharmonic up and they move somewhere else entirely, because a stiff string wants a different scale and this gives it one. Change Tilt, Brightness or Inharmonic and the tuning follows the sound. Every note the brain or the keys play comes from here." },
-    { "keymap", "Snap: the 12 keys of an octave snap to the nearest scale degree. Consecutive: each key is the next degree, whatever the scale's step count." },
+    { "scale",
+      "The tuning: just scales, 12-TET, Bohlen-Pierce, User for a loaded Scala file, or Timbre. Timbre is not a table: it is the scale THIS sound asks for, computed while it plays. The instrument's own roughness curve is swept across the octave -- how rough the timbre is against a transposed copy of itself -- and wherever the curve dips, a degree goes. For a harmonic spectrum those dips are just intonation, to within a couple of cents, which is the reason just intonation exists at all; turn Inharmonic up and they move somewhere else entirely, because a stiff string wants a different scale and this gives it one. Change Tilt, Brightness or Inharmonic and the tuning follows the sound. Every note the brain or the keys play comes from here." },
+    { "keymap",
+      "Snap: the 12 keys of an octave snap to the nearest scale degree. Consecutive: each key is the next degree, whatever the scale's step count." },
     { "root", "The key's root note. The brain's root lives an octave below it." },
     { "ref_pitch", "Reference pitch of A4 in hertz." },
     { "seed", "Seed of the brain's randomness: the same seed replays the same decisions." },
     { "hold", "Keys latch: a played key stays until Hold is switched off." },
-    { "purity", "Blends every note between 12-TET (0) and the chosen scale (1) in the log domain -- the beating locks in as you turn it up." },
+    { "purity",
+      "Blends every note between 12-TET (0) and the chosen scale (1) in the log domain -- the beating locks in as you turn it up." },
     { "purity_drift", "Lets the purity wander, so the tuning locks in and loosens over minutes." },
     { "purity_rate", "How fast the purity wanders." },
-    { "tide", "The whole instrument's pitch leans by up to this many cents on a very slow curve, like a tape machine over an evening. Sub and voices move together, so the harmony stays." },
+    { "tide",
+      "The whole instrument's pitch leans by up to this many cents on a very slow curve, like a tape machine over an evening. Sub and voices move together, so the harmony stays." },
     { "tide_period", "Minutes for one swing of the tide." },
-    { "strike_level", "A short plucked or struck impulse at note-on on the near plane, whatever the voice's distance: the intimate contrast that makes the background vast. Level; 0 is off." },
-    { "strike_type", "String: a plucked string at the note (Karplus-Strong). Wood: a short, dull knock two octaves up. Metal: the string with an all-pass in its loop, stretched and clangorous." },
+    { "strike_level",
+      "A short plucked or struck impulse at note-on on the near plane, whatever the voice's distance: the intimate contrast that makes the background vast. Level; 0 is off." },
+    { "strike_type",
+      "String: a plucked string at the note (Karplus-Strong). Wood: a short, dull knock two octaves up. Metal: the string with an all-pass in its loop, stretched and clangorous." },
     { "strike_decay", "Seconds the strike rings." },
     { "strike_damp", "Brightness loss per round of the string: 0 bright and long, 1 dull and short." },
     { "strike_who", "Keys: only your notes strike. Keys + Brain: the conductor's notes too." },
     // ---- the near layer (13.09.2026)
-    { "fore_type", "The near source: a fifth slot of its own, rendered only by the near events. Any of the source types, with the near ones made for it -- Flute, Murmur, Bowl, Ice, Drops, Clip (a recording straight through, once) -- and the signals: Whistler (a lightning stroke's whistle falling through the magnetosphere; Bright how high it begins, Speed how fast it falls), Shaker (a seed pod: Density the shakes a second, Force how long the beans keep moving, Position the shell's pitch, Noise Q its ring), Chime (struck bronze with the beating of its doublets: Force how long it rings, Pos Drift the beating, Tilt the hum under it, Bright the high partial), Geiger (clicks on a Poisson clock at Density a second, Force the chance of a cluster, Position the tube's pitch, Noise Q its damping), Tube (a fluorescent tube: the starter's clicks, the choke's hum at 100 or 120 Hz by Position, the plasma's hiss by Bright), Krell (FM steered by a Roessler attractor: Speed its pace, Position past the middle snaps the carrier to semitones, FM Ratio and FM Index as in FM), Beacon (a chirp and eight bits of frequency-shift keying, a packet every 1/Density seconds), Morse (five-figure groups at Speed words a minute, Position past the middle letters instead of figures, Bright the ionosphere's flutter), Dial (a shortwave dial turned: heterodyne whistles wandering, Position how many, Bright the band's noise). The clip types (Clip, Texture, Stretch, Spectral) read the near source's own clip -- the one a near preset names from the library's archive, or the one opened with the button -- and Source 4's where it has none." },
+    { "fore_type",
+      "The near source: a fifth slot of its own, rendered only by the near events. Any of the source types, with the near ones made for it -- Flute, Murmur, Bowl, Ice, Drops, Clip (a recording straight through, once) -- and the signals: Whistler (a lightning stroke's whistle falling through the magnetosphere; Bright how high it begins, Speed how fast it falls), Shaker (a seed pod: Density the shakes a second, Force how long the beans keep moving, Position the shell's pitch, Noise Q its ring), Chime (struck bronze with the beating of its doublets: Force how long it rings, Pos Drift the beating, Tilt the hum under it, Bright the high partial), Geiger (clicks on a Poisson clock at Density a second, Force the chance of a cluster, Position the tube's pitch, Noise Q its damping), Tube (a fluorescent tube: the starter's clicks, the choke's hum at 100 or 120 Hz by Position, the plasma's hiss by Bright), Krell (FM steered by a Roessler attractor: Speed its pace, Position past the middle snaps the carrier to semitones, FM Ratio and FM Index as in FM), Beacon (a chirp and eight bits of frequency-shift keying, a packet every 1/Density seconds), Morse (five-figure groups at Speed words a minute, Position past the middle letters instead of figures, Bright the ionosphere's flutter), Dial (a shortwave dial turned: heterodyne whistles wandering, Position how many, Bright the band's noise). The clip types (Clip, Texture, Stretch, Spectral) read the near source's own clip -- the one a near preset names from the library's archive, or the one opened with the button -- and Source 4's where it has none." },
     { "fore_octave", "The near source's octave against the note the event chose." },
     { "fore_ratio", "A just ratio on top of that, as a slot has." },
-    { "fore_pos", "Position, as the type reads it: the embouchure of the Flute (0 the fundamental, 1 the pipe overblown to its octave), where the stick sits on the Bowl (rim to belly), the medium of the Murmur (0 a voice in the room, 1 a radio with its band, its hiss, its squelch and the Quindar tones), the vessel the Drops fall into (a cup to a cistern), or what it means for any other type." },
-    { "fore_pos_drift", "Pos Drift: the Flute's vibrato, the Bowl's beating (how far apart the two halves of every mode sit), the Murmur's intonation, the Drops' spread of sizes." },
+    { "fore_pos",
+      "Position, as the type reads it: the embouchure of the Flute (0 the fundamental, 1 the pipe overblown to its octave), where the stick sits on the Bowl (rim to belly), the medium of the Murmur (0 a voice in the room, 1 a radio with its band, its hiss, its squelch and the Quindar tones), the vessel the Drops fall into (a cup to a cistern), or what it means for any other type." },
+    { "fore_pos_drift",
+      "Pos Drift: the Flute's vibrato, the Bowl's beating (how far apart the two halves of every mode sit), the Murmur's intonation, the Drops' spread of sizes." },
     { "fore_density", "Drops a second, or grains, or crackles, for the types that count." },
-    { "fore_follow", "Pitch = Note puts the Drops' bubbles on the note's own partials -- the wet marimba of a cave -- and does for the clip and noise types what it does in a slot." },
+    { "fore_follow",
+      "Pitch = Note puts the Drops' bubbles on the note's own partials -- the wet marimba of a cave -- and does for the clip and noise types what it does in a slot." },
     { "fore_bright", "Bright: the pipe's end filter, the bowl's upper modes, the voice's clarity, the bubbles' size." },
     { "fore_force", "Force: the Flute's breath, the stick's pressing, the Murmur's effort, the Bow's hand." },
-    { "fore_speed", "Speed: the Flute's air noise, the stick's rubbing, the Murmur's syllable rate, the Bow's travel." },
-    { "fore_noise", "The colour of a Noise near source, Cicada among them: a chorus of insects, two per ear, singing in bursts and resting between." },
+    { "fore_speed",
+      "Speed: the Flute's air noise, the stick's rubbing, the Murmur's syllable rate, the Bow's travel." },
+    { "fore_noise",
+      "The colour of a Noise near source, Cicada among them: a chorus of insects, two per ear, singing in bursts and resting between." },
     { "fore_noise_q", "The band's width for the Noise colours that have one." },
     { "fore_fm_ratio", "FM: modulator over carrier." },
     { "fore_fm_index", "FM: how deep." },
@@ -445,75 +666,113 @@ const HelpEntry Help[] = {
     { "fore_inharmonic", "Additive: the series stretched like a stiff string -- the gamelan and the glass." },
     { "fore_drift", "Cents of slow, independent pitch drift on the near source." },
     { "fore_table", "The table for a Harmonic or Wavetable near source." },
-    { "fore_attack", "The near event's own envelope: seconds to swell in. A pluck is five milliseconds, a flute a third of a second, a bowl two." },
+    { "fore_attack",
+      "The near event's own envelope: seconds to swell in. A pluck is five milliseconds, a flute a third of a second, a bowl two." },
     { "fore_decay", "Seconds from the peak down to Sustain." },
     { "fore_sustain", "Where the event holds while it lasts; 0 with a short Decay is a pluck." },
     { "fore_release", "Seconds the event takes to go once its Length is over, or the gate of a sequence's step." },
-    { "fore_cutoff", "The near voice's own filter, so the foreground's brightness does not depend on the background's. A sequence's Bloom breathes around this." },
+    { "fore_cutoff",
+      "The near voice's own filter, so the foreground's brightness does not depend on the background's. A sequence's Bloom breathes around this." },
     { "fore_resonance", "Its resonance." },
-    { "fore_filter", "Its model -- the Ladder for the Berlin pluck, a formant for a voice, the plain 12 dB for everything that should simply be near." },
+    { "fore_filter",
+      "Its model -- the Ladder for the Berlin pluck, a formant for a voice, the plain 12 dB for everything that should simply be near." },
     { "fore_filter_env", "How far the event's envelope opens the filter: a pluck that closes as it dies." },
-    { "fore_strike", "A Karplus-Strong strike at every near note, with the three settings beside it. The koto, the harp, the kalimba: with the near type Off the strike is the whole sound." },
+    { "fore_strike",
+      "A Karplus-Strong strike at every near note, with the three settings beside it. The koto, the harp, the kalimba: with the near type Off the strike is the whole sound." },
     { "fore_strike_type", "String, Wood or Metal, as in the Strike section." },
     { "fore_strike_decay", "Seconds the strike rings." },
     { "fore_strike_damp", "Its brightness loss per round." },
     { "fore_level", "The foreground's level; 0 is off, and it is off in every preset that does not ask for it. The near events play the Near Source, close to the ear, on a clock of their own -- a flute blown once, water in a bowl, a voice on a radio, a rubbed rim, or a Berlin-school line -- and the far reverb ducks under them where Far Unmask is up." },
-    { "fore_kind", "Note: one tone, held for Length. Phrase: two to four tones over the Length, each a slide to another consonant degree on the portamento and its gravity, the last one home to the first, and at the end the flute's meri -- a quarter tone down and back. Sequence: a ring of Steps notes on a clock of its own that breathes (the tempo on a drifter, every step a few milliseconds early or late), transposed with the conductor's root, mutating one step at a time -- its degree, its octave, its gate, its velocity or its accent -- thinning and thickening on a slow gate, arriving out of the far plane and leaving into it." },
+    { "fore_kind",
+      "Note: one tone, held for Length. Phrase: two to four tones over the Length, each a slide to another consonant degree on the portamento and its gravity, the last one home to the first, and at the end the flute's meri -- a quarter tone down and back. Sequence: a ring of Steps notes on a clock of its own that breathes (the tempo on a drifter, every step a few milliseconds early or late), transposed with the conductor's root, mutating one step at a time -- its degree, its octave, its gate, its velocity or its accent -- thinning and thickening on a slow gate, arriving out of the far plane and leaving into it." },
     { "fore_chance", "The coin at each due moment: 1 plays every one, 0.3 about one in three." },
-    { "fore_cluster", "The coin weighted by the conductor's cascade, as the Strike's is: the events then come where the music is excited and stay away from its stillest stretches." },
-    { "fore_length", "Seconds an event lasts -- a note's hold, a phrase's whole arc, a sequence's whole run (minutes)." },
-    { "fore_pitch", "Consonant: a degree of the tuning consonant with the root AND with everything sounding -- the fifth, the ninth, the pure third first -- in the soloist's register: at least a fifth above the highest body voice, or in a gap of a third or more, and never within a critical band of a sounding voice, where the drone would mask it. Highest, Lowest, Root: that note of the cluster. Cluster: any note of it." },
+    { "fore_cluster",
+      "The coin weighted by the conductor's cascade, as the Strike's is: the events then come where the music is excited and stay away from its stillest stretches." },
+    { "fore_length",
+      "Seconds an event lasts -- a note's hold, a phrase's whole arc, a sequence's whole run (minutes)." },
+    { "fore_pitch",
+      "Consonant: a degree of the tuning consonant with the root AND with everything sounding -- the fifth, the ninth, the pure third first -- in the soloist's register: at least a fifth above the highest body voice, or in a gap of a third or more, and never within a critical band of a sounding voice, where the drone would mask it. Highest, Lowest, Root: that note of the cluster. Cluster: any note of it." },
     { "fore_spread", "How far from the centre an event may sit; each is placed anew." },
-    { "fore_approach", "The share of the event spent arriving out of the far plane to its Distance and, at the end, leaving into the far again. A sequence at 0.25 spends its first quarter as a pulse on the horizon and its last quarter dissolving back into it. Negative: the event begins at its Distance and leaves from the first moment -- a whistler that starts at the ear and falls away over the horizon." },
-    { "fore_distance", "Where the event sits between the planes: 0 at the ear, 1 on the horizon, and the near field's lift, the width and the far reverb's share follow it. A foghorn at 0.85 stands deep in the far field; a rattle at 0.05 stands twenty centimetres from the nose. Approach arrives here from the horizon." },
-    { "fore_auto", "A sound preset from a pack brings its own foreground: each artist has a table (which near presets, how often, and what share of the artist's presets get one at all), and the preset's name decides, the same way every time, so a preset always brings the same one. Nine in ten presets or more bring one; the few that do not switch the foreground off while they play. Choosing a near preset by hand switches Auto off and keeps yours; switching it on again draws for the preset that is playing." },
-    { "fore_dry", "The share of the event's voice that goes straight to the output, past the near reverb, the far reverb and every delay. At 1 a Geiger click is a needle and nothing softens it; at 0 the event takes the same way through the room as everything else." },
-    { "fore_delay2", "An extra share of every event into the second delay's input -- a send, added to what that delay already hears, so the event keeps its place and the long chain gets more of it. A beacon that answers itself across a minute while the bed stays dry." },
-    { "fore_gain", "The foreground's gain in decibels, after its source and before the room it plays into. Level is the source's own level, and for a blown jet, a bow or a clip it shapes the sound as much as its loudness; Gain only makes it louder or quieter. The presets of the near bank carry a measured Gain that brings their loudest moment to the loudness of the background they play over, so the bank's foregrounds arrive about equally present." },
-    { "fore_cosmos", "An extra share of every event into the Cosmos, on top of the section's own Send. With the section's Send at zero this puts the foreground alone into the deep space: the events are shifted, resonated and smeared while the bed is left where it is. The Cosmos' Return decides how much of it comes back." },
-    { "fore_proximity", "The near field's lift on the event's voice, up to six decibels between 120 and 300 Hz -- a band, not a shelf, so the Foundation and Bass Mono below it are left alone -- and a function of the event's plane: full when it stands at the ear, gone when it has moved to the horizon. The proximity a source within reach has, which is what makes a breath sound at the lips rather than in the room." },
-    { "fore_hold", "While a Note or a Phrase sounds, and for ten seconds after it, the conductor begins no new note: its holds run on, its releases happen, but the background stops moving under the soloist. A sequence asks something else of it: the root stays where it is and the events come half as often, so the line is never thrown across a changeover." },
-    { "fore_rate", "Mean seconds from the end of one event to the start of the next, drawn as the conductor draws its gaps: exponential, shifted, so that there is never a pulse and never two at once. And into stillness: when an event is due it waits, up to half the rate, for four seconds without an onset or a release of the conductor's -- so it answers the background rather than interrupting it." },
+    { "fore_approach",
+      "The share of the event spent arriving out of the far plane to its Distance and, at the end, leaving into the far again. A sequence at 0.25 spends its first quarter as a pulse on the horizon and its last quarter dissolving back into it. Negative: the event begins at its Distance and leaves from the first moment -- a whistler that starts at the ear and falls away over the horizon." },
+    { "fore_distance",
+      "Where the event sits between the planes: 0 at the ear, 1 on the horizon, and the near field's lift, the width and the far reverb's share follow it. A foghorn at 0.85 stands deep in the far field; a rattle at 0.05 stands twenty centimetres from the nose. Approach arrives here from the horizon." },
+    { "fore_auto",
+      "A sound preset from a pack brings its own foreground: each artist has a table (which near presets, how often, and what share of the artist's presets get one at all), and the preset's name decides, the same way every time, so a preset always brings the same one. Nine in ten presets or more bring one; the few that do not switch the foreground off while they play. Choosing a near preset by hand switches Auto off and keeps yours; switching it on again draws for the preset that is playing." },
+    { "fore_dry",
+      "The share of the event's voice that goes straight to the output, past the near reverb, the far reverb and every delay. At 1 a Geiger click is a needle and nothing softens it; at 0 the event takes the same way through the room as everything else." },
+    { "fore_delay2",
+      "An extra share of every event into the second delay's input -- a send, added to what that delay already hears, so the event keeps its place and the long chain gets more of it. A beacon that answers itself across a minute while the bed stays dry." },
+    { "fore_gain",
+      "The foreground's gain in decibels, after its source and before the room it plays into. Level is the source's own level, and for a blown jet, a bow or a clip it shapes the sound as much as its loudness; Gain only makes it louder or quieter. The presets of the near bank carry a measured Gain that brings their loudest moment to the loudness of the background they play over, so the bank's foregrounds arrive about equally present." },
+    { "fore_cosmos",
+      "An extra share of every event into the Cosmos, on top of the section's own Send. With the section's Send at zero this puts the foreground alone into the deep space: the events are shifted, resonated and smeared while the bed is left where it is. The Cosmos' Return decides how much of it comes back." },
+    { "fore_proximity",
+      "The near field's lift on the event's voice, up to six decibels between 120 and 300 Hz -- a band, not a shelf, so the Foundation and Bass Mono below it are left alone -- and a function of the event's plane: full when it stands at the ear, gone when it has moved to the horizon. The proximity a source within reach has, which is what makes a breath sound at the lips rather than in the room." },
+    { "fore_hold",
+      "While a Note or a Phrase sounds, and for ten seconds after it, the conductor begins no new note: its holds run on, its releases happen, but the background stops moving under the soloist. A sequence asks something else of it: the root stays where it is and the events come half as often, so the line is never thrown across a changeover." },
+    { "fore_rate",
+      "Mean seconds from the end of one event to the start of the next, drawn as the conductor draws its gaps: exponential, shifted, so that there is never a pulse and never two at once. And into stillness: when an event is due it waits, up to half the rate, for four seconds without an onset or a release of the conductor's -- so it answers the background rather than interrupting it." },
     { "fore_glide", "Phrase: seconds of the slide to the second degree; 0 takes two fifths of the Length." },
     { "fore_steps", "Sequence: the ring's length. Seven and eleven never sound like four-four." },
-    { "fore_step", "Sequence: seconds per step, when Step Sync is Free -- the eighths of a slow Berlin line are a third to half a second." },
+    { "fore_step",
+      "Sequence: seconds per step, when Step Sync is Free -- the eighths of a slow Berlin line are a third to half a second." },
     { "fore_step_sync", "Sequence: the step as a note value of the clock instead." },
-    { "fore_mutation", "Sequence: the chance, once per cycle, that one step changes -- a new degree or an octave flipped. The shift register's one bit: at 0 a loop, at 0.15 a line that is a different theme five minutes on and was never heard to change." },
-    { "fore_scatter", "Sequence: ghost notes between the steps at a third of the level, and the odd accent sent to the far plane, where it leaves a trail through the delays and the reverb while the line taps on dry in front." },
-    { "fore_bloom", "Sequence: the filter breathing over the run -- two octaves under Cutoff as it begins, an octave over at its height, and back down as it goes." },
-    { "cosmos_swell", "Lets the Cosmos breathe with the conductor's cascade: where its excitation is above what this piece has been running at, the send opens; in the long gaps between clusters it closes again, so the parallel world comes and goes instead of humming at one level all night. On at a half by default, and it does nothing at all until the Cluster Brain's Cascade is up -- without a cascade there is no excitation. Smoothed over two seconds, so it swells and never steps." },
-    { "strike_chance","How many of the conductor's notes strike: 1 every one of them, 0.2 about one in five, 0 none. Your own keys always strike, whatever this says. It does nothing while Fires is on Keys." },
-    { "strike_cluster", "Lets the strikes follow the conductor's cascade instead of falling independently: where its excitation is up, the chance is lifted with it, so the strikes arrive in handfuls with long silences between. 0 is an even coin at Chance; at 1 a cascade at full excitation makes a strike near certain. Needs the Cluster Brain's Cascade to be up -- without it there is no excitation to follow." },
-    { "stretch", "The stretched octave, in cents per octave away from the reference pitch. Listeners prefer octaves a little wider than 2:1 -- ten to twenty cents at the extremes of the range -- and a piano is tuned that way; here every octave above A4 is that much wider and every octave below that much narrower, the reference itself staying put. 0 is the exact 2:1 of every preset that was ever saved." },
+    { "fore_mutation",
+      "Sequence: the chance, once per cycle, that one step changes -- a new degree or an octave flipped. The shift register's one bit: at 0 a loop, at 0.15 a line that is a different theme five minutes on and was never heard to change." },
+    { "fore_scatter",
+      "Sequence: ghost notes between the steps at a third of the level, and the odd accent sent to the far plane, where it leaves a trail through the delays and the reverb while the line taps on dry in front." },
+    { "fore_bloom",
+      "Sequence: the filter breathing over the run -- two octaves under Cutoff as it begins, an octave over at its height, and back down as it goes." },
+    { "cosmos_swell",
+      "Lets the Cosmos breathe with the conductor's cascade: where its excitation is above what this piece has been running at, the send opens; in the long gaps between clusters it closes again, so the parallel world comes and goes instead of humming at one level all night. On at a half by default, and it does nothing at all until the Cluster Brain's Cascade is up -- without a cascade there is no excitation. Smoothed over two seconds, so it swells and never steps." },
+    { "strike_chance",
+      "How many of the conductor's notes strike: 1 every one of them, 0.2 about one in five, 0 none. Your own keys always strike, whatever this says. It does nothing while Fires is on Keys." },
+    { "strike_cluster",
+      "Lets the strikes follow the conductor's cascade instead of falling independently: where its excitation is up, the chance is lifted with it, so the strikes arrive in handfuls with long silences between. 0 is an even coin at Chance; at 1 a cascade at full excitation makes a strike near certain. Needs the Cluster Brain's Cascade to be up -- without it there is no excitation to follow." },
+    { "stretch",
+      "The stretched octave, in cents per octave away from the reference pitch. Listeners prefer octaves a little wider than 2:1 -- ten to twenty cents at the extremes of the range -- and a piano is tuned that way; here every octave above A4 is that much wider and every octave below that much narrower, the reference itself staying put. 0 is the exact 2:1 of every preset that was ever saved." },
     { "portamento", "Seconds a new key glides from the last one." },
-    { "porta_gravity", "Slows the glide near consonant ratios to the root, so a slide clicks into the harmonic nodes on the way." },
+    { "porta_gravity",
+      "Slows the glide near consonant ratios to the root, so a slide clicks into the harmonic nodes on the way." },
 
     // ---- coherence
-    { "coherence", "Coupling of four slow Kuramoto oscillators: at 0 they run free, near 1 they fall into step. Their sines are the KURA modulation sources." },
+    { "coherence",
+      "Coupling of four slow Kuramoto oscillators: at 0 they run free, near 1 they fall into step. Their sines are the KURA modulation sources." },
     { "coherence_depth", "How much the ring moves brightness, depth, pan and the z-plane point on its own." },
-    { "sympathy", "The voices hear each other: the previous block's foreground is fed back into every voice at low level, through that voice's own filter. Strings on one soundboard do this, and with the Comb or Formant model it is unmistakable -- each voice rings at what it is tuned to when another plays. Kept small on purpose; it is a loop." },
+    { "sympathy",
+      "The voices hear each other: the previous block's foreground is fed back into every voice at low level, through that voice's own filter. Strings on one soundboard do this, and with the Comb or Formant model it is unmistakable -- each voice rings at what it is tuned to when another plays. Kept small on purpose; it is a loop." },
     { "coherence_rate", "Base speed of the ring." },
 
     // ---- LFOs (shared)
-    { "lfoN_shape", "The waveform: Sine, Triangle, Ramp Up, Ramp Down, a soft Square, Random (smooth), Steps (held random), or Table -- a frame of the user wavetable as a shape, which makes any drawn curve an LFO." },
+    { "lfoN_shape",
+      "The waveform: Sine, Triangle, Ramp Up, Ramp Down, a soft Square, Random (smooth), Steps (held random), or Table -- a frame of the user wavetable as a shape, which makes any drawn curve an LFO." },
     { "lfoN_rate", "Cycles per second, from one in twenty minutes to 20 Hz. Ignored while Sync is set." },
     { "lfoN_phase", "Where in the cycle the shape starts (0..1)." },
     { "lfoN_depth", "Scales the LFO's output; every matrix route scales it again." },
-    { "lfoN_mode", "Global: one phase for the whole instrument, every voice breathes together. Voice: each voice runs its own copy. Retrigger: each voice restarts from Phase." },
+    { "lfoN_mode",
+      "Global: one phase for the whole instrument, every voice breathes together. Voice: each voice runs its own copy. Retrigger: each voice restarts from Phase." },
     { "lfoN_table", "Which frame of the user wavetable the Table shape reads." },
-    { "lfoN_sync", "One cycle per note value at the current tempo; the phase follows the beat position, so it stays on the grid wherever the transport jumps." },
+    { "lfoN_sync",
+      "One cycle per note value at the current tempo; the phase follows the beat position, so it stays on the grid wherever the transport jumps." },
 
     // ---- envelopes (shared)
-    { "envN_shape", "The curve itself is edited on it: drag a breakpoint to move it in time and level, double-click the line to add one or a point to remove it, right-click for the sustain point, the loop, the curvature of a segment, and ten shapes to start from -- ADSR among them. Up to sixteen points, each with its own curve, which is a good deal more than an ADSR when you want it and exactly an ADSR when you do not. The first point stays at the start; use the matrix or a delay if you want it to begin late." },
-    { "envN_mode", "One Shot plays the shape once per note. Loop repeats it between its loop points. Sustain Loop loops while the note is held, then finishes." },
-    { "envN_time", "Stretches the whole shape: 0.05 is twenty times faster, 20 twenty times slower. Ignored while Sync is set." },
+    { "envN_shape",
+      "The curve itself is edited on it: drag a breakpoint to move it in time and level, double-click the line to add one or a point to remove it, right-click for the sustain point, the loop, the curvature of a segment, and ten shapes to start from -- ADSR among them. Up to sixteen points, each with its own curve, which is a good deal more than an ADSR when you want it and exactly an ADSR when you do not. The first point stays at the start; use the matrix or a delay if you want it to begin late." },
+    { "envN_mode",
+      "One Shot plays the shape once per note. Loop repeats it between its loop points. Sustain Loop loops while the note is held, then finishes." },
+    { "envN_time",
+      "Stretches the whole shape: 0.05 is twenty times faster, 20 twenty times slower. Ignored while Sync is set." },
     { "envN_depth", "Scales the envelope's output before the matrix." },
     { "envN_sync", "The whole shape spans one note value at the current tempo." },
 
     // ---- morph, macros, map, route
-    { "morph_active", "Switches the morph on: the whole instrument is the blend of snapshots A and B at Position. An end nobody has chosen plays as the knobs stand, so this changes nothing until A or B is set." },
-    { "morph", "Where between A (0) and B (1) the instrument is. Continuous parameters interpolate in their own curve, choices flip halfway." },
-    { "morph_glide", "Seconds the instrument takes to follow a new position -- up to fifteen minutes, so one gesture can carry a piece." },
+    { "morph_active",
+      "Switches the morph on: the whole instrument is the blend of snapshots A and B at Position. An end nobody has chosen plays as the knobs stand, so this changes nothing until A or B is set." },
+    { "morph",
+      "Where between A (0) and B (1) the instrument is. Continuous parameters interpolate in their own curve, choices flip halfway." },
+    { "morph_glide",
+      "Seconds the instrument takes to follow a new position -- up to fifteen minutes, so one gesture can carry a piece." },
     { "macro_a", "Macro A -- Space: one knob, several parameters, mapped in the gesture table (Gestures...)." },
     { "macro_b", "Macro B -- Alien." },
     { "macro_c", "Macro C -- Motion." },
@@ -522,8 +781,10 @@ const HelpEntry Help[] = {
     { "macro_f", "Macro F -- Distance." },
     { "macro_g", "Macro G -- Evolution." },
     { "macro_h", "Macro H -- Air." },
-    { "inertia", "Every knob glides to its value with this time constant, the analogue slew: even a knob torn open arrives slowly. Modulation is not slewed." },
-    { "map_active", "Plays the blend of the presets around the map cursor (Browse > Map) instead of the live parameters." },
+    { "inertia",
+      "Every knob glides to its value with this time constant, the analogue slew: even a knob torn open arrives slowly. Modulation is not slewed." },
+    { "map_active",
+      "Plays the blend of the presets around the map cursor (Browse > Map) instead of the live parameters." },
     { "map_x", "The map cursor's horizontal position." },
     { "map_y", "The map cursor's vertical position." },
     { "map_radius", "How far around the cursor presets contribute to the blend." },
@@ -532,48 +793,84 @@ const HelpEntry Help[] = {
     { "route_loop", "Starts the route again when it ends." },
 
     // ---- clock
-    { "clock_source", "Where the tempo comes from: Internal (Tempo and Run here), Host (the DAW's play head, if there is one), or MIDI clock at the input. Host and MIDI fall back to Internal when nothing arrives." },
-    { "tempo", "The internal clock's tempo in beats per minute. Every Sync choice in the instrument reads it (or the host's / MIDI's tempo instead)." },
+    { "clock_source",
+      "Where the tempo comes from: Internal (Tempo and Run here), Host (the DAW's play head, if there is one), or MIDI clock at the input. Host and MIDI fall back to Internal when nothing arrives." },
+    { "tempo",
+      "The internal clock's tempo in beats per minute. Every Sync choice in the instrument reads it (or the host's / MIDI's tempo instead)." },
     { "clock_run", "Runs the internal clock. Off, synced LFOs hold their phase." },
-    { "lfoN_mode", "Global: one phase for the whole instrument, and every voice breathes together. Retrigger: the phase goes back to where Phase says whenever a note arrives into silence -- the start of a phrase, not of every note in a cluster. Per Voice is not honoured on this instrument and is kept only so that presets naming it still load: the modulation matrix is computed once a block for the instrument, not once per voice, so there is no per-voice copy to hand it. What per-voice movement there is comes from the places that have it -- the strands' own drift, the shimmer, Rate Wander." },
+    { "lfoN_mode",
+      "Global: one phase for the whole instrument, and every voice breathes together. Retrigger: the phase goes back to where Phase says whenever a note arrives into silence -- the start of a phrase, not of every note in a cluster. Per Voice is not honoured on this instrument and is kept only so that presets naming it still load: the modulation matrix is computed once a block for the instrument, not once per voice, so there is no per-voice copy to hand it. What per-voice movement there is comes from the places that have it -- the strands' own drift, the shimmer, Rate Wander." },
 
     // ---- the voicing rules (12.09.2026). Every one of these does nothing at its default, so a
     // preset written before them plays exactly as it did. They come from Rene's rule book for a
     // self-playing generator, and the paragraph numbers in it are given where a rule is quoted.
-    { "brain_layers", "Register as a role rather than as a range. A conductor that draws from one weighted list treats the bottom of its register like the top, and the ear does not: two tones a third apart are a chord at C4 and mud at C2, because the critical band is a fixed fraction of the frequency and therefore an enormous interval down there. Turned up, the draw becomes a pyramid -- one voice in the foundation, most in the body, few in the colour, the air rarest of all -- and at 1 no octave holds more than two notes, the octave below MIDI 36 only one -- any span of twelve semitones, not a MIDI octave, so B2 and C3 are no longer in two different octaves. The roles also keep their own times: under it a colour note holds half of what Hold Min to Hold Max drew, an air note a quarter, a second foundation voice four times as long (the lowest voice is Bass Hold's), and the octave and the unison, which the conductor's own taste keeps rare, are as welcome as the rule book's table has them." },
-    { "brain_bass_hold", "Multiplies the hold time of whichever voice is currently lowest. The foundation lies still while what stands on it moves: at 4 a bass note outlasts four turns of the voices above it, which is the difference between a drone with a floor and a cluster that happens to reach low." },
-    { "brain_top_soft", "Velocity falls with height. In this music velocity is not loudness but nearness -- the foundation is near and steady, the air far and quiet -- and at 1 the top of the register arrives at forty per cent of the bottom's velocity, which is the rule book's table: 70 to 100 for the foundation, 20 to 45 for the air. It also narrows the draw, so that within one role velocity varies by twelve at most; at 0 the draw is the 0.5 to 0.9 it always was." },
-    { "brain_low_spacing", "Sharpens Spacing as the register falls. Two tones closer than a critical bandwidth fuse into one rough sound, and that bandwidth in semitones is huge in the bass and small in the treble. At 1 the floor is an octave below MIDI 36, a fifth to 47, a minor third to 59, a second to 71, and above 72 nothing changes -- clusters up there are the point. The tritone is kept out under MIDI 55 and made rare above -- the close tritone, and the one an octave up in the bass; two octaves apart it is past the critical band, and dark without mud. And the two lowest voices under MIDI 48 must make a difference tone of at least 25 Hz that stands on the scale: two loud low tones sound f2 - f1 as well, which at a fifth is the foundation's own octave and at a third is often under 20 Hz or off the scale." },
-    { "brain_third_floor", "The note below which no third is chosen, major or minor. A third in the bass is the single most reliable way to make a drone muddy; 48 is the usual place to put the floor. 0 is off." },
-    { "brain_leading", "Penalises the semitone under a sounding root. A leading note pulls somewhere, and this music has nowhere to go: it promises a resolution that will never arrive. At 1 it is excluded outright, except inside a Pivot window, where it is exactly the right tone." },
-    { "brain_thirds", "Moves the weight of thirds, major and minor together. Negative avoids them -- the empty fifth-and-octave sound of the dark profiles -- and positive seeks them out, which is what makes a consonant, lit harmony. Judged against every sounding note, not against the root alone." },
-    { "brain_seconds", "The same for seconds and ninths, and the reason it is a separate knob: a second is a colour above MIDI 60 and mud below it. Seeking them counts only above the third floor; avoiding them counts everywhere -- and avoiding takes the minor second and the major seventh, which is a minor second turned upside down, at their full weight, the major second at a third of it, because that is the proportion the rule book's own table of intervals has between them. By distance, not by interval class (25.09.2026): avoided, a second fades by half with every octave between its two notes, so a minor ninth is no longer punished like a minor second; sought, a second an octave or more apart counts in any register -- the minor ninth, the major seventh over two octaves, dissonance by separating registers, which is what Lustmord and Koner do instead of clusters." },
-    { "brain_seventh", "Lifts the minor seventh. In a just scale that is 7/4, thirty-one cents below the tempered one -- the one interval in this music that fuses with the root instead of pressing against it, and the most characteristic sound it has. In 12-TET it is the tempered seventh, and the lift still helps." },
-    { "brain_root_targets", "Which interval the root's next step aims at, and how often. Classic is the conductor's old draw, six intervals alike: the fifth, the fourth, both thirds, both sixths -- and the mediant steps, which belong to film music more than to drone. Modal (the default since 25.09.2026) moves by the fifth 40 per cent of the time, the fourth 30, the whole tone up or down 25 -- Roach's Dorian pendulum, I to flat VII, the Berlin School -- and the rest 5. Mediant is the luminous family's, the thirds and sixths 30 per cent. Phrygian lets the root fall by a semitone a fifth of the time, flat II to I. Root Steps still decides which steps are allowed at all." },
-    { "brain_utonal", "Harmonic also hears undertone sets: every tone an undertone of one common top, the mirror of the overtone series. Harmonicity measures major and the harmonic series, and a minor triad (10:12:15) or the subharmonic series scores low by construction although it is the sound of the dark families -- Lustmord, Inade, Raison d'Etre. At 1 a chord counts as rooted if it is either; 0 is overtones only, as it always was." },
-    { "brain_series", "The Harmonic Cloud. Rich, La Monte Young, Radigue and Stearns draw their chords as harmonics four to sixteen of one fundamental that does not itself sound. Turned up, the conductor weighs a candidate by how close it lies to a harmonic of the root's fundamental (its pitch class under 40 Hz), by one over the square root of the harmonic's number above the eighth, and by the prime limit Thirds and Seventh set -- and Key and Even, which pull the other way, give up their share. The Harmonic 8-16 scale only approximates this; with Series the chord is the series." },
-    { "brain_degree_swap", "The chance that a root change also exchanges a single degree of the supply -- a major sixth for a minor one, a major third for a minor. The mode wanders instead of being switched, which is the only way this music changes colour without announcing it." },
-    { "brain_rate_breath", "Lets the mean gap between events breathe. A constant mean is the one thing a Poisson clock cannot hide: the density is the same at minute three and at minute fifty, and the piece has no shape. At 1 the mean swings between half and double, on a curve made of two waves whose periods stand in the golden ratio, so the tide never repeats and never becomes a pulse." },
+    { "brain_layers",
+      "Register as a role rather than as a range. A conductor that draws from one weighted list treats the bottom of its register like the top, and the ear does not: two tones a third apart are a chord at C4 and mud at C2, because the critical band is a fixed fraction of the frequency and therefore an enormous interval down there. Turned up, the draw becomes a pyramid -- one voice in the foundation, most in the body, few in the colour, the air rarest of all -- and at 1 no octave holds more than two notes, the octave below MIDI 36 only one -- any span of twelve semitones, not a MIDI octave, so B2 and C3 are no longer in two different octaves. The roles also keep their own times: under it a colour note holds half of what Hold Min to Hold Max drew, an air note a quarter, a second foundation voice four times as long (the lowest voice is Bass Hold's), and the octave and the unison, which the conductor's own taste keeps rare, are as welcome as the rule book's table has them." },
+    { "brain_bass_hold",
+      "Multiplies the hold time of whichever voice is currently lowest. The foundation lies still while what stands on it moves: at 4 a bass note outlasts four turns of the voices above it, which is the difference between a drone with a floor and a cluster that happens to reach low." },
+    { "brain_top_soft",
+      "Velocity falls with height. In this music velocity is not loudness but nearness -- the foundation is near and steady, the air far and quiet -- and at 1 the top of the register arrives at forty per cent of the bottom's velocity, which is the rule book's table: 70 to 100 for the foundation, 20 to 45 for the air. It also narrows the draw, so that within one role velocity varies by twelve at most; at 0 the draw is the 0.5 to 0.9 it always was." },
+    { "brain_low_spacing",
+      "Sharpens Spacing as the register falls. Two tones closer than a critical bandwidth fuse into one rough sound, and that bandwidth in semitones is huge in the bass and small in the treble. At 1 the floor is an octave below MIDI 36, a fifth to 47, a minor third to 59, a second to 71, and above 72 nothing changes -- clusters up there are the point. The tritone is kept out under MIDI 55 and made rare above -- the close tritone, and the one an octave up in the bass; two octaves apart it is past the critical band, and dark without mud. And the two lowest voices under MIDI 48 must make a difference tone of at least 25 Hz that stands on the scale: two loud low tones sound f2 - f1 as well, which at a fifth is the foundation's own octave and at a third is often under 20 Hz or off the scale." },
+    { "brain_third_floor",
+      "The note below which no third is chosen, major or minor. A third in the bass is the single most reliable way to make a drone muddy; 48 is the usual place to put the floor. 0 is off." },
+    { "brain_leading",
+      "Penalises the semitone under a sounding root. A leading note pulls somewhere, and this music has nowhere to go: it promises a resolution that will never arrive. At 1 it is excluded outright, except inside a Pivot window, where it is exactly the right tone." },
+    { "brain_thirds",
+      "Moves the weight of thirds, major and minor together. Negative avoids them -- the empty fifth-and-octave sound of the dark profiles -- and positive seeks them out, which is what makes a consonant, lit harmony. Judged against every sounding note, not against the root alone." },
+    { "brain_seconds",
+      "The same for seconds and ninths, and the reason it is a separate knob: a second is a colour above MIDI 60 and mud below it. Seeking them counts only above the third floor; avoiding them counts everywhere -- and avoiding takes the minor second and the major seventh, which is a minor second turned upside down, at their full weight, the major second at a third of it, because that is the proportion the rule book's own table of intervals has between them. By distance, not by interval class (25.09.2026): avoided, a second fades by half with every octave between its two notes, so a minor ninth is no longer punished like a minor second; sought, a second an octave or more apart counts in any register -- the minor ninth, the major seventh over two octaves, dissonance by separating registers, which is what Lustmord and Koner do instead of clusters." },
+    { "brain_seventh",
+      "Lifts the minor seventh. In a just scale that is 7/4, thirty-one cents below the tempered one -- the one interval in this music that fuses with the root instead of pressing against it, and the most characteristic sound it has. In 12-TET it is the tempered seventh, and the lift still helps." },
+    { "brain_root_targets",
+      "Which interval the root's next step aims at, and how often. Classic is the conductor's old draw, six intervals alike: the fifth, the fourth, both thirds, both sixths -- and the mediant steps, which belong to film music more than to drone. Modal (the default since 25.09.2026) moves by the fifth 40 per cent of the time, the fourth 30, the whole tone up or down 25 -- Roach's Dorian pendulum, I to flat VII, the Berlin School -- and the rest 5. Mediant is the luminous family's, the thirds and sixths 30 per cent. Phrygian lets the root fall by a semitone a fifth of the time, flat II to I. Root Steps still decides which steps are allowed at all." },
+    { "brain_utonal",
+      "Harmonic also hears undertone sets: every tone an undertone of one common top, the mirror of the overtone series. Harmonicity measures major and the harmonic series, and a minor triad (10:12:15) or the subharmonic series scores low by construction although it is the sound of the dark families -- Lustmord, Inade, Raison d'Etre. At 1 a chord counts as rooted if it is either; 0 is overtones only, as it always was." },
+    { "brain_series",
+      "The Harmonic Cloud. Rich, La Monte Young, Radigue and Stearns draw their chords as harmonics four to sixteen of one fundamental that does not itself sound. Turned up, the conductor weighs a candidate by how close it lies to a harmonic of the root's fundamental (its pitch class under 40 Hz), by one over the square root of the harmonic's number above the eighth, and by the prime limit Thirds and Seventh set -- and Key and Even, which pull the other way, give up their share. The Harmonic 8-16 scale only approximates this; with Series the chord is the series." },
+    { "brain_degree_swap",
+      "The chance that a root change also exchanges a single degree of the supply -- a major sixth for a minor one, a major third for a minor. The mode wanders instead of being switched, which is the only way this music changes colour without announcing it." },
+    { "brain_rate_breath",
+      "Lets the mean gap between events breathe. A constant mean is the one thing a Poisson clock cannot hide: the density is the same at minute three and at minute fifty, and the piece has no shape. At 1 the mean swings between half and double, on a curve made of two waves whose periods stand in the golden ratio, so the tide never repeats and never becomes a pulse." },
     { "brain_breath_period", "How long one breath takes. Without Rate Breath it does nothing." },
-    { "brain_overlap", "Nothing begins and nothing ends in the void. A voice may not be let go until the one replacing it has been sounding for this long, so a change is always heard inside a chord that is still there. It only postpones -- the note goes as soon as the condition is met. Ten seconds is the rule of thumb; with long releases, less." },
-    { "brain_onset_guard", "The thirty-millisecond rule. Two tones either begin within thirty milliseconds, in which case the ear fuses them into one sound, or more than three seconds apart, in which case they are two voices. In between they are heard as one chord played inaccurately -- a machine, not an instrument. An event falling in that gap waits for the far side of it. The entrance after a preset change is exempt, or a cluster walking in would never assemble." },
-    { "brain_release_gap", "The smallest time between two note-offs. Without it a cluster whose voices were started together can collapse together, which is the one ending this music must not have." },
-    { "brain_retrigger", "How long a pitch must rest after it ends before it may be chosen again. A pitch that has only just been let go is not a new note, it is the same note again -- the one repetition this music notices. Thirty seconds is the rule." },
-    { "brain_density_slew", "How long a change of Density takes. A change -- by hand, by a macro, by the Arc -- is then carried out one voice at a time over these minutes instead of at once: five voices appearing together is an edit, not a piece of music. 0 changes immediately, as it always did." },
-    { "brain_silence", "The chance that a root change is also a pause: every voice is let go and the room stays empty for a while. Complete silence belongs at a section's border and nowhere else -- once or twice an hour is the rule, and the guard is that this can only happen where the root moves." },
-    { "brain_silence_len", "How long that pause lasts, give or take a third. When it ends the cluster walks back in at the entrance pace rather than waiting out a draw made before it." },
-    { "brain_root_steps", "Where a new root may come from. Any is the draw the conductor always made. Fifths keeps it to the fourth and the fifth, the two moves that change everything and disturb nothing. Diatonic adds the minor third and the major second, and the descending semitone, which is how this music actually travels. Falling allows only downward steps. All but Any forbid the ascending semitone outright: it is heard as a lift, and there is nothing here to lift towards." },
-    { "brain_root_down", "Which way the root leans. A fifth down and a fifth up are one interval to the scoring and are not one move: downwards the music settles, upwards it climbs." },
-    { "brain_pivot", "The changeover window. Without it the root simply moves. With it the new root is announced rather than declared: a tone belonging to both roots begins at once, the root itself follows halfway through the window, and the voice on the old root is let go only at its end. Twenty to sixty seconds. A listener hears the harmony turn instead of switch, which is the whole of the difference." },
-    { "brain_home", "The pull back to the root the night began on. It grows with the hours and with how far the root has travelled, so a piece left running comes home without ever being told to -- and a piece switched off after ten minutes never notices it was there. That return is the only form this music needs." },
-    { "brain_home_time", "When that pull is at its strongest. It is also what Root Age in the matrix is measured against, so an hour-long night and a three-hour one read the same." },
-    { "brain_memory", "How long a chord may not return. The conductor remembers each constellation it has made -- the pitch classes that sounded and the octave the bottom of it sat in -- and will not build the same one again inside this time. Single pitches may come back as often as they like; that is Deja Vu's business. Constellations may not: a repeated chord is the moment a listener starts to hear a loop." },
-    { "brain2_golden", "Stretches the second conductor's rate and hold times against the first by the golden ratio -- the one number with no good rational approximation, so the two clocks can never fall into a simple relation and be heard as one layer. It overrides Brain 2's own Rate and Hold, which is the point: a ratio cannot be guaranteed while both ends are set by hand." },
-    { "tuning_hold_sounding", "When the root moves, what is already sounding keeps its frequency; only notes beginning afterwards take the ratios to the new root. Off, every voice glides -- and the whole harmony slides at once, which takes the floor out from under the piece. The harmony should change by what enters, not by everything moving together." },
-    { "beat_ceiling", "The fastest beat the strands may make. Two tones a few cents apart beat at the difference of their frequencies, so the same detuning beats faster the higher the note sits: warmth at 300 Hz is a wobble at 1 kHz. This is the flat upper bound on the rate, and under 150 Hz it is halved again, because down there anything above half a hertz reads as movement rather than as depth. 0 is off." },
-    { "env_vel_attack", "Velocity as an attack time rather than as a level. Positive lets a quiet note enter slower and a loud one faster -- the air floats in, the foundation simply stands -- and negative does the opposite. With Layers and Top Soft, which make the high voices the quiet ones, this is what gives each register its own way of arriving." },
-    { "layer_depth", "Takes a note's plane away from the dice and gives it to its role: foundation and body near, colour in the middle, air and shadow far back. At 0 the conductor places as it always did, four notes in ten intimately close and the rest deep in the background." },
-    { "strand_low_detune", "Thins the strand detuning out towards the bottom of the range. A beat of a hertz is warmth at 300 Hz and a wobble at 100, because the same cents make a slower beat the lower the note: at 1 a note under 150 Hz keeps half the detuning of one above 300. It works on Detune and Drift together, and leaves the upper range exactly as it was." },
+    { "brain_overlap",
+      "Nothing begins and nothing ends in the void. A voice may not be let go until the one replacing it has been sounding for this long, so a change is always heard inside a chord that is still there. It only postpones -- the note goes as soon as the condition is met. Ten seconds is the rule of thumb; with long releases, less." },
+    { "brain_onset_guard",
+      "The thirty-millisecond rule. Two tones either begin within thirty milliseconds, in which case the ear fuses them into one sound, or more than three seconds apart, in which case they are two voices. In between they are heard as one chord played inaccurately -- a machine, not an instrument. An event falling in that gap waits for the far side of it. The entrance after a preset change is exempt, or a cluster walking in would never assemble." },
+    { "brain_release_gap",
+      "The smallest time between two note-offs. Without it a cluster whose voices were started together can collapse together, which is the one ending this music must not have." },
+    { "brain_retrigger",
+      "How long a pitch must rest after it ends before it may be chosen again. A pitch that has only just been let go is not a new note, it is the same note again -- the one repetition this music notices. Thirty seconds is the rule." },
+    { "brain_density_slew",
+      "How long a change of Density takes. A change -- by hand, by a macro, by the Arc -- is then carried out one voice at a time over these minutes instead of at once: five voices appearing together is an edit, not a piece of music. 0 changes immediately, as it always did." },
+    { "brain_silence",
+      "The chance that a root change is also a pause: every voice is let go and the room stays empty for a while. Complete silence belongs at a section's border and nowhere else -- once or twice an hour is the rule, and the guard is that this can only happen where the root moves." },
+    { "brain_silence_len",
+      "How long that pause lasts, give or take a third. When it ends the cluster walks back in at the entrance pace rather than waiting out a draw made before it." },
+    { "brain_root_steps",
+      "Where a new root may come from. Any is the draw the conductor always made. Fifths keeps it to the fourth and the fifth, the two moves that change everything and disturb nothing. Diatonic adds the minor third and the major second, and the descending semitone, which is how this music actually travels. Falling allows only downward steps. All but Any forbid the ascending semitone outright: it is heard as a lift, and there is nothing here to lift towards." },
+    { "brain_root_down",
+      "Which way the root leans. A fifth down and a fifth up are one interval to the scoring and are not one move: downwards the music settles, upwards it climbs." },
+    { "brain_pivot",
+      "The changeover window. Without it the root simply moves. With it the new root is announced rather than declared: a tone belonging to both roots begins at once, the root itself follows halfway through the window, and the voice on the old root is let go only at its end. Twenty to sixty seconds. A listener hears the harmony turn instead of switch, which is the whole of the difference." },
+    { "brain_home",
+      "The pull back to the root the night began on. It grows with the hours and with how far the root has travelled, so a piece left running comes home without ever being told to -- and a piece switched off after ten minutes never notices it was there. That return is the only form this music needs." },
+    { "brain_home_time",
+      "When that pull is at its strongest. It is also what Root Age in the matrix is measured against, so an hour-long night and a three-hour one read the same." },
+    { "brain_memory",
+      "How long a chord may not return. The conductor remembers each constellation it has made -- the pitch classes that sounded and the octave the bottom of it sat in -- and will not build the same one again inside this time. Single pitches may come back as often as they like; that is Deja Vu's business. Constellations may not: a repeated chord is the moment a listener starts to hear a loop." },
+    { "brain2_golden",
+      "Stretches the second conductor's rate and hold times against the first by the golden ratio -- the one number with no good rational approximation, so the two clocks can never fall into a simple relation and be heard as one layer. It overrides Brain 2's own Rate and Hold, which is the point: a ratio cannot be guaranteed while both ends are set by hand." },
+    { "tuning_hold_sounding",
+      "When the root moves, what is already sounding keeps its frequency; only notes beginning afterwards take the ratios to the new root. Off, every voice glides -- and the whole harmony slides at once, which takes the floor out from under the piece. The harmony should change by what enters, not by everything moving together." },
+    { "beat_ceiling",
+      "The fastest beat the strands may make. Two tones a few cents apart beat at the difference of their frequencies, so the same detuning beats faster the higher the note sits: warmth at 300 Hz is a wobble at 1 kHz. This is the flat upper bound on the rate, and under 150 Hz it is halved again, because down there anything above half a hertz reads as movement rather than as depth. 0 is off." },
+    { "env_vel_attack",
+      "Velocity as an attack time rather than as a level. Positive lets a quiet note enter slower and a loud one faster -- the air floats in, the foundation simply stands -- and negative does the opposite. With Layers and Top Soft, which make the high voices the quiet ones, this is what gives each register its own way of arriving." },
+    { "layer_depth",
+      "Takes a note's plane away from the dice and gives it to its role: foundation and body near, colour in the middle, air and shadow far back. At 0 the conductor places as it always did, four notes in ten intimately close and the rest deep in the background." },
+    { "strand_low_detune",
+      "Thins the strand detuning out towards the bottom of the range. A beat of a hertz is warmth at 300 Hz and a wobble at 100, because the same cents make a slower beat the lower the note: at 1 a note under 150 Hz keeps half the detuning of one above 300. It works on Detune and Drift together, and leaves the upper range exactly as it was." },
 };
 
 /**
@@ -584,14 +881,26 @@ const HelpEntry Help[] = {
  * @param[in] key  a parameter key from paramTable()
  * @return the family template, or the key itself when it belongs to no family
  */
-std::string familyKey(const char* key)
+std::string familyKey( const char *key )
 {
-    std::string k(key);
-    auto digitAt = [&](size_t i) { return i < k.size() && k[i] >= '1' && k[i] <= '9'; };
-    if (k.rfind("src", 0) == 0 && digitAt(3) && k[4] == '_') { k[3] = 'N'; return k; }
-    if (k.rfind("lfo", 0) == 0 && digitAt(3) && k[4] == '_') { k[3] = 'N'; return k; }
-    if (k.rfind("env", 0) == 0 && digitAt(3) && k[4] == '_') { k[3] = 'N'; return k; }
-    if (k.rfind("dly2_", 0) == 0) return "dly" + k.substr(4);
+    std::string k( key );
+    auto        digitAt = [&]( size_t i ) { return i < k.size() && k[i] >= '1' && k[i] <= '9'; };
+    if ( k.rfind( "src", 0 ) == 0 && digitAt( 3 ) && k[4] == '_' )
+    {
+        k[3] = 'N';
+        return k;
+    }
+    if ( k.rfind( "lfo", 0 ) == 0 && digitAt( 3 ) && k[4] == '_' )
+    {
+        k[3] = 'N';
+        return k;
+    }
+    if ( k.rfind( "env", 0 ) == 0 && digitAt( 3 ) && k[4] == '_' )
+    {
+        k[3] = 'N';
+        return k;
+    }
+    if ( k.rfind( "dly2_", 0 ) == 0 ) return "dly" + k.substr( 4 );
     return k;
 }
 
@@ -599,17 +908,23 @@ std::string familyKey(const char* key)
  * @brief Every parameter's help text, resolved once: the answer for each ParamId by its own key or by
  * its family template, so paramHelp() is an index and not a search.
  */
-struct HelpCache {
-    const char* m_text[NumParams];   ///< indexed by ParamId; "" where Help has nothing for the key or its family
+struct HelpCache
+{
+    const char *m_text[NumParams];   ///< indexed by ParamId; "" where Help has nothing for the key or its family
     /** @brief Walks paramTable() once and fills text[]; the first entry of Help that matches, by key or by family, wins. */
     HelpCache()
     {
-        for (const ParamDesc& d : paramTable()) {
-            const char* found = "";
-            const std::string fam = familyKey(d.m_key);
-            for (const HelpEntry& e : Help)
-                if (std::strcmp(e.m_key, d.m_key) == 0 || fam == e.m_key) { found = e.m_text; break; }
-            m_text[static_cast<int>(d.m_id)] = found;
+        for ( const ParamDesc &d : paramTable() )
+        {
+            const char       *found = "";
+            const std::string fam = familyKey( d.m_key );
+            for ( const HelpEntry &e : Help )
+                if ( std::strcmp( e.m_key, d.m_key ) == 0 || fam == e.m_key )
+                {
+                    found = e.m_text;
+                    break;
+                }
+            m_text[static_cast<int>( d.m_id )] = found;
         }
     }
 };
@@ -618,12 +933,20 @@ struct HelpCache {
  * @brief The one HelpCache, built on first use; the static's own initialisation makes that thread-safe.
  * @return the cache, which never changes afterwards
  */
-const HelpCache& cache() { static const HelpCache c; return c; }
+const HelpCache &cache()
+{
+    static const HelpCache c;
+    return c;
+}
 
 // ---------------------------------------------------------------- the manual
 
 /** @brief One chapter of the manual: its title and its text, as the Help page prints them. */
-struct Topic { const char* m_title; const char* m_text; };
+struct Topic
+{
+    const char *m_title;
+    const char *m_text;
+};
 /**
  * @var const char* Topic::m_title
  * @brief The chapter heading, which is also its entry in the Help page's list.
@@ -637,9 +960,10 @@ struct Topic { const char* m_title; const char* m_text; };
  * @brief The manual, chapter by chapter, in the order the Help page lists them: overview and signal
  * flow first, the reading list last. numHelpTopics() counts this table.
  */
-const Topic Topics[] = {
-    { "Overview and signal flow",
-R"(Noctuary is a drone instrument for slowly breathing clusters: just intonation, additive banks whose partials live their own lives, envelopes measured in minutes, a conductor (the Cluster Brain) that can play a whole night by itself, and a spatial model that treats depth as a landscape rather than an effect.
+const Topic
+    Topics[] = {
+        { "Overview and signal flow",
+          R"(Noctuary is a drone instrument for slowly breathing clusters: just intonation, additive banks whose partials live their own lives, envelopes measured in minutes, a conductor (the Cluster Brain) that can play a whole night by itself, and a spatial model that treats depth as a landscape rather than an effect.
 
 SIGNAL FLOW
 
@@ -677,8 +1001,8 @@ THE PAGE
 
 Everything is on one page and nothing scrolls; drag the window corner to zoom. Rows whose sections are of a kind page through tabs: SOURCE 1 / SOURCE 2 / SOURCE 3 / SOURCE 4 / VECTOR, FILTER / Z-PLANE / AMP ENV / EXPRESSION, the effect pairs, COSMOS / STRIKE, BRAIN / AUTOPLAY / BRAIN 2 / TUNING / COHERENCE / CLOCK, MORPH / MACROS. The strand bank has no tab of its own: it belongs to Source 1's additive type alone and sits under that page's display. The header carries the pages -- Main, Perform, Browse, VR (calibration and gestures) and Help at the end. The room a row's knobs leave is a live display drawn from the engine's own numbers. The strip along the bottom holds the modulators. Point at any control and this header line tells you what it does.)" },
 
-    { "Sources",
-R"(Every voice has four equal source slots; their levels mix before the filter. Each slot has its own clip for the Texture type, so four slots can play four different recordings. Each slot has a Type:
+        { "Sources",
+          R"(Every voice has four equal source slots; their levels mix before the filter. Each slot has its own clip for the Texture type, so four slots can play four different recordings. Each slot has a Type:
 
 ADDITIVE  A bank of up to 32 partials. Partial h has amplitude h^-Tilt, the Brightness window fades the upper ones out, Odd/Even weights the two families, Inharmonic stretches the series like a stiff string, and Shimmer lets every partial drift in level on its own slow curve -- the breathing. Partials above Nyquist are not generated, so nothing aliases. In Source 1, Additive is the STRAND BANK: up to six copies of the bank, detuned (Detune, Drift) or placed on pure ratios (Stack: octaves, fifths, a just major or minor, seventh, harmonics, subharmonics -- one key becomes a just chord), fanned out in stereo (Spread), with Bloom opening the brightness over Bloom Time and Rate Wander slowly varying every movement rate. In Source 2 and 3, Additive is a single bank with its own Partials, Tilt, Bright, Odd/Even, Inharmonic and Shimmer.
 
@@ -746,8 +1070,8 @@ Every slot also has Octave, a just Ratio to the note (3/2 a fifth up, 7/4 a harm
 
 THE VECTOR is the four slots read as a place rather than as four levels, after the Prophet VS and the Korg Wavestation: a point in a square whose corners are the four sources. Amount is how much of it there is, and at 0 nothing here does anything -- each slot plays at the level it is set to. Drag the point, or turn X and Y. The centre of the square is neutral by construction: at (0.5, 0.5) every factor is exactly 1, so turning Amount up on a patch you like changes nothing until you move. Wander lets the point drift on its own, on two curves whose rates share no simple ratio, so it never traces the same path twice; Rate is how fast. The bars beside the square say what the point is doing to each slot.)" },
 
-    { "Filters and Z-plane",
-R"(Two filters, each with its own switch, in series or in parallel.
+        { "Filters and Z-plane",
+          R"(Two filters, each with its own switch, in series or in parallel.
 
 THE VOICE FILTER (Filter section) has fifteen models behind the same knobs:
   LP 6      one pole, warm and gentle
@@ -779,8 +1103,8 @@ The three reverb returns each have a LOW CUT beside their high cut now. Together
 
 The OUTPUT SPECTRUM along the bottom of the left column is the other half of that picture: what is actually coming out, with the same filter curve laid over it on the same decibel scale. Its window is 16384 samples -- 2.9 Hz at 48 kHz -- which is long enough to show the partials of a low drone as separate lines rather than one hump, so a fifth sitting exactly on the third partial is something you can see, and see come apart as Purity Drift loosens it. The bars are the moment; the faint line above them is the loudest each band has been in the last few seconds; the ticks along the bottom edge are the fundamentals of the notes sounding now. Point at it to read a frequency, its nearest note and that band's level.)" },
 
-    { "Space, Air, Foundation",
-R"(SPACE is the spatial model. Depth scales how deep the brain places its notes (40 % close, 60 % deep); Keys Depth is the plane your keys play on. Pan Drift wanders each voice's centre; Time Width is the interaural time difference (up to 0.65 ms, the far ear hears later) -- width from time, not level. Presence is a bell at 2-5 kHz on the near plane only, gone on the far plane. Breath lets every voice's distance itself wander (the room breathes) at Breath Rate. Arc is one very slow drift over Arc Period minutes that leans on density, brightness and depth, so a whole night has a shape; Arc Sync ties it to bars.
+        { "Space, Air, Foundation",
+          R"(SPACE is the spatial model. Depth scales how deep the brain places its notes (40 % close, 60 % deep); Keys Depth is the plane your keys play on. Pan Drift wanders each voice's centre; Time Width is the interaural time difference (up to 0.65 ms, the far ear hears later) -- width from time, not level. Presence is a bell at 2-5 kHz on the near plane only, gone on the far plane. Breath lets every voice's distance itself wander (the room breathes) at Breath Rate. Arc is one very slow drift over Arc Period minutes that leans on density, brightness and depth, so a whole night has a shape; Arc Sync ties it to bars.
 
 The STAGE display shows every sounding voice as a dot: left-right by pan, near-far by plane, size by envelope, brain notes in the voice colour, your keys in orange.
 
@@ -788,8 +1112,8 @@ AIR is filtered noise inside each voice, at a multiple (Color) of the note's fun
 
 FOUNDATION is a mono sub voice one or two octaves under the brain's root (or, with Source = Difference, on the combination tone of the two lowest voices -- the ghost bass of a just chord), gliding in the log domain over Glide seconds, with Binaural offsetting left and right by a few hertz and Tone adding a little harmonic content. It is injected after the mid/side stage so Bass Mono cannot thin it. Pad Low Cut takes the pads out of its register (12 dB/oct below the cut).)" },
 
-    { "Effects: foreground and background",
-R"(The near bus (the dry plane) runs through ENSEMBLE (Mix, Depth, Rate or Sync, and a Mode: Chorus is three modulated taps, Microshift detunes the two channels a few cents in opposite directions with nothing moving -- the studio's way of widening a drone that survives a mono sum, where a deep chorus at 13 to 22 ms is a comb filter waiting to be summed), DELAY and DELAY 2 in series (independent left and right times or note values, Feedback, Cross for ping-pong, Damping in the loop, Mix onto the near bus and To Far into the background: echoes that recede), and the NEAR REVERB (a small room: Mix, Decay, Damping, Low Cut).
+        { "Effects: foreground and background",
+          R"(The near bus (the dry plane) runs through ENSEMBLE (Mix, Depth, Rate or Sync, and a Mode: Chorus is three modulated taps, Microshift detunes the two channels a few cents in opposite directions with nothing moving -- the studio's way of widening a drone that survives a mono sum, where a deep chorus at 13 to 22 ms is a comb filter waiting to be summed), DELAY and DELAY 2 in series (independent left and right times or note values, Feedback, Cross for ping-pong, Damping in the loop, Mix onto the near bus and To Far into the background: echoes that recede), and the NEAR REVERB (a small room: Mix, Decay, Damping, Low Cut).
 
 The HAAS band (in Space) widens the foreground where the ear takes its direction from level rather than from time. Delaying a whole channel by ten to thirty milliseconds widens it and destroys it in mono; done to the band between about 1.2 and 4 kHz, and put into the side channel so that what is added on one side comes off the other, the edges open, the bass and the top stay where they were, and a mono sum is exactly the picture it was. Haas Time is how far that band is delayed. Off at 0.
 
@@ -801,8 +1125,8 @@ MASTER: Bass Mono removes the side channel below a frequency (a mono low end und
 
 The LOUDNESS METER under the master reads the finished output to BS.1770: I is the gated integrated value, S the short term, LRA the range, TP the true peak between samples, and crest the peak-to-RMS distance. The band on the bar is -24 to -16 LUFS, where a dark ambient master is asked to land, and the line at -14 is where the streaming services normalise: a master louder than that is turned down again and arrives flat rather than loud. Click the meter to start it again.)" },
 
-    { "Cosmos",
-R"(Cosmos is a parallel path off the near bus -- Send in, Return to the near plane and To Far into the background -- that adds to the sound and never replaces it. In order:
+        { "Cosmos",
+          R"(Cosmos is a parallel path off the near bus -- Send in, Return to the near plane and To Far into the background -- that adds to the sound and never replaces it. In order:
 
 FREQUENCY SHIFTER  Every partial moves by the same number of hertz (Shift), so a harmonic series becomes inharmonic; the right channel shifts 3 % less, which spreads the picture. Shift Drift wanders it.
 RESONATOR  A comb tuned to the brain's root (Res Pitch as a multiple of it), ringing with Res Feedback, at level Resonator.
@@ -815,8 +1139,8 @@ MEMORY, the third tab, is a second parallel world: a long, drifting sound memory
 
 The COSMOS RETURN display shows the spectrum of what the path hands back (nothing while Send is 0).)" },
 
-    { "Conductor: brain, tuning, coherence, clock",
-R"(CLUSTER BRAIN is the conductor. While Active it chooses notes from the scale between Lowest and Highest, prefers consonant intervals to what is sounding (Consonance), places each on a plane, keeps Density notes sounding, decides every Event Rate seconds (or every so many bars with Sync), holds each note between Hold Min and Hold Max, and lets its root Wander over time. Seed (in Tuning) makes a night reproducible. The lowest held MIDI key becomes the brain's root. The NOTES display is a roll of what it has played.
+        { "Conductor: brain, tuning, coherence, clock",
+          R"(CLUSTER BRAIN is the conductor. While Active it chooses notes from the scale between Lowest and Highest, prefers consonant intervals to what is sounding (Consonance), places each on a plane, keeps Density notes sounding, decides every Event Rate seconds (or every so many bars with Sync), holds each note between Hold Min and Hold Max, and lets its root Wander over time. Seed (in Tuning) makes a night reproducible. The lowest held MIDI key becomes the brain's root. The NOTES display is a roll of what it has played.
 
 TUNING: Scale (just scales, 12-TET, Bohlen-Pierce, or a loaded Scala file), Key Map (snap the twelve keys to the nearest degrees, or walk the degrees consecutively), Root, A4 reference, Hold (keys latch). Purity blends every note between 12-TET and the scale in the log domain, and Purity Drift lets that blend wander at Purity Rate, so the beating locks in and loosens over minutes. Freeze holds every voice's spectrum and pitch still. Portamento glides a new key from the last one, and Gravity slows the glide near consonant ratios so it clicks into the harmonic nodes on the way.
 
@@ -824,8 +1148,8 @@ COHERENCE: four slow Kuramoto oscillators coupled by Coherence (free at 0, in st
 
 CLOCK: where the tempo comes from -- Internal (Tempo, Run), Host (the DAW's play head) or MIDI (MIDI clock at the input). See the topic "Clock and sync".)" },
 
-    { "Modulation: LFOs, envelopes, matrix",
-R"(THE SOURCES a route can be driven by: the eight LFOs, the six envelopes, the voice's own amplitude, the eight macros, the four Kuramoto oscillators of the Coherence ring, the note, its velocity and its distance, one random number per note, the Beat (the instrument listening to how far out of tune it currently is), and the hands: PRESSURE (channel or polyphonic aftertouch), WHEEL (CC 1) and SLIDE (CC 74). Those last three rest at zero, so give them the 0..1 flag and a patch at rest sounds exactly as it did until you move them. Aftertouch on the filter's resonance, the wavetable position and the reverb at once is one gesture with three routes.
+        { "Modulation: LFOs, envelopes, matrix",
+          R"(THE SOURCES a route can be driven by: the eight LFOs, the six envelopes, the voice's own amplitude, the eight macros, the four Kuramoto oscillators of the Coherence ring, the note, its velocity and its distance, one random number per note, the Beat (the instrument listening to how far out of tune it currently is), and the hands: PRESSURE (channel or polyphonic aftertouch), WHEEL (CC 1) and SLIDE (CC 74). Those last three rest at zero, so give them the 0..1 flag and a patch at rest sounds exactly as it did until you move them. Aftertouch on the filter's resonance, the wavetable position and the reverb at once is one gesture with three routes.
 
 Three more come from the piece's own shape rather than from a clock or a field. ROOT AGE is how long the root has stood, measured against Home Time: 0 the moment it moves and climbing towards 1 the longer it holds, so a sound can open after a change instead of having been open all along. LAYER is the role of the voice being read -- foundation 0, body 0.25, colour 0.5, air 0.75, and the second conductor's shadow 1 -- which gives every register its own brightness, its own air, its own plane without the conductor needing to know anything about it. SECTION is the hour's Arc as a staircase of five steps instead of a glide, for the things that should change rather than slide: a register, a supply, a room.
 
@@ -843,8 +1167,8 @@ BEAT  The instrument listening to its own tuning. It takes the two lowest soundi
 
 ROUTING WITHOUT TYPING  Drag a card from the strip onto any knob: a route at a quarter of the range is added. Right-click a card to see and remove its routes; right-click a knob to see what drives it. A modulated knob wears a thin ring in its source's colour (LFOs turquoise, envelopes green, macros pink, coherence blue) and a second arc from its value to where the modulation is pushing it right now. Performance state (morph, macros, map, route, clock) can never be a target.)" },
 
-    { "Morph, macros, perform, gestures",
-R"(MORPH holds two full snapshots, A and B: pick a preset for each or capture the current state with A <- now / B <- now. Switch Active on and Position blends the whole instrument between the two worlds; Glide sets how long it takes to follow a new position -- up to fifteen minutes, so one gesture can carry a piece across a quarter of an hour. Continuous parameters interpolate in their own perceptual curve, integers round, choices flip halfway. Morph settings are never part of a preset. While Morph is on, the knobs reach the sound only through an end that has not been chosen: a snapshot is a snapshot, and turning a knob does not change it. So a slot nobody has chosen does not hold anything -- it reads "as played" and plays as the knobs stand, and switching Morph on before choosing A or B changes nothing you hear. Choose only B and Position runs from what is playing now to B. The snapshots stay with the instrument across a preset change and a journey step, and come back with a saved state.
+        { "Morph, macros, perform, gestures",
+          R"(MORPH holds two full snapshots, A and B: pick a preset for each or capture the current state with A <- now / B <- now. Switch Active on and Position blends the whole instrument between the two worlds; Glide sets how long it takes to follow a new position -- up to fifteen minutes, so one gesture can carry a piece across a quarter of an hour. Continuous parameters interpolate in their own perceptual curve, integers round, choices flip halfway. Morph settings are never part of a preset. While Morph is on, the knobs reach the sound only through an end that has not been chosen: a snapshot is a snapshot, and turning a knob does not change it. So a slot nobody has chosen does not hold anything -- it reads "as played" and plays as the knobs stand, and switching Morph on before choosing A or B changes nothing you hear. Choose only B and Position runs from what is playing now to B. The snapshots stay with the instrument across a preset change and a journey step, and come back with a saved state.
 
 JOURNEYS (in the Morph section) are presets in a row for an evening that plays itself: each preset is held for a while drawn from a range, then crossfaded into the next over a fade drawn from another, and round again when the journey is cyclic. Pick one in the Journey box and it starts; the label beside it says where it is and how long the step has left; Stop (the square) leaves you on the preset you are on. Starting a journey switches Morph and the map blend off, because both hold the instrument at a blend of their own and would overrule every preset the journey brings. The volume knob reaches both presets while one fades into the next, so it works through a step as it does between them. 119 come with the library -- for every pack a Journey of twelve presets spread across the pack's space and a Night of its twelve stillest, and for every family of artists a Crossing from pack to pack -- and your own are read from Documents\Noctuary\Journeys. To write one while playing: + now adds the preset that is playing as a step (with the default five to ten minutes and a fade of half a minute to a minute and a half), the disk beside it names the journey and puts it in the box. A journey is a plain text file, one preset a line: <preset> | <dwell> | <fade> [| near=<near preset, auto or keep>], times as m:ss, h:mm:ss or seconds, a range as two times with a dash, and "cyclic on" or "cyclic off" on a line of its own. The near field says what the foreground does at that step: a name sets that near preset, auto lets the sound preset bring its own (see Auto in Near Events), keep leaves whatever is playing, and no field at all does what Auto would.
 
@@ -854,8 +1178,8 @@ PERFORM (header button) shows only the eight macros and the morph, large, for pl
 
 GESTURES: the same layer that will drive the Quest version listens to OSC (/ambient/hand/L|R, /head, /param, /gesture, /note, /preset, /morph, port 9000): hand height, distance, pinch. Calibrate learns your range (hands together and apart, low and high, near and far, for six seconds). The right pinch is the clutch: mappings act only while it is engaged.)" },
 
-    { "Presets, packs, browser, map, routes, sets",
-R"(Presets come in two independent layers: the Sound box (voices, space, effects, brain, tuning -- 256 built in) and the Cosmos box (32 presets for the Cosmos section only), with the z-plane and the Strike layers beside them. Loading one never touches the other; in a DAW the full presets are the programs. The disk and the folder in the header store and load the whole state as an .noctuary file.
+        { "Presets, packs, browser, map, routes, sets",
+          R"(Presets come in two independent layers: the Sound box (voices, space, effects, brain, tuning -- 256 built in) and the Cosmos box (32 presets for the Cosmos section only), with the z-plane and the Strike layers beside them. Loading one never touches the other; in a DAW the full presets are the programs. The disk and the folder in the header store and load the whole state as an .noctuary file.
 
 THE BUILT-IN PRESETS
 
@@ -985,8 +1309,8 @@ BROWSE (header button): The map zooms about the mouse with the wheel and pans by
 
 SETS: Record set on the Perform page logs every knob, macro, route step and note with its time into an .ambientset file; Play set replays it.)" },
 
-    { "Clock and sync",
-R"(Nothing in this instrument needs a clock to make sound, but the moment it plays with other machines every rate wants to sit on the grid. Every rate that can has a SYNC choice next to its free knob: the eight LFOs (one cycle per note value, the phase following the beat position so it stays on the grid wherever the transport jumps), the six envelopes (the whole shape spans one value), both delays' left and right times, the ensemble rate, the cloud's grain rate, the brain's decision rate, the arc period, and each source's grain density. Free means the knob rules. The values run from 64 bars to 1/32, with dotted (D) and triplet (T) values.
+        { "Clock and sync",
+          R"(Nothing in this instrument needs a clock to make sound, but the moment it plays with other machines every rate wants to sit on the grid. Every rate that can has a SYNC choice next to its free knob: the eight LFOs (one cycle per note value, the phase following the beat position so it stays on the grid wherever the transport jumps), the six envelopes (the whole shape spans one value), both delays' left and right times, the ensemble rate, the cloud's grain rate, the brain's decision rate, the arc period, and each source's grain density. Free means the knob rules. The values run from 64 bars to 1/32, with dotted (D) and triplet (T) values.
 
 WHERE THE TEMPO COMES FROM (Conductor > CLOCK > Source):
   Internal  The Tempo knob, counting beats while Run is on. This is the standalone's own clock.
@@ -994,8 +1318,8 @@ WHERE THE TEMPO COMES FROM (Conductor > CLOCK > Source):
   MIDI      MIDI clock at the MIDI input (24 ticks a quarter, Start / Continue / Stop). The tempo settles over one beat's worth of ticks; two seconds without a tick and the engine falls back.
 The header shows the tempo and the bar the engine is following. The clock's settings are performance state like the morph: no preset changes your tempo.)" },
 
-    { "MIDI, OSC, files",
-R"(MIDI: notes play voices on the Keys Depth plane; the lowest held key becomes the brain's root.
+        { "MIDI, OSC, files",
+          R"(MIDI: notes play voices on the Keys Depth plane; the lowest held key becomes the brain's root.
 
 MIDI OUT (the plugin in a DAW): what the conductors play goes out as notes the moment it sounds -- channel 1 the Cluster Brain, 2 the second brain, 3 the near events -- so a MIDI track can record a night's chords or send them on to another instrument. Your own keys are not echoed.
 
@@ -1017,8 +1341,8 @@ ON A MAC: every release has a build for Apple Silicon (macOS 12 or newer), the s
 
 ON LINUX: every release has an archive for x86-64 (glibc 2.35 or newer: Ubuntu 22.04, Debian 12, Fedora 36 and later) with the standalone, the VST3, the LV2 (Ardour, Carla, Reaper, Qtractor), the renderer, the packs and the journeys, built and tested on GitHub's Ubuntu machines and tried under WSL. README-Linux.txt in it says where everything goes: the VST3 into ~/.vst3, the LV2 into ~/.lv2, the packs and journeys into ~/Documents/Noctuary, sound through ALSA or JACK (PipeWire serves both).)" },
 
-    { "Shortcuts and tips",
-R"(F1 or Help          this manual; Escape closes it
+        { "Shortcuts and tips",
+          R"(F1 or Help          this manual; Escape closes it
 Ctrl+K, magnifier   search: any knob, preset, tab or action by a few letters (its tab opens, it lights up;
                     a number after a knob's name sets it)
 Moon                night: the window dim and warm, for a dark room
@@ -1038,8 +1362,8 @@ TIPS
 - Source 1 on Texture with a long clip, Source 2 Additive an octave down, Source 3 Noise Wind at low level: three sources, one instrument.
 - The Comb filter on a stacked just chord, Resonance 0.7, Key Track 1: the filter becomes a second body that rings in tune.
 - For a DAW session set Clock Source to Host and put LFO 1 on 4 bars: the slow breathing lands on the downbeats.)" },
-    { "Design I: what the instrument is for, and the rules that follow",
-R"(Noctuary was built for one kind of music: the slowly breathing clusters Robert Rich played at his sleep concerts -- dense chords in just intonation, no rhythm, changes that take minutes, a piece that can run all night without repeating and without anyone touching it. Almost every design decision in the instrument follows from taking that brief literally. This chapter and the six after it say which decision follows from what, give the mathematics where there is mathematics, and point at the literature the decisions rest on; the references are collected in the last chapter, cited here by author and year. Where a number is quoted it was measured on the instrument, by the self test or by the offline renderer, and is quoted as a measurement rather than repeated as a claim.
+        { "Design I: what the instrument is for, and the rules that follow",
+          R"(Noctuary was built for one kind of music: the slowly breathing clusters Robert Rich played at his sleep concerts -- dense chords in just intonation, no rhythm, changes that take minutes, a piece that can run all night without repeating and without anyone touching it. Almost every design decision in the instrument follows from taking that brief literally. This chapter and the six after it say which decision follows from what, give the mathematics where there is mathematics, and point at the literature the decisions rest on; the references are collected in the last chapter, cited here by author and year. Where a number is quoted it was measured on the instrument, by the self test or by the offline renderer, and is quoted as a measurement rather than repeated as a claim.
 
 THE TIME SCALE
 
@@ -1088,11 +1412,11 @@ and renormalised once per control block with a single Newton step for 1/sqrt(r^2
 Three consequences of the additive choice run through the instrument. Partials above Nyquist are simply not generated (the bank stops at 0.45 f_s), so there is no aliasing at any pitch. Every partial can move independently -- its level drifting on its own slow curve (Shimmer), its frequency stretched (Inharmonic), its weight set against its neighbours (Odd/Even) -- which is the internal life a Rich drone has and a sample of one does not. And brightness, tilt and inharmonicity become continuous parameters rather than a choice between waveforms, which matters in an instrument where everything is meant to glide. The additive domain is also where the spatial model lives for free: presence, the pad's low cut and the distance-dependent darkening multiply into the partial targets at control rate and cost nothing per sample.
 
 SPACE IS A LANDSCAPE, NOT AN EFFECT)"
-R"(
+          R"(
 
 The last of the guiding decisions is the one the third chapter spends its whole length on. In most synthesisers space is a reverb at the end of the chain. Here every note has a distance from the ear, and that single number decides its brightness, its level, how dry it is and how present -- before any effect. Depth then comes from the contrast between a foreground plane and a background plane, width from time differences rather than from level, and focus from a mono low end. Nothing is compressed anywhere, because the distance between the quietest texture and the loudest swell is what the ear reads as the size of the room.)" },
-    { "Design II: the voice and its sources",
-R"(This chapter is about what a voice is made of and why: the additive bank and its strands, the four source slots and their types, the two filters and the fold, and the struck layer on top.
+        { "Design II: the voice and its sources",
+          R"(This chapter is about what a voice is made of and why: the additive bank and its strands, the four source slots and their types, the two filters and the fold, and the struck layer on top.
 
 THE SPECTRUM OF THE BANK
 
@@ -1175,7 +1499,7 @@ STRETCH
 Stretch reads the same clip as a continuum: Paulstretch (Nasca 2006) inside a voice. A window of N samples of the recording (Grain, up to 16384 samples) is transformed, its magnitudes |X_k| kept, its phases replaced by fresh uniform random phases,
 
     Y_k = |X_k| * exp(i phi_k),     phi_k ~ U(0, 2 pi))"
-R"(
+          R"(
 
 and the inverse transform is windowed and overlap-added at a hop of N/4 with a gain of 1.3 to restore the level, while the analysis position advances by hop / Stretch per frame. Every output frame is a plausible slice of the clip's spectrum with no memory of where its transients were -- the random phases destroy the temporal fine structure and keep the spectral envelope -- so a recording read forty times slower has no grain rhythm and no attack left standing. Pitch is applied when the window is read, as a resampling step through the clip, and the stretch to how far the read moves between frames; the two do not know about each other, which is what lets a chromatic sample play across the keyboard without a high note ending sooner than a low one. Measured: the pitch comes out identical to the granular player's, 110.7 Hz free and 220.3 Hz at A3.
 
@@ -1248,7 +1572,7 @@ The wavefolder exists because saturation cannot make a certain sound. A clipper 
 For a sine input x = sin(wt) the Jacobi-Anger expansion gives
 
     sin(a sin wt) = 2 sum_k J_{2k+1}(a) sin((2k+1) wt))"
-R"(
+          R"(
 
 odd harmonics only, with the Bessel weights J_{2k+1}(a) spreading further up the series as a grows -- this is the waveshaping synthesis of Le Brun (1979). The asymmetry breaks the odd symmetry and adds the even harmonics, which is where the body of the sound is. Because sin is entire, there is no corner anywhere to alias off, and because sin(u)/u tends to one, small signals pass unchanged; the amount both drives and mixes, so the knob leaves the identity continuously. The makeup gain was measured: 2.2 holds a 0.3-amplitude sine to within 1.3 dB across the knob, and a loud input loses about nine decibels at the top, which is not a fault -- past the first fold the fundamental itself is being folded away, and J_1(a) is already falling.
 
@@ -1267,8 +1591,8 @@ Who strikes, and how often. For a long time the answer was all or nothing: with 
 so a note arriving in a cluster of events is likelier to be struck and one in the quiet stretches is likelier not to be, while the count over an hour still follows Chance. The first draft weighed the coin by the excitation itself rather than by its distance from the average, which saturated: at any excitation worth having the probability clamped to one and every note struck again. Measured over five minutes of a conductor at two-second events (self test): 123 notes, Chance 1 strikes all 123, Chance 0.33 strikes 42, Chance 0 none; at Chance 0.3 with a cascade running, an even coin strikes 51 times with a coefficient of variation of 0.85 between the gaps, and Cluster at 1 strikes 57 times with 1.41 -- the same number of strikes, arriving in handfuls. The coin is drawn from a stream of its own and only when the chance is below one, so every preset written before there was a chance renders bit for bit as it did.
 
 The Cosmos was asked the same question and answered differently. It is a send and not an event: everything on the near bus goes into it, so it sounds whenever anything sounds, and the measurement said so plainly -- over five minutes with the conductor alone the Cosmos bus sat at -34 dBFS with one second in three hundred below a fiftieth of its peak. Nothing was ever triggered because nothing needed triggering; what it never did was rest. Swell gives it that. The send follows the conductor's excitation relative to the average that piece has been running at, so it opens inside a cluster of events and closes in the long gaps, and because it is measured against the average and not against an absolute number, a piece with no cascade at all is left exactly where it was -- which is why it can be on by default. The excitation is smoothed over two seconds first: the cascade's kick is a step, and a step on a send is a click. The same excitation is now a modulation source too, so anything else can be made to breathe with the piece's own busyness rather than with a clock.)" },
-    { "Design III: space, depth and width",
-R"(This is the chapter the instrument is built around. The spatial model comes from Robert Rich's practice as much as from the literature, and the literature it draws on is the psychoacoustics of localisation and distance -- Blauert (1997) for spatial hearing as a whole, Zahorik (2005) for distance, Rayleigh (1907) for the duplex theory, Brown and Duda (1998) for the structural model of the head.
+        { "Design III: space, depth and width",
+          R"(This is the chapter the instrument is built around. The spatial model comes from Robert Rich's practice as much as from the literature, and the literature it draws on is the psychoacoustics of localisation and distance -- Blauert (1997) for spatial hearing as a whole, Zahorik (2005) for distance, Rayleigh (1907) for the duplex theory, Brown and Duda (1998) for the structural model of the head.
 
 ONE NUMBER PER NOTE
 
@@ -1323,7 +1647,7 @@ The binaural mode also carries the head shadow itself, which the ordinary pan do
     alpha(theta) = 1 + a_min/2 + (1 - a_min/2) cos(theta / 150 deg * pi),   a_min = 0.1
 
 with a the head radius and c the speed of sound. At ninety degrees away the far ear loses the top end; at the front nothing happens; and behind the head the filter opens again, which is why the shadow alone cannot tell front from back and the pinna notch has to. It runs only in the binaural mode: on speakers the listener's own head does this, and doing it twice would be wrong.)"
-R"(
+          R"(
 
 The Ensemble's Microshift is the same argument applied to detuning. A chorus at thirteen to twenty-two milliseconds is a comb filter waiting to be summed; two channels detuned by c cents in opposite directions, at ratios r = 2^(c/1200) and 2^(-c/1200), and at different base delays, are never at a fixed phase difference, so there is no comb to cancel into. A pitch shift by a delay line is a delay that changes at a constant rate, d(t) = d_0 + (1 - r) t, and since it cannot change for ever it is wrapped: a ramp of 200 ms of travel and a 25 ms equal-power hand-over to a second tap one ramp behind. The textbook construction -- two taps half a cycle apart under a Hann pair -- was measured and rejected, because both taps are audible all the time at a fixed delay difference, which on a sustained tone is the comb above; it lost a fifth of the signal. With the long ramp the two taps overlap for a thousandth of the cycle. Measured by counting zero crossings of a 440 Hz sine: 443.06 Hz left, 436.96 Hz right, twelve cents each way to within half a hertz.
 
@@ -1424,11 +1748,11 @@ Bass Mono high-passes the side channel with a second-order filter at about 150 H
 There is no compressor anywhere, and that is a decision. The impression of an enormous room comes from the distance between the quietest texture and the loudest swell -- the loudness range -- and a limiter takes the finest amplitude movement out of a reverb tail and leaves it flat. Instead the instrument measures itself to ITU-R BS.1770-4 (2015), the standard EBU R 128 is built on. The signal is K-weighted -- a second-order high-shelf of about +4 dB above 1.5 kHz modelling the head's acoustic effect, then a second-order high pass near 38 Hz, the revised low-frequency B-weighting -- and the loudness of a block is
 
     L_K = -0.691 + 10 log10( sum_channels G_i * z_i )      z_i the mean square of the weighted channel)"
-R"(
+          R"(
 
 with 400 ms blocks overlapping by 75 %. The integrated value is gated twice, first absolutely at -70 LUFS and then relatively at 10 LU below the ungated mean, so that a piece that is mostly silence does not measure as mostly silence; the loudness range is the spread between the 10th and 95th percentiles of the short-term values above the gate; the true peak is estimated between the samples, and the crest factor is the peak above the RMS. The K-weighting is implemented from the analogue prototype rather than from the RBJ cookbook, because the cookbook shelf comes out about two per cent away from the coefficients the standard prints -- close enough to look right -- and the whole meter was checked against an independent implementation over the same render: -23.62 against -23.62 integrated. The window a dark-ambient master is asked to land in, -24 to -16 LUFS, is marked on the meter, with the -14 LUFS line the streaming services normalise to drawn across it.)" },
-    { "Design IV: tuning, harmony and the conductor",
-R"(Just intonation is not a period flavour in this instrument; it is the reason the voices can be as many and as slow as they are. This chapter is about why, and about the conductor that plays them.
+        { "Design IV: tuning, harmony and the conductor",
+          R"(Just intonation is not a period flavour in this instrument; it is the reason the voices can be as many and as slow as they are. This chapter is about why, and about the conductor that plays them.
 
 WHY JUST INTONATION
 
@@ -1493,7 +1817,7 @@ Two mechanisms use the physics of intervals as a source of control. The Foundati
 BEAT is a modulation source whose rate is the interval's mistuning. Two voices a fifth apart beat at the difference between the harmonics that would coincide if the fifth were just,
 
     beat = | q f2 - p f1 |      for the nearest simple ratio p/q)"
-R"(
+          R"(
 
 which is silent when the interval is in tune and quicker the further it has drifted; for a mistuned unison it is |f2 - f1|, the difference tone itself. BEAT finds the simplest ratio near the interval the two lowest voices make, from a short list of small-number ratios -- small numbers only, because those are the ones whose harmonics are close enough together to beat audibly -- and runs at exactly that rate, followed over about two seconds so that a voice arriving or leaving slides the rate rather than jumping it; below a fiftieth of a hertz it holds still, because a chord in tune should leave whatever it drives exactly where it is. Routed at a filter or at the Nebula's smear, the sound breathes at the rate of its own mistuning, and Purity Drift is what sets it moving. The test compares an octave (2:1 in every temperament there is: 0.000 Hz) with a tempered fifth (0.469 Hz at the test's pitch, two cents narrow), because the first version compared two tunings and measured the tuning system instead of the source.
 
@@ -1688,8 +2012,8 @@ each oscillator pulled a little harder by the one behind it in the ring than by 
     r exp(i psi) = (1/N) sum_j exp(i theta_j)
 
 at one -- and stayed there, four oscillators behaving as one, which is the opposite of what the section is for. An antisymmetric perturbation has no synchronous fixed point, so the bank locks in frequency and keeps a slowly turning spread of phase, which is what a ring of coupled biological oscillators does and why they never look identical. Measured with the order parameter after twenty minutes: above 0.9 when coupled, below without. Sympathy is coherence of another kind: a little of the whole foreground fed back into every voice through its own filter, one control block late, so the voices hear each other.)" },
-    { "Design V: movement, modulation and the loop",
-R"(A drone that does not move is a test tone. This chapter is about how the instrument keeps moving without ever repeating, and about the paths by which the sound feeds itself.
+        { "Design V: movement, modulation and the loop",
+          R"(A drone that does not move is a test tone. This chapter is about how the instrument keeps moving without ever repeating, and about the paths by which the sound feeds itself.
 
 RATES THAT NEVER LINE UP
 
@@ -1734,11 +2058,11 @@ The Cosmos is a second circle, in parallel, added and never replacing. Its frequ
 and whose phases are random per frame -- Paulstretch pointed at the mix -- so at full Smear the spectrum freezes. And its Shimmer pitch-shifts the far reverb's output an interval up and feeds it back into the reverb's input, throttled by the reverb's own level so it blooms to a ceiling and holds there instead of running into the clipper. Blur is the Nebula pointed at the foreground: every attack wiped into texture, notes flowing into one another, the blurred part 43 ms late and the dry part not.
 
 THE ROOM AS A THING)"
-R"(
+          R"(
 
 Four stages are about the room the sound is in rather than the sound. The Body is a soundboard: twelve two-pole resonators tuned to the brain's root in wood, plate, bell or string ratios, fed from the whole mix and returned into it, the lowest mode ringing for Decay and the higher ones dying faster at a rate belonging to the material. Two things had to be measured. A resonator normalised to unity at its peak passes almost nothing of a broadband signal -- the Body knob moved the mix by two hundredths of a decibel -- so the modes are normalised on their expected power, the way the Air band is; and modes scattered at random around the stereo centre are all driven by the same signal and so correlate the two channels (the width descriptor collapsed from 0.69 to 0.11), so neighbouring modes sit on opposite sides. Q is capped at 300, because a mode narrower than that is never excited by a drone that drifts. The Patina is the master's age -- wow and flutter as a moving read point, the top end a worn machine has lost, the modulation-noise floor and a gentle saturation -- because every one of those is a defect, and together they are most of what separates a recording from a render. The DC blocker, a first-order high pass at 4 Hz that costs 0.17 dB at 20 Hz, exists because several paths can leave an offset behind -- FM at an integer ratio, the tape stage's asymmetric term, a granular window over a clip that carries one -- and an offset costs headroom in the soft clipper without ever being heard; the blockers inside the FM slot and inside the feedback loop stay, because a loop can lock onto a DC operating point that a filter at the end cannot undo.)" },
-    { "Design VI: the library, and how it was measured",
-R"(Fourteen and a half thousand presets is not a number anyone can audition, and the design of the library follows from that: nothing in it is described, everything is measured.
+        { "Design VI: the library, and how it was measured",
+          R"(Fourteen and a half thousand presets is not a number anyone can audition, and the design of the library follows from that: nothing in it is described, everything is measured.
 
 STYLES AS RANGES
 
@@ -1771,7 +2095,7 @@ WHAT THE LITERATURE SAID, AND WHAT WAS DONE
 Two production papers on ambient and dark-ambient sound design were checked against the instrument late in its development, and most of what they ask for was already present: bass mono below the region of poor directional resolution, a side lift where directional hearing is sharpest, three reverb tiers with pre-delay and low cuts, air absorption with distance, free-running modulators on incommensurable rates, comb filters modulated by slow random curves, Paulstretch, a loudness meter and no limiter. Five things were not, and became parameters that are neutral at their default: the hands as modulation sources, the background's own width, the microshift, the band-limited Haas effect and the wavefolder. Two of the five were wrong in their first version and were caught by measurement rather than by ear -- the textbook microshift that was a comb filter on a sustained tone, and a Haas cross-feed that, fed a mono signal, produced no width at all -- and both are described honestly in the chapters above, because the instrument's manual is also its record.
 
 WHERE THE RESEARCH HAS MOVED ON)"
-R"(
+          R"(
 
 The design leans on classic accounts, and the field has moved past several of them. Rather than list the gaps, the instrument was taken through them one at a time. Nine things were found; eight were built; each is neutral at its default, so the six thousand presets voiced before them sound to the bit exactly as they did -- the whole library was re-rendered and hashed after every one.
 
@@ -1826,8 +2150,8 @@ The ninth was a neural sound model in the audio path -- an autoencoder trained o
 WHAT IS NOT CLAIMED
 
 Some things this instrument does not do, and does not pretend to. It has no compressor, no limiter and no dithering, and does not intend to; mastering is a separate craft with its own tools. The four-pole ladder filter is not zero-delay and is not going to become so in place. The Quest application builds against the same core and has not yet been run on a headset. The loudness in sones is Zwicker's model built from third-octave levels, not a certified ISO 532-1 implementation, and its absolute scale is pinned at the definition of the unit rather than derived; what is not pinned, and what should be checked against, is that sixty decibels comes out at 4.21 sones where the standard says four. The Early Room places the whole near bus at one position, the level-weighted mean of where its voices are, not each voice at its own: six delay lines per voice would cost more than the rest of the instrument. The Spectral source's model is thirty-two bands and one partial per band, so a dense chord in one band comes back as its loudest member plus noise. The key profiles of Krumhansl and Kessler were measured on listeners raised on Western tonal music, and are quoted as what they are: a measurement of those listeners, not a fact about music -- the same caution the consonance section carries. Smooth means two different things in the two modes -- the voice-leading distance of an exchange in Chords, the step size of a wandering voice in Free -- and in Free mode it still says nothing about WHICH voice leaves: that is decided by the hold times and by nothing else. And the timbre scale is computed from the spectrum of the additive bank alone, so a patch whose sound comes mostly from a sample or a bowed string is being tuned for a timbre it is not really playing. Match, likewise, moves the partials of Source 1's additive bank and nothing else. Arc Harmony's mapping from tension to three knobs is a proxy for Lerdahl and Krumhansl's model, not the model. And the fluctuation guard's measured effect is four percentage points of time, which is honest and small. Height is two filters, not a head: it tells the ear up from down and nothing finer, and it is heard through headphones or a close pair of speakers, not through a room. Envelop's measured lift on the output is three decibels, not the six the band is given, because the far reverb's low end had little side to lift. The psychoacoustics quoted in these chapters is the standard account -- the duplex theory, roughness as the basis of consonance, the structural model of the head, auditory scene analysis -- rather than the frontier of the field, and it is quoted because it is what the design used, not as a claim to have tested it. The seventh round's: the Roessler attractor is nearly periodic and is offered as such; the one-euro filter reads its speed from the distance left to travel rather than from the input's derivative, which is a variant and not the paper's filter, because controllers send steps; the deja-vu ring holds notes, not the timing between them, so it brings a figure back and not its rhythm; and Partial Spread applies to the additive bank alone and only when feedback FM is off, which is the path that was vectorised and left alone. The sixth round's own caveats: the rotating reverb matrix does not beat the classic network's wobbling lines at re-mixing the modes -- it matches them (0.51 against 0.55 second to second) with every line still, and that is the whole of what it can claim; the Lenia field is thirty-two cells wide and breeds blobs, not the gliders of the literature; Pulse builds the modulation that drives the auditory steady-state response, not the entrainment its advocates claim for it, on which the systematic reviews are unpersuaded; Bias is the cheapest form of a reactive nonlinearity and not a wave-digital circuit; Adaptive intonation matches to a list of twelve ratios and caps at thirty cents, which is a rule and not a graph optimisation; and the Homeostat's Surprise scale is set so that the untouched conductor reads near its top, because it was measured there. The numbers that are claimed are the ones the instrument measured on itself.)" },
-    { "Design VII: references",
-R"(The works the design chapters rest on, by area. Where a page or a chapter is named it is the part that was used.
+        { "Design VII: references",
+          R"(The works the design chapters rest on, by area. Where a page or a chapter is named it is the part that was used.
 
 PSYCHOACOUSTICS AND SPATIAL HEARING
 
@@ -1943,7 +2267,7 @@ Kuramoto, Y.: Chemical Oscillations, Waves, and Turbulence. Springer, 1984. The 
 
 Strogatz, S. H.: From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators. Physica D 143, 1-20, 2000. The order parameter and the critical coupling.
 )"
-R"(
+          R"(
 SYNTHESIS AND SIGNAL PROCESSING
 
 Schlecht, S. J. and Habets, E. A. P.: Time-varying feedback matrices in feedback delay networks and their application in artificial reverberation. Journal of the Acoustical Society of America 138, 1389-1398, 2015. Orthogonal matrices parametrised by rotations whose angles move slowly: the loop stays lossless while its modes are re-mixed, with no delay line modulated. The Rotating mode.
@@ -1983,7 +2307,7 @@ De Sena, E., Hacihabiboglu, H., Cvetkovic, Z. and Smith, J. O.: Efficient synthe
 Schlecht, S. J. and Habets, E. A. P.: On lossless feedback delay networks. IEEE Transactions on Signal Processing 65, 1554-1564, 2017. Where the colouration of a delay network comes from, and why its line lengths decide it.
 
 Engel, J., Hantrakul, L., Gu, C. and Roberts, A.: DDSP: differentiable digital signal processing. International Conference on Learning Representations, 2020; Caillon, A. and Esling, P.: RAVE: a variational autoencoder for fast and high-quality neural audio synthesis. arXiv:2111.05011, 2021. Read and deliberately not built -- see the end of the previous chapter.)"
-R"(
+          R"(
 
 Nasca, P. (Nasca Octavian Paul): Paul's Extreme Sound Stretch (Paulstretch), 2006, with the algorithm description published alongside the program. The Stretch type and the Nebula.
 
@@ -2032,7 +2356,7 @@ Hawkes, A. G.: Spectra of some self-exciting and mutually exciting point process
 Koelsch, S., Vuust, P. and Friston, K.: Predictive processes and the peculiar case of music. Trends in Cognitive Sciences 23, 63-77, 2019. Listening as prediction; attention held between the too predictable and the too surprising: Surprise and Homeostat.
 
 Rich, R.: The sleep concerts, from 1982; the recordings Somnium (2001) and Perpetual (2013), and the composer's own accounts of the concerts, of difference tones in just intonation and of stretched field material, are the practice this instrument was built after. The packs of the library name the artists whose corner of the repertoire each was written in the spirit of; nothing is sampled from or affiliated with any of them.)" },
-};
+    };
 
 // ---------------------------------------------------------------- the blocks, one by one
 
@@ -2043,7 +2367,11 @@ Rich, R.: The sleep concerts, from 1982; the recordings Somnium (2001) and Perpe
  * over the list of that tab's parameters. The parameter texts say what a knob does; these say
  * what the thing the knobs belong to is for, which is the question a reader has first.
  */
-struct TabHelp { const char* m_name; const char* m_text; };
+struct TabHelp
+{
+    const char *m_name;
+    const char *m_text;
+};
 /**
  * @var const char* TabHelp::m_name
  * @brief The name as the tab spells it ("SOURCE 2", "MATRIX"), a section without a tab ("SPACE") or
@@ -2056,80 +2384,133 @@ struct TabHelp { const char* m_name; const char* m_text; };
 /** @brief The tab paragraphs, in the order of the panel; the section comments name each row. */
 const TabHelp TabHelps[] = {
     // ---- the source row
-    { "SOURCE 1", "The first of four equal source slots, and the one with a history: set to Additive it is the strand bank -- up to six copies of a partial bank, detuned or placed on pure ratios, fanned across the stereo field -- and the Strands section under its display belongs to it alone. Set to any other type it renders exactly like the other three. Every slot has a Type, a Level, an Octave, a just Ratio to the note and a Pan; the rest of its knobs light up according to the type." },
-    { "SOURCE 2", "The second slot. Where Source 1 carries the melody of a patch, the second is most often its body or its shadow: an octave down at a fraction of the level, a wavetable with a slow position drift under an additive bank, a noise floor. Its own Partials, Tilt, Brightness, Odd/Even, Inharmonic and Shimmer apply when it is Additive; Table and Position when it is Harmonic or a Wavetable; FM Ratio and Index for FM; Grain, Density, Pitch and Grains for the Texture and Stretch types; Noise colour and Q for the noise." },
-    { "SOURCE 3", "The third slot, with the same controls as the second. Three sources of the same kind a fifth and an octave apart are a chord out of one key; three of different kinds are an instrument. The Texture... button loads a clip into this slot alone, so it can play a recording the other slots do not." },
-    { "SOURCE 4", "The fourth slot, added with the Vector so the four corners of its square are four sources. Off by default -- a preset that did not know about it sounds as it did -- and otherwise identical to slots 2 and 3, with its own clip." },
-    { "VECTOR", "The four slots read as a place rather than as four levels, after the Prophet VS and the Korg Wavestation: a point in a square whose corners are the four sources. Amount is how much of the picture the point paints -- at 0 every slot plays at its own Level and nothing here does anything; the centre of the square is neutral by construction, so turning Amount up changes nothing until the point moves. X and Y place it, Wander lets it drift on two curves whose rates share no simple ratio, Rate is how fast. Route the point from an LFO, a macro or the wheel and one gesture moves through four landscapes." },
+    { "SOURCE 1",
+      "The first of four equal source slots, and the one with a history: set to Additive it is the strand bank -- up to six copies of a partial bank, detuned or placed on pure ratios, fanned across the stereo field -- and the Strands section under its display belongs to it alone. Set to any other type it renders exactly like the other three. Every slot has a Type, a Level, an Octave, a just Ratio to the note and a Pan; the rest of its knobs light up according to the type." },
+    { "SOURCE 2",
+      "The second slot. Where Source 1 carries the melody of a patch, the second is most often its body or its shadow: an octave down at a fraction of the level, a wavetable with a slow position drift under an additive bank, a noise floor. Its own Partials, Tilt, Brightness, Odd/Even, Inharmonic and Shimmer apply when it is Additive; Table and Position when it is Harmonic or a Wavetable; FM Ratio and Index for FM; Grain, Density, Pitch and Grains for the Texture and Stretch types; Noise colour and Q for the noise." },
+    { "SOURCE 3",
+      "The third slot, with the same controls as the second. Three sources of the same kind a fifth and an octave apart are a chord out of one key; three of different kinds are an instrument. The Texture... button loads a clip into this slot alone, so it can play a recording the other slots do not." },
+    { "SOURCE 4",
+      "The fourth slot, added with the Vector so the four corners of its square are four sources. Off by default -- a preset that did not know about it sounds as it did -- and otherwise identical to slots 2 and 3, with its own clip." },
+    { "VECTOR",
+      "The four slots read as a place rather than as four levels, after the Prophet VS and the Korg Wavestation: a point in a square whose corners are the four sources. Amount is how much of the picture the point paints -- at 0 every slot plays at its own Level and nothing here does anything; the centre of the square is neutral by construction, so turning Amount up changes nothing until the point moves. X and Y place it, Wander lets it drift on two curves whose rates share no simple ratio, Rate is how fast. Route the point from an LFO, a macro or the wheel and one gesture moves through four landscapes." },
     // ---- the voice's second row
-    { "FILTER", "The voice filter, one per voice, ten models behind one set of knobs: one- to four-pole low passes, a high pass, a band pass, a notch, a peak, the saturating ladder, a tuned comb and a formant. Cutoff follows the key (Key Track), the amplitude envelope (Env Amount), a slow wander (Drift) and the voice's distance -- a far voice is two and a half octaves darker per unit of depth. Drive saturates ahead of the filter; Fold is the wavefolder after it. The Air section beside it is the noise on the note: a band around a harmonic, or six resonators on the just harmonics." },
-    { "Z-PLANE", "The second filter, after the E-mu Morpheus: filter frames sit on the corners of a cube, and a point inside it is a filter interpolated from all of them, poles and zeros alike, so every point is stable. 155 shapes in twelve families. The point wanders (Rate, Depth) around X and Y; Z is the cube's third axis; Resonance narrows every section; Key Track moves the frame with the note. Mode puts it after the voice filter, in its place, or -- Modal -- turns the frame into a bank of ringing resonators struck by the voice. Route decides whether the two filters run in series or side by side." },
-    { "AMP ENV", "The amplitude envelope of every voice, in the time scale of this instrument: an attack of up to a minute, a release of two. There is no click anywhere in it by design -- a step in level is a bug here, not an effect. The six modulation envelopes on the strip along the bottom are separate and shaped by hand; this one is the four numbers everybody looks for first." },
-    { "EXPRESSION", "What a hand on the keyboard can do beyond playing the note: pressure (channel or polyphonic aftertouch) pulls the voice out of the background towards the ear and lifts its level; slide (CC 74) moves the z-plane point; the bend range is here too, and the MPE switch that gives every finger its own channel. All of it is smoothed inside the voice, so a controller sending steps never steps the sound. The same three -- pressure, wheel, slide -- are also sources in the modulation matrix, for anything these fixed routes do not cover." },
+    { "FILTER",
+      "The voice filter, one per voice, ten models behind one set of knobs: one- to four-pole low passes, a high pass, a band pass, a notch, a peak, the saturating ladder, a tuned comb and a formant. Cutoff follows the key (Key Track), the amplitude envelope (Env Amount), a slow wander (Drift) and the voice's distance -- a far voice is two and a half octaves darker per unit of depth. Drive saturates ahead of the filter; Fold is the wavefolder after it. The Air section beside it is the noise on the note: a band around a harmonic, or six resonators on the just harmonics." },
+    { "Z-PLANE",
+      "The second filter, after the E-mu Morpheus: filter frames sit on the corners of a cube, and a point inside it is a filter interpolated from all of them, poles and zeros alike, so every point is stable. 155 shapes in twelve families. The point wanders (Rate, Depth) around X and Y; Z is the cube's third axis; Resonance narrows every section; Key Track moves the frame with the note. Mode puts it after the voice filter, in its place, or -- Modal -- turns the frame into a bank of ringing resonators struck by the voice. Route decides whether the two filters run in series or side by side." },
+    { "AMP ENV",
+      "The amplitude envelope of every voice, in the time scale of this instrument: an attack of up to a minute, a release of two. There is no click anywhere in it by design -- a step in level is a bug here, not an effect. The six modulation envelopes on the strip along the bottom are separate and shaped by hand; this one is the four numbers everybody looks for first." },
+    { "EXPRESSION",
+      "What a hand on the keyboard can do beyond playing the note: pressure (channel or polyphonic aftertouch) pulls the voice out of the background towards the ear and lifts its level; slide (CC 74) moves the z-plane point; the bend range is here too, and the MPE switch that gives every finger its own channel. All of it is smoothed inside the voice, so a controller sending steps never steps the sound. The same three -- pressure, wheel, slide -- are also sources in the modulation matrix, for anything these fixed routes do not cover." },
     // ---- morph
-    { "MORPH", "Two complete snapshots of every parameter, A and B, and a position between them. While Morph is active the instrument plays the interpolation, gliding to the position at the Glide rate -- one continuous gesture, made for a hand in VR, that moves the whole instrument from one world to another without a jump anywhere." },
-    { "MACROS", "Eight knobs that mean nothing by themselves and anything through the matrix: route a macro at three targets and one hand turns three knobs at once, in the proportions you chose. They are what the OSC hands, the gestures and a controller's faders land on. Inertia is the slew every parameter passes through -- the analogue slowness that keeps even a torn-open knob from clicking." },
+    { "MORPH",
+      "Two complete snapshots of every parameter, A and B, and a position between them. While Morph is active the instrument plays the interpolation, gliding to the position at the Glide rate -- one continuous gesture, made for a hand in VR, that moves the whole instrument from one world to another without a jump anywhere." },
+    { "MACROS",
+      "Eight knobs that mean nothing by themselves and anything through the matrix: route a macro at three targets and one hand turns three knobs at once, in the proportions you chose. They are what the OSC hands, the gestures and a controller's faders land on. Inertia is the slew every parameter passes through -- the analogue slowness that keeps even a torn-open knob from clicking." },
     // ---- foreground
-    { "ENSEMBLE + DELAY", "The first two stations of the foreground bus. The Ensemble widens: as a Chorus, three modulated taps; as a Microshift, the two channels detuned a few cents against each other with nothing moving -- the version that survives a mono sum. The Delay is a stereo delay with independent left and right times (or note values, with Sync), feedback, cross-feed for ping-pong, damping and absorption in the loop, and two outputs: Mix onto the foreground, To Far into the background, so echoes recede. Duck pulls the loop's brightness down while the input is loud, so a fresh attack does not fight its own last echo." },
-    { "DELAY 2 + NEAR REVERB + BLUR", "The rest of the foreground. Delay 2 is a second stereo delay in series after the first, so echoes of echoes form chains that never fall on a grid. The Near Reverb is the small room around the dry voices -- Mix, Decay, Damping and a Low Cut -- what makes a foreground sound placed rather than pasted. Blur is a spectral smear on the near bus ahead of all of it: every attack is wiped into texture, notes flow into one another, and at full Smear the spectrum freezes and only lets new energy in slowly." },
+    { "ENSEMBLE + DELAY",
+      "The first two stations of the foreground bus. The Ensemble widens: as a Chorus, three modulated taps; as a Microshift, the two channels detuned a few cents against each other with nothing moving -- the version that survives a mono sum. The Delay is a stereo delay with independent left and right times (or note values, with Sync), feedback, cross-feed for ping-pong, damping and absorption in the loop, and two outputs: Mix onto the foreground, To Far into the background, so echoes recede. Duck pulls the loop's brightness down while the input is loud, so a fresh attack does not fight its own last echo." },
+    { "DELAY 2 + NEAR REVERB + BLUR",
+      "The rest of the foreground. Delay 2 is a second stereo delay in series after the first, so echoes of echoes form chains that never fall on a grid. The Near Reverb is the small room around the dry voices -- Mix, Decay, Damping and a Low Cut -- what makes a foreground sound placed rather than pasted. Blur is a spectral smear on the near bus ahead of all of it: every attack is wiped into texture, notes flow into one another, and at full Smear the spectrum freezes and only lets new energy in slowly." },
     // ---- background
-    { "CLOUD + FAR REVERB", "The background. The Cloud takes grains of the recent foreground -- Send how much, Density how many a second (or a note value), Size how long, Spray how far back in time it reaches -- transposes them by octaves and fifths and drops them into the far reverb, so the past of the music keeps arriving from behind. The Far Reverb is the infinite background itself: an eight-line feedback network, dark and wide, with a decay measured in tens of seconds, Pre-Delay, Asymmetry so the two ears hear different reflections, a high cut and a low cut on the tail, Freeze, Rotate (the whole field slowly turning), Unmask (it steps aside for the foreground band by band), Diffuse (the tail arrives instead of starting) and its own Width, the funnel that reads as distance." },
+    { "CLOUD + FAR REVERB",
+      "The background. The Cloud takes grains of the recent foreground -- Send how much, Density how many a second (or a note value), Size how long, Spray how far back in time it reaches -- transposes them by octaves and fifths and drops them into the far reverb, so the past of the music keeps arriving from behind. The Far Reverb is the infinite background itself: an eight-line feedback network, dark and wide, with a decay measured in tens of seconds, Pre-Delay, Asymmetry so the two ears hear different reflections, a high cut and a low cut on the tail, Freeze, Rotate (the whole field slowly turning), Unmask (it steps aside for the foreground band by band), Diffuse (the tail arrives instead of starting) and its own Width, the funnel that reads as distance." },
     { "FEEDBACK + ROOM", "Two ways of making the instrument hear itself. Feedback returns the finished mix: To Bus into the near bus ahead of the filters and effects, throttled by the output level so it hisses and holds instead of running away; To Pitch as phase modulation of every partial, so the sound bends itself; through Tone, Drive and Tape, which adds the asymmetry, the wow and the noise floor of a machine. The Room is the convolution reverb, on the far plane in parallel: an impulse response loaded with the Impulse... button or named by the preset -- a hall, a plate, a tuned chord, a struck object -- with Pre-Delay, a high cut, a low cut, and Morph between two impulses." },
-    { "BODY + PATINA", "The last two stages before the master. The Body is not a reverb but an instrument: twelve tuned modes -- wood, plate, bell or string -- fed from the whole mix and returned into it, tuned to the brain's root at a chosen multiple, ringing for as long as Decay says. The Patina is the master's age: tape wow, the highs a worn machine has lost, a noise floor that lives under the music, a gentle saturation. Every one of them is a defect, and together they are most of what separates a recording from a render." },
+    { "BODY + PATINA",
+      "The last two stages before the master. The Body is not a reverb but an instrument: twelve tuned modes -- wood, plate, bell or string -- fed from the whole mix and returned into it, tuned to the brain's root at a chosen multiple, ringing for as long as Decay says. The Patina is the master's age: tape wow, the highs a worn machine has lost, a noise floor that lives under the music, a gentle saturation. Every one of them is a defect, and together they are most of what separates a recording from a render." },
     // ---- the conductor
-    { "BRAIN", "The conductor: chooses notes from the scale, places them on the planes between the ear and the background, holds them for minutes and lets them go, and can play a whole night by itself. Density is how many it keeps sounding, Rate how often it changes its mind, the Hold range how long a note lives, Register where it plays, Consonance how simple the ratios to the root have to be (1 is only fifths and octaves, 0 is clusters), Wander how far the root drifts. Off, only your keys play. Timbre gives it a second ear: instead of judging an interval by its ratio alone it can weigh the roughness the two tones' actual partials would make (after Sethares), so an inharmonic patch is conducted in the intervals it is consonant at. Its display is the stage: every sounding voice as a dot at its distance." },
-    { "AUTOPLAY", "The brain's other mode: instead of holding a cluster it exchanges one voice at a time, in Free steps or in Chords drawn from the scale, at a Rate or on the clock, with a Tension that decides how far each step may go and a Step button to make it move now. The way a patient improviser plays a chord instrument: nothing ever changes all at once." },
-    { "BRAIN 2", "A second conductor for the background alone. With it on, the far plane gets its own slow life -- its own hold range, its own Depth -- independent of the foreground's, so the two planes stop moving in step and the picture gains a second layer of time." },
-    { "TUNING", "What a note means. Scale chooses the tuning -- eleven just and historical tables, a Scala file of your own, and Timbre, which is no table at all but the instrument's own dissonance curve read while it plays -- Root its centre, Ref Pitch its A. Purity is how close the instrument sits to the pure ratios, Purity Drift how far it lets them slip and at what rate, so a chord breathes in and out of tune, and Guard keeps the beats that makes out of the band where they read as wobble; Match bends the partials onto the scale's own degrees, so a tempered chord stops beating; Tide leans the whole pitch over minutes; Portamento glides between notes, slowing near consonant ratios by Gravity. Hold latches the keys." },
-    { "COHERENCE", "Four slow oscillators coupled after the Kuramoto model of fireflies falling into step. At Coherence 0 they run free on their own periods; turned up they lock into one pulse and move brightness, depth, pan and the z-plane point together. The four are also sources in the matrix, so anything can be pulled into that shared breath. Sympathy is a different kind of coherence: the voices hear each other, a little of the whole foreground fed back into every voice through its own filter." },
-    { "CLOCK", "Where the tempo comes from -- the internal Tempo and Run, the host, or MIDI clock -- and the beat every Sync choice in the instrument is measured against. Nothing here has to be used: the instrument's own rates are in seconds and minutes, and a synced LFO is a choice, not the default." },
+    { "BRAIN",
+      "The conductor: chooses notes from the scale, places them on the planes between the ear and the background, holds them for minutes and lets them go, and can play a whole night by itself. Density is how many it keeps sounding, Rate how often it changes its mind, the Hold range how long a note lives, Register where it plays, Consonance how simple the ratios to the root have to be (1 is only fifths and octaves, 0 is clusters), Wander how far the root drifts. Off, only your keys play. Timbre gives it a second ear: instead of judging an interval by its ratio alone it can weigh the roughness the two tones' actual partials would make (after Sethares), so an inharmonic patch is conducted in the intervals it is consonant at. Its display is the stage: every sounding voice as a dot at its distance." },
+    { "AUTOPLAY",
+      "The brain's other mode: instead of holding a cluster it exchanges one voice at a time, in Free steps or in Chords drawn from the scale, at a Rate or on the clock, with a Tension that decides how far each step may go and a Step button to make it move now. The way a patient improviser plays a chord instrument: nothing ever changes all at once." },
+    { "BRAIN 2",
+      "A second conductor for the background alone. With it on, the far plane gets its own slow life -- its own hold range, its own Depth -- independent of the foreground's, so the two planes stop moving in step and the picture gains a second layer of time." },
+    { "TUNING",
+      "What a note means. Scale chooses the tuning -- eleven just and historical tables, a Scala file of your own, and Timbre, which is no table at all but the instrument's own dissonance curve read while it plays -- Root its centre, Ref Pitch its A. Purity is how close the instrument sits to the pure ratios, Purity Drift how far it lets them slip and at what rate, so a chord breathes in and out of tune, and Guard keeps the beats that makes out of the band where they read as wobble; Match bends the partials onto the scale's own degrees, so a tempered chord stops beating; Tide leans the whole pitch over minutes; Portamento glides between notes, slowing near consonant ratios by Gravity. Hold latches the keys." },
+    { "COHERENCE",
+      "Four slow oscillators coupled after the Kuramoto model of fireflies falling into step. At Coherence 0 they run free on their own periods; turned up they lock into one pulse and move brightness, depth, pan and the z-plane point together. The four are also sources in the matrix, so anything can be pulled into that shared breath. Sympathy is a different kind of coherence: the voices hear each other, a little of the whole foreground fed back into every voice through its own filter." },
+    { "CLOCK",
+      "Where the tempo comes from -- the internal Tempo and Run, the host, or MIDI clock -- and the beat every Sync choice in the instrument is measured against. Nothing here has to be used: the instrument's own rates are in seconds and minutes, and a synced LFO is a choice, not the default." },
     // ---- cosmos and strike
-    { "COSMOS", "A parallel path, send and return, added and never replacing: a frequency shifter (Shift, with a Drift so the shift never sits still), tuned comb resonators that follow the brain's root (Res, Res Pitch), a vowel filter morphing through a-e-i-o-u (Vowel, Vowel Rate), a Nebula that smears the spectrum with random phases until at full Smear it freezes, and a Shimmer loop around the far reverb, self-regulating so it blooms and holds. Return puts the result into the foreground, To Far into the background. Thirty-two presets of its own live in the header." },
-    { "STRIKE", "A struck layer on top of the voice: a Karplus-Strong string, a wooden or a metal body, excited at note-on and left to ring. Level, Type, Decay and Damp; Fires decides whether only the keys strike or the conductor's notes as well. Chance thins the conductor's strikes -- 0.2 and about one note in five is struck, which is the difference between a plucked instrument and a room where something is occasionally touched -- and Cluster lets those strikes follow the conductor's cascade, so they arrive in handfuls with long silences between instead of falling evenly. Your own keys always strike. It is the attack this instrument otherwise never has, and at a low level it is what makes a pad sound touched." },
-    { "NEAR SOURCE", "A fifth source slot that belongs to the foreground alone: its type (the near types Flute, Murmur, Bowl, Ice and Drops were made for it, but any type will do), its own envelope, its own filter and its own strike, so what is played close to the ear owes the background nothing. Rendered only by the Near Events. With the Near Events it is a layer like the Cosmos -- the Preset box beside them holds a bank of foregrounds, and a chosen one stays while sound presets change under it." },
-    { "NEAR EVENTS", "The foreground's own conductor. Every so often -- Every, drawn as the conductor draws its gaps -- it plays one thing on the Near Source, close, for Length: a Note, a Phrase that slides to a second consonant degree, or a Sequence, a Berlin-school ring of Steps notes on its own clock, transposed with the root, mutating one step at a time (Mutation), with ghost notes and far accents scattered through it and its filter breathing open and shut over the run (Bloom), arriving out of the far plane and leaving into it (Approach). The pitch is chosen against the harmony (Pitch: Consonant), never in the conductor's planned silences, never just after a root change, never two at once; while a Note or a Phrase sounds the conductor may hold its decisions (Hold Brain). Proximity is the near field's low lift on the event's voice. Level 0 is off." },
+    { "COSMOS",
+      "A parallel path, send and return, added and never replacing: a frequency shifter (Shift, with a Drift so the shift never sits still), tuned comb resonators that follow the brain's root (Res, Res Pitch), a vowel filter morphing through a-e-i-o-u (Vowel, Vowel Rate), a Nebula that smears the spectrum with random phases until at full Smear it freezes, and a Shimmer loop around the far reverb, self-regulating so it blooms and holds. Return puts the result into the foreground, To Far into the background. Thirty-two presets of its own live in the header." },
+    { "STRIKE",
+      "A struck layer on top of the voice: a Karplus-Strong string, a wooden or a metal body, excited at note-on and left to ring. Level, Type, Decay and Damp; Fires decides whether only the keys strike or the conductor's notes as well. Chance thins the conductor's strikes -- 0.2 and about one note in five is struck, which is the difference between a plucked instrument and a room where something is occasionally touched -- and Cluster lets those strikes follow the conductor's cascade, so they arrive in handfuls with long silences between instead of falling evenly. Your own keys always strike. It is the attack this instrument otherwise never has, and at a low level it is what makes a pad sound touched." },
+    { "NEAR SOURCE",
+      "A fifth source slot that belongs to the foreground alone: its type (the near types Flute, Murmur, Bowl, Ice and Drops were made for it, but any type will do), its own envelope, its own filter and its own strike, so what is played close to the ear owes the background nothing. Rendered only by the Near Events. With the Near Events it is a layer like the Cosmos -- the Preset box beside them holds a bank of foregrounds, and a chosen one stays while sound presets change under it." },
+    { "NEAR EVENTS",
+      "The foreground's own conductor. Every so often -- Every, drawn as the conductor draws its gaps -- it plays one thing on the Near Source, close, for Length: a Note, a Phrase that slides to a second consonant degree, or a Sequence, a Berlin-school ring of Steps notes on its own clock, transposed with the root, mutating one step at a time (Mutation), with ghost notes and far accents scattered through it and its filter breathing open and shut over the run (Bloom), arriving out of the far plane and leaving into it (Approach). The pitch is chosen against the harmony (Pitch: Consonant), never in the conductor's planned silences, never just after a root change, never two at once; while a Note or a Phrase sounds the conductor may hold its decisions (Hold Brain). Proximity is the near field's low lift on the event's voice. Level 0 is off." },
     // ---- sections without a tab of their own
-    { "STRANDS", "The strand bank of Source 1: up to six copies of the partial bank, detuned against each other (Detune) or placed on pure ratios (Stack: octaves, fifths, a just major or minor, sevenths, harmonics, subharmonics -- one key becomes a just chord), each drifting in pitch on its own curve (Drift, Drift Rate), fanned across the stereo field (Spread). Bloom opens the brightness over Bloom Time from a duller start; Rate Wander lets every slow rate in the voice vary by up to an octave on a hundred-second curve, so nothing repeats; Freeze holds the spectrum still." },
-    { "SPACE", "The spatial model, after Robert Rich: every note has a distance between the ear and the infinite background, and that one number decides its brightness, its level, how dry it is and how present. Depth is how deep the brain places its notes, Keys Depth the plane of the keys, Pan Drift the wandering of each voice's centre, Time Width the interaural time difference the far ear hears later. Arc is the hour-scale drift of the whole night. Presence is the 2-5 kHz lift on the near plane only; Breath lets every distance wander; Phase Width and its rate drift the phase between the ears so the room seems to change size; Doppler bends the pitch of a voice as it breathes closer; Externalise adds the pinna notch and the shoulder reflection headphones need to put the image outside the head. Haas and Haas Time are the band-limited widening of the foreground." },
-    { "FOUNDATION", "The sub: one dry sine or triangle on the brain's root, one or two octaves down, gliding between roots, mono, added after the mid/side stage so Bass Mono leaves it alone. Binaural runs the two ears a few hertz apart. Source can be the root itself or the Difference tone of the two lowest sounding voices -- the tone the ear makes by itself in just intonation. Pad Low Cut keeps the voices out of the sub's register." },
-    { "MASTER", "The end of the chain, in the header: Tilt, a see-saw of the whole spectrum around Pivot; Bass Mono, the side channel high-passed so the low end stays centred; Side Air, a lift on the sides at 3 kHz; Width; Subsonic, a steep high pass on the finished output; then the master gain and a soft clipper. No compressor anywhere. The loudness meter beside it reads the output to BS.1770." },
+    { "STRANDS",
+      "The strand bank of Source 1: up to six copies of the partial bank, detuned against each other (Detune) or placed on pure ratios (Stack: octaves, fifths, a just major or minor, sevenths, harmonics, subharmonics -- one key becomes a just chord), each drifting in pitch on its own curve (Drift, Drift Rate), fanned across the stereo field (Spread). Bloom opens the brightness over Bloom Time from a duller start; Rate Wander lets every slow rate in the voice vary by up to an octave on a hundred-second curve, so nothing repeats; Freeze holds the spectrum still." },
+    { "SPACE",
+      "The spatial model, after Robert Rich: every note has a distance between the ear and the infinite background, and that one number decides its brightness, its level, how dry it is and how present. Depth is how deep the brain places its notes, Keys Depth the plane of the keys, Pan Drift the wandering of each voice's centre, Time Width the interaural time difference the far ear hears later. Arc is the hour-scale drift of the whole night. Presence is the 2-5 kHz lift on the near plane only; Breath lets every distance wander; Phase Width and its rate drift the phase between the ears so the room seems to change size; Doppler bends the pitch of a voice as it breathes closer; Externalise adds the pinna notch and the shoulder reflection headphones need to put the image outside the head. Haas and Haas Time are the band-limited widening of the foreground." },
+    { "FOUNDATION",
+      "The sub: one dry sine or triangle on the brain's root, one or two octaves down, gliding between roots, mono, added after the mid/side stage so Bass Mono leaves it alone. Binaural runs the two ears a few hertz apart. Source can be the root itself or the Difference tone of the two lowest sounding voices -- the tone the ear makes by itself in just intonation. Pad Low Cut keeps the voices out of the sub's register." },
+    { "MASTER",
+      "The end of the chain, in the header: Tilt, a see-saw of the whole spectrum around Pivot; Bass Mono, the side channel high-passed so the low end stays centred; Side Air, a lift on the sides at 3 kHz; Width; Subsonic, a steep high pass on the finished output; then the master gain and a soft clipper. No compressor anywhere. The loudness meter beside it reads the output to BS.1770." },
     // ---- the strip
-    { "LFO", "Eight low-frequency oscillators, each with a shape (sine, triangle, ramps, square, a smoothed random, stepped random, or a wavetable), a rate in hertz or a note value, a phase, a depth and a mode: global, or retriggered at the start of a phrase (Per Voice is kept so older presets load, and behaves as Global: the matrix runs once a block for the instrument). Their cards are dragged onto knobs; right-click a knob to see what drives it. The rates worth using here are drone rates -- one cycle in ten seconds to one in forty minutes -- and two rates that share no simple ratio never repeat their combination." },
-    { "ENV", "Six modulation envelopes, drawn by hand as points on a curve: any number of segments, a sustain point, and three modes -- one shot, loop, or a loop that holds at the sustain point until the key is released. Time scales the whole shape (or a note value spans it); Depth is how much. A shape that rises over four minutes and falls over eight is an envelope in this instrument's sense of the word. The SOURCES page beside them holds the four sources' own envelopes: level contours from silence to the source's written level, heard where a source's Env is set to Own -- so a preset can give every source its own entrance and still keep all six for modulation." },
-    { "MATRIX", "Every route, one row each: a source, a target, a depth as a fraction of the target's own range, an optional second source that scales it (Via), and whether the source is read as 0..1 or -1..1. Sources are the LFOs, the envelopes, the voice's own amplitude, the macros, the Kuramoto ring, the note, its velocity and its distance, a random number per note, the Beat, and the hands -- aftertouch, wheel and slide. A modulator's own rate or depth can be a target as well: an LFO whose rate another LFO moves." },
+    { "LFO",
+      "Eight low-frequency oscillators, each with a shape (sine, triangle, ramps, square, a smoothed random, stepped random, or a wavetable), a rate in hertz or a note value, a phase, a depth and a mode: global, or retriggered at the start of a phrase (Per Voice is kept so older presets load, and behaves as Global: the matrix runs once a block for the instrument). Their cards are dragged onto knobs; right-click a knob to see what drives it. The rates worth using here are drone rates -- one cycle in ten seconds to one in forty minutes -- and two rates that share no simple ratio never repeat their combination." },
+    { "ENV",
+      "Six modulation envelopes, drawn by hand as points on a curve: any number of segments, a sustain point, and three modes -- one shot, loop, or a loop that holds at the sustain point until the key is released. Time scales the whole shape (or a note value spans it); Depth is how much. A shape that rises over four minutes and falls over eight is an envelope in this instrument's sense of the word. The SOURCES page beside them holds the four sources' own envelopes: level contours from silence to the source's written level, heard where a source's Env is set to Own -- so a preset can give every source its own entrance and still keep all six for modulation." },
+    { "MATRIX",
+      "Every route, one row each: a source, a target, a depth as a fraction of the target's own range, an optional second source that scales it (Via), and whether the source is read as 0..1 or -1..1. Sources are the LFOs, the envelopes, the voice's own amplitude, the macros, the Kuramoto ring, the note, its velocity and its distance, a random number per note, the Beat, and the hands -- aftertouch, wheel and slide. A modulator's own rate or depth can be a target as well: an LFO whose rate another LFO moves." },
     // ---- the pages
-    { "PERFORM", "The page for playing rather than patching: the macros large, the morph, the map cursor, the note roll and the stage, and the set recorder -- Record set logs every knob, macro, route step and note with its time into a file, Play set replays it." },
-    { "BROWSE", "Every preset the instrument knows, built in and from the packs, in one list: narrowed by Family, Character, Motion and Features, searched, sorted, starred. Every descriptor was measured by rendering the preset, not tagged by hand. The Map shows the same presets as points clustered by what they sound like; click one, or switch on Map blend and drag the cursor to play the blend of the presets around it. A Route walks the map by itself." },
+    { "PERFORM",
+      "The page for playing rather than patching: the macros large, the morph, the map cursor, the note roll and the stage, and the set recorder -- Record set logs every knob, macro, route step and note with its time into a file, Play set replays it." },
+    { "BROWSE",
+      "Every preset the instrument knows, built in and from the packs, in one list: narrowed by Family, Character, Motion and Features, searched, sorted, starred. Every descriptor was measured by rendering the preset, not tagged by hand. The Map shows the same presets as points clustered by what they sound like; click one, or switch on Map blend and drag the cursor to play the blend of the presets around it. A Route walks the map by itself." },
     // ---- the source types, for the gallery
-    { "TYPE Additive", "A bank of up to 32 partials with lives of their own. Partial h has amplitude h to the power of minus Tilt; Brightness fades the upper ones out; Odd/Even weights the two families; Inharmonic stretches the series like a stiff string; Shimmer lets every partial drift in level on its own slow curve. Partials above Nyquist are never generated, so nothing aliases. In Source 1 this is the strand bank." },
-    { "TYPE Harmonic", "Not a table of samples but a table of spectra: 32 partial amplitudes per frame, up to 64 frames, and Position morphs between them while Pos Drift wanders it. Five tables are built in and User loads a wavetable file, which is heard here as its spectra. Alias-free like the bank, and every trick that works on partials -- presence, low cut, the feedback's phase modulation -- works here. Until the classic Wavetable type arrived, this one carried its name. The display stands the whole table in depth, every frame a line and the frame at Position lit as it moves; a click shows that one frame flat." },
-    { "TYPE Wavetable", "The classic wavetable, as Serum, Vital and Hive play it: up to 256 single cycles of 2048 samples read as samples, so the shape of the wave and every harmonic up to the 512th are kept, and Position blends one frame into the next while Pos Drift wanders it. A high note reads a copy of the table an octave poorer for every octave it climbs, so nothing aliases. The five built-in tables have the Harmonic type's names -- Classic is a real sine, triangle, saw, square and pulse -- and User plays the loaded file: a WAV from Serum, Vital or Hive, a Surge .wt, a WaveEdit bank or a single cycle. Unison spreads the cycles across the field. The display stands the whole table in depth, every frame a line and the frame at Position lit as it moves; a click shows that one frame flat." },
-    { "TYPE FM", "A two-operator pair: the carrier at the slot's pitch, the modulator at FM Ratio, the index up to 8 and reduced automatically on high notes so the top of the keyboard does not turn to noise. Pos Drift wanders the index. Integer ratios are bells and electric pianos; a ratio a little off an integer is a bell that beats." },
-    { "TYPE Texture", "A granular player over a loaded clip: up to 64 grains (Grains) of Grain length, Density a second or per note value, starting around Position with Spread, pitched to the note (Pitch = Note; the clip's own pitch comes from its file name) or played as it is. The display shows the grains reading the clip. The Texture... button loads a clip into this slot; a pack preset names its own." },
-    { "TYPE Stretch", "The same clip read as a continuum instead of as grains -- a spectral time stretch after Paulstretch. A window (Grain) of the clip is transformed, its magnitudes kept, its phases drawn afresh and the result overlap-added, while the read position crawls through the recording at one Stretch-th of its speed. No grain rhythm, no transient left standing: a field recording becomes weather. Pitch is applied before the stretch, so a note played higher does not get shorter, and Loop Fade crossfades the loop's seam unless the clip's name says _loop." },
-    { "TYPE Spectral", "The clip, rebuilt rather than replayed. When it was loaded it was measured into thirty-two bands on the ear's own frequency scale, and what was kept per frame is how loud each band is, where in it the strongest partial sits, and how far above the local noise floor that content stands. Playing it back builds the sound again from an oscillator and a band of noise per band, which is the deterministic-plus-stochastic decomposition of Serra and Smith taken band by band. Nothing is a sample any more, so the note sets the pitch and Rate sets the speed and the two are finally independent -- and at Rate 0 the read head stands still and one moment of the recording is held for as long as the note is. Breath decides how much of the partials and how much of the noise comes back; Position picks the moment, Drift wanders around it, and Bright tilts the whole thing around a kilohertz. A clip too short to measure leaves the slot silent." },
-    { "TYPE Bow", "A bowed string: a delay line of one period with a loop filter, and a bow pressing on it at Position. Every sample the relative velocity between bow and string decides whether the two are stuck together or slipping, through the friction curve of McIntyre, Schumacher and Woodhouse; the alternation is the Helmholtz motion, and it sustains for as long as Bow Speed is above zero. Force against Speed is the whole gesture: light and fast is breath, heavy and slow is tone, heavy and fast is the scratch of a beginner." },
-    { "TYPE Noise", "Ten colours: White, Pink, Brown, Blue, Violet, Grey, a resonant Band at Position with Q from Noise Q that tracks the note, Wind (a wandering band), Crackle (sparse impulses at Density) and Digital (sample-and-hold at a rate from Position). The levels are matched, so changing the colour does not change the loudness." },
+    {
+        "TYPE Additive",
+        "A bank of up to 32 partials with lives of their own. Partial h has amplitude h to the power of minus Tilt; Brightness fades the upper ones out; Odd/Even weights the two families; Inharmonic stretches the series like a stiff string; Shimmer lets every partial drift in level on its own slow curve. Partials above Nyquist are never generated, so nothing aliases. In Source 1 this is the strand bank." },
+    { "TYPE Harmonic",
+      "Not a table of samples but a table of spectra: 32 partial amplitudes per frame, up to 64 frames, and Position morphs between them while Pos Drift wanders it. Five tables are built in and User loads a wavetable file, which is heard here as its spectra. Alias-free like the bank, and every trick that works on partials -- presence, low cut, the feedback's phase modulation -- works here. Until the classic Wavetable type arrived, this one carried its name. The display stands the whole table in depth, every frame a line and the frame at Position lit as it moves; a click shows that one frame flat." },
+    { "TYPE Wavetable",
+      "The classic wavetable, as Serum, Vital and Hive play it: up to 256 single cycles of 2048 samples read as samples, so the shape of the wave and every harmonic up to the 512th are kept, and Position blends one frame into the next while Pos Drift wanders it. A high note reads a copy of the table an octave poorer for every octave it climbs, so nothing aliases. The five built-in tables have the Harmonic type's names -- Classic is a real sine, triangle, saw, square and pulse -- and User plays the loaded file: a WAV from Serum, Vital or Hive, a Surge .wt, a WaveEdit bank or a single cycle. Unison spreads the cycles across the field. The display stands the whole table in depth, every frame a line and the frame at Position lit as it moves; a click shows that one frame flat." },
+    { "TYPE FM",
+      "A two-operator pair: the carrier at the slot's pitch, the modulator at FM Ratio, the index up to 8 and reduced automatically on high notes so the top of the keyboard does not turn to noise. Pos Drift wanders the index. Integer ratios are bells and electric pianos; a ratio a little off an integer is a bell that beats." },
+    { "TYPE Texture",
+      "A granular player over a loaded clip: up to 64 grains (Grains) of Grain length, Density a second or per note value, starting around Position with Spread, pitched to the note (Pitch = Note; the clip's own pitch comes from its file name) or played as it is. The display shows the grains reading the clip. The Texture... button loads a clip into this slot; a pack preset names its own." },
+    { "TYPE Stretch",
+      "The same clip read as a continuum instead of as grains -- a spectral time stretch after Paulstretch. A window (Grain) of the clip is transformed, its magnitudes kept, its phases drawn afresh and the result overlap-added, while the read position crawls through the recording at one Stretch-th of its speed. No grain rhythm, no transient left standing: a field recording becomes weather. Pitch is applied before the stretch, so a note played higher does not get shorter, and Loop Fade crossfades the loop's seam unless the clip's name says _loop." },
+    { "TYPE Spectral",
+      "The clip, rebuilt rather than replayed. When it was loaded it was measured into thirty-two bands on the ear's own frequency scale, and what was kept per frame is how loud each band is, where in it the strongest partial sits, and how far above the local noise floor that content stands. Playing it back builds the sound again from an oscillator and a band of noise per band, which is the deterministic-plus-stochastic decomposition of Serra and Smith taken band by band. Nothing is a sample any more, so the note sets the pitch and Rate sets the speed and the two are finally independent -- and at Rate 0 the read head stands still and one moment of the recording is held for as long as the note is. Breath decides how much of the partials and how much of the noise comes back; Position picks the moment, Drift wanders around it, and Bright tilts the whole thing around a kilohertz. A clip too short to measure leaves the slot silent." },
+    { "TYPE Bow",
+      "A bowed string: a delay line of one period with a loop filter, and a bow pressing on it at Position. Every sample the relative velocity between bow and string decides whether the two are stuck together or slipping, through the friction curve of McIntyre, Schumacher and Woodhouse; the alternation is the Helmholtz motion, and it sustains for as long as Bow Speed is above zero. Force against Speed is the whole gesture: light and fast is breath, heavy and slow is tone, heavy and fast is the scratch of a beginner." },
+    { "TYPE Noise",
+      "Ten colours: White, Pink, Brown, Blue, Violet, Grey, a resonant Band at Position with Q from Noise Q that tracks the note, Wind (a wandering band), Crackle (sparse impulses at Density) and Digital (sample-and-hold at a rate from Position). The levels are matched, so changing the colour does not change the loudness." },
 };
 
+}   // namespace
 
-} // namespace
-
-const char* tabHelp(const char* name)
+const char *tabHelp( const char *name )
 {
-    if (name == nullptr) return "";
-    for (const TabHelp& t : TabHelps) if (std::strcmp(t.m_name, name) == 0) return t.m_text;
+    if ( name == nullptr ) return "";
+    for ( const TabHelp &t : TabHelps )
+        if ( std::strcmp( t.m_name, name ) == 0 ) return t.m_text;
     return "";
 }
 
-const char* paramHelp(ParamIdE id)
+const char *paramHelp( ParamIdE id )
 {
-    const int i = static_cast<int>(id);
-    return (i >= 0 && i < NumParams) ? cache().m_text[i] : "";
+    const int i = static_cast<int>( id );
+    return ( i >= 0 && i < NumParams ) ? cache().m_text[i] : "";
 }
 
-int numHelpTopics() { return static_cast<int>(sizeof(Topics) / sizeof(Topics[0])); }
-const char* helpTopicTitle(int index) { return (index >= 0 && index < numHelpTopics()) ? Topics[index].m_title : ""; }
-const char* helpTopicText(int index)  { return (index >= 0 && index < numHelpTopics()) ? Topics[index].m_text : ""; }
+int numHelpTopics()
+{
+    return static_cast<int>( sizeof( Topics ) / sizeof( Topics[0] ) );
+}
+const char *helpTopicTitle( int index )
+{
+    return ( index >= 0 && index < numHelpTopics() ) ? Topics[index].m_title : "";
+}
+const char *helpTopicText( int index )
+{
+    return ( index >= 0 && index < numHelpTopics() ) ? Topics[index].m_text : "";
+}
 
-} // namespace ambient
+}   // namespace ambient

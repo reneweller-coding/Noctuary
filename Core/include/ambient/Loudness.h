@@ -27,7 +27,8 @@
 #include <cstddef>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief One snapshot of the meter, as LoudnessMeter::read() fills it: the sone figures, the three
@@ -35,7 +36,8 @@ namespace ambient {
  *
  * A plain value; the defaults are what an empty meter reports (-120 for every level, 0 for the rest).
  */
-struct LoudnessReading {
+struct LoudnessReading
+{
     /**
      * @brief Loudness in sones, which is a different question from LUFS and the one an ambient bed is
      *        actually asked.
@@ -49,21 +51,21 @@ struct LoudnessReading {
      *
      * now, after Zwicker
      */
-    float m_sones      = 0.0f;
-    float m_sonesN5    = 0.0f;      ///< exceeded five per cent of the time, since the last reset
-    float m_sonesMax   = 0.0f;      ///< the loudest it has been
-    float m_momentary  = -120.0f;   ///< LUFS over the last 400 ms
-    float m_shortTerm  = -120.0f;   ///< LUFS over the last 3 s
+    float m_sones = 0.0f;
+    float m_sonesN5 = 0.0f;         ///< exceeded five per cent of the time, since the last reset
+    float m_sonesMax = 0.0f;        ///< the loudest it has been
+    float m_momentary = -120.0f;    ///< LUFS over the last 400 ms
+    float m_shortTerm = -120.0f;    ///< LUFS over the last 3 s
     float m_integrated = -120.0f;   ///< LUFS, gated, since the last reset
-    float m_range      = 0.0f;      ///< LU: the spread of the short-term values (10th to 95th centile)
-    float m_truePeak   = -120.0f;   ///< dBTP, 4x oversampled, since the last reset
-    float m_crest      = 0.0f;      ///< dB: true peak over the short-term loudness
-    float m_seconds    = 0.0f;      ///< how long it has been measuring
+    float m_range = 0.0f;           ///< LU: the spread of the short-term values (10th to 95th centile)
+    float m_truePeak = -120.0f;     ///< dBTP, 4x oversampled, since the last reset
+    float m_crest = 0.0f;           ///< dB: true peak over the short-term loudness
+    float m_seconds = 0.0f;         ///< how long it has been measuring
     /// The correlation of left and right (25.09.2026, the production guide's correlation meter):
     /// +1 mono, 0 two unrelated signals, -1 one channel the other upside down. The guide wants the
     /// master's mean between 0.3 and 0.7 -- under it the image falls apart in mono, over it there
     /// is no width left.
-    float m_correlation     = 0.0f;   ///< over the last 3 s, -1 .. 1; 0 while there is nothing to measure
+    float m_correlation = 0.0f;       ///< over the last 3 s, -1 .. 1; 0 while there is nothing to measure
     float m_correlationMean = 0.0f;   ///< since the last reset, energy-weighted, -1 .. 1
 };
 
@@ -76,14 +78,15 @@ struct LoudnessReading {
  *
  * One instance is one channel; LoudnessMeter owns a pair. Audio thread, per sample.
  */
-class KFilter {
+class KFilter
+{
 public:
     /**
      * @brief Computes both stages for a sample rate (the shelf from its analogue f0, gain and Q, the
      *        RLB high-pass with its unnormalised 1, -2, 1 numerator) and clears the state.
      * @param[in] sampleRate  Hz
      */
-    void prepare(double sampleRate);
+    void prepare( double sampleRate );
     /** @brief Clears both stages' delay state; the coefficients stay. */
     void reset();
     /**
@@ -91,10 +94,12 @@ public:
      * @param[in] x  the input sample
      * @return the K-weighted sample
      */
-    float process(float x);
+    float process( float x );
+
 private:
     /** @brief One second-order section in transposed direct form II, with its two states. */
-    struct Biquad {
+    struct Biquad
+    {
         /** @var float m_b0
          *  @brief feed-forward coefficient of the current input */
         /** @var float m_b1
@@ -103,7 +108,11 @@ private:
          *  @brief feed-forward coefficient of the input two samples back */
         /** @var float m_a1
          *  @brief feedback coefficient of the output one sample back */
-        float m_b0 = 1, m_b1 = 0, m_b2 = 0, m_a1 = 0, m_a2 = 0;   ///< a2: feedback coefficient of the output two samples back (the section starts as a pass-through)
+        float
+            m_b0 = 1,
+            m_b1 = 0, m_b2 = 0, m_a1 = 0,
+            m_a2 =
+                0;   ///< a2: feedback coefficient of the output two samples back (the section starts as a pass-through)
         /** @var float m_z1
          *  @brief the first state of the transposed form */
         float m_z1 = 0, m_z2 = 0;   ///< z2: the second state
@@ -112,7 +121,7 @@ private:
          * @param[in] x  the input sample
          * @return the filtered sample
          */
-        float process(float x)
+        float process( float x )
         {
             const float y = m_b0 * x + m_z1;
             m_z1 = m_b1 * x - m_a1 * y + m_z2;
@@ -137,34 +146,44 @@ private:
  * all night cannot do that. What is kept now is a window of the recent past, which is also the
  * more useful thing to report: a meter that describes the last hour rather than the whole night.
  */
-struct LoudnessLog {
+struct LoudnessLog
+{
     /**
      * @brief Sizes the ring (message thread, before use) and empties it.
      * @param[in] capacity  values the window holds; the oldest is overwritten once it is full
      * @pre called on the message thread
      */
-    void prepare(size_t capacity) { m_buf.assign(capacity, 0.0f); m_pos.store(0); m_count.store(0); }
+    void prepare( size_t capacity )
+    {
+        m_buf.assign( capacity, 0.0f );
+        m_pos.store( 0 );
+        m_count.store( 0 );
+    }
     /** @brief Empties the window without touching its storage. */
-    void clear() { m_pos.store(0); m_count.store(0); }
+    void clear()
+    {
+        m_pos.store( 0 );
+        m_count.store( 0 );
+    }
     /**
      * @brief Appends one value, overwriting the oldest once the ring is full.
      *
      * audio thread; never allocates
      * @param[in] v  the value (a loudness in LUFS or sones)
      */
-    void push(float v)
+    void push( float v )
     {
-        if (m_buf.empty()) return;
-        const size_t p = m_pos.load(std::memory_order_relaxed);
+        if ( m_buf.empty() ) return;
+        const size_t p = m_pos.load( std::memory_order_relaxed );
         m_buf[p] = v;
-        m_pos.store((p + 1) % m_buf.size(), std::memory_order_release);
-        const size_t c = m_count.load(std::memory_order_relaxed);
-        if (c < m_buf.size()) m_count.store(c + 1, std::memory_order_release);
+        m_pos.store( ( p + 1 ) % m_buf.size(), std::memory_order_release );
+        const size_t c = m_count.load( std::memory_order_relaxed );
+        if ( c < m_buf.size() ) m_count.store( c + 1, std::memory_order_release );
     }
     /** @brief How many values the window holds right now. @return 0 .. capacity */
-    size_t size() const { return m_count.load(std::memory_order_acquire); }
+    size_t size() const { return m_count.load( std::memory_order_acquire ); }
     /** @brief Whether nothing has been pushed since the last clear. @return true when size() is 0 */
-    bool  empty() const { return size() == 0; }
+    bool empty() const { return size() == 0; }
     /**
      * @brief The window in order, oldest first (message thread).
      * @return a copy of the values; allocates, so not for the audio thread
@@ -174,14 +193,15 @@ struct LoudnessLog {
     {
         // Both indices are read once and then held: they move under this function, and a count
         // that grew between the reserve and the loop would have walked past what was counted.
-        const size_t n = m_count.load(std::memory_order_acquire);
-        const size_t p = m_pos.load(std::memory_order_acquire);
+        const size_t       n = m_count.load( std::memory_order_acquire );
+        const size_t       p = m_pos.load( std::memory_order_acquire );
         std::vector<float> out;
-        out.reserve(n);
-        const size_t from = (n < m_buf.size()) ? 0 : p;
-        for (size_t k = 0; k < n; ++k) out.push_back(m_buf[(from + k) % m_buf.size()]);
+        out.reserve( n );
+        const size_t from = ( n < m_buf.size() ) ? 0 : p;
+        for ( size_t k = 0; k < n; ++k ) out.push_back( m_buf[( from + k ) % m_buf.size()] );
         return out;
     }
+
 private:
     std::vector<float> m_buf;   ///< the ring's storage, sized once by prepare()
     /**
@@ -189,7 +209,8 @@ private:
      *
      * m_pos is the cell the next push() writes.
      */
-    std::atomic<size_t> m_pos { 0 }, m_count { 0 };   ///< m_count: how many cells hold a value, saturating at the capacity; the same threads
+    std::atomic<size_t> m_pos{ 0 },
+        m_count{ 0 };   ///< m_count: how many cells hold a value, saturating at the capacity; the same threads
 };
 
 /**
@@ -215,10 +236,11 @@ private:
  * levels of each frame go through fromBandLevels(), and the result is kept as the current value,
  * the maximum, and a LoudnessLog for the fifth centile.
  */
-class ZwickerLoudness {
+class ZwickerLoudness
+{
 public:
-    static constexpr int Bands = 28;      ///< third octaves, 25 Hz to 12.5 kHz
-    static constexpr int Steps = 240;     ///< 0.1 Bark apart, 0 to 24
+    static constexpr int   Bands = 28;              ///< third octaves, 25 Hz to 12.5 kHz
+    static constexpr int   Steps = 240;             ///< 0.1 Bark apart, 0 to 24
     static constexpr float FullScaleSpl = 100.0f;   ///< the convention: a full-scale sine is heard at this many dB SPL
 
     /**
@@ -226,7 +248,7 @@ public:
      *        sample rate, sizes the history, and resets.
      * @param[in] sampleRate  Hz (anything not positive reads as 48 kHz)
      */
-    void prepare(double sampleRate);
+    void prepare( double sampleRate );
     /** @brief Clears the ring, the current and maximum values and the history. */
     void reset();
     /**
@@ -237,7 +259,7 @@ public:
      * @param[in] n  samples in the block
      * @pre called on the audio thread
      */
-    void process(const float* L, const float* R, int n);
+    void process( const float *L, const float *R, int n );
     /** @brief The loudness of the last frame. @return sones */
     float sones() const { return m_now; }
     /** @brief The loudest frame since the last reset. @return sones */
@@ -247,7 +269,7 @@ public:
      *        copies the history and picks the centile).
      * @return exceeded five per cent of the time
      */
-    float sonesN5() const;                 ///< exceeded five per cent of the time
+    float sonesN5() const;   ///< exceeded five per cent of the time
 
     /**
      * @brief The model on its own, for tests and for offline use: third-octave levels in dB SPL in,
@@ -259,13 +281,13 @@ public:
      * @param[in] levelsDb  Bands levels in dB SPL, one per third octave from 25 Hz up
      * @return sones
      */
-    static float fromBandLevels(const float* levelsDb);
+    static float fromBandLevels( const float *levelsDb );
     /**
      * @brief Terhardt's approximation of the absolute threshold of hearing.
      * @param[in] hz  frequency
      * @return the threshold in dB SPL, clamped to -5 .. 80
      */
-    static float thresholdInQuiet(float hz);
+    static float thresholdInQuiet( float hz );
     /**
      * @brief Before the scale is pinned to the sone's own definition.
      *
@@ -274,7 +296,7 @@ public:
      * @param[in] levelsDb  Bands levels in dB SPL
      * @return the integral of the specific loudness over 24 Bark, in the model's own units
      */
-    static float rawLoudness(const float* levelsDb);
+    static float rawLoudness( const float *levelsDb );
 
 private:
     /** @brief One analysis frame: window and transform the ring, sum the bins of each band into a level in dB SPL, and turn the levels into sones (audio thread, every Hop samples). */
@@ -293,16 +315,16 @@ private:
     std::vector<float> m_ring, m_re, m_im, m_window;   ///< m_window: the Hann window of N
     /** @var int m_pos
      *  @brief write position in the ring */
-    int   m_pos = 0, m_filled = 0;   ///< m_filled: samples since the last frame; a frame runs at Hop
+    int m_pos = 0, m_filled = 0;   ///< m_filled: samples since the last frame; a frame runs at Hop
     /** @var int m_binLo[Bands]
      *  @brief first FFT bin of each third octave */
-    int   m_binLo[Bands] = {}, m_binHi[Bands] = {};   ///< m_binHi: last bin of each third octave
+    int m_binLo[Bands] = {}, m_binHi[Bands] = {};   ///< m_binHi: last bin of each third octave
     /** @var float m_now
      *  @brief the last frame's loudness in sones */
     float m_now = 0.0f, m_max = 0.0f;   ///< m_max: the loudest frame since the reset
     /** @brief A frame every 2048 samples, so this holds about an hour and a half at 48 kHz. */
     static constexpr size_t History = 1u << 17;
-    LoudnessLog m_history;                  ///< one value per frame, for the fifth centile
+    LoudnessLog             m_history;   ///< one value per frame, for the fifth centile
 };
 
 /**
@@ -313,14 +335,15 @@ private:
  * process() is the audio thread's, per block; read() is anyone's and computes the gated and
  * centile figures from the logs on the spot, so it allocates and belongs on the message thread.
  */
-class LoudnessMeter {
+class LoudnessMeter
+{
 public:
     /**
      * @brief Sizes everything for a sample rate: the 100 ms hop, the K filters, the Zwicker model
      *        and the two block logs; then resets.
      * @param[in] sampleRate  Hz (anything not positive reads as 48 kHz)
      */
-    void prepare(double sampleRate);
+    void prepare( double sampleRate );
     /** @brief Starts the measurement over: filters, hop sums, logs, true peak and the clock. */
     void reset();
     /**
@@ -333,7 +356,7 @@ public:
      * @param[in] R  right channel
      * @param[in] n  samples in the block
      */
-    void process(const float* L, const float* R, int n);
+    void process( const float *L, const float *R, int n );
     /**
      * @brief A snapshot of every figure: momentary from the last four hops, integrated gated at -70
      *        LUFS and then 10 LU under the mean, the range as the 10th to 95th centile of the
@@ -341,6 +364,7 @@ public:
      * @return the reading; -120 for a level that has nothing to measure yet
      */
     LoudnessReading read() const;
+
 private:
     /** @brief Closes one hop: its mean squares join the ring, and the last four hops make a 400 ms block for the log, the last thirty a 3 s short-term value. */
     void pushBlock();
@@ -348,40 +372,40 @@ private:
     double m_sr = 48000.0;   ///< the sample rate prepare() was given
     /** @var KFilter m_kL
      *  @brief the left channel's K-weighting */
-    KFilter m_kL, m_kR;   ///< m_kR: the right channel's
-    ZwickerLoudness m_zwicker;   ///< the sone model, fed the same blocks
+    KFilter         m_kL, m_kR;   ///< m_kR: the right channel's
+    ZwickerLoudness m_zwicker;    ///< the sone model, fed the same blocks
     /** @var int m_blockLen
      *  @brief samples in a 400 ms block (four hops)
      *  One 400 ms block, taken every 100 ms: the 75 % overlap the standard's gating is defined on. */
     /** @var int m_hopLen
      *  @brief samples in a 100 ms hop */
-    int    m_blockLen = 19200, m_hopLen = 4800, m_hopPos = 0;   ///< m_hopPos: samples into the current hop
+    int m_blockLen = 19200, m_hopLen = 4800, m_hopPos = 0;   ///< m_hopPos: samples into the current hop
     /** @var std::vector\<double\> m_sumL
      *  @brief the left channel's ring of per-hop mean squares */
     std::vector<double> m_sumL, m_sumR;   ///< ring of per-hop mean squares, four hops to a block
     /** @var int m_ringPos
      *  @brief the next cell of the hop rings */
-    int    m_ringPos = 0, m_ringFilled = 0;   ///< m_ringFilled: hops in the ring so far, up to HopsPerShort
-    static constexpr int HopsPerBlock = 4;       ///< hops in a 400 ms block
-    static constexpr int HopsPerShort = 30;      ///< 3 s
+    int m_ringPos = 0, m_ringFilled = 0;      ///< m_ringFilled: hops in the ring so far, up to HopsPerShort
+    static constexpr int HopsPerBlock = 4;    ///< hops in a 400 ms block
+    static constexpr int HopsPerShort = 30;   ///< 3 s
     /** @var double m_hopL
      *  @brief the left channel's K-weighted squares summed over the current hop */
     double m_hopL = 0.0, m_hopR = 0.0;   ///< m_hopR: the right channel's
-    long   m_hopSamples = 0;   ///< samples summed into the current hop
+    long   m_hopSamples = 0;             ///< samples summed into the current hop
     /**
      * @name The correlation meter (25.09.2026)
      * Unweighted sums of L x R, L x L and R x R: per hop, in a ring of the last three seconds, and
      * since the reset.
      * @{ */
-    double m_hopLR = 0.0,   ///< L x R summed over the current hop
-           m_hopLL = 0.0,   ///< L x L summed over the current hop
-           m_hopRR = 0.0;   ///< R x R summed over the current hop
+    double m_hopLR = 0.0,                          ///< L x R summed over the current hop
+        m_hopLL = 0.0,                             ///< L x L summed over the current hop
+        m_hopRR = 0.0;                             ///< R x R summed over the current hop
     std::array<double, HopsPerShort> m_corrLR{},   ///< @brief the ring of per-hop L x R sums
-                           m_corrLL{},   ///< the ring of per-hop L x L sums
-                           m_corrRR{};   ///< the ring of per-hop R x R sums
-    double m_totLR = 0.0,   ///< L x R since the reset
-           m_totLL = 0.0,   ///< L x L since the reset
-           m_totRR = 0.0;   ///< R x R since the reset
+        m_corrLL{},                                ///< the ring of per-hop L x L sums
+        m_corrRR{};                                ///< the ring of per-hop R x R sums
+    double m_totLR = 0.0,                          ///< L x R since the reset
+        m_totLL = 0.0,                             ///< L x L since the reset
+        m_totRR = 0.0;                             ///< R x R since the reset
     /** @} */
     /**
      * @brief Gating needs every block's loudness, not a running mean: the relative gate is a threshold
@@ -390,11 +414,11 @@ private:
      * Ten a second, so these hold about an hour and three quarters.
      */
     static constexpr size_t BlockLog = 1u << 16;
-    LoudnessLog m_blocks;                          ///< block loudness in LUFS
-    LoudnessLog m_shortBlocks;                     ///< short-term values, for the range
-    double m_truePeak = 0.0;      ///< the largest inter-sample peak so far, linear
-    double m_seconds = 0.0;       ///< how long the meter has been fed
-    float  m_lastShort = -120.0f; ///< the last 3 s value in LUFS, what read() reports as shortTerm
+    LoudnessLog             m_blocks;                ///< block loudness in LUFS
+    LoudnessLog             m_shortBlocks;           ///< short-term values, for the range
+    double                  m_truePeak = 0.0;        ///< the largest inter-sample peak so far, linear
+    double                  m_seconds = 0.0;         ///< how long the meter has been fed
+    float                   m_lastShort = -120.0f;   ///< the last 3 s value in LUFS, what read() reports as shortTerm
     /**
      * @brief True peak: four-times oversampling with a short windowed-sinc, which is what "inter-sample"
      *        means in practice -- a signal at 0 dBFS on every sample can reach well above it between them.
@@ -402,7 +426,7 @@ private:
      * The last four samples of the left channel, for the four-point interpolation between the two
      * middle ones.
      */
-    float  m_tpHistL[4] = {}, m_tpHistR[4] = {};   ///< m_tpHistR: the same for the right channel
+    float m_tpHistL[4] = {}, m_tpHistR[4] = {};   ///< m_tpHistR: the same for the right channel
 };
 
 }   // namespace ambient

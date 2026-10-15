@@ -25,172 +25,197 @@
 
 using namespace ambient;
 
-NoctuaryEditor::SpectrumView::SpectrumView(NoctuaryProcessor& p)
-    : m_proc(p), m_re(N), m_im(N), m_window(N), m_fft(std::make_unique<ambient::Fft>(N)),
-      m_band(Bands, FloorDb), m_hold(Bands, FloorDb)
+NoctuaryEditor::SpectrumView::SpectrumView( NoctuaryProcessor &p )
+    : m_proc( p ), m_re( N ), m_im( N ), m_window( N ), m_fft( std::make_unique<ambient::Fft>( N ) ),
+      m_band( Bands, FloorDb ), m_hold( Bands, FloorDb )
 {
     // Hann. A drone's partials sit close together and a rectangular window's skirts would fill
     // the gaps between them with the leakage of the loudest one, which is the opposite of what
     // the long window was for.
-    for (int i = 0; i < N; ++i)
-        m_window[static_cast<size_t>(i)] = 0.5f - 0.5f * std::cos(juce::MathConstants<float>::twoPi * i / N);
-    startTimerHz(12);
+    for ( int i = 0; i < N; ++i )
+        m_window[static_cast<size_t>( i )] = 0.5f - 0.5f * std::cos( juce::MathConstants<float>::twoPi * i / N );
+    startTimerHz( 12 );
 }
 
 void NoctuaryEditor::SpectrumView::timerCallback()
 {
-    if (!isShowing()) return;
-    m_proc.engine().outputTap(m_re.data(), N);
+    if ( !isShowing() ) return;
+    m_proc.engine().outputTap( m_re.data(), N );
     float peak = 0.0f;
-    for (int i = 0; i < N; ++i) {
-        peak = juce::jmax(peak, std::fabs(m_re[static_cast<size_t>(i)]));
-        m_re[static_cast<size_t>(i)] *= m_window[static_cast<size_t>(i)];
-        m_im[static_cast<size_t>(i)] = 0.0f;
+    for ( int i = 0; i < N; ++i )
+    {
+        peak = juce::jmax( peak, std::fabs( m_re[static_cast<size_t>( i )] ) );
+        m_re[static_cast<size_t>( i )] *= m_window[static_cast<size_t>( i )];
+        m_im[static_cast<size_t>( i )] = 0.0f;
     }
-    m_peakDb = 20.0f * std::log10(peak + 1.0e-6f);
-    m_fft->transform(m_re.data(), m_im.data(), false);
+    m_peakDb = 20.0f * std::log10( peak + 1.0e-6f );
+    m_fft->transform( m_re.data(), m_im.data(), false );
 
-    const float sr = static_cast<float>(m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : 48000.0);
-    const float span = std::log(HiHz / LoHz);
+    const float sr = static_cast<float>( m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : 48000.0 );
+    const float span = std::log( HiHz / LoHz );
     // Scaled so a full-scale sine reads 0 dB on the axis: the transform is unscaled and the Hann
     // window halves a bin's amplitude. Without this the numbers beside the grid mean nothing, and
     // a decibel axis whose numbers mean nothing is a decoration.
-    const float norm = 4.0f / (static_cast<float>(N) * static_cast<float>(N));
-    for (int b = 0; b < Bands; ++b) {
-        const float f0 = LoHz * std::exp(span * static_cast<float>(b) / Bands);
-        const float f1 = LoHz * std::exp(span * static_cast<float>(b + 1) / Bands);
-        const int k0 = juce::jmax(1, static_cast<int>(f0 / sr * N));
-        const int k1 = juce::jmax(k0 + 1, static_cast<int>(f1 / sr * N));
-        float p = 0.0f;
-        for (int k = k0; k < juce::jmin(k1, N / 2); ++k)
-            p = juce::jmax(p, m_re[static_cast<size_t>(k)] * m_re[static_cast<size_t>(k)] + m_im[static_cast<size_t>(k)] * m_im[static_cast<size_t>(k)]);
-        const float db = 10.0f * std::log10(p * norm + 1.0e-13f);
-        float& v = m_band[static_cast<size_t>(b)];
-        v = db > v ? db : v + (db - v) * 0.25f;
-        float& h = m_hold[static_cast<size_t>(b)];
+    const float norm = 4.0f / ( static_cast<float>( N ) * static_cast<float>( N ) );
+    for ( int b = 0; b < Bands; ++b )
+    {
+        const float f0 = LoHz * std::exp( span * static_cast<float>( b ) / Bands );
+        const float f1 = LoHz * std::exp( span * static_cast<float>( b + 1 ) / Bands );
+        const int   k0 = juce::jmax( 1, static_cast<int>( f0 / sr * N ) );
+        const int   k1 = juce::jmax( k0 + 1, static_cast<int>( f1 / sr * N ) );
+        float       p = 0.0f;
+        for ( int k = k0; k < juce::jmin( k1, N / 2 ); ++k )
+            p = juce::jmax( p, m_re[static_cast<size_t>( k )] * m_re[static_cast<size_t>( k )] +
+                                   m_im[static_cast<size_t>( k )] * m_im[static_cast<size_t>( k )] );
+        const float db = 10.0f * std::log10( p * norm + 1.0e-13f );
+        float      &v = m_band[static_cast<size_t>( b )];
+        v = db > v ? db : v + ( db - v ) * 0.25f;
+        float &h = m_hold[static_cast<size_t>( b )];
         // Falls about a decibel a second at twelve frames: slow enough that a partial which
         // sounded a few seconds ago is still there, quick enough to follow a chord change.
-        h = v > h ? v : juce::jmax(FloorDb, h - 0.09f);
+        h = v > h ? v : juce::jmax( FloorDb, h - 0.09f );
     }
     repaint();
 }
 
-void NoctuaryEditor::SpectrumView::mouseMove(const juce::MouseEvent& e)
+void NoctuaryEditor::SpectrumView::mouseMove( const juce::MouseEvent &e )
 {
     m_hoverX = e.x;
     repaint();
 }
 
-void NoctuaryEditor::SpectrumView::mouseExit(const juce::MouseEvent&)
+void NoctuaryEditor::SpectrumView::mouseExit( const juce::MouseEvent & )
 {
     m_hoverX = -1;
     repaint();
 }
 
-void NoctuaryEditor::SpectrumView::paint(juce::Graphics& g)
+void NoctuaryEditor::SpectrumView::paint( juce::Graphics &g )
 {
     const auto r = getLocalBounds();
-    displayFrame(g, r, "OUTPUT SPECTRUM", ui::VoiceCol);
+    displayFrame( g, r, "OUTPUT SPECTRUM", ui::VoiceCol );
     // A gutter at the left for the decibel numbers: they used to be drawn on top of the
     // spectrum, where the one thing they label is the thing they cover.
-    const auto plot = r.toFloat().reduced(10.0f, 8.0f).withTrimmedTop(14.0f)
-                       .withTrimmedBottom(11.0f).withTrimmedLeft(static_cast<float>(LabelGutter));
-    if (plot.getWidth() < 40.0f || plot.getHeight() < 20.0f) return;
-    const float span = std::log(HiHz / LoHz);
-    auto xOf = [&](float hz) { return plot.getX() + plot.getWidth() * std::log(juce::jmax(hz, LoHz) / LoHz) / span; };
-    auto yOf = [&](float db) {
-        const float t = juce::jlimit(0.0f, 1.0f, (db - FloorDb) / (TopDb - FloorDb));
+    const auto plot = r.toFloat()
+                          .reduced( 10.0f, 8.0f )
+                          .withTrimmedTop( 14.0f )
+                          .withTrimmedBottom( 11.0f )
+                          .withTrimmedLeft( static_cast<float>( LabelGutter ) );
+    if ( plot.getWidth() < 40.0f || plot.getHeight() < 20.0f ) return;
+    const float span = std::log( HiHz / LoHz );
+    auto        xOf = [&]( float hz )
+    { return plot.getX() + plot.getWidth() * std::log( juce::jmax( hz, LoHz ) / LoHz ) / span; };
+    auto yOf = [&]( float db )
+    {
+        const float t = juce::jlimit( 0.0f, 1.0f, ( db - FloorDb ) / ( TopDb - FloorDb ) );
         return plot.getBottom() - t * plot.getHeight();
     };
 
     // The grid, faint: it is for reading off, not for looking at.
-    g.setFont(ui::body(9.0f));
-    for (float hz : { 50.0f, 100.0f, 200.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f }) {
-        const float x = xOf(hz);
-        const bool decade = hz == 100.0f || hz == 1000.0f || hz == 10000.0f;
-        g.setColour(ui::Track.withAlpha(decade ? 0.55f : 0.28f));
-        g.drawVerticalLine(juce::roundToInt(x), plot.getY(), plot.getBottom());
-        g.setColour(ui::Faint);
-        g.drawText(hz >= 1000.0f ? juce::String(hz / 1000.0f, 0) + "k" : juce::String(hz, 0),
-                   x - 18.0f, plot.getBottom() + 1.0f, 36.0f, 10.0f, juce::Justification::centred, false);
+    g.setFont( ui::body( 9.0f ) );
+    for ( float hz : { 50.0f, 100.0f, 200.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f } )
+    {
+        const float x = xOf( hz );
+        const bool  decade = hz == 100.0f || hz == 1000.0f || hz == 10000.0f;
+        g.setColour( ui::Track.withAlpha( decade ? 0.55f : 0.28f ) );
+        g.drawVerticalLine( juce::roundToInt( x ), plot.getY(), plot.getBottom() );
+        g.setColour( ui::Faint );
+        g.drawText( hz >= 1000.0f ? juce::String( hz / 1000.0f, 0 ) + "k" : juce::String( hz, 0 ), x - 18.0f,
+                    plot.getBottom() + 1.0f, 36.0f, 10.0f, juce::Justification::centred, false );
     }
-    for (float db : { 0.0f, -20.0f, -40.0f, -60.0f, -80.0f }) {
-        g.setColour(ui::Track.withAlpha(db == 0.0f ? 0.5f : 0.25f));
-        g.drawHorizontalLine(juce::roundToInt(yOf(db)), plot.getX(), plot.getRight());
-        g.setColour(ui::Faint);
-        g.drawText(juce::String(static_cast<int>(db)), plot.getX() - LabelGutter, yOf(db) - 5.0f,
-                   LabelGutter - 3.0f, 10.0f, juce::Justification::right, false);
+    for ( float db : { 0.0f, -20.0f, -40.0f, -60.0f, -80.0f } )
+    {
+        g.setColour( ui::Track.withAlpha( db == 0.0f ? 0.5f : 0.25f ) );
+        g.drawHorizontalLine( juce::roundToInt( yOf( db ) ), plot.getX(), plot.getRight() );
+        g.setColour( ui::Faint );
+        g.drawText( juce::String( static_cast<int>( db ) ), plot.getX() - LabelGutter, yOf( db ) - 5.0f,
+                    LabelGutter - 3.0f, 10.0f, juce::Justification::right, false );
     }
 
     // The fundamental of everything sounding, as a tick along the bottom edge.
     bool sounding[128] = {};
-    m_proc.engine().soundingNotes(sounding);
-    g.setColour(ui::CondCol.withAlpha(0.55f));
-    for (int n = 0; n < 128; ++n) {
-        if (!sounding[n]) continue;
-        const float hz = static_cast<float>(m_proc.engine().frequencyOf(n));
-        if (hz < LoHz || hz > HiHz) continue;
-        g.drawVerticalLine(juce::roundToInt(xOf(hz)), plot.getBottom() - 6.0f, plot.getBottom());
+    m_proc.engine().soundingNotes( sounding );
+    g.setColour( ui::CondCol.withAlpha( 0.55f ) );
+    for ( int n = 0; n < 128; ++n )
+    {
+        if ( !sounding[n] ) continue;
+        const float hz = static_cast<float>( m_proc.engine().frequencyOf( n ) );
+        if ( hz < LoHz || hz > HiHz ) continue;
+        g.drawVerticalLine( juce::roundToInt( xOf( hz ) ), plot.getBottom() - 6.0f, plot.getBottom() );
     }
 
-    const float bw = plot.getWidth() / static_cast<float>(Bands);
+    const float bw = plot.getWidth() / static_cast<float>( Bands );
     // The trace first, so the live bands stand in front of it.
     juce::Path trace;
-    for (int b = 0; b < Bands; ++b) {
-        const float x = plot.getX() + (b + 0.5f) * bw, y = yOf(m_hold[static_cast<size_t>(b)]);
-        if (b == 0) trace.startNewSubPath(x, y);
-        else        trace.lineTo(x, y);
+    for ( int b = 0; b < Bands; ++b )
+    {
+        const float x = plot.getX() + ( b + 0.5f ) * bw, y = yOf( m_hold[static_cast<size_t>( b )] );
+        if ( b == 0 )
+            trace.startNewSubPath( x, y );
+        else
+            trace.lineTo( x, y );
     }
-    g.setColour(ui::Dim.withAlpha(0.45f));
-    g.strokePath(trace, juce::PathStrokeType(1.0f));
+    g.setColour( ui::Dim.withAlpha( 0.45f ) );
+    g.strokePath( trace, juce::PathStrokeType( 1.0f ) );
 
-    for (int b = 0; b < Bands; ++b) {
-        const float db = m_band[static_cast<size_t>(b)];
-        if (db <= FloorDb + 0.5f) continue;
-        const float y = yOf(db);
-        const float t = juce::jlimit(0.0f, 1.0f, (db - FloorDb) / (TopDb - FloorDb));
-        g.setColour(ui::Accent.withAlpha(0.28f + 0.55f * t));
-        g.fillRect(plot.getX() + b * bw, y, juce::jmax(1.0f, bw - 0.4f), plot.getBottom() - y);
+    for ( int b = 0; b < Bands; ++b )
+    {
+        const float db = m_band[static_cast<size_t>( b )];
+        if ( db <= FloorDb + 0.5f ) continue;
+        const float y = yOf( db );
+        const float t = juce::jlimit( 0.0f, 1.0f, ( db - FloorDb ) / ( TopDb - FloorDb ) );
+        g.setColour( ui::Accent.withAlpha( 0.28f + 0.55f * t ) );
+        g.fillRect( plot.getX() + b * bw, y, juce::jmax( 1.0f, bw - 0.4f ), plot.getBottom() - y );
     }
 
     // The filter, on the same axis. Six decibels down from the top, so a flat response is a line
     // across the upper part of the picture and a resonance rises towards 0 rather than off it.
     FilterCurve fc;
-    fc.capture(m_proc, static_cast<float>(juce::jmax(8000.0, m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : 48000.0)));
-    if (fc.m_fOn || fc.m_zOn) {
+    fc.capture( m_proc, static_cast<float>(
+                            juce::jmax( 8000.0, m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : 48000.0 ) ) );
+    if ( fc.m_fOn || fc.m_zOn )
+    {
         juce::Path curve;
-        const int steps = juce::jmax(96, static_cast<int>(plot.getWidth() / 2.0f));
-        for (int i = 0; i <= steps; ++i) {
-            const float hz = LoHz * std::exp(span * static_cast<float>(i) / steps);
+        const int  steps = juce::jmax( 96, static_cast<int>( plot.getWidth() / 2.0f ) );
+        for ( int i = 0; i <= steps; ++i )
+        {
+            const float hz = LoHz * std::exp( span * static_cast<float>( i ) / steps );
             // Its own decibels, on the same axis: flat is the 0 dB line and a resonance rises
             // above it, which is how a filter plot is read anywhere else.
-            const float db = 20.0f * std::log10(juce::jmax(fc.magnitude(hz), 1.0e-5f));
-            const float y = yOf(juce::jlimit(FloorDb, TopDb, db));
-            if (i == 0) curve.startNewSubPath(xOf(hz), y);
-            else        curve.lineTo(xOf(hz), y);
+            const float db = 20.0f * std::log10( juce::jmax( fc.magnitude( hz ), 1.0e-5f ) );
+            const float y = yOf( juce::jlimit( FloorDb, TopDb, db ) );
+            if ( i == 0 )
+                curve.startNewSubPath( xOf( hz ), y );
+            else
+                curve.lineTo( xOf( hz ), y );
         }
-        g.setColour(ui::Bg0.withAlpha(0.5f));
-        g.strokePath(curve, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved));
-        g.setColour(ui::Text.withAlpha(0.8f));
-        g.strokePath(curve, juce::PathStrokeType(1.3f, juce::PathStrokeType::curved));
+        g.setColour( ui::Bg0.withAlpha( 0.5f ) );
+        g.strokePath( curve, juce::PathStrokeType( 3.0f, juce::PathStrokeType::curved ) );
+        g.setColour( ui::Text.withAlpha( 0.8f ) );
+        g.strokePath( curve, juce::PathStrokeType( 1.3f, juce::PathStrokeType::curved ) );
     }
 
     // Under the pointer: the frequency, the note nearest it, and what that band is reading.
-    g.setFont(ui::body(9.5f));
-    if (m_hoverX > 0 && plot.contains(static_cast<float>(m_hoverX), plot.getCentreY())) {
-        const float t = (m_hoverX - plot.getX()) / plot.getWidth();
-        const float hz = LoHz * std::exp(span * t);
-        const int b = juce::jlimit(0, Bands - 1, static_cast<int>(t * Bands));
-        g.setColour(ui::Text.withAlpha(0.35f));
-        g.drawVerticalLine(m_hoverX, plot.getY(), plot.getBottom());
-        const int midi = juce::jlimit(0, 127, static_cast<int>(std::lround(69.0 + 12.0 * std::log2(hz / 440.0))));
-        g.setColour(ui::Text);
-        g.drawText(juce::String(hz, hz < 1000.0f ? 1 : 0) + " Hz   " + juce::MidiMessage::getMidiNoteName(midi, true, true, 4)
-                       + "   " + juce::String(m_band[static_cast<size_t>(b)], 1) + " dB",
-                   r.reduced(9, 4), juce::Justification::topRight, false);
-    } else {
-        g.setColour(m_peakDb > -0.5f ? juce::Colour(0xffe06060) : ui::Dim);
-        g.drawText(fc.legend() + "      " + juce::String(m_peakDb, 1) + " dB peak",
-                   r.reduced(9, 4), juce::Justification::topRight, false);
+    g.setFont( ui::body( 9.5f ) );
+    if ( m_hoverX > 0 && plot.contains( static_cast<float>( m_hoverX ), plot.getCentreY() ) )
+    {
+        const float t = ( m_hoverX - plot.getX() ) / plot.getWidth();
+        const float hz = LoHz * std::exp( span * t );
+        const int   b = juce::jlimit( 0, Bands - 1, static_cast<int>( t * Bands ) );
+        g.setColour( ui::Text.withAlpha( 0.35f ) );
+        g.drawVerticalLine( m_hoverX, plot.getY(), plot.getBottom() );
+        const int midi =
+            juce::jlimit( 0, 127, static_cast<int>( std::lround( 69.0 + 12.0 * std::log2( hz / 440.0 ) ) ) );
+        g.setColour( ui::Text );
+        g.drawText( juce::String( hz, hz < 1000.0f ? 1 : 0 ) + " Hz   " +
+                        juce::MidiMessage::getMidiNoteName( midi, true, true, 4 ) + "   " +
+                        juce::String( m_band[static_cast<size_t>( b )], 1 ) + " dB",
+                    r.reduced( 9, 4 ), juce::Justification::topRight, false );
+    }
+    else
+    {
+        g.setColour( m_peakDb > -0.5f ? juce::Colour( 0xffe06060 ) : ui::Dim );
+        g.drawText( fc.legend() + "      " + juce::String( m_peakDb, 1 ) + " dB peak", r.reduced( 9, 4 ),
+                    juce::Justification::topRight, false );
     }
 }

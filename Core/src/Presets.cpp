@@ -38,10 +38,11 @@
 #include <cstring>
 #include <cstdlib>
 
-namespace ambient {
+namespace ambient
+{
 
-namespace {
-
+namespace
+{
 
 /**
  * @brief The compiled-in presets: "Init" (the empty preset, every parameter at its default) followed
@@ -294,9 +295,7 @@ const Preset Presets[] = {
       "src2_env_mode=One Shot;src2_env_time=1.575;src3_delay=14.87;src3_rise=10.06;brain_release_gap=3.44;"
       "far_unmask=0.1527;far_unmask_spread=0.442;presence=2.59;subsonic=18;brain_root_targets=Modal;"
       "brain_utonal=0.04536;brain_series=0.2031;filter_morph=0;filter_model=SEM",
-      nullptr, nullptr, nullptr,
-      "lfo1>presence:-0.198",
-      "~~~~~~~0:0/2.13:1:-0.45" },
+      nullptr, nullptr, nullptr, "lfo1>presence:-0.198", "~~~~~~~0:0/2.13:1:-0.45" },
     { "Somnus Expanse",
       "master_gain=-7.33;partials=25;tilt=1.547;brightness=0.5028;odd_even=0.1421;inharmonic=0.191;"
       "shimmer=0.4338;shimmer_rate=0.06277;strands=4;detune=4;drift=3.424;drift_rate=0.05498;spread=0.7121;"
@@ -826,8 +825,7 @@ const Preset Presets[] = {
       "lfo1_phase=0.523;lfo1_depth=0.813;lfo1_mode=Retrigger;src2_delay=9.44;src2_rise=2.9;"
       "brain_release_gap=3.072;far_unmask=0.1613;far_unmask_spread=0.435;subsonic=18;purity_adapt=0.708;"
       "brain_root_targets=Mediant;brain_utonal=0.03823;brain_series=0.0009001",
-      nullptr, nullptr, nullptr,
-      "lfo1>brightness:0.187;note>air:-0.148;pressure>shimmer:0.255:u" },
+      nullptr, nullptr, nullptr, "lfo1>brightness:0.187;note>air:-0.148;pressure>shimmer:0.255:u" },
     { "Bell Veil",
       "master_gain=-7.25;partials=19;tilt=0.9666;brightness=1;odd_even=-0.1649;inharmonic=0.1871;"
       "shimmer=0.4112;shimmer_rate=0.08534;strands=5;detune=3.901;drift=8.416;drift_rate=0.09806;"
@@ -914,8 +912,7 @@ const Preset Presets[] = {
       "env1_depth=0.906;src2_delay=5.44;src2_rise=2.36;brain_release_gap=2.818;far_unmask=0.159;"
       "far_unmask_spread=0.5;subsonic=18;purity_adapt=0.4145;brain_root_targets=Mediant;"
       "brain_utonal=0.01736;brain_series=0.006238;arc_harmony=0.4735",
-      nullptr, nullptr, nullptr,
-      "lfo1>dly_feedback:0.077;env1>brightness:0.225;pressure>resonance:0.256:u",
+      nullptr, nullptr, nullptr, "lfo1>dly_feedback:0.077;env1>brightness:0.225;pressure>resonance:0.256:u",
       "0:0:0.04/2.14:0.337:-0.2/3.92:0.465:-0.47/6.49:0.205:-0.2/8.81:0.67:-0.17/9.55:0:-0.03" },
     { "Icicle Drift",
       "master_gain=12;partials=23;tilt=1.598;brightness=0.6271;odd_even=0.1149;inharmonic=0.2089;"
@@ -1703,9 +1700,7 @@ const Preset Presets[] = {
       "src2_env_time=2.631;src3_delay=2.75;src3_rise=3.46;brain_release_gap=3.936;far_unmask=0.1347;"
       "far_unmask_spread=0.309;presence=2.23;subsonic=18;purity_adapt=0.7894;brain_root_targets=Phrygian;"
       "brain_utonal=0.4141;brain_series=0.08316",
-      nullptr, nullptr, nullptr,
-      "lenia4>cosmos_shimmer:-0.130;lfo2>cosmos_swell:0.126",
-      "~~~~~~~0:0/6.98:1:-0.43" },
+      nullptr, nullptr, nullptr, "lenia4>cosmos_shimmer:-0.130;lfo2>cosmos_swell:0.126", "~~~~~~~0:0/6.98:1:-0.43" },
     { "Formant Bed",
       "master_gain=-5.14;partials=15;tilt=1.175;brightness=0.655;odd_even=0.3628;inharmonic=0.08401;"
       "shimmer=0.3597;shimmer_rate=0.08496;strands=5;detune=4;drift=8.191;drift_rate=0.1439;spread=0.6697;"
@@ -1801,8 +1796,7 @@ const Preset Presets[] = {
       "src3_rise=2.8;brain_release_gap=2.714;far_unmask=0.16;far_unmask_spread=0.487;presence=2.35;"
       "subsonic=18;purity_adapt=0.6254;brain_root_targets=Phrygian;brain_utonal=0.6131;"
       "brain_series=0.07135;arc_harmony=0.304",
-      nullptr, nullptr, nullptr,
-      "lfo1>brain_bias:-0.082;lfo2>far_highcut:0.050;velocity>brain_spread:-0.160:none:u" },
+      nullptr, nullptr, nullptr, "lfo1>brain_bias:-0.082;lfo2>far_highcut:0.050;velocity>brain_spread:-0.160:none:u" },
     { "Choir Veil",
       "master_gain=11.35;partials=24;tilt=1.654;brightness=0.6085;odd_even=-0.1629;inharmonic=0.04066;"
       "shimmer=0.4544;shimmer_rate=0.1366;detune=4;drift=2.249;drift_rate=0.05748;spread=0.8777;"
@@ -2091,8 +2085,7 @@ const Preset Presets[] = {
       "brain_release_gap=3.638;far_unmask=0.1287;far_unmask_spread=0.382;presence=1.6;subsonic=18;"
       "sub_beat=0.25;purity_adapt=0.55;brain_root_targets=Phrygian;brain_utonal=0.5445;"
       "brain_series=0.07631;arc_harmony=0.2819",
-      nullptr, nullptr, nullptr,
-      "lfo1>src2_transport:0.126:macro_h;lenia3>purity:-0.079;lorenz_y>sub_pulse:-0.222",
+      nullptr, nullptr, nullptr, "lfo1>src2_transport:0.126:macro_h;lenia3>purity:-0.079;lorenz_y>sub_pulse:-0.222",
       "~~~~~~~~0:0/5.35:0.692:-0.27/7.21:0.786:-0.19/9.29:0.845:0.26!l1-3" },
     { "Vowel Veil",
       "master_gain=-4.393;partials=8;tilt=1.247;brightness=0.7667;odd_even=-0.2698;inharmonic=0.03376;"
@@ -2325,8 +2318,7 @@ const Preset Presets[] = {
       "brain_release_gap=2.438;far_unmask=0.1263;far_unmask_spread=0.409;presence=2.5;subsonic=18;"
       "purity_adapt=0.5463;brain_root_targets=Phrygian;brain_utonal=0.5111;brain_series=0.08849;"
       "arc_harmony=0.2598",
-      nullptr, nullptr, nullptr,
-      "lorenz_x>brain_bias:0.096;lenia2>width:0.159" },
+      nullptr, nullptr, nullptr, "lorenz_x>brain_bias:0.096;lenia2>width:0.159" },
 
     // ---------------------------------------------------------------- 48..63 Deep and Sub
     { "Tectonic Interval",
@@ -2365,8 +2357,7 @@ const Preset Presets[] = {
       "brain_release_gap=3.2;far_unmask=0.15;far_unmask_spread=0.347;presence=1;subsonic=18;"
       "purity_adapt=0.7793;brain_root_targets=Modal;brain_utonal=0.7481;brain_series=0.04314;"
       "filter_morph=0;filter_model=SEM",
-      nullptr, nullptr, nullptr,
-      "cascade>far_size:0.110;beat>itd:-0.070;wheel>air:0.238:u",
+      nullptr, nullptr, nullptr, "cascade>far_size:0.110;beat>itd:-0.070;wheel>air:0.238:u",
       "~~~~~~~0:0/2.85:1:-0.39/8.12:0.83:0.16~0:0/4.57:1:-0.4/7.81:0.828:0.03/19.5:0:-0.56!s2" },
     { "Tectonic Bed",
       "master_gain=0.479;partials=10;tilt=2.224;brightness=0.4242;odd_even=0.2464;inharmonic=0.1883;"
@@ -2754,8 +2745,7 @@ const Preset Presets[] = {
       "lfo4_rate=0.01651;lfo4_shape=Sine;lfo4_phase=0.064;lfo4_depth=0.742;src3_delay=5.87;src3_rise=1.97;"
       "brain_release_gap=2.728;far_unmask=0.1183;far_unmask_spread=0.444;subsonic=18;purity_adapt=0.7149;"
       "brain_root_targets=Modal;brain_utonal=0.7348;brain_series=0.0284;arc_harmony=0.135",
-      nullptr, nullptr, nullptr,
-      "lfo1>z_y:0.355;lfo2>purity_adapt:-0.165;lfo3>z_x:0.265;lfo4>doppler:0.107" },
+      nullptr, nullptr, nullptr, "lfo1>z_y:0.355;lfo2>purity_adapt:-0.165;lfo3>z_x:0.265;lfo4>doppler:0.107" },
     { "Bedrock Floor",
       "master_gain=-4.28;partials=22;tilt=1.311;brightness=0.4168;odd_even=-0.2314;inharmonic=0.107;"
       "shimmer=0.4247;shimmer_rate=0.03358;strands=2;detune=4;drift=2.54;drift_rate=0.02057;spread=0.5839;"
@@ -2842,8 +2832,7 @@ const Preset Presets[] = {
       "brain_release_gap=3.822;far_unmask=0.145;far_unmask_spread=0.394;presence=1;subsonic=18;"
       "purity_adapt=0.6027;brain_root_targets=Modal;brain_utonal=0.8889;brain_series=0.03975;"
       "arc_harmony=0.1559",
-      nullptr, nullptr, nullptr,
-      "lfo1>patina:-0.218;lfo2>pan_drift:-0.163;env1>detune:0.061",
+      nullptr, nullptr, nullptr, "lfo1>patina:-0.218;lfo2>pan_drift:-0.163;env1>detune:0.061",
       "0:0:-0.19/2.26:0.35:0.46/3.77:-0.032:-0.59/6.38:-0.025:0.15/7.04:0:-0.31!l0-3" },
     { "Seafloor Signal",
       "master_gain=1.58;partials=23;tilt=2.244;brightness=0.1756;odd_even=-0.06725;inharmonic=0.03513;"
@@ -3167,8 +3156,7 @@ const Preset Presets[] = {
       "brain_release_gap=3.747;far_unmask=0.1337;far_unmask_spread=0.373;presence=1;subsonic=18;"
       "purity_adapt=0.6952;brain_root_targets=Modal;brain_utonal=0.1636;brain_series=0.0634;"
       "arc_harmony=0.06525;filter_morph=0;filter_model=SEM",
-      nullptr, nullptr, nullptr,
-      "lfo1>osc_level:-0.118;lfo2>itd:0.081;lfo3>brain_wander:0.212",
+      nullptr, nullptr, nullptr, "lfo1>osc_level:-0.118;lfo2>itd:0.081;lfo3>brain_wander:0.212",
       "~~~~~~~0:0/5.97:1:-0.14" },
     { "Soundpost Hollow",
       "master_gain=-8.709;partials=23;tilt=1.138;brightness=0.393;odd_even=-0.3203;inharmonic=0.1058;"
@@ -3207,8 +3195,7 @@ const Preset Presets[] = {
       "lfo2_depth=0.684;lfo2_mode=Retrigger;src4_delay=6.22;src4_rise=1.94;brain_release_gap=3.737;"
       "far_unmask=0.1327;far_unmask_spread=0.331;presence=1;subsonic=18;purity_adapt=0.4155;"
       "brain_root_targets=Modal;brain_utonal=0.09855;brain_series=0.03351;arc_harmony=0.03981",
-      nullptr, nullptr, nullptr,
-      "lfo1>shimmer:0.243:none:u;lfo2>width:0.159:macro_h;slide>tilt:0.173:u" },
+      nullptr, nullptr, nullptr, "lfo1>shimmer:0.243:none:u;lfo2>width:0.159:macro_h;slide>tilt:0.173:u" },
     { "Fiddle Strings",
       "master_gain=-7.364;partials=19;tilt=1.618;brightness=0.4728;odd_even=-0.2725;inharmonic=0.07808;"
       "shimmer=0.4612;shimmer_rate=0.8597;strands=5;detune=3.508;drift=4.052;drift_rate=0.04081;"
@@ -3306,8 +3293,7 @@ const Preset Presets[] = {
       "lfo8_rate=0.008713;lfo8_depth=0.771;src2_delay=20.33;src2_rise=10.98;brain_release_gap=3.474;"
       "far_unmask=0.105;far_unmask_spread=0.426;subsonic=18;purity_adapt=0.4922;brain_root_targets=Modal;"
       "brain_utonal=0.1497;brain_series=0.02798;arc_harmony=0.07758",
-      nullptr, nullptr, nullptr,
-      "lfo1>src3_bow_speed:0.331;lfo2>pan_drift:-0.298;lfo8>root:0.412" },
+      nullptr, nullptr, nullptr, "lfo1>src3_bow_speed:0.331;lfo2>pan_drift:-0.298;lfo8>root:0.412" },
     { "Bridge Hollow",
       "master_gain=-4.37;partials=28;tilt=0.8046;brightness=0.6261;odd_even=-0.3152;inharmonic=0.1601;"
       "shimmer=0.3212;shimmer_rate=0.1411;strands=6;detune=4;drift=6.553;drift_rate=0.03744;spread=0.5509;"
@@ -3668,8 +3654,7 @@ const Preset Presets[] = {
       "brain_release_gap=3.935;far_unmask=0.1177;far_unmask_spread=0.332;presence=1;subsonic=18;"
       "purity_adapt=0.7116;brain_root_targets=Modal;brain_utonal=0.05307;brain_series=0.01648;"
       "arc_harmony=0.0883",
-      nullptr, nullptr, nullptr,
-      "lenia1>far_comod:0.286;env1>presence:0.167;env2>brightness:0.126",
+      nullptr, nullptr, nullptr, "lenia1>far_comod:0.286;env1>presence:0.167;env2>brightness:0.126",
       "0:0:0.22/2.37:-0.386:-0.52/3.82:-0.455:0.49/5.88:-0.94:-0.43/8.51:0.508:-0.12/10.8:-0.707:-0.31/12.9:0:0.21!s3~"
       "0:0:-0.13/1.8:0.577:0.03/4.79:-0.327:0.19/6.53:0.323:0.16/8.74:-0.087:0.24/10.6:-0.717:-0.42/12.6:0.049:0.5/15.4:-0.075:-0.26/18.3:0:-0.39!l0-7" },
     { "Bridge Descent",
@@ -3859,8 +3844,7 @@ const Preset Presets[] = {
       "src3_env_time=0.983;brain_release_gap=2.485;far_unmask=0.154;far_unmask_spread=0.396;presence=1.16;"
       "subsonic=18;purity_adapt=0.5374;brain_root_targets=Phrygian;brain_utonal=0.546;brain_series=0.02129;"
       "arc_harmony=0.2839",
-      nullptr, nullptr, nullptr,
-      "lfo1>cosmos_shift:0.086;lenia2>detune:0.127;lfo3>z_x:-0.323;env1>tide:0.120",
+      nullptr, nullptr, nullptr, "lfo1>cosmos_shift:0.086;lenia2>detune:0.127;lfo3>z_x:-0.323;env1>tide:0.120",
       "0:0:-0.25/2.29:0.805:0.42/4.82:0:0.23~~~~~~~~0:0/2.24:1:-0.45" },
     { "Reed Threshold",
       "master_gain=-6.704;partials=9;tilt=0.6434;brightness=0.7917;odd_even=0.2244;inharmonic=0.09305;"
@@ -3900,8 +3884,7 @@ const Preset Presets[] = {
       "src2_env=Own;src2_env_mode=One Shot;src2_env_time=2.531;brain_release_gap=3.696;far_unmask=0.143;"
       "far_unmask_spread=0.411;presence=1.57;subsonic=18;purity_adapt=0.4464;brain_root_targets=Phrygian;"
       "brain_utonal=0.4759;brain_series=0.08584;arc_harmony=0.3333",
-      nullptr, nullptr, nullptr,
-      "lenia2>fb_tone:0.100;lfo2>body_tone:0.122;env1>src1_transport:0.376",
+      nullptr, nullptr, nullptr, "lenia2>fb_tone:0.100;lfo2>body_tone:0.122;env1>src1_transport:0.376",
       "0:0:0.07/0.853:0.712:0.09/2.46:0.182:0.42/4.73:-0.648:-0.5/6.52:0:0.14!l0-3~~~~~~~"
       "0:0/3.99:1:-0.1/10.7:0.547:0.2" },
     { "Regal Veil",
@@ -4420,8 +4403,7 @@ const Preset Presets[] = {
       "src4_rise=4.12;brain_release_gap=2.396;far_unmask=0.147;far_unmask_spread=0.45;subsonic=18;"
       "purity_adapt=0.7422;brain_root_targets=Phrygian;brain_utonal=0.5108;brain_series=0.001261;"
       "arc_harmony=0.3702",
-      nullptr, nullptr, nullptr,
-      "lfo1>brain_consonance:0.178;env1>far_comod:-0.149;env2>near_ild:0.225",
+      nullptr, nullptr, nullptr, "lfo1>brain_consonance:0.178;env1>far_comod:-0.149;env2>near_ild:0.225",
       "0:0:0.22/2.81:0.662:-0.59/3.65:-0.992:-0.17/4.3:0.782:-0.39/6.17:0.281:0.04/7.21:0:-0.33~"
       "0:0:-0.16/1.47:-0.684:0.23/3.17:-0.139:-0.14/3.87:0.2:0.02/5.41:0:0.21" },
     { "Chapel Veil",
@@ -4510,8 +4492,7 @@ const Preset Presets[] = {
       "src3_delay=5.23;src3_rise=2.32;brain_release_gap=3.098;far_unmask=0.161;far_unmask_spread=0.398;"
       "presence=1.06;subsonic=18;purity_adapt=0.4868;brain_root_targets=Phrygian;brain_utonal=0.6977;"
       "brain_series=0.0852;arc_harmony=0.3119",
-      nullptr, nullptr, nullptr,
-      "lfo1>src2_transport:-0.285;beat>dly_mix:0.150;lenia3>width:0.133" },
+      nullptr, nullptr, nullptr, "lfo1>src2_transport:-0.285;beat>dly_mix:0.150;lenia3>width:0.133" },
     { "Pipe Threshold",
       "master_gain=-3.12;partials=11;tilt=1.722;brightness=0.5473;odd_even=-0.2424;shimmer=0.285;"
       "shimmer_rate=0.2777;detune=2.203;drift=8.452;drift_rate=0.11;spread=0.8596;bloom=0.3224;"
@@ -5095,8 +5076,7 @@ const Preset Presets[] = {
       "env2_depth=0.504;src2_delay=2.63;src2_rise=3.65;brain_release_gap=2.507;far_unmask=0.1437;"
       "far_unmask_spread=0.47;subsonic=18;purity_adapt=0.6092;brain_root_targets=Mediant;"
       "brain_utonal=0.01044;brain_series=0.06301;arc_harmony=0.3686;filter_morph=1",
-      nullptr, nullptr, nullptr,
-      "lfo1>cutoff:0.051;env1>purity_drift:-0.208;env2>early_size:0.176",
+      nullptr, nullptr, nullptr, "lfo1>cutoff:0.051;env1>purity_drift:-0.208;env2>early_size:0.176",
       "0:0:0.2/2.83:-0.394:0.15/4.19:-0.612:0.1/6.35:-0.172:-0.41/8.3:0.032:-0.33/11.3:0.708:0.11/12.4:0.342:-0.09/15.2:0.416:0.17/16.9:-0.676:0.22/18.4:0:0.25!l0-8~"
       "0:0:-0.32/1.28:0.511:0.49/2.51:0.326:0.4/3.92:0.28:0.06/6.36:0.291:0.02/8.61:0.476:0/11.2:0:0.2" },
     { "Spinet Bed",
@@ -5699,8 +5679,7 @@ const Preset Presets[] = {
       "far_unmask=0.155;far_unmask_spread=0.462;presence=3.12;subsonic=18;purity_adapt=0.7037;"
       "brain_root_targets=Mediant;brain_utonal=0.09586;brain_series=0.01924;arc_harmony=0.446;"
       "filter_morph=0;filter_model=SEM",
-      nullptr, nullptr, nullptr,
-      "lfo1>dly_feedback:0.060;lfo2>brain_bias:0.223;lfo3>doppler:0.084" },
+      nullptr, nullptr, nullptr, "lfo1>dly_feedback:0.060;lfo2>brain_bias:0.223;lfo3>doppler:0.084" },
     { "Pivot Bloom",
       "master_gain=3.404;partials=21;tilt=1.81;brightness=0.5266;odd_even=-0.1039;inharmonic=0.1529;"
       "shimmer=0.2577;shimmer_rate=0.136;strands=2;detune=4;drift=4.871;drift_rate=0.07041;spread=0.6581;"
@@ -7206,8 +7185,7 @@ const Preset Presets[] = {
       "brain_release_gap=2.222;far_unmask=0.148;far_unmask_spread=0.338;presence=1;subsonic=18;"
       "purity_adapt=0.6373;brain_root_targets=Modal;brain_utonal=0.3897;brain_series=0.06234;"
       "arc_harmony=0.03202",
-      nullptr, nullptr, nullptr,
-      "lfo1>purity:-0.154;kura3>detune:-0.072;lfo3>near_mix:0.065;env1>far_decay:0.183",
+      nullptr, nullptr, nullptr, "lfo1>purity:-0.154;kura3>detune:-0.072;lfo3>near_mix:0.065;env1>far_decay:0.183",
       "0:0:-0.57/1.43:0.529:0.22/3.5:0.833:-0.13/5.85:-0.73:0.23/6.64:-0.067:0.24/8.08:0:-0.18!l0-4" },
     { "Memory Cloud",
       "master_gain=-6.31;partials=8;tilt=1.196;brightness=0.5042;odd_even=0.2918;inharmonic=0.02893;"
@@ -7511,8 +7489,7 @@ const Preset Presets[] = {
       "cloud_res_decay=8.49;seed=9338;lfo1_rate=0.03633;lfo1_shape=Sine;lfo1_phase=0.554;lfo1_depth=0.7;"
       "src3_delay=5.32;src3_rise=3.55;brain_release_gap=2.421;far_unmask=0.116;far_unmask_spread=0.454;"
       "subsonic=18;brain_root_targets=Modal;brain_utonal=0.3782;brain_series=0.0697;arc_harmony=0.05822",
-      nullptr, nullptr, nullptr,
-      "lfo1>src3_level:0.162" },
+      nullptr, nullptr, nullptr, "lfo1>src3_level:0.162" },
     { "Flock Cloud",
       "master_gain=-1.341;partials=17;tilt=1.065;brightness=0.5921;odd_even=-0.04368;inharmonic=0.1439;"
       "shimmer=0.4275;shimmer_rate=0.1171;strands=4;detune=4;drift=3.051;drift_rate=0.1007;spread=0.7685;"
@@ -8041,8 +8018,7 @@ const Preset Presets[] = {
       "env1_depth=0.921;brain_release_gap=2.054;far_unmask=0.102;far_unmask_spread=0.316;presence=1;"
       "subsonic=18;sub_beat=0.25;brain_root_targets=Modal;brain_utonal=0.4638;brain_series=0.01349;"
       "arc_harmony=0.1498",
-      nullptr, nullptr, nullptr,
-      "velocity>sub_pulse:0.082:none:u;lfo2>z_y:0.202;env1>doppler:0.129;wheel>air:0.329:u",
+      nullptr, nullptr, nullptr, "velocity>sub_pulse:0.082:none:u;lfo2>z_y:0.202;env1>doppler:0.129;wheel>air:0.329:u",
       "0:0:0.27/2.5:-0.402:-0.49/3.57:0:-0.06" },
     { "Breath Expanse",
       "master_gain=-6.57;partials=21;tilt=1.512;brightness=0.2907;odd_even=0.2027;inharmonic=0.1418;"
@@ -8189,8 +8165,7 @@ const Preset Presets[] = {
       "env1_time=4.146;env1_mode=Loop;env1_depth=0.749;src3_delay=7.41;src3_rise=11.09;"
       "brain_release_gap=3.757;far_unmask=0.147;far_unmask_spread=0.496;presence=1;subsonic=18;"
       "purity_adapt=0.57;brain_root_targets=Modal;brain_utonal=0.3319;brain_series=0.02504",
-      nullptr, nullptr, nullptr,
-      "lfo1>dly_feedback:-0.108;env1>far_unmask_spread:0.117;pressure>cutoff:0.367:u",
+      nullptr, nullptr, nullptr, "lfo1>dly_feedback:-0.108;env1>far_unmask_spread:0.117;pressure>cutoff:0.367:u",
       "0:0:0.15/1.36:-0.989:0.5/3.35:-0.872:-0.27/5.31:-0.945:0.28/7.43:-0.149:-0.57/9.73:0.872:-0.43/12.1:0:-0.03!l0-5" },
     { "Wind Weather",
       "master_gain=-2.83;partials=11;tilt=0.9356;brightness=0.5918;odd_even=0.04744;inharmonic=0.166;"
@@ -8289,8 +8264,7 @@ const Preset Presets[] = {
       "src4_delay=20.3;src4_rise=3.11;brain_release_gap=3.833;far_unmask=0.112;far_unmask_spread=0.4;"
       "subsonic=18;purity_adapt=0.6951;brain_root_targets=Modal;brain_utonal=0.301;brain_series=0.01775;"
       "arc_harmony=0.04127",
-      nullptr, nullptr, nullptr,
-      "lfo1>detune:-0.117:none:u;env1>partials:0.240",
+      nullptr, nullptr, nullptr, "lfo1>detune:-0.117:none:u;env1>partials:0.240",
       "0:0:-0.55/0.746:-0.56:0.24/2.68:-0.4:0.11/3.68:-0.057:0.46/5.44:0.764:-0.32/8.41:0.899:0.21/11.2:0:-0.29!l0-5" },
     { "Wind Vigil",
       "master_gain=-8.8;tilt=1.132;brightness=0.76;odd_even=-0.2721;inharmonic=0.04236;shimmer=0.4712;"
@@ -8477,8 +8451,7 @@ const Preset Presets[] = {
       "env1_depth=0.745;src2_delay=19.45;src2_env=Own;src2_env_mode=One Shot;src2_env_time=0.673;"
       "brain_release_gap=2.333;far_unmask=0.1277;far_unmask_spread=0.433;subsonic=18;sub_beat=0.25;"
       "purity_adapt=0.459;brain_root_targets=Modal;brain_utonal=0.8438;brain_series=0.088",
-      nullptr, nullptr, nullptr,
-      "kura3>dly_feedback:-0.138;lfo2>sub_pulse:0.168;env1>purity:-0.147",
+      nullptr, nullptr, nullptr, "kura3>dly_feedback:-0.138;lfo2>sub_pulse:0.168;env1>purity:-0.147",
       "0:0:-0.44/2.59:0.637:0.17/4.66:-0.022:-0.24/7.47:0.783:0.27/9.63:-0.434:-0.43/12.1:-0.251:0.18/13.4:0:0.37~~"
       "~~~~~0:0/5.22:1:-0.52" },
     { "Girder Span",
@@ -8670,8 +8643,7 @@ const Preset Presets[] = {
       "lfo1_depth=0.72;lfo1_mode=Retrigger;env1_time=15.5;env1_mode=One Shot;env1_depth=0.768;"
       "brain_release_gap=2.142;far_unmask=0.145;far_unmask_spread=0.373;presence=1;subsonic=18;"
       "brain_root_targets=Modal;brain_utonal=0.7047;brain_series=0.04318",
-      nullptr, nullptr, nullptr,
-      "lfo1>width:0.172;env1>brain_dejavu:-0.160;wheel>filter_fold:0.346:u",
+      nullptr, nullptr, nullptr, "lfo1>width:0.172;env1>brain_dejavu:-0.160;wheel>filter_fold:0.346:u",
       "0:0:-0.52/1.31:0.312:-0.48/3.04:0:-0.28" },
     { "Iron Drift",
       "master_gain=-4.23;partials=24;tilt=1.582;brightness=0.5517;odd_even=-0.1674;inharmonic=0.3641;"
@@ -8813,8 +8785,7 @@ const Preset Presets[] = {
       "lfo2_shape=Sine;lfo2_phase=0.169;lfo2_depth=0.632;brain_release_gap=3.552;far_unmask=0.152;"
       "far_unmask_spread=0.341;presence=1;subsonic=18;purity_adapt=0.799;brain_root_targets=Modal;"
       "brain_utonal=0.6766;brain_series=0.04274",
-      nullptr, nullptr, nullptr,
-      "lfo1>far_envelop:0.272;lfo2>blur_smear:0.138" },
+      nullptr, nullptr, nullptr, "lfo1>far_envelop:0.272;lfo2>blur_smear:0.138" },
     { "Bellmetal Feedback",
       "master_gain=-3.88;partials=21;tilt=1.612;brightness=0.2662;odd_even=-0.1025;inharmonic=0.2922;"
       "shimmer=0.4798;shimmer_rate=0.09918;detune=4;drift=3.659;drift_rate=0.05675;spread=0.5488;"
@@ -9345,8 +9316,7 @@ const Preset Presets[] = {
       "src3_delay=21.88;src3_rise=3.98;src4_delay=16.09;src4_rise=1.59;brain_release_gap=2.558;"
       "far_unmask=0.1667;far_unmask_spread=0.427;presence=2.94;subsonic=18;sub_beat=0.25;"
       "brain_root_targets=Modal;brain_utonal=0.1262;brain_series=0.2952;filter_morph=1",
-      nullptr, nullptr, nullptr,
-      "rossler_x>width:0.164;env1>near_ild:0.240",
+      nullptr, nullptr, nullptr, "rossler_x>width:0.164;env1>near_ild:0.240",
       "0:0:0.41/1.2:0.765:-0.59/1.97:0.572:0.57/4.02:-0.741:0.57/6.92:0:0.38!l0-3" },
     { "Rotating Descent",
       "master_gain=1.849;tilt=1.247;brightness=0.6913;odd_even=-0.06271;inharmonic=0.09122;shimmer=0.4548;"
@@ -9439,8 +9409,7 @@ const Preset Presets[] = {
       "src2_env_mode=Loop;src2_env_time=1.131;src2_env_depth=0.887;brain_release_gap=3.754;"
       "far_unmask=0.1333;far_unmask_spread=0.423;presence=2.65;subsonic=18;sub_beat=0.25;"
       "brain_root_targets=Modal;brain_utonal=0.124;brain_series=0.4771;arc_harmony=0.4398",
-      nullptr, nullptr, nullptr,
-      "lfo1>patina:0.233",
+      nullptr, nullptr, nullptr, "lfo1>patina:0.233",
       "~~~~~~~0:0/2.03:0.726:0.05/5.52:0.479:0.38/9.09:0.847:-0.36/12.1:0.846:0.09/16:0.973:-0.14!l1-5" },
     { "Near Reach",
       "master_gain=4.83;partials=19;tilt=1.518;brightness=0.5204;odd_even=-0.009312;inharmonic=0.0619;"
@@ -9929,8 +9898,7 @@ const Preset Presets[] = {
       "lfo3_phase=0.735;lfo3_depth=0.997;lfo3_mode=Retrigger;brain_release_gap=3.389;far_unmask=0.1343;"
       "far_unmask_spread=0.352;presence=2.59;subsonic=18;purity_adapt=0.7805;brain_root_targets=Modal;"
       "brain_utonal=0.1863;brain_series=0.2675",
-      nullptr, nullptr, nullptr,
-      "lfo1>pan_drift:-0.260;lfo2>early_size:-0.252;lfo3>brain_bias:0.256" },
+      nullptr, nullptr, nullptr, "lfo1>pan_drift:-0.260;lfo2>early_size:-0.252;lfo3>brain_bias:0.256" },
     { "Spiral Motion",
       "master_gain=-6.66;partials=8;tilt=0.8279;brightness=0.4939;odd_even=-0.1586;shimmer=0.5415;"
       "shimmer_rate=0.1238;detune=4;drift=4.205;drift_rate=0.05482;spread=0.647;bloom=0.0404;"
@@ -10238,8 +10206,7 @@ const Preset Presets[] = {
       "src2_rise=8.81;src3_delay=3.9;src3_env=Own;src3_env_mode=One Shot;src3_env_time=2.156;"
       "brain_release_gap=2.203;far_unmask=0.1763;far_unmask_spread=0.483;subsonic=18;purity_adapt=0.491;"
       "brain_root_targets=Modal;brain_utonal=0.1603;brain_series=0.2198;arc_harmony=0.2933",
-      nullptr, nullptr, nullptr,
-      "lfo1>cosmos_swell:0.340;env1>src4_noise_q:-0.206;wheel>dly_mix:0.378:u",
+      nullptr, nullptr, nullptr, "lfo1>cosmos_swell:0.340;env1>src4_noise_q:-0.206;wheel>dly_mix:0.378:u",
       "0:0:-0.28/0.738:-0.214:0.11/2.13:0:0.29~~~~~~~~0:0/3.53:1:-0.1" },
     { "Epoch Arc",
       "master_gain=0.209;partials=26;tilt=1.047;brightness=0.4673;odd_even=-0.02216;inharmonic=0.02087;"
@@ -10286,8 +10253,7 @@ const Preset Presets[] = {
       "lfo3_depth=0.664;lfo3_sync=8 bars;src2_delay=6.04;src2_rise=5.55;brain_release_gap=2.289;"
       "far_unmask=0.1653;far_unmask_spread=0.409;subsonic=18;purity_adapt=0.797;brain_root_targets=Modal;"
       "brain_utonal=0.1702;brain_series=0.3247;arc_harmony=0.2884",
-      nullptr, nullptr, nullptr,
-      "lfo1>src2_noise_q:0.312;lfo2>src3_bow_speed:0.243;lfo3>sub_pulse:-0.117:none:u" },
+      nullptr, nullptr, nullptr, "lfo1>src2_noise_q:0.312;lfo2>src3_bow_speed:0.243;lfo3>sub_pulse:-0.117:none:u" },
     { "Epoch Span",
       "master_gain=-2.84;partials=15;tilt=1.019;brightness=0.87;odd_even=0.3725;inharmonic=0.3376;"
       "shimmer=0.4396;shimmer_rate=0.2532;strands=5;detune=4;drift=5.672;drift_rate=0.07033;spread=0.8213;"
@@ -10516,8 +10482,7 @@ const Preset Presets[] = {
       "brain_release_gap=3.274;far_unmask=0.1447;far_unmask_spread=0.381;presence=3;subsonic=18;"
       "purity_adapt=0.6406;brain_root_targets=Modal;brain_utonal=0.1053;brain_series=0.2984;"
       "arc_harmony=0.2893",
-      nullptr, nullptr, nullptr,
-      "lenia3>near_ild:-0.218;env1>resonance:0.162;wheel>far_level:0.195:u",
+      nullptr, nullptr, nullptr, "lenia3>near_ild:-0.218;env1>resonance:0.162;wheel>far_level:0.195:u",
       "0:0:-0.59/1.14:0.203:0.21/3.46:0.878:-0.25/5.37:0.076:0.59/7.05:0.97:-0.06/8.33:0.82:-0/10.7:-0.127:-0.42/11.4:0.498:-0.03/13.2:-0.742:-0.21/15.7:0.246:-0.06/17.8:0:0.44!s8" },
     { "Solstice Interval",
       "master_gain=-7.59;partials=14;tilt=1.545;brightness=0.5443;odd_even=0.1403;inharmonic=0.009628;"
@@ -10614,8 +10579,7 @@ const Preset Presets[] = {
       "src3_env_mode=Sustain Loop;src3_env_time=0.871;brain_release_gap=2.698;far_unmask=0.156;"
       "far_unmask_spread=0.301;presence=3.36;subsonic=18;purity_adapt=0.5279;brain_root_targets=Modal;"
       "brain_utonal=0.1377;brain_series=0.296",
-      nullptr, nullptr, nullptr,
-      "lfo1>blur_smear:0.146;env1>pan_drift:-0.180;pressure>cutoff:0.337:u",
+      nullptr, nullptr, nullptr, "lfo1>blur_smear:0.146;env1>pan_drift:-0.180;pressure>cutoff:0.337:u",
       "0:0:0.43/1.84:-0.434:0.43/3.53:0:-0.53~~~~~~~~0:0/1.13:1:-0.01/2.38:0.551:-0.18/10.8:0:-0.38!s2" },
     { "Ninety Span",
       "master_gain=-5.47;partials=19;tilt=1.583;brightness=0.4866;odd_even=0.3276;inharmonic=0.01705;"
@@ -10659,8 +10623,7 @@ const Preset Presets[] = {
       "src2_env=Own;src2_env_mode=One Shot;src2_env_time=0.811;src3_delay=3.03;src3_rise=11.97;"
       "brain_release_gap=3.637;far_unmask=0.1733;far_unmask_spread=0.358;presence=2.24;subsonic=18;"
       "purity_adapt=0.7403;brain_root_targets=Modal;brain_utonal=0.09468;brain_series=0.2868",
-      nullptr, nullptr, nullptr,
-      "lfo1>depth:0.104;lfo2>purity_adapt:-0.099;lfo3>purity:-0.131",
+      nullptr, nullptr, nullptr, "lfo1>depth:0.104;lfo2>purity_adapt:-0.099;lfo3>purity:-0.131",
       "~~~~~~~0:0/4.43:1:0.16" },
     { "Epoch Hollow",
       "master_gain=2.806;partials=24;tilt=1.197;brightness=0.3812;odd_even=0.113;inharmonic=0.228;"
@@ -11686,8 +11649,7 @@ const Preset Presets[] = {
       "src2_env_mode=Loop;src2_env_time=2.115;brain_release_gap=2.389;far_unmask=0.1607;"
       "far_unmask_spread=0.364;subsonic=18;sub_beat=0.25;purity_adapt=0.6663;brain_root_targets=Phrygian;"
       "brain_utonal=0.459;brain_series=0.02679;arc_harmony=0.309",
-      nullptr, nullptr, nullptr,
-      "lfo1>purity_drift:0.170;env1>far_rotate:0.207;wheel>far_level:0.256:u",
+      nullptr, nullptr, nullptr, "lfo1>purity_drift:0.170;env1>far_rotate:0.207;wheel>far_level:0.256:u",
       "0:0:0.31/1.37:0.672:0.33/3.69:-0.863:-0.07/6.36:0.753:0.25/7.42:0:-0.25~~~~~~~"
       "0:0/3.36:0.87:0.16/6.17:0.499:-0.07/11.1:0.48:0.35!l1-3" },
     { "Marimba Drift",
@@ -12317,7 +12279,7 @@ const Preset Presets[] = {
       "lfo1>brain_consonance:0.152;lfo2>patina:0.137:none:u;env1>ens_depth:-0.244;wheel>z_y:0.319:u",
       "0:0:0.06/1.26:0.02:-0.33/2.83:0.253:0.59/4.62:0.507:-0.56/5.77:-0.977:-0.14/7.48:-0.747:0.21/10.3:0.035:0.58/11.3:0.47:-0.53/12.5:0:0.38!l0-7" },
 };
-}
+}   // namespace
 
 /**
  * @brief The four section banks, generated into the `*Presets.inc` files of Core/src and included
@@ -12331,107 +12293,148 @@ const Preset Presets[] = {
  * filter shape, in the shapes' own families) from Tools/make_zplane_bank.py; none of them is edited
  * by hand. The accessors below are the only way out of this namespace.
  */
-namespace {
+namespace
+{
 #include "CosmosPresets.inc"
 #include "ZPlanePresets.inc"
 #include "StrikePresets.inc"
 #include "NearPresets.inc"
-}
+}   // namespace
 
 /**
  * @brief How many presets the Near bank holds, the Off entry included.
  * @return the length of NearPresets (108 at the time of writing)
  */
-int numNearPresets() { return static_cast<int>(sizeof(NearPresets) / sizeof(NearPresets[0])); }
+int numNearPresets()
+{
+    return static_cast<int>( sizeof( NearPresets ) / sizeof( NearPresets[0] ) );
+}
 /**
  * @brief One preset of the Near bank: the Near Source and Near Events sections, nothing else.
  *
  * An index outside 0 .. numNearPresets() - 1 yields entry 0, Near Off. The reference points into the
  * compiled-in table and stays valid for the life of the program.
  */
-const Preset& nearPreset(int index)
+const Preset &nearPreset( int index )
 {
     const int n = numNearPresets();
-    if (index < 0 || index >= n) index = 0;
+    if ( index < 0 || index >= n ) index = 0;
     return NearPresets[index];
 }
-int nearPresetCategory(int i) { return (i >= 0 && i < numNearPresets()) ? NearPresetCategory[i] : 255; }
+int nearPresetCategory( int i )
+{
+    return ( i >= 0 && i < numNearPresets() ) ? NearPresetCategory[i] : 255;
+}
 /**
  * @brief How many families the Near bank's list is divided into.
  * @return the length of NearPresetsFamilyNames (12 at the time of writing)
  */
-int numNearPresetFamilies() { return static_cast<int>(sizeof(NearPresetsFamilyNames) / sizeof(NearPresetsFamilyNames[0])); }
-const char* nearPresetFamily(int f) { return (f >= 0 && f < numNearPresetFamilies()) ? NearPresetsFamilyNames[f] : ""; }
-
-
+int numNearPresetFamilies()
+{
+    return static_cast<int>( sizeof( NearPresetsFamilyNames ) / sizeof( NearPresetsFamilyNames[0] ) );
+}
+const char *nearPresetFamily( int f )
+{
+    return ( f >= 0 && f < numNearPresetFamilies() ) ? NearPresetsFamilyNames[f] : "";
+}
 
 /**
  * @brief How many presets the Cosmos bank holds, the Off entry included.
  * @return the length of CosmosPresets (257 at the time of writing: Off and sixteen families of
  *         sixteen)
  */
-int numCosmosPresets() { return static_cast<int>(sizeof(CosmosPresets) / sizeof(CosmosPresets[0])); }
-int cosmosPresetCategory(int i) { return (i >= 0 && i < numCosmosPresets()) ? CosmosPresetCategory[i] : 255; }
+int numCosmosPresets()
+{
+    return static_cast<int>( sizeof( CosmosPresets ) / sizeof( CosmosPresets[0] ) );
+}
+int cosmosPresetCategory( int i )
+{
+    return ( i >= 0 && i < numCosmosPresets() ) ? CosmosPresetCategory[i] : 255;
+}
 /**
  * @brief How many families the Cosmos bank's list is divided into.
  * @return the length of CosmosPresetsFamilyNames (16 at the time of writing)
  */
-int numCosmosPresetFamilies() { return static_cast<int>(sizeof(CosmosPresetsFamilyNames) / sizeof(CosmosPresetsFamilyNames[0])); }
-const char* cosmosPresetFamily(int f) { return (f >= 0 && f < numCosmosPresetFamilies()) ? CosmosPresetsFamilyNames[f] : ""; }
+int numCosmosPresetFamilies()
+{
+    return static_cast<int>( sizeof( CosmosPresetsFamilyNames ) / sizeof( CosmosPresetsFamilyNames[0] ) );
+}
+const char *cosmosPresetFamily( int f )
+{
+    return ( f >= 0 && f < numCosmosPresetFamilies() ) ? CosmosPresetsFamilyNames[f] : "";
+}
 
 /**
  * @brief How many presets the Z-plane bank holds: one per filter shape, plus the Off entry.
  * @return the length of ZPresets (155 at the time of writing)
  */
-int numZPresets() { return static_cast<int>(sizeof(ZPresets) / sizeof(ZPresets[0])); }
+int numZPresets()
+{
+    return static_cast<int>( sizeof( ZPresets ) / sizeof( ZPresets[0] ) );
+}
 /**
  * @brief One preset of the Z-plane bank: the ZPlane section set to one filter shape, nothing else.
  *
  * An index outside 0 .. numZPresets() - 1 yields entry 0, Z-plane Off. The reference points into the
  * compiled-in table and stays valid for the life of the program.
  */
-const Preset& zPreset(int index)
+const Preset &zPreset( int index )
 {
     const int n = numZPresets();
-    if (index < 0 || index >= n) index = 0;
+    if ( index < 0 || index >= n ) index = 0;
     return ZPresets[index];
 }
-int zPresetCategory(int i) { return (i >= 0 && i < numZPresets()) ? ZPresetCategory[i] : 255; }
+int zPresetCategory( int i )
+{
+    return ( i >= 0 && i < numZPresets() ) ? ZPresetCategory[i] : 255;
+}
 
 /**
  * @brief How many presets the Strike bank holds, the Off entry included.
  * @return the length of StrikePresets (41 at the time of writing)
  */
-int numStrikePresets() { return static_cast<int>(sizeof(StrikePresets) / sizeof(StrikePresets[0])); }
+int numStrikePresets()
+{
+    return static_cast<int>( sizeof( StrikePresets ) / sizeof( StrikePresets[0] ) );
+}
 /**
  * @brief One preset of the Strike bank: the Karplus-Strong pluck's section, nothing else.
  *
  * An index outside 0 .. numStrikePresets() - 1 yields entry 0, Strike Off. The reference points into the
  * compiled-in table and stays valid for the life of the program.
  */
-const Preset& strikePreset(int index)
+const Preset &strikePreset( int index )
 {
     const int n = numStrikePresets();
-    if (index < 0 || index >= n) index = 0;
+    if ( index < 0 || index >= n ) index = 0;
     return StrikePresets[index];
 }
-int strikePresetCategory(int i) { return (i >= 0 && i < numStrikePresets()) ? StrikePresetCategory[i] : 255; }
+int strikePresetCategory( int i )
+{
+    return ( i >= 0 && i < numStrikePresets() ) ? StrikePresetCategory[i] : 255;
+}
 /**
  * @brief How many families the Strike bank's list is divided into.
  * @return the length of StrikePresetsFamilyNames (4 at the time of writing)
  */
-int numStrikePresetFamilies() { return static_cast<int>(sizeof(StrikePresetsFamilyNames) / sizeof(StrikePresetsFamilyNames[0])); }
-const char* strikePresetFamily(int f) { return (f >= 0 && f < numStrikePresetFamilies()) ? StrikePresetsFamilyNames[f] : ""; }
+int numStrikePresetFamilies()
+{
+    return static_cast<int>( sizeof( StrikePresetsFamilyNames ) / sizeof( StrikePresetsFamilyNames[0] ) );
+}
+const char *strikePresetFamily( int f )
+{
+    return ( f >= 0 && f < numStrikePresetFamilies() ) ? StrikePresetsFamilyNames[f] : "";
+}
 /**
  * @brief One preset of the Cosmos bank: the Cosmos section (the feedback network), nothing else.
  *
  * An index outside 0 .. numCosmosPresets() - 1 yields entry 0, Cosmos Off. The reference points into the
  * compiled-in table and stays valid for the life of the program.
  */
-const Preset& cosmosPreset(int index)
+const Preset &cosmosPreset( int index )
 {
     const int n = numCosmosPresets();
-    if (index < 0 || index >= n) index = 0;
+    if ( index < 0 || index >= n ) index = 0;
     return CosmosPresets[index];
 }
 
@@ -12440,7 +12443,10 @@ const Preset& cosmosPreset(int index)
  *        loaded packs begin in the list numPresets() counts (PresetPacks.cpp).
  * @return 256 as generated; never depends on what packs are loaded
  */
-int builtinPresetCount() { return static_cast<int>(sizeof(Presets) / sizeof(Presets[0])); }
+int builtinPresetCount()
+{
+    return static_cast<int>( sizeof( Presets ) / sizeof( Presets[0] ) );
+}
 /**
  * @brief One of the compiled-in presets, by DAW program number.
  *
@@ -12450,10 +12456,10 @@ int builtinPresetCount() { return static_cast<int>(sizeof(Presets) / sizeof(Pres
  * An index outside 0 .. builtinPresetCount() - 1 yields entry 0, "Init". The reference points into
  * Presets and stays valid for the life of the program.
  */
-const Preset& builtinPreset(int index)
+const Preset &builtinPreset( int index )
 {
     const int n = builtinPresetCount();
-    if (index < 0 || index >= n) index = 0;
+    if ( index < 0 || index >= n ) index = 0;
     return Presets[index];
 }
 
@@ -12471,21 +12477,23 @@ const Preset& builtinPreset(int index)
  * clamped to [d.min, d.max]; it is d.def for nullptr and for text that is not a number at all ("nan"
  * included, see the comment in the body).
  */
-float paramValueFromText(const ParamDesc& d, const char* text)
+float paramValueFromText( const ParamDesc &d, const char *text )
 {
-    if (text == nullptr) return d.m_def;
-    if (d.m_kind == ParamKindE::CHOICE)
-        for (int i = 0; i < d.m_numChoices; ++i) if (std::strcmp(text, d.m_choices[i]) == 0) return static_cast<float>(i);
-    if (d.m_kind == ParamKindE::BOOL) {
-        if (!std::strcmp(text, "on") || !std::strcmp(text, "true") || !std::strcmp(text, "yes")) return 1.0f;
-        if (!std::strcmp(text, "off") || !std::strcmp(text, "false") || !std::strcmp(text, "no")) return 0.0f;
+    if ( text == nullptr ) return d.m_def;
+    if ( d.m_kind == ParamKindE::CHOICE )
+        for ( int i = 0; i < d.m_numChoices; ++i )
+            if ( std::strcmp( text, d.m_choices[i] ) == 0 ) return static_cast<float>( i );
+    if ( d.m_kind == ParamKindE::BOOL )
+    {
+        if ( !std::strcmp( text, "on" ) || !std::strcmp( text, "true" ) || !std::strcmp( text, "yes" ) ) return 1.0f;
+        if ( !std::strcmp( text, "off" ) || !std::strcmp( text, "false" ) || !std::strcmp( text, "no" ) ) return 0.0f;
     }
-    const float v = static_cast<float>(std::atof(text));
+    const float v = static_cast<float>( std::atof( text ) );
     // "nan" passes both comparisons below -- every comparison with NaN is false -- and would be
     // stored as the parameter's value. "inf" is caught by them and clamped, which is fine. A
     // value that is not a number at all is the default.
-    if (std::isnan(v)) return d.m_def;
-    return v < d.m_min ? d.m_min : (v > d.m_max ? d.m_max : v);
+    if ( std::isnan( v ) ) return d.m_def;
+    return v < d.m_min ? d.m_min : ( v > d.m_max ? d.m_max : v );
 }
 
-} // namespace ambient
+}   // namespace ambient

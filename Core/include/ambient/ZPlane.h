@@ -23,7 +23,8 @@
 #pragma once
 #include "Dsp.h"
 
-namespace ambient {
+namespace ambient
+{
 
 constexpr int ZSections = 6;   ///< sections in a frame: six two-pole/two-zero pairs, a 12-pole filter
 /**
@@ -34,41 +35,44 @@ constexpr int ZSections = 6;   ///< sections in a frame: six two-pole/two-zero p
  * hand-written bank, carried over frequency for frequency: the library's presets name their shape
  * as text ("z_shape=Glass"), so those names and their order are frozen. New shapes are appended.
  */
-constexpr int ZShapes     = 155;
-constexpr int ZCategories = 12;   ///< the families the shapes are sorted into for the eye (ZCategoryNames)
-extern const char* const ZShapeNames[ZShapes];         ///< the shapes' names, in the frozen order the presets store them by
-extern const char* const ZCategoryNames[ZCategories];  ///< the families' names, indexed by ZShapeCategory
+constexpr int            ZShapes = 155;
+constexpr int            ZCategories = 12;   ///< the families the shapes are sorted into for the eye (ZCategoryNames)
+extern const char *const ZShapeNames[ZShapes];   ///< the shapes' names, in the frozen order the presets store them by
+extern const char *const ZCategoryNames[ZCategories];   ///< the families' names, indexed by ZShapeCategory
 /**
  * @brief Which family a shape belongs to. Display only -- the parameter's numbering stays historical,
  *        and the editor sorts the list into families for the eye.
  */
 extern const unsigned char ZShapeCategory[ZShapes];
-extern const char* const ZModeNames[4];   ///< Off, Series, Replace, Modal
+extern const char *const   ZModeNames[4];   ///< Off, Series, Replace, Modal
 
 /** @brief One two-pole / two-zero section. A zero frequency of 0 means "no zeros" (a plain resonator). */
-struct ZSection {
+struct ZSection
+{
     float m_poleHz = 1000.0f,   ///< @brief pole centre frequency in Hz
-    m_poleBw = 100.0f,          ///< @brief pole bandwidth in Hz (small = resonant)
-    m_zeroHz = 0.0f,            ///< @brief zero centre frequency in Hz, 0 = no zeros
-    m_zeroBw = 0.0f,            ///< @brief zero bandwidth in Hz
-    m_gain = 1.0f;              ///< @brief the section's gain factor in the cascade (the corner's tilt^i)
+        m_poleBw = 100.0f,      ///< @brief pole bandwidth in Hz (small = resonant)
+        m_zeroHz = 0.0f,        ///< @brief zero centre frequency in Hz, 0 = no zeros
+        m_zeroBw = 0.0f,        ///< @brief zero bandwidth in Hz
+        m_gain = 1.0f;          ///< @brief the section's gain factor in the cascade (the corner's tilt^i)
 };
 /** @brief A filter frame: the sections in use, as one point of the cube evaluates to. */
-struct ZFrame   {
+struct ZFrame
+{
     ZSection m_s[ZSections];   ///< @brief the sections; the first `used` are valid
-    int m_used = 0;             ///< @brief how many sections this frame has (0 .. ZSections)
+    int      m_used = 0;       ///< @brief how many sections this frame has (0 .. ZSections)
 };
 
 /**
  * @brief Corner descriptor: up to six centre frequencies plus the rules that shape them. Compact on
  *        purpose -- one readable line per corner instead of a wall of coefficients.
  */
-struct ZCornerSpec {
+struct ZCornerSpec
+{
     float m_hz[ZSections];   ///< 0 ends the list
-    float m_bwRatio;          ///< pole bandwidth as a fraction of the centre frequency (small = resonant)
-    float m_zeroRatio;        ///< zero frequency / pole frequency (0 = no zeros; 1 = notch at the pole)
-    float m_zeroBwRatio;      ///< zero bandwidth / zero frequency (small = deep notch)
-    float m_tilt;             ///< gain factor per section, applied as tilt^i
+    float m_bwRatio;         ///< pole bandwidth as a fraction of the centre frequency (small = resonant)
+    float m_zeroRatio;       ///< zero frequency / pole frequency (0 = no zeros; 1 = notch at the pole)
+    float m_zeroBwRatio;     ///< zero bandwidth / zero frequency (small = deep notch)
+    float m_tilt;            ///< gain factor per section, applied as tilt^i
 };
 /**
  * @brief Eight corners of a cube: (0,0) (1,0) (0,1) (1,1) on the Transform = 0 face, then the same four
@@ -90,7 +94,7 @@ extern const ZCornerSpec ZCorners[ZShapes][8];
  * @param[in] c  the corner
  * @return the frame, `used` set to the number of frequencies before the first 0
  */
-ZFrame zFrameFromSpec(const ZCornerSpec& c);
+ZFrame zFrameFromSpec( const ZCornerSpec &c );
 /**
  * @brief Trilinear interpolation of the eight corner frames in the log-frequency / log-bandwidth domain.
  *
@@ -104,7 +108,7 @@ ZFrame zFrameFromSpec(const ZCornerSpec& c);
  * @param[in] z      the point's Transform, 0 .. 1 (clamped); 0 is the filter as it was before the third axis
  * @return the frame at that point, `used` the fewest sections of any corner
  */
-ZFrame zInterpolate(int shape, float x, float y, float z = 0.0f);
+ZFrame zInterpolate( int shape, float x, float y, float z = 0.0f );
 
 // ---------------------------------------------------------------- modal
 //
@@ -124,13 +128,18 @@ ZFrame zInterpolate(int shape, float x, float y, float z = 0.0f);
  * frequency comes out at the level it went in and the bank cannot run away however long the
  * decay is set.
  */
-class ZModal {
+class ZModal
+{
 public:
     /**
      * @brief Remembers the sample rate every mode's angle and radius are computed from, and clears the state.
      * @param[in] sr  sample rate in Hz
      */
-    void prepare(float sr) { m_sr = sr; reset(); }
+    void prepare( float sr )
+    {
+        m_sr = sr;
+        reset();
+    }
     /** @brief Silences every mode on both channels; the coefficients stay. */
     void reset();
     /**
@@ -148,20 +157,21 @@ public:
      * @param[in] decaySeconds  T60 of the lowest mode, 0.02 .. 40 s (clamped)
      * @param[in] damp          0 .. 1, how much shorter the high modes ring
      */
-    void set(const ZFrame& f, float decaySeconds, float damp);
+    void set( const ZFrame &f, float decaySeconds, float damp );
     /** @return how many modes are ringing after the last set() */
-    int  used() const { return m_used; }
+    int used() const { return m_used; }
     /**
      * @brief One sample of one channel through the bank: every mode is run and the outputs add.
      * @param[in] ch  0 left, 1 right (each mode keeps a state per channel)
      * @param[in] x   the input sample
      * @return the sum of the modes, normalised
      */
-    inline float tick(int ch, float x)
+    inline float tick( int ch, float x )
     {
         float sum = 0.0f;
-        for (int i = 0; i < m_used; ++i) {
-            Mode& m = m_modes[i];
+        for ( int i = 0; i < m_used; ++i )
+        {
+            Mode       &m = m_modes[i];
             const float y = m.m_b0 * x + m.m_a1 * m.m_z1[ch] + m.m_a2 * m.m_z2[ch];
             m.m_z2[ch] = m.m_z1[ch];
             m.m_z1[ch] = y;
@@ -176,10 +186,12 @@ public:
     inline bool guard()
     {
         bool hit = false;
-        for (int i = 0; i < m_used; ++i) {
-            Mode& m = m_modes[i];
-            for (int ch = 0; ch < 2; ++ch)
-                if (!(std::fabs(m.m_z1[ch]) < 1.0e9f && std::fabs(m.m_z2[ch]) < 1.0e9f)) {
+        for ( int i = 0; i < m_used; ++i )
+        {
+            Mode &m = m_modes[i];
+            for ( int ch = 0; ch < 2; ++ch )
+                if ( !( std::fabs( m.m_z1[ch] ) < 1.0e9f && std::fabs( m.m_z2[ch] ) < 1.0e9f ) )
+                {
                     m.m_z1[ch] = m.m_z2[ch] = 0.0f;
                     hit = true;
                 }
@@ -193,37 +205,37 @@ public:
      * @param[in] hz  the frequency to evaluate at, in Hz (clamped to 1 .. half the sample rate)
      * @return the magnitude, normalised as tick() is
      */
-    float magnitudeAt(float hz) const;
+    float magnitudeAt( float hz ) const;
 
 private:
     /** @brief One ringing mode: a two-pole resonator with a state per channel. */
-    struct Mode {
-        float m_b0 = 0.0f,     ///< @brief input gain for unity at the mode's own frequency
-              m_a1 = 0.0f,     ///< @brief feedback coefficient 2 r cos(w)
-              m_a2 = 0.0f,     ///< @brief feedback coefficient -r^2
-              m_gain = 1.0f,   ///< @brief the section's weight in the sum
-              m_hz = 0.0f,     ///< @brief the mode's frequency in Hz
-              m_r = 0.0f;      ///< the pole radius, strictly inside the unit circle
+    struct Mode
+    {
+        float m_b0 = 0.0f,                ///< @brief input gain for unity at the mode's own frequency
+            m_a1 = 0.0f,                  ///< @brief feedback coefficient 2 r cos(w)
+            m_a2 = 0.0f,                  ///< @brief feedback coefficient -r^2
+            m_gain = 1.0f,                ///< @brief the section's weight in the sum
+            m_hz = 0.0f,                  ///< @brief the mode's frequency in Hz
+            m_r = 0.0f;                   ///< the pole radius, strictly inside the unit circle
         float m_z1[2] = { 0.0f, 0.0f },   ///< @brief the previous output, per channel
-              m_z2[2] = { 0.0f, 0.0f };   ///< the output before that, per channel
+            m_z2[2] = { 0.0f, 0.0f };     ///< the output before that, per channel
     };
     Mode  m_modes[ZSections];   ///< the bank
-    int   m_used = 0;            ///< how many of m_modes ring
-    float m_norm = 1.0f;         ///< 1 / sqrt of the summed squared weights: keeps the level even
-    float m_sr = 48000.0f;       ///< the sample rate the modes were computed for (prepare)
+    int   m_used = 0;           ///< how many of m_modes ring
+    float m_norm = 1.0f;        ///< 1 / sqrt of the summed squared weights: keeps the level even
+    float m_sr = 48000.0f;      ///< the sample rate the modes were computed for (prepare)
 };
 
-
-
 /** @brief A cascaded two-pole/two-zero section, transposed direct form II. */
-struct ZBiquad {
+struct ZBiquad
+{
     float m_b0 = 1.0f,   ///< @brief feedforward: the input's weight
-          m_b1 = 0.0f,   ///< @brief feedforward: one sample back
-          m_b2 = 0.0f,   ///< @brief feedforward: two samples back
-          m_a1 = 0.0f,   ///< @brief feedback: one sample back
-          m_a2 = 0.0f;   ///< feedback: two samples back
+        m_b1 = 0.0f,     ///< @brief feedforward: one sample back
+        m_b2 = 0.0f,     ///< @brief feedforward: two samples back
+        m_a1 = 0.0f,     ///< @brief feedback: one sample back
+        m_a2 = 0.0f;     ///< feedback: two samples back
     float m_z1 = 0.0f,   ///< @brief the first state variable
-          m_z2 = 0.0f;   ///< the second state variable
+        m_z2 = 0.0f;     ///< the second state variable
     /**
      * @brief Poles and zeros from centre frequencies and bandwidths; the section is normalised to
      *        unity gain at its own pole frequency, then scaled by `gain`.
@@ -234,13 +246,13 @@ struct ZBiquad {
      * @param[in] s   the section
      * @param[in] sr  sample rate in Hz
      */
-    void set(const ZSection& s, float sr);
+    void set( const ZSection &s, float sr );
     /**
      * @brief |H| at the given angular frequency (radians per sample), for the cascade normalisation.
      * @param[in] w  the angular frequency, 0 .. pi
      * @return the magnitude response there
      */
-    float magnitudeAt(float w) const;
+    float magnitudeAt( float w ) const;
     /**
      * @brief |H|^2 from precomputed cos/sin of w and 2w (the normalisation grid).
      * @param[in] c1  cos(w)
@@ -249,18 +261,18 @@ struct ZBiquad {
      * @param[in] s2  sin(2w)
      * @return the squared magnitude response at w
      */
-    float magSqAt(float c1, float s1, float c2, float s2) const
+    float magSqAt( float c1, float s1, float c2, float s2 ) const
     {
-        const float nr = m_b0 + m_b1 * c1 + m_b2 * c2, ni = -(m_b1 * s1 + m_b2 * s2);
-        const float dr = 1.0f + m_a1 * c1 + m_a2 * c2, di = -(m_a1 * s1 + m_a2 * s2);
-        return (nr * nr + ni * ni) / std::max(dr * dr + di * di, 1e-20f);
+        const float nr = m_b0 + m_b1 * c1 + m_b2 * c2, ni = -( m_b1 * s1 + m_b2 * s2 );
+        const float dr = 1.0f + m_a1 * c1 + m_a2 * c2, di = -( m_a1 * s1 + m_a2 * s2 );
+        return ( nr * nr + ni * ni ) / std::max( dr * dr + di * di, 1e-20f );
     }
     /**
      * @brief One sample through the section.
      * @param[in] x  the input
      * @return the output
      */
-    inline float tick(float x)
+    inline float tick( float x )
     {
         const float y = m_b0 * x + m_z1;
         m_z1 = m_b1 * x - m_a1 * y + m_z2;
@@ -283,9 +295,9 @@ struct ZBiquad {
      *
      * @return whether the state had left the bound (or was not a number) and was reset
      */
-        inline bool guard()
+    inline bool guard()
     {
-        if (std::fabs(m_z1) < 1.0e9f && std::fabs(m_z2) < 1.0e9f) return false;   // false for a NaN too
+        if ( std::fabs( m_z1 ) < 1.0e9f && std::fabs( m_z2 ) < 1.0e9f ) return false;   // false for a NaN too
         m_z1 = m_z2 = 0.0f;
         return true;
     }
@@ -293,7 +305,14 @@ struct ZBiquad {
      * @brief Takes the coefficients of another section, keeping this one's state (the right channel copies the left's).
      * @param[in] o  the section to copy from
      */
-    void copyCoefficients(const ZBiquad& o) { m_b0 = o.m_b0; m_b1 = o.m_b1; m_b2 = o.m_b2; m_a1 = o.m_a1; m_a2 = o.m_a2; }
+    void copyCoefficients( const ZBiquad &o )
+    {
+        m_b0 = o.m_b0;
+        m_b1 = o.m_b1;
+        m_b2 = o.m_b2;
+        m_a1 = o.m_a1;
+        m_a2 = o.m_a2;
+    }
     /** @brief Clears the state; the coefficients stay. */
     void reset() { m_z1 = m_z2 = 0.0f; }
 };
@@ -329,15 +348,16 @@ void zWarmShapes();
  * @param[in]  sr  sample rate in Hz
  * @return the make-up gain for the cascade's output, 1e-4 .. 16
  */
-float zBuildCascade(const ZFrame& f, ZBiquad* ch, float sr);
+float zBuildCascade( const ZFrame &f, ZBiquad *ch, float sr );
 
 /** @brief One two-pole resonator (constant-peak-gain form), used by the Air "Ghost" mode. */
-struct Resonator {
+struct Resonator
+{
     float m_b0 = 0.0f,   ///< @brief input gain, for a peak of `gain` whatever the bandwidth
-          m_a1 = 0.0f,   ///< @brief feedback: one sample back
-          m_a2 = 0.0f;   ///< feedback: two samples back
+        m_a1 = 0.0f,     ///< @brief feedback: one sample back
+        m_a2 = 0.0f;     ///< feedback: two samples back
     float m_s1 = 0.0f,   ///< @brief the previous output
-          m_s2 = 0.0f;   ///< the output before that
+        m_s2 = 0.0f;     ///< the output before that
     /**
      * @brief Tunes the resonator.
      * @param[in] hz    centre frequency in Hz (clamped to 20 .. 0.45 sr)
@@ -345,24 +365,25 @@ struct Resonator {
      * @param[in] gain  the peak gain
      * @param[in] sr    sample rate in Hz
      */
-    void set(float hz, float bw, float gain, float sr)
+    void set( float hz, float bw, float gain, float sr )
     {
-        const float f = clampv(hz, 20.0f, sr * 0.45f);
-        const float r = std::exp(-Pi * clampv(bw, 1.0f, sr * 0.2f) / sr);
+        const float f = clampv( hz, 20.0f, sr * 0.45f );
+        const float r = std::exp( -Pi * clampv( bw, 1.0f, sr * 0.2f ) / sr );
         const float th = TwoPi * f / sr;
-        m_a1 = -2.0f * r * std::cos(th);
+        m_a1 = -2.0f * r * std::cos( th );
         m_a2 = r * r;
-        m_b0 = gain * (1.0f - r) * std::sqrt(std::max(1.0f - 2.0f * r * std::cos(2.0f * th) + r * r, 1e-6f));
+        m_b0 = gain * ( 1.0f - r ) * std::sqrt( std::max( 1.0f - 2.0f * r * std::cos( 2.0f * th ) + r * r, 1e-6f ) );
     }
     /**
      * @brief One sample through the resonator.
      * @param[in] in  the input
      * @return the output
      */
-    inline float tick(float in)
+    inline float tick( float in )
     {
         const float y = m_b0 * in - m_a1 * m_s1 - m_a2 * m_s2;
-        m_s2 = m_s1; m_s1 = y;
+        m_s2 = m_s1;
+        m_s1 = y;
         return y;
     }
     /**
@@ -371,7 +392,7 @@ struct Resonator {
      */
     inline bool guard()
     {
-        if (std::fabs(m_s1) < 1.0e9f && std::fabs(m_s2) < 1.0e9f) return false;
+        if ( std::fabs( m_s1 ) < 1.0e9f && std::fabs( m_s2 ) < 1.0e9f ) return false;
         m_s1 = m_s2 = 0.0f;
         return true;
     }
@@ -379,4 +400,4 @@ struct Resonator {
     void reset() { m_s1 = m_s2 = 0.0f; }
 };
 
-} // namespace ambient
+}   // namespace ambient

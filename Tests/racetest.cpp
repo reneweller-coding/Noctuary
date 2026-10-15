@@ -43,7 +43,8 @@
 
 using namespace ambient;
 
-namespace {
+namespace
+{
 
 int failures = 0;   ///< how many checks failed; decides the exit code
 
@@ -52,9 +53,13 @@ int failures = 0;   ///< how many checks failed; decides the exit code
  * @param[in] ok    the condition that has to hold
  * @param[in] what  what was measured, as the FAIL line prints it
  */
-void check(bool ok, const char* what)
+void check( bool ok, const char *what )
 {
-    if (!ok) { std::printf("FAIL: %s\n", what); ++failures; }
+    if ( !ok )
+    {
+        std::printf( "FAIL: %s\n", what );
+        ++failures;
+    }
 }
 
 /**
@@ -66,14 +71,14 @@ void check(bool ok, const char* what)
  * @param[in] hz  the sine's frequency at 48 kHz
  * @return n samples of a sine at 0.3 peak
  */
-std::vector<float> clip(int n, float hz)
+std::vector<float> clip( int n, float hz )
 {
-    std::vector<float> v(static_cast<size_t>(n));
-    for (int i = 0; i < n; ++i) v[static_cast<size_t>(i)] = 0.3f * std::sin(TwoPi * hz * i / 48000.0f);
+    std::vector<float> v( static_cast<size_t>( n ) );
+    for ( int i = 0; i < n; ++i ) v[static_cast<size_t>( i )] = 0.3f * std::sin( TwoPi * hz * i / 48000.0f );
     return v;
 }
 
-} // namespace
+}   // namespace
 
 /**
  * @brief Runs the two threads against one Engine for the seconds asked and reports.
@@ -86,100 +91,114 @@ std::vector<float> clip(int n, float hz)
  * @param[in,out] argv  argv[1], if given: how many seconds to run (default 6; ctest runs it with 4)
  * @return 0 when every check passed, 1 otherwise
  */
-int main(int argc, char** argv)
+int main( int argc, char **argv )
 {
-    ambient::ensureMainStack(argv, 64ull << 20);   // Linux: the stack Windows and macOS link in (MainStack.h)
-    const double seconds = argc > 1 ? std::atof(argv[1]) : 6.0;
-    const int block = 128;
+    ambient::ensureMainStack( argv, 64ull << 20 );   // Linux: the stack Windows and macOS link in (MainStack.h)
+    const double seconds = argc > 1 ? std::atof( argv[1] ) : 6.0;
+    const int    block = 128;
 
     Engine engine;
-    engine.prepare(48000.0, block);
+    engine.prepare( 48000.0, block );
 
-    std::atomic<bool> stop { false };
-    std::atomic<long long> blocks { 0 }, changes { 0 };
-    std::atomic<bool> sawNonFinite { false };
+    std::atomic<bool>      stop{ false };
+    std::atomic<long long> blocks{ 0 }, changes{ 0 };
+    std::atomic<bool>      sawNonFinite{ false };
 
     // The audio thread: nothing but render, the way a host calls it.
-    std::thread audio([&] {
-        std::vector<float> L(static_cast<size_t>(block)), R(static_cast<size_t>(block));
-        int note = 0;
-        while (!stop.load(std::memory_order_relaxed)) {
-            // Notes come and go the whole time, so voices are being started and ended while the
-            // rest of it is being changed.
-            if ((blocks.load(std::memory_order_relaxed) % 64) == 0) {
-                engine.noteOff(45 + (note % 12));
-                ++note;
-                engine.noteOn(45 + (note % 12), 0.8f);
+    std::thread audio(
+        [&]
+        {
+            std::vector<float> L( static_cast<size_t>( block ) ), R( static_cast<size_t>( block ) );
+            int                note = 0;
+            while ( !stop.load( std::memory_order_relaxed ) )
+            {
+                // Notes come and go the whole time, so voices are being started and ended while the
+                // rest of it is being changed.
+                if ( ( blocks.load( std::memory_order_relaxed ) % 64 ) == 0 )
+                {
+                    engine.noteOff( 45 + ( note % 12 ) );
+                    ++note;
+                    engine.noteOn( 45 + ( note % 12 ), 0.8f );
+                }
+                engine.process( L.data(), R.data(), block );
+                for ( int i = 0; i < block; ++i )
+                    if ( !std::isfinite( L[static_cast<size_t>( i )] ) ||
+                         !std::isfinite( R[static_cast<size_t>( i )] ) )
+                        sawNonFinite.store( true, std::memory_order_relaxed );
+                blocks.fetch_add( 1, std::memory_order_relaxed );
             }
-            engine.process(L.data(), R.data(), block);
-            for (int i = 0; i < block; ++i)
-                if (!std::isfinite(L[static_cast<size_t>(i)]) || !std::isfinite(R[static_cast<size_t>(i)]))
-                    sawNonFinite.store(true, std::memory_order_relaxed);
-            blocks.fetch_add(1, std::memory_order_relaxed);
-        }
-    });
+        } );
 
     // The message thread: everything a window can do, as fast as it can be done. Each of these is
     // a handover with its own protocol, and each of those protocols has been wrong at least once.
-    std::thread control([&] {
-        const std::vector<float> a = clip(4096, 220.0f), b = clip(9973, 330.0f);   // one length is not a power of two on purpose
-        std::vector<float> table(2048 * 4);
-        for (size_t i = 0; i < table.size(); ++i)
-            table[i] = std::sin(TwoPi * static_cast<float>(i) / 2048.0f) * (1.0f - static_cast<float>(i) / table.size());
-        FixedScale scale;
-        unsigned s = 12345;
-        auto rnd = [&s] { s = s * 1664525u + 1013904223u; return static_cast<float>((s >> 8) & 0xFFFF) / 65535.0f; };
-        int turn = 0;
-        while (!stop.load(std::memory_order_relaxed)) {
-            switch (turn++ % 8) {
-            case 0: {   // every knob, at a value it has never held
-                for (const ParamDesc& d : paramTable())
-                    engine.setParam(d.m_id, d.m_min + (d.m_max - d.m_min) * rnd());
-                break;
+    std::thread control(
+        [&]
+        {
+            const std::vector<float> a = clip( 4096, 220.0f ),
+                                     b = clip( 9973, 330.0f );   // one length is not a power of two on purpose
+            std::vector<float>       table( 2048 * 4 );
+            for ( size_t i = 0; i < table.size(); ++i )
+                table[i] = std::sin( TwoPi * static_cast<float>( i ) / 2048.0f ) *
+                           ( 1.0f - static_cast<float>( i ) / table.size() );
+            FixedScale scale;
+            unsigned   s = 12345;
+            auto       rnd = [&s]
+            {
+                s = s * 1664525u + 1013904223u;
+                return static_cast<float>( ( s >> 8 ) & 0xFFFF ) / 65535.0f;
+            };
+            int turn = 0;
+            while ( !stop.load( std::memory_order_relaxed ) )
+            {
+                switch ( turn++ % 8 )
+                {
+                case 0:
+                {   // every knob, at a value it has never held
+                    for ( const ParamDesc &d : paramTable() )
+                        engine.setParam( d.m_id, d.m_min + ( d.m_max - d.m_min ) * rnd() );
+                    break;
+                }
+                case 1:   // a clip into a slot: the double buffer and its "in use" flag
+                    engine.setTexture( turn % Slots, a.data(), static_cast<int>( a.size() ), 48000.0, 220.0, false );
+                    break;
+                case 2:
+                    engine.setTexture( turn % Slots, b.data(), static_cast<int>( b.size() ), 44100.0, 330.0, true );
+                    break;
+                case 3: engine.clearTexture( turn % Slots ); break;
+                case 4:   // the modulation matrix: parsed here, copied there
+                    engine.setModMatrixText( turn % 2 ? "lfo1>cutoff:0.5;env2>z_x:-0.3:macro_a"
+                                                      : "lfo3>drift:0.2;brain>partials:0.4" );
+                    break;
+                case 5:   // the envelope shapes, the six and the sources' own, under the same lock
+                    engine.setEnvShape( turn % NumModEnvs, turn % 2 ? "0:0/1:1/3:0.2!s1" : "0:1/2:-1/4:0" );
+                    engine.setSrcEnvShape( turn % Slots, turn % 2 ? "0:0/2:1!s1" : "0:1/1:0.5/3:0" );
+                    break;
+                case 6:   // a tuning of the player's own
+                    if ( parseScala( "! r.scl\nRace\n 3\n 100.0\n 3/2\n 2/1\n", scale ) ) engine.setUserScale( scale );
+                    break;
+                case 7:   // a wavetable of the player's own
+                    engine.loadUserWavetable( table.data(), static_cast<int>( table.size() ), 2048 );
+                    break;
+                }
+                changes.fetch_add( 1, std::memory_order_relaxed );
             }
-            case 1:   // a clip into a slot: the double buffer and its "in use" flag
-                engine.setTexture(turn % Slots, a.data(), static_cast<int>(a.size()), 48000.0, 220.0, false);
-                break;
-            case 2:
-                engine.setTexture(turn % Slots, b.data(), static_cast<int>(b.size()), 44100.0, 330.0, true);
-                break;
-            case 3:
-                engine.clearTexture(turn % Slots);
-                break;
-            case 4:   // the modulation matrix: parsed here, copied there
-                engine.setModMatrixText(turn % 2 ? "lfo1>cutoff:0.5;env2>z_x:-0.3:macro_a"
-                                                 : "lfo3>drift:0.2;brain>partials:0.4");
-                break;
-            case 5:   // the envelope shapes, the six and the sources' own, under the same lock
-                engine.setEnvShape(turn % NumModEnvs, turn % 2 ? "0:0/1:1/3:0.2!s1" : "0:1/2:-1/4:0");
-                engine.setSrcEnvShape(turn % Slots, turn % 2 ? "0:0/2:1!s1" : "0:1/1:0.5/3:0");
-                break;
-            case 6:   // a tuning of the player's own
-                if (parseScala("! r.scl\nRace\n 3\n 100.0\n 3/2\n 2/1\n", scale)) engine.setUserScale(scale);
-                break;
-            case 7:   // a wavetable of the player's own
-                engine.loadUserWavetable(table.data(), static_cast<int>(table.size()), 2048);
-                break;
-            }
-            changes.fetch_add(1, std::memory_order_relaxed);
-        }
-    });
+        } );
 
     const auto t0 = std::chrono::steady_clock::now();
-    while (std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count() < seconds)
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    stop.store(true, std::memory_order_relaxed);
+    while ( std::chrono::duration<double>( std::chrono::steady_clock::now() - t0 ).count() < seconds )
+        std::this_thread::sleep_for( std::chrono::milliseconds( 20 ) );
+    stop.store( true, std::memory_order_relaxed );
     audio.join();
     control.join();
 
-    const double wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-    const double audioSecs = static_cast<double>(blocks.load()) * block / 48000.0;
-    std::printf("  race: %lld blocks (%.1f s of audio) against %lld changes in %.1f s -- %.2fx real time\n",
-                blocks.load(), audioSecs, changes.load(), wall, audioSecs / wall);
+    const double wall = std::chrono::duration<double>( std::chrono::steady_clock::now() - t0 ).count();
+    const double audioSecs = static_cast<double>( blocks.load() ) * block / 48000.0;
+    std::printf( "  race: %lld blocks (%.1f s of audio) against %lld changes in %.1f s -- %.2fx real time\n",
+                 blocks.load(), audioSecs, changes.load(), wall, audioSecs / wall );
 
-    check(blocks.load() > 0 && changes.load() > 0, "both threads actually ran");
-    check(!sawNonFinite.load(), "the sound stays a number while everything is changed under it");
+    check( blocks.load() > 0 && changes.load() > 0, "both threads actually ran" );
+    check( !sawNonFinite.load(), "the sound stays a number while everything is changed under it" );
 
-    std::printf(failures == 0 ? "racetest: all checks passed\n" : "racetest: %d failure(s)\n", failures);
+    std::printf( failures == 0 ? "racetest: all checks passed\n" : "racetest: %d failure(s)\n", failures );
     return failures == 0 ? 0 : 1;
 }

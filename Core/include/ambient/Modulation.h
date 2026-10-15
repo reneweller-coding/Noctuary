@@ -34,12 +34,13 @@
 #include "Dsp.h"
 #include <cstdint>
 
-namespace ambient {
+namespace ambient
+{
 
 struct Wavetable;   // Sources.h -- a table frame can be an LFO shape
 
-constexpr int NumLfos      = 8;    ///< free LFOs; each owns seven parameters from Lfo1Shape on (Params.h)
-constexpr int NumModEnvs   = 6;    ///< modulation envelopes; each owns four parameters from Env1Mode on
+constexpr int NumLfos = 8;         ///< free LFOs; each owns seven parameters from Lfo1Shape on (Params.h)
+constexpr int NumModEnvs = 6;      ///< modulation envelopes; each owns four parameters from Env1Mode on
 constexpr int MaxEnvPoints = 16;   ///< breakpoints a ModEnv holds at most
 constexpr int MaxModRoutes = 32;   ///< rows a ModMatrix holds at most
 
@@ -54,11 +55,21 @@ constexpr int MaxModRoutes = 32;   ///< rows a ModMatrix holds at most
  * a cycle; StepRandom, four random holds a cycle, each reached over a short ramp; Table, a frame
  * of the user wavetable resynthesised from its spectrum. Count is the size of the choice.
  */
-enum class LfoShapeE : int {
-    SINE, TRIANGLE, RAMP_UP, RAMP_DOWN, SQUARE, RANDOM, STEP_RANDOM, TABLE, COUNT   ///< in the order LfoShapeNames spells them, Count last
+enum class LfoShapeE : int
+{
+    SINE,
+    TRIANGLE,
+    RAMP_UP,
+    RAMP_DOWN,
+    SQUARE,
+    RANDOM,
+    STEP_RANDOM,
+    TABLE,
+    COUNT   ///< in the order LfoShapeNames spells them, Count last
 };
-constexpr int NumLfoShapes = static_cast<int>(LfoShapeE::COUNT);   ///< shapes in the choice
-extern const char* const LfoShapeNames[NumLfoShapes];   ///< "Sine", "Triangle", "Ramp Up", "Ramp Down", "Square", "Random", "Steps", "Table" (Modulation.cpp)
+constexpr int            NumLfoShapes = static_cast<int>( LfoShapeE::COUNT );   ///< shapes in the choice
+extern const char *const LfoShapeNames
+    [NumLfoShapes];   ///< "Sine", "Triangle", "Ramp Up", "Ramp Down", "Square", "Random", "Steps", "Table" (Modulation.cpp)
 
 /**
  * @brief How an LFO's phase relates to the voices.
@@ -71,9 +82,15 @@ extern const char* const LfoShapeNames[NumLfoShapes];   ///< "Sine", "Triangle",
  * (Engine::stepModulation): Retrigger puts the phase back to Phase when a note arrives into
  * silence, and Voice cannot be honoured there and behaves as Global -- the help says so.
  */
-enum class LfoModeE : int { GLOBAL, VOICE, RETRIGGER, COUNT };   ///< Global, Voice, Retrigger as above; Count the size of the choice
-constexpr int NumLfoModes = static_cast<int>(LfoModeE::COUNT);   ///< modes in the choice
-extern const char* const LfoModeNames[NumLfoModes];   ///< "Global", "Per Voice", "Retrigger" (Modulation.cpp)
+enum class LfoModeE : int
+{
+    GLOBAL,
+    VOICE,
+    RETRIGGER,
+    COUNT
+};   ///< Global, Voice, Retrigger as above; Count the size of the choice
+constexpr int            NumLfoModes = static_cast<int>( LfoModeE::COUNT );   ///< modes in the choice
+extern const char *const LfoModeNames[NumLfoModes];   ///< "Global", "Per Voice", "Retrigger" (Modulation.cpp)
 
 /**
  * @brief One LFO's settings for a block: shape, rate, start phase, depth, mode and table frame.
@@ -81,13 +98,15 @@ extern const char* const LfoModeNames[NumLfoModes];   ///< "Global", "Per Voice"
  * Filled by the engine from the LFO's seven parameters once per control block, with the matrix's
  * modulation of rate, phase and depth already applied, and handed to Lfo::step().
  */
-struct LfoSpec {
+struct LfoSpec
+{
     LfoShapeE m_shape = LfoShapeE::SINE;   ///< the waveform
-    float    m_rateHz = 0.05f;    ///< cycles per second, from one in twenty minutes up to 20 Hz (or a synced division's rate)
-    float    m_phase = 0.0f;      ///< 0..1, where the shape starts
-    float    m_depth = 1.0f;      ///< scales the output; the matrix scales again per route
-    LfoModeE  m_mode = LfoModeE::GLOBAL;   ///< how the phase relates to the voices (LfoMode)
-    int      m_table = 0;         ///< frame of the user wavetable when shape == Table
+    float     m_rateHz =
+        0.05f;   ///< cycles per second, from one in twenty minutes up to 20 Hz (or a synced division's rate)
+    float    m_phase = 0.0f;              ///< 0..1, where the shape starts
+    float    m_depth = 1.0f;              ///< scales the output; the matrix scales again per route
+    LfoModeE m_mode = LfoModeE::GLOBAL;   ///< how the phase relates to the voices (LfoMode)
+    int      m_table = 0;                 ///< frame of the user wavetable when shape == Table
 };
 
 /**
@@ -101,7 +120,8 @@ struct LfoSpec {
  * the Random and StepRandom shapes draw a cycle at a time from the LFO's own generator, so a
  * seed makes the run repeatable.
  */
-class Lfo {
+class Lfo
+{
 public:
     /**
      * @brief Seeds the generator, puts the phase where the shape should start, and draws the first
@@ -109,7 +129,7 @@ public:
      * @param[in] seed     the generator's seed
      * @param[in] phase01  the starting phase, wrapped into 0..1
      */
-    void reset(uint64_t seed, float phase01);
+    void reset( uint64_t seed, float phase01 );
     /**
      * @brief Advances by dt seconds and returns the new value in -1..1.
      *
@@ -123,17 +143,17 @@ public:
      * @param[in] table  the user wavetable for the Table shape, or null (a sine stands in)
      * @return the value, -1..1 times spec.depth
      */
-    float step(float dt, const LfoSpec& spec, const Wavetable* table);
+    float step( float dt, const LfoSpec &spec, const Wavetable *table );
     /** @brief The last value step() returned. @return -1..1 times the depth */
     float value() const { return m_value; }
     /** @brief The running phase. @return 0..1 */
-    float phase() const { return static_cast<float>(m_phase); }
+    float phase() const { return static_cast<float>( m_phase ); }
     /**
      * @brief Puts the phase somewhere: a synced LFO is set onto the clock's position every block, a
      *        Retrigger one back to its start at a phrase.
      * @param[in] p  the phase; wrapped into 0..1
      */
-    void  setPhase(float p) { m_phase = p - std::floor(p); }
+    void setPhase( float p ) { m_phase = p - std::floor( p ); }
     /**
      * @brief The shape at a phase, without stepping: the editor draws a whole cycle with this.
      * @param[in] spec     which shape (and which table frame)
@@ -143,25 +163,25 @@ public:
      *                     a fixed stand-in pattern
      * @return -1..1, before any depth
      */
-    static float shapeAt(const LfoSpec& spec, float phase01, const Wavetable* table,
-                         const Lfo* live = nullptr);
+    static float shapeAt( const LfoSpec &spec, float phase01, const Wavetable *table, const Lfo *live = nullptr );
 
 private:
     /** @brief Grants a test hook access to m_steps; declared here only, nothing in the tree defines it at present. */
-    friend float lfoStepsAccess(const Lfo&);
-    double  m_phase = 0.0;                 ///< the running phase, 0..1, in double so a twenty-minute cycle does not drift
-    float   m_value = 0.0f;                ///< the last value step() returned
+    friend float lfoStepsAccess( const Lfo & );
+    double m_phase = 0.0;    ///< the running phase, 0..1, in double so a twenty-minute cycle does not drift
+    float  m_value = 0.0f;   ///< the last value step() returned
     /** @var float m_prev
      *  @brief Random: the value this cycle started from */
-    float   m_prev = 0.0f, m_next = 0.0f;   ///< Random: the two ends of this cycle
-    float   m_steps[5] = {};               ///< Steps: four holds a cycle, the fifth carries over the wrap
-    Rng     m_rng;                         ///< the LFO's own stream for the random shapes, seeded by reset()
+    float m_prev = 0.0f, m_next = 0.0f;   ///< Random: the two ends of this cycle
+    float m_steps[5] = {};                ///< Steps: four holds a cycle, the fifth carries over the wrap
+    Rng   m_rng;                          ///< the LFO's own stream for the random shapes, seeded by reset()
 };
 
 // ---------------------------------------------------------------- envelope
 
 /** @brief One breakpoint of a ModEnv: when, what value, and how the segment that leaves it curves. */
-struct EnvPoint {
+struct EnvPoint
+{
     float m_time = 0.0f;    ///< seconds from the start of the envelope, non-decreasing
     float m_value = 0.0f;   ///< -1..1
     float m_curve = 0.0f;   ///< -1 (fast then slow) .. 0 (linear) .. 1 (slow then fast)
@@ -173,9 +193,11 @@ struct EnvPoint {
  * editor so that the self test can check that every one of them parses -- a shape string with a
  * typo in it does not fail loudly, it simply does nothing when the menu item is picked.
  * @{ */
-constexpr int NumEnvShapePresets = 10;   ///< entries in the two tables
-extern const char* const EnvShapePresetNames[NumEnvShapePresets];   ///< the menu's captions, "ADSR" first because it is what anybody looks for first
-extern const char* const EnvShapePresetTexts[NumEnvShapePresets];   ///< the shapes in ModEnv::parse() form, written over about four time units (Modulation.cpp)
+constexpr int            NumEnvShapePresets = 10;   ///< entries in the two tables
+extern const char *const EnvShapePresetNames
+    [NumEnvShapePresets];   ///< the menu's captions, "ADSR" first because it is what anybody looks for first
+extern const char *const EnvShapePresetTexts
+    [NumEnvShapePresets];   ///< the shapes in ModEnv::parse() form, written over about four time units (Modulation.cpp)
 /** @} */
 
 /**
@@ -183,9 +205,15 @@ extern const char* const EnvShapePresetTexts[NumEnvShapePresets];   ///< the sha
  *        repeats it (between its loop points when it has them); SustainLoop holds at the sustain
  *        point -- or loops -- while the note is down and plays the rest from there on release.
  */
-enum class EnvModeE : int { ONE_SHOT, LOOP, SUSTAIN_LOOP, COUNT };   ///< OneShot, Loop, SustainLoop as above; Count the size of the choice
-constexpr int NumEnvModes = static_cast<int>(EnvModeE::COUNT);   ///< modes in the choice
-extern const char* const EnvModeNames[NumEnvModes];   ///< "One Shot", "Loop", "Sustain Loop" (Modulation.cpp)
+enum class EnvModeE : int
+{
+    ONE_SHOT,
+    LOOP,
+    SUSTAIN_LOOP,
+    COUNT
+};   ///< OneShot, Loop, SustainLoop as above; Count the size of the choice
+constexpr int            NumEnvModes = static_cast<int>( EnvModeE::COUNT );   ///< modes in the choice
+extern const char *const EnvModeNames[NumEnvModes];   ///< "One Shot", "Loop", "Sustain Loop" (Modulation.cpp)
 
 /**
  * @brief A multi-segment envelope: up to sixteen breakpoints, a curve per segment, an optional sustain
@@ -197,7 +225,8 @@ extern const char* const EnvModeNames[NumEnvModes];   ///< "One Shot", "Loop", "
  * audio thread reads. Times are the shape's own seconds; the Time parameter (ModEnvSpec)
  * stretches them from outside. Fewer than two points is a constant.
  */
-class ModEnv {
+class ModEnv
+{
 public:
     /**
      * @brief Points must be in non-decreasing time order; returns false otherwise.
@@ -208,32 +237,36 @@ public:
      * @param[in] count   how many, 0 .. MaxEnvPoints
      * @return false for a null pointer, a count out of range or times that go backwards; the shape is then unchanged
      */
-    bool set(const EnvPoint* points, int count);
+    bool set( const EnvPoint *points, int count );
     /** @brief How many breakpoints the shape has. @return 0 .. MaxEnvPoints */
-    int  count() const { return m_count; }
+    int count() const { return m_count; }
     /**
      * @brief One breakpoint.
      * @param[in] i  0 .. count() - 1
      * @return the point
      */
-    const EnvPoint& point(int i) const { return m_points[i]; }
+    const EnvPoint &point( int i ) const { return m_points[i]; }
     /**
      * @brief Chooses the point SustainLoop holds at while the note is down.
      * @param[in] index  -1 = none
      */
-    void setSustain(int index) { m_sustain = index; }
+    void setSustain( int index ) { m_sustain = index; }
     /** @brief The sustain point. @return its index, -1 = none */
-    int  sustain() const { return m_sustain; }
+    int sustain() const { return m_sustain; }
     /**
      * @brief Chooses the two points Loop and SustainLoop cycle between.
      * @param[in] from  the loop's first point
      * @param[in] to    its last; the loop is honoured only when to > from and both exist
      */
-    void setLoop(int from, int to) { m_loopFrom = from; m_loopTo = to; }
+    void setLoop( int from, int to )
+    {
+        m_loopFrom = from;
+        m_loopTo = to;
+    }
     /** @brief The loop's first point. @return its index, -1 = none */
-    int  loopFrom() const { return m_loopFrom; }
+    int loopFrom() const { return m_loopFrom; }
     /** @brief The loop's last point. @return its index, -1 = none */
-    int  loopTo() const { return m_loopTo; }
+    int loopTo() const { return m_loopTo; }
     /** @brief The shape's length in its own seconds. @return the last point's time; 0 for an empty shape */
     float length() const { return m_count > 0 ? m_points[m_count - 1].m_time : 0.0f; }
 
@@ -248,7 +281,7 @@ public:
      * @param[in] held     whether the note is still down (SustainLoop listens to it)
      * @return the value, -1..1 as the points are
      */
-    float at(float seconds, EnvModeE mode, bool held) const;
+    float at( float seconds, EnvModeE mode, bool held ) const;
     /**
      * @brief The time `at` reads the shape at: folded into the loop or held at the sustain point, as the
      *        mode says, and no later than the end.
@@ -260,7 +293,7 @@ public:
      * @param[in] held     whether the note is still down
      * @return the time in the shape, 0 .. length()
      */
-    float readTime(float seconds, EnvModeE mode, bool held) const;
+    float readTime( float seconds, EnvModeE mode, bool held ) const;
 
     /**
      * @brief Text form: "t:v:c/t:v:c/...", optionally followed by "!s\<index\>" for the sustain point and
@@ -273,18 +306,18 @@ public:
      * @param[in] text  the shape
      * @return false for a null pointer, a point that does not parse, too many points, or times that go backwards
      */
-    bool parse(const char* text);
+    bool parse( const char *text );
     /**
      * @brief The shape as parse() text, with the "!s" and "!l" markers where they are set.
      * @param[in,out] buf  the buffer
      * @param[in]     cap  its size in bytes
      * @return characters written, or 0 when the text did not fit
      */
-    int  write(char* buf, size_t cap) const;
+    int write( char *buf, size_t cap ) const;
 
 private:
     EnvPoint m_points[MaxEnvPoints];   ///< the breakpoints, in time order
-    int m_count = 0;                    ///< how many of them are in use
+    int      m_count = 0;              ///< how many of them are in use
     /** @var int m_sustain
      *  @brief the sustain point's index, -1 = none */
     /** @var int m_loopFrom
@@ -293,10 +326,11 @@ private:
 };
 
 /** @brief One envelope's per-preset settings that are parameters rather than shape. */
-struct ModEnvSpec {
+struct ModEnvSpec
+{
     EnvModeE m_mode = EnvModeE::ONE_SHOT;   ///< how the shape runs
-    float   m_timeScale = 1.0f;   ///< stretches the whole shape, 0.05 .. 20
-    float   m_depth = 1.0f;       ///< scales the value; the matrix scales again per route
+    float    m_timeScale = 1.0f;            ///< stretches the whole shape, 0.05 .. 20
+    float    m_depth = 1.0f;                ///< scales the value; the matrix scales again per route
 };
 
 // ---------------------------------------------------------------- matrix
@@ -312,14 +346,39 @@ struct ModEnvSpec {
  * mapped to -1..1 by the engine, and a route's `unipolar` flag maps them back (ModMatrix::apply()).
  * modSourceName() spells each one for the text form.
  */
-enum class ModSourceE : int {
+enum class ModSourceE : int
+{
     NONE,   ///< no source: the row does nothing
-    LFO1, LFO2, LFO3, LFO4, LFO5, LFO6, LFO7, LFO8,   ///< the eight free LFOs, after their own depth
-    ENV1, ENV2, ENV3, ENV4, ENV5, ENV6,   ///< the six modulation envelopes, after their own depth
-    AMP,                       ///< the voice's own ADSR
-    MACRO_A, MACRO_B, MACRO_C, MACRO_D, MACRO_E, MACRO_F, MACRO_G, MACRO_H,   ///< the eight macro knobs, 0..1 read as -1..1
-    KURA1, KURA2, KURA3, KURA4,   ///< the coherence ring, now addressable
-    NOTE, VELOCITY, DISTANCE,     ///< per voice: pitch 0..1 over the keyboard, velocity, plane
+    LFO1,
+    LFO2,
+    LFO3,
+    LFO4,
+    LFO5,
+    LFO6,
+    LFO7,
+    LFO8,   ///< the eight free LFOs, after their own depth
+    ENV1,
+    ENV2,
+    ENV3,
+    ENV4,
+    ENV5,
+    ENV6,   ///< the six modulation envelopes, after their own depth
+    AMP,    ///< the voice's own ADSR
+    MACRO_A,
+    MACRO_B,
+    MACRO_C,
+    MACRO_D,
+    MACRO_E,
+    MACRO_F,
+    MACRO_G,
+    MACRO_H,   ///< the eight macro knobs, 0..1 read as -1..1
+    KURA1,
+    KURA2,
+    KURA3,
+    KURA4,   ///< the coherence ring, now addressable
+    NOTE,
+    VELOCITY,
+    DISTANCE,          ///< per voice: pitch 0..1 over the keyboard, velocity, plane
     RANDOM_PER_NOTE,   ///< one draw in -1..1 per note, held until the next
     /**
      * @brief The instrument listening to its own harmonic friction.
@@ -339,7 +398,9 @@ enum class ModSourceE : int {
      * the filter's resonance, the wavetable position and the reverb at once needs them here. All
      * three rest at 0, so route them with the 0..1 flag and a patch at rest sounds untouched.
      */
-    PRESSURE, WHEEL, SLIDE,
+    PRESSURE,
+    WHEEL,
+    SLIDE,
     /**
      * @brief A Lenia field (Chan 2019): a continuous cellular automaton -- Conway's Life with real-valued
      *        cells, a ring-shaped neighbourhood and a smooth growth rule -- run on a small torus in the
@@ -349,7 +410,10 @@ enum class ModSourceE : int {
      * readings are what they do near each corner. Off the clock and off the random stream:
      * motion that is caused by its own neighbours, which is what makes it read as alive.
      */
-    LENIA1, LENIA2, LENIA3, LENIA4,
+    LENIA1,
+    LENIA2,
+    LENIA3,
+    LENIA4,
     /**
      * @brief Two strange attractors, integrated in the background on a time scale of minutes: the
      *        Lorenz system (two lobes, switched between at irregular moments) and the Roessler system
@@ -359,7 +423,12 @@ enum class ModSourceE : int {
      * never a cycle, and never a step -- what an LFO cannot be and filtered noise cannot be
      * either, which is the reason for having them. Three coordinates each.
      */
-    LORENZ_X, LORENZ_Y, LORENZ_Z, ROSSLER_X, ROSSLER_Y, ROSSLER_Z,
+    LORENZ_X,
+    LORENZ_Y,
+    LORENZ_Z,
+    ROSSLER_X,
+    ROSSLER_Y,
+    ROSSLER_Z,
     /**
      * @brief The conductor's own excitement.
      *
@@ -380,34 +449,37 @@ enum class ModSourceE : int {
      * without the conductor needing to know. Section: the hour's arc as five steps rather than a
      * glide, for the things that should switch rather than slide.
      */
-    ROOT_AGE, LAYER, SECTION,
+    ROOT_AGE,
+    LAYER,
+    SECTION,
     COUNT   ///< how many sources; the size of the engine's source table
 };
-constexpr int NumModSources = static_cast<int>(ModSourceE::COUNT);   ///< sources in the table
+constexpr int NumModSources = static_cast<int>( ModSourceE::COUNT );   ///< sources in the table
 /**
  * @brief The name of a source as the matrix text spells it ("lfo1", "env2", "macro_a", "lorenz_x", ...).
  * @param[in] s  the source; anything out of range reads as "none"
  * @return a static string, never null
  */
-const char* modSourceName(ModSourceE s);
+const char *modSourceName( ModSourceE s );
 /**
  * @brief The inverse of modSourceName(): a source from its name.
  * @param[in]  name  the spelling, case-sensitive ("none" is ModSource::None)
  * @param[out] out   receives the source on success and is left alone otherwise
  * @return false for a null pointer or a name that is not in the table
  */
-bool modSourceFromName(const char* name, ModSourceE& out);
+bool modSourceFromName( const char *name, ModSourceE &out );
 
 /**
  * @brief One row of the matrix: a source, a target, a depth, an optional second source that
  *        scales the depth, and whether the source is read as 0..1.
  */
-struct ModRoute {
+struct ModRoute
+{
     ModSourceE m_source = ModSourceE::NONE;   ///< what drives the row; None makes it inert
     ParamIdE   m_target = ParamIdE::CUTOFF;   ///< the parameter driven, in its own units
-    float     m_depth = 0.0f;       ///< -1 .. 1 of the target's own range
-    ModSourceE m_via = ModSourceE::NONE;   ///< scales the depth (a second source as an amount)
-    bool      m_unipolar = false;   ///< treat the source as 0..1 instead of -1..1
+    float      m_depth = 0.0f;                ///< -1 .. 1 of the target's own range
+    ModSourceE m_via = ModSourceE::NONE;      ///< scales the depth (a second source as an amount)
+    bool       m_unipolar = false;            ///< treat the source as 0..1 instead of -1..1
 };
 
 /**
@@ -419,16 +491,17 @@ struct ModRoute {
  * A plain value the engine keeps two of (Engine.h): the pending one the message thread edits and
  * the live one the audio thread sums with apply() once per control block.
  */
-class ModMatrix {
+class ModMatrix
+{
 public:
     /** @brief How many rows are in use. @return 0 .. MaxModRoutes */
-    int  count() const { return m_count; }
+    int count() const { return m_count; }
     /**
      * @brief One row.
      * @param[in] i  0 .. count() - 1
      * @return the row
      */
-    const ModRoute& route(int i) const { return m_routes[i]; }
+    const ModRoute &route( int i ) const { return m_routes[i]; }
     /** @brief Forgets every row. */
     void clear() { m_count = 0; }
     /**
@@ -436,13 +509,18 @@ public:
      * @param[in] r  the row
      * @return false when the matrix is full
      */
-    bool add(const ModRoute& r) { if (m_count >= MaxModRoutes) return false; m_routes[m_count++] = r; return true; }
+    bool add( const ModRoute &r )
+    {
+        if ( m_count >= MaxModRoutes ) return false;
+        m_routes[m_count++] = r;
+        return true;
+    }
     /**
      * @brief Removes one row and closes the gap, keeping the order of the rest.
      * @param[in] i  0 .. count() - 1
      * @return false for an index outside the rows
      */
-    bool remove(int i);
+    bool remove( int i );
 
     /**
      * @brief Text form, one row per ';': "\<source\>>\<target\>:\<depth\>[:\<via\>][:u]"
@@ -456,14 +534,14 @@ public:
      * @param[in] text  the rows
      * @return false for a null pointer, an unknown source, target or via, a bad depth, or more rows than MaxModRoutes
      */
-    bool parse(const char* text);
+    bool parse( const char *text );
     /**
      * @brief The rows as parse() text.
      * @param[in,out] buf  the buffer
      * @param[in]     cap  its size in bytes
      * @return characters written, or 0 when they did not fit
      */
-    int  write(char* buf, size_t cap) const;
+    int write( char *buf, size_t cap ) const;
 
     /**
      * @brief Sums every route into `out` (one entry per parameter, in the target's own units), given the
@@ -477,11 +555,11 @@ public:
      * @param[in]     sourceValues  one value per ModSource, -1..1, indexed by the enum
      * @param[in,out] out           NumParams entries, added into
      */
-    void apply(const float* sourceValues, float* out) const;
+    void apply( const float *sourceValues, float *out ) const;
 
 private:
     ModRoute m_routes[MaxModRoutes];   ///< the rows, in text order
-    int m_count = 0;                    ///< how many of them are in use
+    int      m_count = 0;              ///< how many of them are in use
 };
 
-} // namespace ambient
+}   // namespace ambient

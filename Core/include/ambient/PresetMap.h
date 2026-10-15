@@ -18,7 +18,8 @@
 #include "Params.h"
 #include <cstdint>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief The map's blending machinery: a cached table of every preset's parameters and the
@@ -27,7 +28,8 @@ namespace ambient {
  * Everything is static -- there is one map per process, shared by every instrument instance.
  * neighbours() and blend() are real-time safe once ready(); warmup() is not.
  */
-class PresetMap {
+class PresetMap
+{
 public:
     static constexpr int Neighbours = 6;   ///< how many of the closest presets take part in a blend
 
@@ -63,10 +65,11 @@ public:
     static bool ready();
 
     /** @brief The result of a neighbour search: which presets, and how much of each. */
-    struct Blend {
+    struct Blend
+    {
         int   m_index[Neighbours];    ///< preset indices, closest first; count of them are valid
         float m_weight[Neighbours];   ///< normalised, descending
-        int   m_count = 0;             ///< how many neighbours were found (0 when there are no presets)
+        int   m_count = 0;            ///< how many neighbours were found (0 when there are no presets)
     };
     /**
      * @brief Neighbour weights for a cursor (0..1 plane). Never allocates.
@@ -81,7 +84,7 @@ public:
      * @param[in] radius  the Gaussian's sigma in plane units (MapRadius), floored at 0.001
      * @return the neighbours and their weights
      */
-    static Blend neighbours(float x, float y, float radius);
+    static Blend neighbours( float x, float y, float radius );
     /**
      * @brief Blended parameter vector (NumParams values): floats in the skew domain, ints
      *        rounded, choices and switches from the strongest neighbour. Never allocates.
@@ -91,14 +94,14 @@ public:
      * @param[in]     b    the neighbours, from neighbours()
      * @param[in,out] out  NumParams floats, indexed by ParamId, in each parameter's real range
      */
-    static void blend(const Blend& b, float* out);
+    static void blend( const Blend &b, float *out );
     /**
      * @brief The cached vector of one preset (NumParams values), or nullptr before warmup.
      * @param[in] index  preset index as numPresets() counts them
      * @return a pointer into the published table (valid for the life of the process), or nullptr before warmup or for
      *         an index the table does not cover
      */
-    static const float* presetValues(int index);
+    static const float *presetValues( int index );
 };
 
-} // namespace ambient
+}   // namespace ambient

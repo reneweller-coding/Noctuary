@@ -17,7 +17,8 @@
 #include <string>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief Which file a reference actually means.
@@ -31,7 +32,7 @@ namespace ambient {
  * @param[in] path  the path as the preset or pack names it; nullptr or empty gives an empty string
  * @return the path that exists (@p path itself or its .flac twin), or "" when neither does
  */
-std::string resolveAudioFile(const char* path);
+std::string resolveAudioFile( const char *path );
 
 /**
  * @brief Returns false if the file is missing or not a WAV the reader understands.
@@ -43,7 +44,7 @@ std::string resolveAudioFile(const char* path);
  * @param[out] sampleRate  receives the file's sample rate in Hz (untouched on failure)
  * @return true when at least one sample was read
  */
-bool readWavMono(const char* path, std::vector<float>& mono, int& sampleRate);
+bool readWavMono( const char *path, std::vector<float> &mono, int &sampleRate );
 
 /**
  * @brief A clip's two channels for a texture slot: `left` always, `right` empty when the file was mono
@@ -60,7 +61,7 @@ bool readWavMono(const char* path, std::vector<float>& mono, int& sampleRate);
  * @param[out] sampleRate  receives the file's sample rate in Hz
  * @return false when the file is missing, unreadable or empty
  */
-bool readWavStereo(const char* path, std::vector<float>& left, std::vector<float>& right, int& sampleRate);
+bool readWavStereo( const char *path, std::vector<float> &left, std::vector<float> &right, int &sampleRate );
 
 /**
  * @brief All channels, deinterleaved (impulse responses keep their stereo).
@@ -75,7 +76,7 @@ bool readWavStereo(const char* path, std::vector<float>& left, std::vector<float
  * @param[out] sampleRate  receives the file's sample rate in Hz
  * @return true when at least one frame was read
  */
-bool readWavChannels(const char* path, std::vector<std::vector<float>>& channels, int& sampleRate);
+bool readWavChannels( const char *path, std::vector<std::vector<float>> &channels, int &sampleRate );
 
 /**
  * @brief A wavetable file: its samples folded to mono, and how long one cycle is in them.
@@ -92,6 +93,6 @@ bool readWavChannels(const char* path, std::vector<std::vector<float>>& channels
  * @param[out] cycleLen  receives the samples per cycle, 0 on failure
  * @return true when samples were read and a cycle length above zero was found
  */
-bool readWavetableFile(const char* path, std::vector<float>& mono, int& cycleLen);
+bool readWavetableFile( const char *path, std::vector<float> &mono, int &cycleLen );
 
-} // namespace ambient
+}   // namespace ambient

@@ -32,7 +32,8 @@
 #include <cstddef>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief A wavetable of single cycles at ten band-limited resolutions, with the reader's arithmetic.
@@ -42,12 +43,13 @@ namespace ambient {
  * every level, one stored cycle being levelLength(level) samples plus Guard guard samples, and all
  * of them lie in `data` in level-major order, the levels starting at `offset`.
  */
-struct CycleTable {
-    static constexpr int Len       = 2048;   ///< samples per cycle in the common file layout
-    static constexpr int StoreLen  = 4096;   ///< samples per stored cycle at the finest level
-    static constexpr int MaxFrames = 256;    ///< the most frames a table keeps; a longer file is thinned to this
-    static constexpr int Levels    = 10;     ///< 4096 .. 32 samples, 512 .. 1 harmonics
-    static constexpr int Guard     = 3;      ///< one sample stored before each cycle, two after it
+struct CycleTable
+{
+    static constexpr int Len = 2048;        ///< samples per cycle in the common file layout
+    static constexpr int StoreLen = 4096;   ///< samples per stored cycle at the finest level
+    static constexpr int MaxFrames = 256;   ///< the most frames a table keeps; a longer file is thinned to this
+    static constexpr int Levels = 10;       ///< 4096 .. 32 samples, 512 .. 1 harmonics
+    static constexpr int Guard = 3;         ///< one sample stored before each cycle, two after it
     /**
      * @brief The RMS the loudest frame of a table is scaled to.
      *
@@ -57,22 +59,30 @@ struct CycleTable {
      */
     static constexpr float TargetRms = 0.35355339f;
 
-    int m_frames = 0;   ///< how many frames the table holds; 0 for an empty table
-    int m_offset[Levels] = {};   ///< where each level's cycles begin in `data`
-    std::vector<float> m_data;   ///< every frame at every level, guards included, level-major
+    int                m_frames = 0;            ///< how many frames the table holds; 0 for an empty table
+    int                m_offset[Levels] = {};   ///< where each level's cycles begin in `data`
+    std::vector<float> m_data;                  ///< every frame at every level, guards included, level-major
 
     /**
      * @brief Samples per stored cycle at a level: 4096 halved per level, never under 32.
      * @param[in] level  0 (finest) .. Levels - 1
      * @return the cycle length in samples, a power of two
      */
-    static int levelLength(int level)    { const int n = StoreLen >> level; return n < 32 ? 32 : n; }
+    static int levelLength( int level )
+    {
+        const int n = StoreLen >> level;
+        return n < 32 ? 32 : n;
+    }
     /**
      * @brief Highest harmonic a level keeps: 512 halved per level, never under 1 -- an eighth of the level's length.
      * @param[in] level  0 (finest) .. Levels - 1
      * @return the harmonic count
      */
-    static int levelHarmonics(int level) { const int h = (StoreLen / 8) >> level; return h < 1 ? 1 : h; }
+    static int levelHarmonics( int level )
+    {
+        const int h = ( StoreLen / 8 ) >> level;
+        return h < 1 ? 1 : h;
+    }
 
     /**
      * @brief Whether there is nothing to play.
@@ -85,10 +95,10 @@ struct CycleTable {
      * @param[in] f      the frame, 0 .. frames - 1
      * @return a pointer at the cycle's sample 0, with the guards either side of it
      */
-    const float* cycle(int level, int f) const
+    const float *cycle( int level, int f ) const
     {
-        return m_data.data() + static_cast<size_t>(m_offset[level])
-             + static_cast<size_t>(f) * static_cast<size_t>(levelLength(level) + Guard) + 1;
+        return m_data.data() + static_cast<size_t>( m_offset[level] ) +
+               static_cast<size_t>( f ) * static_cast<size_t>( levelLength( level ) + Guard ) + 1;
     }
     /**
      * @brief One sample of frame f at a level, at `phase` in [0, 1): Catmull-Rom through four samples.
@@ -99,20 +109,20 @@ struct CycleTable {
      * @param[in] phase  the phase accumulator's value in cycles, [0, 1)
      * @return the interpolated sample
      */
-    float sample(int level, int f, double phase) const
+    float sample( int level, int f, double phase ) const
     {
-        const int len = levelLength(level);
-        const double x = phase * static_cast<double>(len);
-        int i = static_cast<int>(x);
-        if (i >= len) i = len - 1;
-        if (i < 0) i = 0;
-        const float t = static_cast<float>(x - static_cast<double>(i));
-        const float* c = cycle(level, f);
-        const float y0 = c[i - 1], y1 = c[i], y2 = c[i + 1], y3 = c[i + 2];
-        const float a = 0.5f * (y2 - y0);
-        const float b = y0 - 2.5f * y1 + 2.0f * y2 - 0.5f * y3;
-        const float d = 0.5f * (y3 - y0) + 1.5f * (y1 - y2);
-        return ((d * t + b) * t + a) * t + y1;
+        const int    len = levelLength( level );
+        const double x = phase * static_cast<double>( len );
+        int          i = static_cast<int>( x );
+        if ( i >= len ) i = len - 1;
+        if ( i < 0 ) i = 0;
+        const float  t = static_cast<float>( x - static_cast<double>( i ) );
+        const float *c = cycle( level, f );
+        const float  y0 = c[i - 1], y1 = c[i], y2 = c[i + 1], y3 = c[i + 2];
+        const float  a = 0.5f * ( y2 - y0 );
+        const float  b = y0 - 2.5f * y1 + 2.0f * y2 - 0.5f * y3;
+        const float  d = 0.5f * ( y3 - y0 ) + 1.5f * ( y1 - y2 );
+        return ( ( d * t + b ) * t + a ) * t + y1;
     }
 
     /**
@@ -130,7 +140,7 @@ struct CycleTable {
      * @param[in] cycleLen  samples per cycle, at least 8; see detectCycleLength()
      * @return true when a table was built; on false the table is left empty
      */
-    bool build(const float* mono, int n, int cycleLen);
+    bool build( const float *mono, int n, int cycleLen );
     /**
      * @brief Builds the table from spectra.
      *
@@ -143,9 +153,13 @@ struct CycleTable {
      * @param[in] frameCoefficients  one vector per frame; harmonics beyond the 512th are ignored
      * @return true when a table was built; false for no frames or all-silent ones, the table then empty
      */
-    bool buildFromHarmonics(const std::vector<std::vector<std::complex<double>>>& frameCoefficients);
+    bool buildFromHarmonics( const std::vector<std::vector<std::complex<double>>> &frameCoefficients );
     /** @brief Empties the table and frees its memory. */
-    void clear() { m_frames = 0; m_data.clear(); }
+    void clear()
+    {
+        m_frames = 0;
+        m_data.clear();
+    }
 };
 
 /**
@@ -159,7 +173,7 @@ struct CycleTable {
  * @param[in] current     the level the voice read last time, or a negative number for none
  * @return 0 .. CycleTable::Levels - 1
  */
-int cycleLevelFor(double hz, double sampleRate, int current);
+int cycleLevelFor( double hz, double sampleRate, int current );
 
 /**
  * @brief How long one cycle is in a file that does not say so itself.
@@ -172,7 +186,7 @@ int cycleLevelFor(double hz, double sampleRate, int current);
  * @param[in] n     how many there are
  * @return the cycle length in samples to hand to CycleTable::build(); 0 for no samples at all
  */
-int detectCycleLength(const float* mono, int n);
+int detectCycleLength( const float *mono, int n );
 
 /**
  * @brief The five tables of the Wavetable type that need no file.
@@ -184,6 +198,6 @@ int detectCycleLength(const float* mono, int n);
  * @param[in] index  0 Classic, 1 Organ, 2 Vocal, 3 Glass, 4 Metal; anything outside is clamped
  * @return the table, which lives for the process
  */
-const CycleTable& builtinCycleTable(int index);
+const CycleTable &builtinCycleTable( int index );
 
-} // namespace ambient
+}   // namespace ambient

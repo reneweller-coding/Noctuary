@@ -15,29 +15,37 @@
 #include "ambient/PresetMeta.h"
 #include <cmath>
 
-namespace ambient {
-namespace {
+namespace ambient
+{
+namespace
+{
 #include "PresetClusters.inc"
 #include "PresetPhrases.inc"
 }   // namespace
 
-int numPresetClusters() { return ClusterCount; }
-
-const char* presetClusterName(int cluster)
+int numPresetClusters()
 {
-    return (cluster >= 0 && cluster < ClusterCount) ? ClusterNames[cluster] : "";
+    return ClusterCount;
 }
 
-const float* presetClusterCentre(int cluster)
+const char *presetClusterName( int cluster )
 {
-    return (cluster >= 0 && cluster < ClusterCount) ? ClusterCentres[cluster] : nullptr;
+    return ( cluster >= 0 && cluster < ClusterCount ) ? ClusterNames[cluster] : "";
 }
 
-int numPresetPhrases() { return PhraseCount; }
-
-const char* presetPhrase(int index)
+const float *presetClusterCentre( int cluster )
 {
-    return (index >= 0 && index < PhraseCount) ? Phrases[index] : "";
+    return ( cluster >= 0 && cluster < ClusterCount ) ? ClusterCentres[cluster] : nullptr;
+}
+
+int numPresetPhrases()
+{
+    return PhraseCount;
+}
+
+const char *presetPhrase( int index )
+{
+    return ( index >= 0 && index < PhraseCount ) ? Phrases[index] : "";
 }
 
 /**
@@ -45,23 +53,29 @@ const char* presetPhrase(int index)
  * @return the stored cluster when it is valid, else the nearest centroid, else -1 when no clusters were generated at
  *         all
  */
-int presetClusterOf(const PresetMeta& m)
+int presetClusterOf( const PresetMeta &m )
 {
-    if (ClusterCount <= 0) return -1;
-    if (m.m_cluster >= 0 && m.m_cluster < ClusterCount) return m.m_cluster;
-    const float d[NumMapDescriptors] = { m.m_bright, m.m_motion, m.m_width, m.m_noisy, m.m_bass,
-                                          m.m_density, m.m_evolve, m.m_rough, m.m_wet };
-    int best = 0;
-    float bestD = 1.0e30f;
-    for (int c = 0; c < ClusterCount; ++c) {
+    if ( ClusterCount <= 0 ) return -1;
+    if ( m.m_cluster >= 0 && m.m_cluster < ClusterCount ) return m.m_cluster;
+    const float d[NumMapDescriptors] = { m.m_bright,  m.m_motion, m.m_width, m.m_noisy, m.m_bass,
+                                         m.m_density, m.m_evolve, m.m_rough, m.m_wet };
+    int         best = 0;
+    float       bestD = 1.0e30f;
+    for ( int c = 0; c < ClusterCount; ++c )
+    {
         float s = 0.0f;
-        for (int k = 0; k < NumMapDescriptors; ++k) {
+        for ( int k = 0; k < NumMapDescriptors; ++k )
+        {
             const float e = d[k] - ClusterCentres[c][k];
             s += e * e;
         }
-        if (s < bestD) { bestD = s; best = c; }
+        if ( s < bestD )
+        {
+            bestD = s;
+            best = c;
+        }
     }
     return best;
 }
 
-} // namespace ambient
+}   // namespace ambient

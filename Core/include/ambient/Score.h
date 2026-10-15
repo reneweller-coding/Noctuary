@@ -25,16 +25,18 @@
 #include "Dsp.h"   // clampv
 #include <cstddef>
 
-namespace ambient {
+namespace ambient
+{
 
 constexpr int MaxScoreEvents = 512;   ///< the most ramps a score may hold; fixed so a Score has no allocation in it
 
 /** @brief One line of a score: a parameter travelling to a value, starting at a time, over a duration. */
-struct ScoreEvent {
-    double  m_at = 0.0;        ///< seconds from the start of the piece
-    double  m_over = 0.0;      ///< seconds the ramp takes; 0 = immediately
+struct ScoreEvent
+{
+    double   m_at = 0.0;                         ///< seconds from the start of the piece
+    double   m_over = 0.0;                       ///< seconds the ramp takes; 0 = immediately
     ParamIdE m_target = ParamIdE::MASTER_GAIN;   ///< the parameter that moves
-    float   m_value = 0.0f;    ///< where it ends up, in the parameter's real range (clamped by parse)
+    float    m_value = 0.0f;                     ///< where it ends up, in the parameter's real range (clamped by parse)
 };
 
 /**
@@ -43,7 +45,8 @@ struct ScoreEvent {
  * No allocation inside the object, so step() may run on the audio thread; load() and save() go
  * through files and belong to the message thread.
  */
-class Score {
+class Score
+{
 public:
     /**
      * @brief Parses the text form (see the file comment): replaces the score; false on the first bad line.
@@ -55,7 +58,7 @@ public:
      * @param[in] text  the whole file, NUL-terminated; nullptr is refused
      * @return true when every line parsed
      */
-    bool parse(const char* text);
+    bool parse( const char *text );
     /**
      * @brief The text form again.
      *
@@ -65,30 +68,30 @@ public:
      * @param[in]  cap  size of @p buf
      * @return the length the whole text has (which may exceed @p cap), or -1 on a formatting error
      */
-    int  write(char* buf, size_t cap) const;
+    int write( char *buf, size_t cap ) const;
     /**
      * @brief Reads a file and parses it (see parse()). Message thread: allocates.
      * @param[in] path  the file to read
      * @return false when the file is missing or a line is malformed
      * @pre called on the message thread
      */
-    bool load(const char* path);
+    bool load( const char *path );
     /**
      * @brief Writes the text form to a file. Message thread: allocates.
      * @param[in] path  the file to create
      * @return false when the file could not be opened or written in full
      * @pre called on the message thread
      */
-    bool save(const char* path) const;
+    bool save( const char *path ) const;
 
     /** @return how many events the score holds */
-    int  count() const { return m_count; }
+    int count() const { return m_count; }
     /**
      * @brief One event, in the order of the text.
      * @param[in] i  0 .. count()-1, unchecked
      * @return the event
      */
-    const ScoreEvent& event(int i) const { return m_events[i]; }
+    const ScoreEvent &event( int i ) const { return m_events[i]; }
     /** @return when the last ramp finishes, in seconds (the latest at + over) */
     double length() const;
     /** @brief Forgets every event; the clock is left where it was. */
@@ -98,7 +101,7 @@ public:
      * @param[in] e  the event
      * @return false when the score is full (MaxScoreEvents)
      */
-    bool add(const ScoreEvent& e);
+    bool add( const ScoreEvent &e );
 
     /**
      * @brief Playing. `now` is the seconds since the piece started; call it once per block with the
@@ -110,7 +113,7 @@ public:
      * rewind() puts the clock back to zero and marks every ramp as not yet started, so a piece
      * can be played again from the top.
      */
-    void  rewind();
+    void rewind();
     /** @return seconds since the piece started, as step() has counted them */
     double position() const { return m_t; }
     /**
@@ -127,19 +130,28 @@ public:
      * @tparam SetFn    callable as void(ParamId, float)
      */
     template <class ValueFnT, class SetFnT>
-    void step(double dt, ValueFnT&& valueOf, SetFnT&& set)
+    void step( double dt, ValueFnT &&valueOf, SetFnT &&set )
     {
-        if (m_count == 0 || dt <= 0.0) return;
+        if ( m_count == 0 || dt <= 0.0 ) return;
         const double t0 = m_t, t1 = m_t + dt;
         m_t = t1;
-        for (int i = 0; i < m_count; ++i) {
-            const ScoreEvent& e = m_events[i];
-            if (t1 < e.m_at) continue;
-            if (t0 >= e.m_at + e.m_over && m_started[i]) continue;   // finished, and it did run
-            if (!m_started[i]) { m_from[i] = valueOf(e.m_target); m_started[i] = true; }
-            if (e.m_over <= 0.0) { set(e.m_target, e.m_value); continue; }
-            const double x = clampv((t1 - e.m_at) / e.m_over, 0.0, 1.0);
-            set(e.m_target, rampValue(e.m_target, m_from[i], e.m_value, static_cast<float>(x)));
+        for ( int i = 0; i < m_count; ++i )
+        {
+            const ScoreEvent &e = m_events[i];
+            if ( t1 < e.m_at ) continue;
+            if ( t0 >= e.m_at + e.m_over && m_started[i] ) continue;   // finished, and it did run
+            if ( !m_started[i] )
+            {
+                m_from[i] = valueOf( e.m_target );
+                m_started[i] = true;
+            }
+            if ( e.m_over <= 0.0 )
+            {
+                set( e.m_target, e.m_value );
+                continue;
+            }
+            const double x = clampv( ( t1 - e.m_at ) / e.m_over, 0.0, 1.0 );
+            set( e.m_target, rampValue( e.m_target, m_from[i], e.m_value, static_cast<float>( x ) ) );
         }
     }
 
@@ -155,14 +167,14 @@ public:
      * @param[in] x     progress 0 .. 1 (clamped)
      * @return the value to set now, in the parameter's real range
      */
-    static float rampValue(ParamIdE id, float from, float to, float x);
+    static float rampValue( ParamIdE id, float from, float to, float x );
 
 private:
-    ScoreEvent m_events[MaxScoreEvents];   ///< the events, in the order added
-    int    m_count = 0;                     ///< how many of m_events are in use
-    double m_t = 0.0;                       ///< the clock: seconds since the piece started
-    bool   m_started[MaxScoreEvents] = {}; ///< per event: whether its starting value has been read
-    float  m_from[MaxScoreEvents] = {};    ///< per event: the value it started from, valid once m_started
+    ScoreEvent m_events[MaxScoreEvents];         ///< the events, in the order added
+    int        m_count = 0;                      ///< how many of m_events are in use
+    double     m_t = 0.0;                        ///< the clock: seconds since the piece started
+    bool       m_started[MaxScoreEvents] = {};   ///< per event: whether its starting value has been read
+    float      m_from[MaxScoreEvents] = {};      ///< per event: the value it started from, valid once m_started
 };
 
 /**
@@ -173,7 +185,7 @@ private:
  * @param[in] text  the time as written; nullptr or empty is not a time
  * @return seconds, or -1 when @p text is not a time
  */
-double parseScoreTime(const char* text);
+double parseScoreTime( const char *text );
 /**
  * @brief Writes seconds as m:ss, or h:mm:ss once there is an hour, whole seconds only.
  * @param[in]  seconds  the time; negative counts as 0
@@ -181,6 +193,6 @@ double parseScoreTime(const char* text);
  * @param[in]  cap      size of @p buf
  * @return what snprintf returns: the length written, or the length needed if @p cap was too small
  */
-int    writeScoreTime(double seconds, char* buf, size_t cap);
+int writeScoreTime( double seconds, char *buf, size_t cap );
 
-} // namespace ambient
+}   // namespace ambient

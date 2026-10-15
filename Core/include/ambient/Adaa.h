@@ -13,7 +13,8 @@
 #pragma once
 #include <cmath>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief log(cosh(x)), the antiderivative of tanh, written so that it neither overflows nor cancels.
@@ -25,10 +26,10 @@ namespace ambient {
  * @param[in] x  the input sample (any magnitude)
  * @return log(cosh(x)), non-negative, with log(cosh(0)) = 0
  */
-inline double logCosh(double x)
+inline double logCosh( double x )
 {
-    const double a = std::fabs(x);
-    return a + std::log1p(std::exp(-2.0 * a)) - 0.6931471805599453;
+    const double a = std::fabs( x );
+    return a + std::log1p( std::exp( -2.0 * a ) ) - 0.6931471805599453;
 }
 
 /**
@@ -42,7 +43,8 @@ inline double logCosh(double x)
  * stage owns two of them. The antiderivative is kept in double because the difference quotient
  * divides two nearly equal numbers by a small step, and float would lose the result in the noise.
  */
-struct TanhAdaa {
+struct TanhAdaa
+{
     float  m_x1 = 0.0f;   ///< the previous input sample
     double m_f1 = 0.0;    ///< logCosh(x1), the antiderivative at the previous input
 
@@ -51,19 +53,23 @@ struct TanhAdaa {
      * @param[in] x  the input sample
      * @return tanh of the input, antialiased to first order and delayed by half a sample
      */
-    float operator()(float x)
+    float operator()( float x )
     {
-        const double fx = logCosh(static_cast<double>(x));
-        const double dx = static_cast<double>(x) - static_cast<double>(m_x1);
-        const float y = std::fabs(dx) > 1.0e-5 ? static_cast<float>((fx - m_f1) / dx)
-                                               : std::tanh(0.5f * (x + m_x1));
+        const double fx = logCosh( static_cast<double>( x ) );
+        const double dx = static_cast<double>( x ) - static_cast<double>( m_x1 );
+        const float  y =
+            std::fabs( dx ) > 1.0e-5 ? static_cast<float>( ( fx - m_f1 ) / dx ) : std::tanh( 0.5f * ( x + m_x1 ) );
         m_x1 = x;
         m_f1 = fx;
         return y;
     }
 
     /** @brief Clears the one sample of history, as at a voice start or a sample-rate change. */
-    void reset() { m_x1 = 0.0f; m_f1 = 0.0; }
+    void reset()
+    {
+        m_x1 = 0.0f;
+        m_f1 = 0.0;
+    }
 };
 
-} // namespace ambient
+}   // namespace ambient

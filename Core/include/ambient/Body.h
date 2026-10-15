@@ -19,7 +19,8 @@
 #include "Dsp.h"
 #include "ZPlane.h"   // Resonator
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief The four materials: which set of mode ratios and which damping the body is built from.
@@ -28,15 +29,18 @@ namespace ambient {
  * order, and Body.cpp holds the twelve ratios of each material and how fast its high modes die
  * relative to its first.
  */
-enum class BodyMaterialE : int {
+enum class BodyMaterialE : int
+{
     WOOD = 0,   ///< a soundboard's low, irregular modes
     PLATE,      ///< the stretched series of a flat metal plate
     BELL,       ///< hum, prime, tierce, quint and nominal of a tuned bell, continued
     STRING,     ///< harmonic with a little stiffness, as an actual string is
     COUNT       ///< the number of materials
 };
-constexpr int NumBodyMaterials = static_cast<int>(BodyMaterialE::COUNT);   ///< entries of BodyMaterialNames and of the ratio tables in Body.cpp
-extern const char* const BodyMaterialNames[NumBodyMaterials];   ///< display names in BodyMaterial order ("Wood", "Plate", "Bell", "String"), defined in Body.cpp
+constexpr int NumBodyMaterials =
+    static_cast<int>( BodyMaterialE::COUNT );   ///< entries of BodyMaterialNames and of the ratio tables in Body.cpp
+extern const char *const BodyMaterialNames
+    [NumBodyMaterials];   ///< display names in BodyMaterial order ("Wood", "Plate", "Bell", "String"), defined in Body.cpp
 
 constexpr int BodyModes = 12;   ///< resonators per body: one for each mode ratio of the material
 
@@ -50,7 +54,8 @@ constexpr int BodyModes = 12;   ///< resonators per body: one for each mode rati
  * placed on its own side of the field; the sum is normalised on the modes' expected power so the
  * Body knob means the same thing at long and at short decays.
  */
-class Body {
+class Body
+{
 public:
     /**
      * @brief Takes the sample rate, draws each mode's place in the field once, and silences the modes.
@@ -60,7 +65,7 @@ public:
      * @param[in] sampleRate  the engine's rate in Hz; every coefficient is computed against it
      * @param[in] seed        seeds the body's own generator, which draws the twelve pan magnitudes
      */
-    void prepare(double sampleRate, uint64_t seed);
+    void prepare( double sampleRate, uint64_t seed );
     /**
      * @brief Coefficients for the twelve modes from the material, the root and the three knobs.
      *
@@ -77,7 +82,7 @@ public:
      *                          loud as the low ones
      * @param[in] spread        0 .. 1: how far the modes fan out from the centre, neighbouring modes on opposite sides
      */
-    void set(BodyMaterialE material, float baseHz, float decaySeconds, float tone, float spread);
+    void set( BodyMaterialE material, float baseHz, float decaySeconds, float tone, float spread );
     /**
      * @brief Runs one block of the send through the modes and adds the answer to the outputs.
      *
@@ -93,27 +98,29 @@ public:
      * @param[in]     level  the Body knob; 0 does nothing at all, 1 puts the body about at the level of the dry mix it
      *                       answers
      */
-    void process(const float* in, float* outL, float* outR, int n, float level);
+    void process( const float *in, float *outL, float *outR, int n, float level );
     /** @brief Silences the twelve resonators; the coefficients stay. */
     void reset();
 
 private:
-    Resonator m_res[BodyModes];   ///< the modes, one two-pole resonator each (ZPlane.h)
+    Resonator m_res[BodyModes];          ///< the modes, one two-pole resonator each (ZPlane.h)
     float     m_gainL[BodyModes] = {},   ///< each mode's gain into the left channel, cos of its pan angle
-              m_gainR[BodyModes] = {};   ///< each mode's gain into the right channel, sin of its pan angle
-    float     m_modePan[BodyModes] = {};   ///< how far out each mode sits: drawn once, in prepare()
-    float     m_sr = 48000.0f;   ///< sample rate the coefficients were computed for
-    float     m_norm = 1.0f;     ///< output gain from the modes' expected power (0.05 over its root, capped at 60), rebuilt by set()
-    Rng       m_rng;             ///< the body's own generator, seeded in prepare(); it draws the pan magnitudes
+        m_gainR[BodyModes] = {};         ///< each mode's gain into the right channel, sin of its pan angle
+    float m_modePan[BodyModes] = {};     ///< how far out each mode sits: drawn once, in prepare()
+    float m_sr = 48000.0f;               ///< sample rate the coefficients were computed for
+    float m_norm =
+        1.0f;    ///< output gain from the modes' expected power (0.05 over its root, capped at 60), rebuilt by set()
+    Rng m_rng;   ///< the body's own generator, seeded in prepare(); it draws the pan magnitudes
     /**
      * @name what set() last saw, so coefficients are only rebuilt when they change
      * @{ */
-    BodyMaterialE m_lastMat = BodyMaterialE::COUNT;   ///< the material; Count means "nothing yet", which prepare() uses to force a rebuild
-    float     m_lastBase = -1.0f,     ///< the clamped baseHz
-              m_lastDecay = -1.0f,    ///< the clamped decaySeconds
-              m_lastTone = -1.0f,     ///< the clamped tone
-              m_lastSpread = -1.0f;   ///< the clamped spread
+    BodyMaterialE m_lastMat =
+        BodyMaterialE::COUNT;   ///< the material; Count means "nothing yet", which prepare() uses to force a rebuild
+    float m_lastBase = -1.0f,   ///< the clamped baseHz
+        m_lastDecay = -1.0f,    ///< the clamped decaySeconds
+        m_lastTone = -1.0f,     ///< the clamped tone
+        m_lastSpread = -1.0f;   ///< the clamped spread
     /** @} */
 };
 
-} // namespace ambient
+}   // namespace ambient

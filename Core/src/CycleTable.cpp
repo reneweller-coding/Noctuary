@@ -21,9 +21,11 @@
 #include <cstring>
 #include <memory>
 
-namespace ambient {
+namespace ambient
+{
 
-namespace {
+namespace
+{
 
 /** @brief One frame's harmonics: element h-1 is harmonic h as the complex amplitude of a cosine. */
 using CoeffsT = std::vector<std::complex<double>>;
@@ -43,25 +45,34 @@ constexpr double PiD = 3.14159265358979323846;   ///< pi in double, for the plai
  * @return harmonics 1 .. top, top being the finest level's count or the cycle's own Nyquist, whichever is lower; empty
  *         for a cycle too short to hold a harmonic
  */
-CoeffsT analyseCycle(const float* x, int len, const Fft* fft, std::vector<float>& re, std::vector<float>& im)
+CoeffsT analyseCycle( const float *x, int len, const Fft *fft, std::vector<float> &re, std::vector<float> &im )
 {
     // Below the cycle's own Nyquist, and no more than the finest level keeps.
-    const int top = std::min(CycleTable::levelHarmonics(0), (len - 1) / 2);
-    CoeffsT c(static_cast<size_t>(std::max(top, 0)));
-    if (top <= 0) return c;
-    const double scale = 2.0 / static_cast<double>(len);
-    if (fft != nullptr) {
-        std::memcpy(re.data(), x, sizeof(float) * static_cast<size_t>(len));
-        std::fill(im.begin(), im.begin() + len, 0.0f);
-        fft->transform(re.data(), im.data(), false);
-        for (int h = 1; h <= top; ++h)
-            c[static_cast<size_t>(h - 1)] = std::complex<double>(re[static_cast<size_t>(h)], im[static_cast<size_t>(h)]) * scale;
-    } else {
-        for (int h = 1; h <= top; ++h) {
-            const double w = 2.0 * PiD * h / static_cast<double>(len);
-            double sr = 0.0, si = 0.0;
-            for (int n = 0; n < len; ++n) { sr += x[n] * std::cos(w * n); si -= x[n] * std::sin(w * n); }
-            c[static_cast<size_t>(h - 1)] = std::complex<double>(sr, si) * scale;
+    const int top = std::min( CycleTable::levelHarmonics( 0 ), ( len - 1 ) / 2 );
+    CoeffsT   c( static_cast<size_t>( std::max( top, 0 ) ) );
+    if ( top <= 0 ) return c;
+    const double scale = 2.0 / static_cast<double>( len );
+    if ( fft != nullptr )
+    {
+        std::memcpy( re.data(), x, sizeof( float ) * static_cast<size_t>( len ) );
+        std::fill( im.begin(), im.begin() + len, 0.0f );
+        fft->transform( re.data(), im.data(), false );
+        for ( int h = 1; h <= top; ++h )
+            c[static_cast<size_t>( h - 1 )] =
+                std::complex<double>( re[static_cast<size_t>( h )], im[static_cast<size_t>( h )] ) * scale;
+    }
+    else
+    {
+        for ( int h = 1; h <= top; ++h )
+        {
+            const double w = 2.0 * PiD * h / static_cast<double>( len );
+            double       sr = 0.0, si = 0.0;
+            for ( int n = 0; n < len; ++n )
+            {
+                sr += x[n] * std::cos( w * n );
+                si -= x[n] * std::sin( w * n );
+            }
+            c[static_cast<size_t>( h - 1 )] = std::complex<double>( sr, si ) * scale;
         }
     }
     return c;
@@ -80,105 +91,120 @@ CoeffsT analyseCycle(const float* x, int len, const Fft* fft, std::vector<float>
  * @param[in,out] im     scratch of at least levelLength(level) floats
  * @param[in,out] out    where sample 0 of the cycle goes; out[-1] and out[len], out[len + 1] are written too
  */
-void synthesise(const CoeffsT& c, double gain, int level, const Fft& fft, std::vector<float>& re, std::vector<float>& im, float* out)
+void synthesise( const CoeffsT &c, double gain, int level, const Fft &fft, std::vector<float> &re,
+                 std::vector<float> &im, float *out )
 {
-    const int len = CycleTable::levelLength(level);
-    const int top = std::min(CycleTable::levelHarmonics(level), static_cast<int>(c.size()));
-    std::fill(re.begin(), re.begin() + len, 0.0f);
-    std::fill(im.begin(), im.begin() + len, 0.0f);
-    const double half = 0.5 * static_cast<double>(len) * gain;
-    for (int h = 1; h <= top; ++h) {
-        const std::complex<double> v = c[static_cast<size_t>(h - 1)] * half;
-        re[static_cast<size_t>(h)] = static_cast<float>(v.real());
-        im[static_cast<size_t>(h)] = static_cast<float>(v.imag());
-        re[static_cast<size_t>(len - h)] = static_cast<float>(v.real());
-        im[static_cast<size_t>(len - h)] = static_cast<float>(-v.imag());
+    const int len = CycleTable::levelLength( level );
+    const int top = std::min( CycleTable::levelHarmonics( level ), static_cast<int>( c.size() ) );
+    std::fill( re.begin(), re.begin() + len, 0.0f );
+    std::fill( im.begin(), im.begin() + len, 0.0f );
+    const double half = 0.5 * static_cast<double>( len ) * gain;
+    for ( int h = 1; h <= top; ++h )
+    {
+        const std::complex<double> v = c[static_cast<size_t>( h - 1 )] * half;
+        re[static_cast<size_t>( h )] = static_cast<float>( v.real() );
+        im[static_cast<size_t>( h )] = static_cast<float>( v.imag() );
+        re[static_cast<size_t>( len - h )] = static_cast<float>( v.real() );
+        im[static_cast<size_t>( len - h )] = static_cast<float>( -v.imag() );
     }
-    fft.transform(re.data(), im.data(), true);
-    for (int n = 0; n < len; ++n) out[n] = re[static_cast<size_t>(n)];
+    fft.transform( re.data(), im.data(), true );
+    for ( int n = 0; n < len; ++n ) out[n] = re[static_cast<size_t>( n )];
     out[-1] = out[len - 1];
     out[len] = out[0];
     out[len + 1] = out[1];
 }
 
-} // namespace
+}   // namespace
 
-bool CycleTable::buildFromHarmonics(const std::vector<CoeffsT>& in)
+bool CycleTable::buildFromHarmonics( const std::vector<CoeffsT> &in )
 {
     clear();
-    const int count = std::min(static_cast<int>(in.size()), MaxFrames);
-    if (count <= 0) return false;
+    const int count = std::min( static_cast<int>( in.size() ), MaxFrames );
+    if ( count <= 0 ) return false;
     // The loudest frame, by Parseval: a cosine of amplitude A carries A^2 / 2.
     double loudest = 0.0;
-    for (int k = 0; k < count; ++k) {
-        double e = 0.0;
-        const int top = std::min(static_cast<int>(in[static_cast<size_t>(k)].size()), levelHarmonics(0));
-        for (int h = 0; h < top; ++h) e += std::norm(in[static_cast<size_t>(k)][static_cast<size_t>(h)]);
-        loudest = std::max(loudest, std::sqrt(0.5 * e));
+    for ( int k = 0; k < count; ++k )
+    {
+        double    e = 0.0;
+        const int top = std::min( static_cast<int>( in[static_cast<size_t>( k )].size() ), levelHarmonics( 0 ) );
+        for ( int h = 0; h < top; ++h ) e += std::norm( in[static_cast<size_t>( k )][static_cast<size_t>( h )] );
+        loudest = std::max( loudest, std::sqrt( 0.5 * e ) );
     }
-    if (!(loudest > 1.0e-9)) return false;
-    const double gain = static_cast<double>(TargetRms) / loudest;
+    if ( !( loudest > 1.0e-9 ) ) return false;
+    const double gain = static_cast<double>( TargetRms ) / loudest;
 
     size_t total = 0;
-    for (int l = 0; l < Levels; ++l) {
-        m_offset[l] = static_cast<int>(total);
-        total += static_cast<size_t>(count) * static_cast<size_t>(levelLength(l) + Guard);
+    for ( int l = 0; l < Levels; ++l )
+    {
+        m_offset[l] = static_cast<int>( total );
+        total += static_cast<size_t>( count ) * static_cast<size_t>( levelLength( l ) + Guard );
     }
-    m_data.assign(total, 0.0f);
-    std::vector<float> re(static_cast<size_t>(StoreLen)), im(static_cast<size_t>(StoreLen));
+    m_data.assign( total, 0.0f );
+    std::vector<float>   re( static_cast<size_t>( StoreLen ) ), im( static_cast<size_t>( StoreLen ) );
     std::unique_ptr<Fft> fft;
-    for (int l = 0; l < Levels; ++l) {
-        const int len = levelLength(l);
-        if (fft == nullptr || fft->size() != len) fft = std::make_unique<Fft>(len);
-        for (int k = 0; k < count; ++k) {
-            float* out = m_data.data() + static_cast<size_t>(m_offset[l]) + static_cast<size_t>(k) * static_cast<size_t>(len + Guard) + 1;
-            synthesise(in[static_cast<size_t>(k)], gain, l, *fft, re, im, out);
+    for ( int l = 0; l < Levels; ++l )
+    {
+        const int len = levelLength( l );
+        if ( fft == nullptr || fft->size() != len ) fft = std::make_unique<Fft>( len );
+        for ( int k = 0; k < count; ++k )
+        {
+            float *out = m_data.data() + static_cast<size_t>( m_offset[l] ) +
+                         static_cast<size_t>( k ) * static_cast<size_t>( len + Guard ) + 1;
+            synthesise( in[static_cast<size_t>( k )], gain, l, *fft, re, im, out );
         }
     }
     m_frames = count;
     return true;
 }
 
-bool CycleTable::build(const float* mono, int n, int cycleLen)
+bool CycleTable::build( const float *mono, int n, int cycleLen )
 {
     clear();
-    if (mono == nullptr || cycleLen < 8 || n < cycleLen) return false;
-    const int total = n / cycleLen;
-    const int keep = std::min(total, MaxFrames);
-    const bool pow2 = (cycleLen & (cycleLen - 1)) == 0;
+    if ( mono == nullptr || cycleLen < 8 || n < cycleLen ) return false;
+    const int            total = n / cycleLen;
+    const int            keep = std::min( total, MaxFrames );
+    const bool           pow2 = ( cycleLen & ( cycleLen - 1 ) ) == 0;
     std::unique_ptr<Fft> fft;
-    std::vector<float> re, im;
-    if (pow2) {
-        fft = std::make_unique<Fft>(cycleLen);
-        re.assign(static_cast<size_t>(cycleLen), 0.0f);
-        im.assign(static_cast<size_t>(cycleLen), 0.0f);
+    std::vector<float>   re, im;
+    if ( pow2 )
+    {
+        fft = std::make_unique<Fft>( cycleLen );
+        re.assign( static_cast<size_t>( cycleLen ), 0.0f );
+        im.assign( static_cast<size_t>( cycleLen ), 0.0f );
     }
-    std::vector<CoeffsT> frameCoeffs(static_cast<size_t>(keep));
-    for (int k = 0; k < keep; ++k) {
-        const int src = (keep == total) ? k : static_cast<int>(static_cast<long long>(k) * (total - 1) / std::max(keep - 1, 1));
-        frameCoeffs[static_cast<size_t>(k)] = analyseCycle(mono + static_cast<size_t>(src) * static_cast<size_t>(cycleLen), cycleLen, fft.get(), re, im);
+    std::vector<CoeffsT> frameCoeffs( static_cast<size_t>( keep ) );
+    for ( int k = 0; k < keep; ++k )
+    {
+        const int src = ( keep == total )
+                            ? k
+                            : static_cast<int>( static_cast<long long>( k ) * ( total - 1 ) / std::max( keep - 1, 1 ) );
+        frameCoeffs[static_cast<size_t>( k )] = analyseCycle(
+            mono + static_cast<size_t>( src ) * static_cast<size_t>( cycleLen ), cycleLen, fft.get(), re, im );
     }
-    return buildFromHarmonics(frameCoeffs);
+    return buildFromHarmonics( frameCoeffs );
 }
 
-int cycleLevelFor(double hz, double sampleRate, int current)
+int cycleLevelFor( double hz, double sampleRate, int current )
 {
     const double nyquist = 0.5 * sampleRate;
-    int floorLevel = 0;
-    while (floorLevel < CycleTable::Levels - 1 && CycleTable::levelHarmonics(floorLevel) * hz >= nyquist) ++floorLevel;
-    if (current > floorLevel && current < CycleTable::Levels) {
+    int          floorLevel = 0;
+    while ( floorLevel < CycleTable::Levels - 1 && CycleTable::levelHarmonics( floorLevel ) * hz >= nyquist )
+        ++floorLevel;
+    if ( current > floorLevel && current < CycleTable::Levels )
+    {
         int l = floorLevel;
-        while (l < current && CycleTable::levelHarmonics(l) * hz > 0.9 * nyquist) ++l;
+        while ( l < current && CycleTable::levelHarmonics( l ) * hz > 0.9 * nyquist ) ++l;
         return l;
     }
     return floorLevel;
 }
 
-int detectCycleLength(const float* x, int n)
+int detectCycleLength( const float *x, int n )
 {
     const int L = CycleTable::Len;
-    if (x == nullptr || n <= 0) return 0;
-    if (n == 64 * 256) {
+    if ( x == nullptr || n <= 0 ) return 0;
+    if ( n == 64 * 256 )
+    {
         // The size of a WaveEdit bank (64 cycles of 256 samples, the E352 layout) and of eight frames
         // of 2048. What tells the two apart is where the wave is continuous. In a bank, a cycle's last
         // sample leads round to its own first as smoothly as on to the next cycle's first; in a frame
@@ -188,18 +214,21 @@ int detectCycleLength(const float* x, int n)
         // WaveEdit Online and 2476 eight-frame cuts from real tables, a ratio under 3 takes 72 % of
         // the banks -- most of the rest hold no single cycles at all -- and 0.08 % of the tables.
         constexpr int c = 256;
-        double wrap = 0.0, onward = 0.0;
-        for (int k = 0; k < 64; ++k) wrap += std::fabs(static_cast<double>(x[k * c + c - 1]) - x[k * c]);
-        for (int k = 0; k < 63; ++k) onward += std::fabs(static_cast<double>(x[k * c + c - 1]) - x[(k + 1) * c]);
-        return wrap < 3.0 * onward * (64.0 / 63.0) ? c : L;
+        double        wrap = 0.0, onward = 0.0;
+        for ( int k = 0; k < 64; ++k ) wrap += std::fabs( static_cast<double>( x[k * c + c - 1] ) - x[k * c] );
+        for ( int k = 0; k < 63; ++k )
+            onward += std::fabs( static_cast<double>( x[k * c + c - 1] ) - x[( k + 1 ) * c] );
+        return wrap < 3.0 * onward * ( 64.0 / 63.0 ) ? c : L;
     }
-    if (n % L == 0) return L;                              // the common layout
-    if (n <= 2 * L) return n;                              // one cycle of its own length
-    for (int len : { 1024, 512, 256 }) if (n % len == 0) return len;
-    return L;                                              // the common layout, the remainder dropped
+    if ( n % L == 0 ) return L;   // the common layout
+    if ( n <= 2 * L ) return n;   // one cycle of its own length
+    for ( int len : { 1024, 512, 256 } )
+        if ( n % len == 0 ) return len;
+    return L;   // the common layout, the remainder dropped
 }
 
-namespace {
+namespace
+{
 
 /**
  * @brief The five built-in tables, made once from their spectra behind builtinCycleTable().
@@ -208,57 +237,65 @@ namespace {
  * once, off the audio thread: the Classic table from the Fourier series of the real waveforms with
  * their phases, the other four from the Harmonic type's spectra written out with sine phases.
  */
-struct BuiltinCycles {
+struct BuiltinCycles
+{
     CycleTable m_t[NumTables - 1];   ///< index 0 Classic, then Organ, Vocal, Glass and Metal
     /** @brief Writes all five tables; every frame is brought to the same RMS first. */
     BuiltinCycles()
     {
-        const int H = CycleTable::levelHarmonics(0);
+        const int H = CycleTable::levelHarmonics( 0 );
         // Each built-in frame is brought to the same RMS before the table is made, the way the
         // Harmonic type's built-ins are normalised frame by frame: a morph from sine to pulse should
         // not fade out as it goes.
-        auto unit = [](CoeffsT c) {
+        auto unit = []( CoeffsT c )
+        {
             double e = 0.0;
-            for (const auto& v : c) e += std::norm(v);
-            const double s = e > 0.0 ? 1.0 / std::sqrt(0.5 * e) : 0.0;
-            for (auto& v : c) v *= s;
+            for ( const auto &v : c ) e += std::norm( v );
+            const double s = e > 0.0 ? 1.0 / std::sqrt( 0.5 * e ) : 0.0;
+            for ( auto &v : c ) v *= s;
             return c;
         };
-        const std::complex<double> sine(0.0, -1.0);   // sin x = cos(x - pi/2)
+        const std::complex<double> sine( 0.0, -1.0 );   // sin x = cos(x - pi/2)
         // Classic: sine, triangle, saw, square, a pulse of a fifth -- the real waveforms, to the
         // 512th harmonic, with their phases.
         {
-            std::vector<CoeffsT> f(5, CoeffsT(static_cast<size_t>(H)));
+            std::vector<CoeffsT> f( 5, CoeffsT( static_cast<size_t>( H ) ) );
             f[0][0] = sine;
-            for (int h = 1; h <= H; ++h) {
-                const double sign = (h % 2 == 0) ? -1.0 : 1.0;
-                if (h % 2 == 1) f[1][static_cast<size_t>(h - 1)] = sine * ((((h - 1) / 2) % 2 == 0 ? 1.0 : -1.0) * 8.0 / (PiD * PiD * h * h));
-                f[2][static_cast<size_t>(h - 1)] = sine * (sign * 2.0 / (PiD * h));
-                if (h % 2 == 1) f[3][static_cast<size_t>(h - 1)] = sine * (4.0 / (PiD * h));
-                f[4][static_cast<size_t>(h - 1)] = std::complex<double>(2.0 / (PiD * h) * std::sin(PiD * h * 0.2), 0.0);
+            for ( int h = 1; h <= H; ++h )
+            {
+                const double sign = ( h % 2 == 0 ) ? -1.0 : 1.0;
+                if ( h % 2 == 1 )
+                    f[1][static_cast<size_t>( h - 1 )] =
+                        sine * ( ( ( ( h - 1 ) / 2 ) % 2 == 0 ? 1.0 : -1.0 ) * 8.0 / ( PiD * PiD * h * h ) );
+                f[2][static_cast<size_t>( h - 1 )] = sine * ( sign * 2.0 / ( PiD * h ) );
+                if ( h % 2 == 1 ) f[3][static_cast<size_t>( h - 1 )] = sine * ( 4.0 / ( PiD * h ) );
+                f[4][static_cast<size_t>( h - 1 )] =
+                    std::complex<double>( 2.0 / ( PiD * h ) * std::sin( PiD * h * 0.2 ), 0.0 );
             }
-            for (auto& c : f) c = unit(std::move(c));
-            m_t[0].buildFromHarmonics(f);
+            for ( auto &c : f ) c = unit( std::move( c ) );
+            m_t[0].buildFromHarmonics( f );
         }
         // Organ, Vocal, Glass, Metal: the Harmonic type's spectra, written out with sine phases.
-        for (int i = 1; i < NumTables - 1; ++i) {
-            const Wavetable& w = builtinTable(i);
-            std::vector<CoeffsT> f(static_cast<size_t>(w.m_frames), CoeffsT(static_cast<size_t>(TablePartials)));
-            for (int k = 0; k < w.m_frames; ++k)
-                for (int h = 0; h < TablePartials; ++h)
-                    f[static_cast<size_t>(k)][static_cast<size_t>(h)] = sine * static_cast<double>(w.m_amp[k][h]);
-            for (auto& c : f) c = unit(std::move(c));
-            m_t[i].buildFromHarmonics(f);
+        for ( int i = 1; i < NumTables - 1; ++i )
+        {
+            const Wavetable     &w = builtinTable( i );
+            std::vector<CoeffsT> f( static_cast<size_t>( w.m_frames ),
+                                    CoeffsT( static_cast<size_t>( TablePartials ) ) );
+            for ( int k = 0; k < w.m_frames; ++k )
+                for ( int h = 0; h < TablePartials; ++h )
+                    f[static_cast<size_t>( k )][static_cast<size_t>( h )] = sine * static_cast<double>( w.m_amp[k][h] );
+            for ( auto &c : f ) c = unit( std::move( c ) );
+            m_t[i].buildFromHarmonics( f );
         }
     }
 };
 
-} // namespace
+}   // namespace
 
-const CycleTable& builtinCycleTable(int index)
+const CycleTable &builtinCycleTable( int index )
 {
     static const BuiltinCycles b;
-    return b.m_t[index < 0 ? 0 : (index > NumTables - 2 ? NumTables - 2 : index)];
+    return b.m_t[index < 0 ? 0 : ( index > NumTables - 2 ? NumTables - 2 : index )];
 }
 
-} // namespace ambient
+}   // namespace ambient

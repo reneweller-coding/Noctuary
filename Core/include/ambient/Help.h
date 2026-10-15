@@ -15,7 +15,8 @@
 #pragma once
 #include "Params.h"
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief What a parameter does, for the person turning it.
@@ -24,7 +25,7 @@ namespace ambient {
  * @param[in] id  the parameter whose text is wanted
  * @return one or two sentences from the table in Help.cpp, "" when it has no entry
  */
-const char* paramHelp(ParamIdE id);
+const char *paramHelp( ParamIdE id );
 
 /**
  * @name The manual, by topic
@@ -38,21 +39,21 @@ const char* paramHelp(ParamIdE id);
  * @brief How many topics the manual has.
  * @return the number of entries; the valid indices are 0 .. that - 1
  */
-int         numHelpTopics();
+int numHelpTopics();
 
 /**
  * @brief The heading of one topic, as the Help page lists it.
  * @param[in] index  0 .. numHelpTopics() - 1
  * @return the title, "" for an index outside the table
  */
-const char* helpTopicTitle(int index);
+const char *helpTopicTitle( int index );
 
 /**
  * @brief The body of one topic.
  * @param[in] index  0 .. numHelpTopics() - 1
  * @return the text, "" for an index outside the table
  */
-const char* helpTopicText(int index);
+const char *helpTopicText( int index );
 /** @} */
 
 /**
@@ -63,6 +64,6 @@ const char* helpTopicText(int index);
  * @param[in] name  the label exactly as the panel prints it
  * @return the block's text from the table in Help.cpp, "" when there is none
  */
-const char* tabHelp(const char* name);
+const char *tabHelp( const char *name );
 
-} // namespace ambient
+}   // namespace ambient

@@ -31,7 +31,15 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
  * @param[in] cond  the condition that has to hold
  * @param[in] msg   what was measured, as the FAIL line prints it
  */
-#define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
+#define CHECK( cond, msg )                                                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ( !( cond ) )                                                                                               \
+        {                                                                                                              \
+            std::printf( "FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__ );                                              \
+            ++failures;                                                                                                \
+        }                                                                                                              \
+    } while ( 0 )
 
 #include "ConvolverChecks.h"
 
@@ -43,22 +51,24 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
 int main()
 {
 #if AMBIENT_HAS_AVX
-    const char* path = "avx2";
-#elif AMBIENT_HAS_NEON && defined(AMBIENT_NEON_SHIM) && defined(AMBIENT_NEON_SHIM_NOFMA)
-    const char* path = "neon-shim-nofma";
-#elif AMBIENT_HAS_NEON && defined(AMBIENT_NEON_SHIM)
-    const char* path = "neon-shim";
+    const char *path = "avx2";
+#elif AMBIENT_HAS_NEON && defined( AMBIENT_NEON_SHIM ) && defined( AMBIENT_NEON_SHIM_NOFMA )
+    const char *path = "neon-shim-nofma";
+#elif AMBIENT_HAS_NEON && defined( AMBIENT_NEON_SHIM )
+    const char *path = "neon-shim";
 #elif AMBIENT_HAS_NEON
-    const char* path = "neon";
+    const char *path = "neon";
 #else
-    const char* path = "scalar";
+    const char *path = "scalar";
 #endif
-    std::printf("convolver path: %s\n", path);
+    std::printf( "convolver path: %s\n", path );
 #ifdef AMBIENT_EXPECT_PATH
-    CHECK(std::strcmp(path, AMBIENT_EXPECT_PATH) == 0, "the build runs the vector path it was made for");
+    CHECK( std::strcmp( path, AMBIENT_EXPECT_PATH ) == 0, "the build runs the vector path it was made for" );
 #endif
     convolverChecks();
-    if (failures == 0) std::printf("convtest: all checks passed\n");
-    else std::printf("convtest: %d failures\n", failures);
+    if ( failures == 0 )
+        std::printf( "convtest: all checks passed\n" );
+    else
+        std::printf( "convtest: %d failures\n", failures );
     return failures == 0 ? 0 : 1;
 }

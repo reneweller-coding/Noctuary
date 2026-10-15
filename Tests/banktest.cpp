@@ -32,7 +32,15 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
  * @param[in] cond  the condition that has to hold
  * @param[in] msg   what was measured, as the FAIL line prints it
  */
-#define CHECK(cond, msg) do { if (!(cond)) { std::printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); ++failures; } } while (0)
+#define CHECK( cond, msg )                                                                                             \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ( !( cond ) )                                                                                               \
+        {                                                                                                              \
+            std::printf( "FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__ );                                              \
+            ++failures;                                                                                                \
+        }                                                                                                              \
+    } while ( 0 )
 
 #include "BankChecks.h"
 
@@ -44,24 +52,26 @@ static int failures = 0;   ///< how many CHECKs failed so far; decides the exit 
 int main()
 {
 #if AMBIENT_HAS_AVX
-    const char* path = "avx2";
-#elif AMBIENT_HAS_NEON && defined(AMBIENT_NEON_SHIM)
-    const char* path = "neon-shim";
+    const char *path = "avx2";
+#elif AMBIENT_HAS_NEON && defined( AMBIENT_NEON_SHIM )
+    const char *path = "neon-shim";
 #elif AMBIENT_HAS_NEON
-    const char* path = "neon";
+    const char *path = "neon";
 #else
-    const char* path = "scalar";
+    const char *path = "scalar";
 #endif
-    std::printf("partial bank path: %s, grain ring: %s\n", path, ringGrainPath());
+    std::printf( "partial bank path: %s, grain ring: %s\n", path, ringGrainPath() );
 #ifdef AMBIENT_EXPECT_PATH
-    CHECK(std::strcmp(path, AMBIENT_EXPECT_PATH) == 0, "the build runs the vector path it was made for");
+    CHECK( std::strcmp( path, AMBIENT_EXPECT_PATH ) == 0, "the build runs the vector path it was made for" );
     // The grain ring says which path IT took as well: its check holds the vector path against the
     // scalar one, and that passes for nothing at all when the two are the same code.
-    const char* want = std::strcmp(AMBIENT_EXPECT_PATH, "neon-shim") == 0 ? "neon" : AMBIENT_EXPECT_PATH;
-    CHECK(std::strcmp(ringGrainPath(), want) == 0, "and the grain ring runs it too");
+    const char *want = std::strcmp( AMBIENT_EXPECT_PATH, "neon-shim" ) == 0 ? "neon" : AMBIENT_EXPECT_PATH;
+    CHECK( std::strcmp( ringGrainPath(), want ) == 0, "and the grain ring runs it too" );
 #endif
     bankChecks();
-    if (failures == 0) std::printf("banktest: all checks passed\n");
-    else std::printf("banktest: %d failures\n", failures);
+    if ( failures == 0 )
+        std::printf( "banktest: all checks passed\n" );
+    else
+        std::printf( "banktest: %d failures\n", failures );
     return failures == 0 ? 0 : 1;
 }

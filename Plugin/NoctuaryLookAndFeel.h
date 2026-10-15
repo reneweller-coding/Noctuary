@@ -16,36 +16,37 @@
 #include "Frame.h"
 
 /** @brief The palette and the two typefaces of the editor; EditorCommon.h gives them shorter names. */
-namespace ui {
+namespace ui
+{
 
 /** @name Ground and surfaces
  *  @{ */
-const juce::Colour Bg0        { 0xff080b12 };   ///< window, top
-const juce::Colour Bg1        { 0xff0e1220 };   ///< window, bottom
-const juce::Colour CardColour       { 0xff141a29 };   ///< section card
-const juce::Colour CardEdge   { 0xff1f2739 };   ///< the one-pixel edge of a card, a box or a button
-const juce::Colour GroupColour      { 0xff10151f };   ///< group panel behind the cards
-const juce::Colour Track      { 0xff232c41 };   ///< unfilled part of an arc
+const juce::Colour Bg0{ 0xff080b12 };           ///< window, top
+const juce::Colour Bg1{ 0xff0e1220 };           ///< window, bottom
+const juce::Colour CardColour{ 0xff141a29 };    ///< section card
+const juce::Colour CardEdge{ 0xff1f2739 };      ///< the one-pixel edge of a card, a box or a button
+const juce::Colour GroupColour{ 0xff10151f };   ///< group panel behind the cards
+const juce::Colour Track{ 0xff232c41 };         ///< unfilled part of an arc
 /** @} */
 
 /** @name Type
  *  @{ */
-const juce::Colour Text       { 0xffcfd7e6 };   ///< primary text: values, names, button labels
-const juce::Colour Dim        { 0xff6d7a92 };   ///< secondary text and the box chevron
-const juce::Colour Faint      { 0xff3d4658 };   ///< the faintest: axis labels, disabled controls, scrollbar thumbs
+const juce::Colour Text{ 0xffcfd7e6 };    ///< primary text: values, names, button labels
+const juce::Colour Dim{ 0xff6d7a92 };     ///< secondary text and the box chevron
+const juce::Colour Faint{ 0xff3d4658 };   ///< the faintest: axis labels, disabled controls, scrollbar thumbs
 /** @} */
 
 /** @name Accents
  *  @{ */
-const juce::Colour Accent     { 0xff6fd8d2 };   ///< the instrument's own colour: cold, wide
-const juce::Colour Live       { 0xffe8a45c };   ///< warm: something is sounding or moving now
-const juce::Colour VoiceCol   { 0xff74b6e0 };   ///< the Voice group
-const juce::Colour ForeCol    { 0xff86d3a6 };   ///< the near (foreground) layer
-const juce::Colour BackCol    { 0xffb197e8 };   ///< the background layer
-const juce::Colour CosmosCol  { 0xffe8a45c };   ///< the Cosmos chain (the same warm hue as live)
-const juce::Colour CondCol    { 0xff6fd8d2 };   ///< the conductor (the same hue as accent)
-const juce::Colour MorphCol   { 0xffe07fb0 };   ///< Morph
-const juce::Colour MasterCol  { 0xff9aa7bd };   ///< the master section
+const juce::Colour Accent{ 0xff6fd8d2 };      ///< the instrument's own colour: cold, wide
+const juce::Colour Live{ 0xffe8a45c };        ///< warm: something is sounding or moving now
+const juce::Colour VoiceCol{ 0xff74b6e0 };    ///< the Voice group
+const juce::Colour ForeCol{ 0xff86d3a6 };     ///< the near (foreground) layer
+const juce::Colour BackCol{ 0xffb197e8 };     ///< the background layer
+const juce::Colour CosmosCol{ 0xffe8a45c };   ///< the Cosmos chain (the same warm hue as live)
+const juce::Colour CondCol{ 0xff6fd8d2 };     ///< the conductor (the same hue as accent)
+const juce::Colour MorphCol{ 0xffe07fb0 };    ///< Morph
+const juce::Colour MasterCol{ 0xff9aa7bd };   ///< the master section
 /** @} */
 
 /**
@@ -53,22 +54,22 @@ const juce::Colour MasterCol  { 0xff9aa7bd };   ///< the master section
  * @param[in] height  the font height in points
  * @return a bold face with 0.14 extra kerning
  */
-juce::Font title(float height);
+juce::Font title( float height );
 /**
  * @brief The plain face for everything that is not a heading.
  * @param[in] height  the font height in points
  * @return the default face at that height
  */
-juce::Font body(float height);
+juce::Font body( float height );
 
 /**
  * @brief The family frame's skin in Noctuary's colours (15.10.2026): what the shared parts -- the command palette, the
  *        first steps -- draw with.
  * @return the skin
  */
-const frame::Skin& skin();
+const frame::Skin &skin();
 
-} // namespace ui
+}   // namespace ui
 
 /**
  * @brief JUCE's LookAndFeel_V4 with the palette above and the instrument's own knobs, boxes,
@@ -103,20 +104,20 @@ public:
      * @param[in]     endAngle    the arc's end in radians
      * @param[in,out] s           the slider, for its colours, properties and text
      */
-    void drawRotarySlider(juce::Graphics&, int x, int y, int width, int height, float pos,
-                          float startAngle, float endAngle, juce::Slider&) override;
+    void drawRotarySlider( juce::Graphics &, int x, int y, int width, int height, float pos, float startAngle,
+                           float endAngle, juce::Slider & ) override;
     /**
      * @brief The whole component is the knob; there is no text box, the value is drawn inside.
      * @param[in,out] s  the slider
      * @return its bounds as the slider area and an empty text box
      */
-    juce::Slider::SliderLayout getSliderLayout(juce::Slider&) override;
+    juce::Slider::SliderLayout getSliderLayout( juce::Slider & ) override;
     /**
      * @brief JUCE's text box made invisible (no background, no outline), for the sliders that keep one.
      * @param[in,out] s  the slider
      * @return the label, owned by the slider
      */
-    juce::Label* createSliderTextBox(juce::Slider&) override;
+    juce::Label *createSliderTextBox( juce::Slider & ) override;
 
     /**
      * @brief A linear slider as a thin track with a filled part and a round thumb, horizontal or vertical.
@@ -131,8 +132,8 @@ public:
      * @param[in]     style   horizontal (LinearHorizontal, LinearBar) or anything else, taken as vertical
      * @param[in,out] s       the slider, for its fill colour
      */
-    void drawLinearSlider(juce::Graphics&, int x, int y, int width, int height, float pos,
-                          float min, float max, juce::Slider::SliderStyle, juce::Slider&) override;
+    void drawLinearSlider( juce::Graphics &, int x, int y, int width, int height, float pos, float min, float max,
+                           juce::Slider::SliderStyle, juce::Slider & ) override;
 
     /**
      * @brief A rounded box with a chevron, brighter and accent-edged while hot.
@@ -146,19 +147,19 @@ public:
      * @param[in]     buttonH  unused
      * @param[in,out] box      the box, for its colours and hover state
      */
-    void drawComboBox(juce::Graphics&, int width, int height, bool down, int buttonX, int buttonY,
-                      int buttonW, int buttonH, juce::ComboBox&) override;
+    void drawComboBox( juce::Graphics &, int width, int height, bool down, int buttonX, int buttonY, int buttonW,
+                       int buttonH, juce::ComboBox & ) override;
     /**
      * @brief Places the box's label left of the chevron and gives it the box font and colour.
      * @param[in,out] box    the box
      * @param[in,out] label  its text label
      */
-    void positionComboBoxText(juce::ComboBox&, juce::Label&) override;
+    void positionComboBoxText( juce::ComboBox &, juce::Label & ) override;
     /**
      * @param[in,out] box  the box
      * @return the body face, 60 \% of the box height and at most 13 pt
      */
-    juce::Font getComboBoxFont(juce::ComboBox&) override;
+    juce::Font getComboBoxFont( juce::ComboBox & ) override;
 
     /**
      * @brief A pill switch with a sliding knob and the text beside it (see the body).
@@ -167,7 +168,7 @@ public:
      * @param[in]     highlighted  the mouse is over it: a faint outline
      * @param[in]     down         unused
      */
-    void drawToggleButton(juce::Graphics&, juce::ToggleButton&, bool highlighted, bool down) override;
+    void drawToggleButton( juce::Graphics &, juce::ToggleButton &, bool highlighted, bool down ) override;
 
     /**
      * @brief A rounded button: brighter when highlighted or down, accent-edged when on.
@@ -177,8 +178,8 @@ public:
      * @param[in]     highlighted  the mouse is over it
      * @param[in]     down         it is pressed
      */
-    void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour& background,
-                              bool highlighted, bool down) override;
+    void drawButtonBackground( juce::Graphics &, juce::Button &, const juce::Colour &background, bool highlighted,
+                               bool down ) override;
     /**
      * @brief The button's text centred, in the on or off colour, faded when disabled.
      * @param[in,out] g            the graphics context
@@ -186,12 +187,12 @@ public:
      * @param[in]     highlighted  unused
      * @param[in]     down         unused
      */
-    void drawButtonText(juce::Graphics&, juce::TextButton&, bool highlighted, bool down) override;
+    void drawButtonText( juce::Graphics &, juce::TextButton &, bool highlighted, bool down ) override;
     /**
      * @param[in] buttonHeight  the button's height in pixels
      * @return the body face, 55 \% of the height and at most 13 pt
      */
-    juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override;
+    juce::Font getTextButtonFont( juce::TextButton &, int buttonHeight ) override;
 
     /**
      * @brief A rounded card with an edge behind a menu.
@@ -199,7 +200,7 @@ public:
      * @param[in]     width   the menu's width
      * @param[in]     height  the menu's height
      */
-    void drawPopupMenuBackground(juce::Graphics&, int width, int height) override;
+    void drawPopupMenuBackground( juce::Graphics &, int width, int height ) override;
     /** @return the body face at 13 pt */
     juce::Font getPopupMenuFont() override;
     /**
@@ -207,7 +208,7 @@ public:
      * @param[in,out] g  the graphics context
      * @param[in,out] l  the label
      */
-    void drawLabel(juce::Graphics&, juce::Label&) override;
+    void drawLabel( juce::Graphics &, juce::Label & ) override;
 
     /**
      * @brief A thin rounded thumb and no track, brighter under the mouse and while dragged.
@@ -222,6 +223,6 @@ public:
      * @param[in]     mouseOver  the mouse is over the bar
      * @param[in]     down       the thumb is being dragged
      */
-    void drawScrollbar(juce::Graphics&, juce::ScrollBar&, int x, int y, int width, int height,
-                       bool vertical, int thumbPos, int thumbSize, bool mouseOver, bool down) override;
+    void drawScrollbar( juce::Graphics &, juce::ScrollBar &, int x, int y, int width, int height, bool vertical,
+                        int thumbPos, int thumbSize, bool mouseOver, bool down ) override;
 };

@@ -1,0 +1,15 @@
+# Files clang-format leaves alone: the generated ones (their layout is their generator's, Tools/...).
+# Third-party code is not formatted either (ThirdParty/, Tests/neonshim).
+Core/src/CosmosPresets.inc
+Core/src/HarmonicEntropy.inc
+Core/src/NearAuto.inc
+Core/src/NearPresets.inc
+Core/src/PresetClusters.inc
+Core/src/PresetPhrases.inc
+Core/src/StrikePresets.inc
+Core/src/ZPlaneBank.inc
+Core/src/ZPlanePresets.inc
+Core/src/PresetMeta.cpp
+ThirdParty/**
+Tests/neonshim/**
+Tests/neonbench/**

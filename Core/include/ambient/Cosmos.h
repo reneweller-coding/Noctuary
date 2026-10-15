@@ -23,7 +23,8 @@
 #include "Dsp.h"
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief Single-sideband frequency shifter: every partial moved by the same number of hertz, so
@@ -35,55 +36,64 @@ namespace ambient {
  * left's, so the two sides beat slowly against each other. Wet and dry are mixed inside; at mix 0
  * nothing is computed.
  */
-class FreqShifter {
+class FreqShifter
+{
 public:
     /**
      * @brief Takes the sample rate and clears the all-pass chains and the oscillator.
      * @param[in] sampleRate  the engine's rate in Hz
      */
-    void prepare(double sampleRate);
+    void prepare( double sampleRate );
     /**
      * @brief The shift and the mix, once a block.
      * @param[in] shiftHz  how far every partial moves, in Hz; negative moves the spectrum down
      * @param[in] mix      0 .. 1 wet against dry
      */
-    void set(float shiftHz, float mix) { m_shift = shiftHz; m_mix = clampv(mix, 0.0f, 1.0f); }
+    void set( float shiftHz, float mix )
+    {
+        m_shift = shiftHz;
+        m_mix = clampv( mix, 0.0f, 1.0f );
+    }
     /**
      * @brief Shifts a block in place.
      * @param[in,out] L  left channel, n samples, replaced by the mix
      * @param[in,out] R  right channel, likewise
      * @param[in]     n  samples in the block
      */
-    void process(float* L, float* R, int n);
+    void process( float *L, float *R, int n );
+
 private:
     /**
      * @brief One channel's 90-degree phase splitter: two chains of four second-order all-passes
      *        whose outputs are a quarter cycle apart across the band (Olli Niemitalo).
      */
-    struct Hilbert {
-        float m_x1[4] = {},   ///< chain A: each section's input one sample ago
-              m_x2[4] = {},   ///< chain A: input two samples ago
-              m_y1[4] = {},   ///< chain A: output one sample ago
-              m_y2[4] = {};   ///< chain A: output two samples ago
+    struct Hilbert
+    {
+        float m_x1[4] = {},    ///< chain A: each section's input one sample ago
+            m_x2[4] = {},      ///< chain A: input two samples ago
+            m_y1[4] = {},      ///< chain A: output one sample ago
+            m_y2[4] = {};      ///< chain A: output two samples ago
         float m_x1b[4] = {},   ///< chain B: input one sample ago
-              m_x2b[4] = {},   ///< chain B: input two samples ago
-              m_y1b[4] = {},   ///< chain B: output one sample ago
-              m_y2b[4] = {};   ///< chain B: output two samples ago
-        float m_delayed = 0.0f;   ///< chain A's last output: A lags B by one sample, so A is handed out a sample late to line them up
+            m_x2b[4] = {},     ///< chain B: input two samples ago
+            m_y1b[4] = {},     ///< chain B: output one sample ago
+            m_y2b[4] = {};     ///< chain B: output two samples ago
+        float m_delayed =
+            0.0f;   ///< chain A's last output: A lags B by one sample, so A is handed out a sample late to line them up
         /**
          * @brief One sample through both chains.
          * @param[in]  in  the input sample
          * @param[out] re  receives the in-phase output (chain A, delayed a sample)
          * @param[out] im  receives the quadrature output (chain B)
          */
-        void tick(float in, float& re, float& im);
+        void tick( float in, float &re, float &im );
     };
-    Hilbert m_hL,   ///< the left channel's splitter
-            m_hR;   ///< the right channel's splitter
+    Hilbert m_hL,            ///< the left channel's splitter
+        m_hR;                ///< the right channel's splitter
     double m_sr = 48000.0,   ///< sample rate in Hz
-           m_ph = 0.0;       ///< the oscillator's phase in cycles, advanced by shift / sr per sample and reset when it runs far
-    float  m_shift = 0.0f,   ///< the shift in Hz
-           m_mix = 0.0f;     ///< wet against dry, 0 .. 1
+        m_ph =
+            0.0;   ///< the oscillator's phase in cycles, advanced by shift / sr per sample and reset when it runs far
+    float m_shift = 0.0f,   ///< the shift in Hz
+        m_mix = 0.0f;       ///< wet against dry, 0 .. 1
 };
 
 /**
@@ -95,41 +105,43 @@ private:
  * moving frequency bends rather than clicks. At mix 0 the lines are still fed, so the ring is there
  * the moment the mix comes up.
  */
-class CombResonator {
+class CombResonator
+{
 public:
     /**
      * @brief Sizes the delay lines for 20 Hz at this rate and clears them.
      * @param[in] sampleRate  the engine's rate in Hz
      */
-    void prepare(double sampleRate);
+    void prepare( double sampleRate );
     /**
      * @brief The comb's tuning, feedback and mix, once a block.
      * @param[in] freqHz    the fundamental in Hz, clamped 20 .. 4000
      * @param[in] feedback  the loop gain, clamped 0 .. 0.97
      * @param[in] mix       0 .. 1 wet against dry
      */
-    void set(float freqHz, float feedback, float mix);
+    void set( float freqHz, float feedback, float mix );
     /**
      * @brief Runs a block in place.
      * @param[in,out] L  left channel, n samples, replaced by the mix
      * @param[in,out] R  right channel, likewise
      * @param[in]     n  samples in the block
      */
-    void process(float* L, float* R, int n);
+    void process( float *L, float *R, int n );
+
 private:
     std::vector<float> m_bufL,   ///< the left delay line, a power-of-two ring
-                       m_bufR;   ///< the right delay line
-    int    m_mask = 0,   ///< ring size - 1
-           m_w = 0;      ///< the write index, shared by both lines
-    double m_sr = 48000.0;   ///< sample rate in Hz
-    float  m_dL = 100.0f,    ///< target delay of the left line in samples, sr / freq
-           m_dR = 100.0f,    ///< target delay of the right line, 0.3 % longer
-           m_dLcur = 0.0f,   ///< the left delay as it glides towards m_dL (0 before the first set())
-           m_dRcur = 0.0f;   ///< the right delay as it glides
-    float  m_fb = 0.8f,    ///< the loop gain
-           m_mix = 0.0f,   ///< wet against dry
-           m_lpL = 0.0f,   ///< the left loop's one-pole low-pass state
-           m_lpR = 0.0f;   ///< the right loop's low-pass state
+        m_bufR;                  ///< the right delay line
+    int m_mask = 0,              ///< ring size - 1
+        m_w = 0;                 ///< the write index, shared by both lines
+    double m_sr = 48000.0;       ///< sample rate in Hz
+    float  m_dL = 100.0f,        ///< target delay of the left line in samples, sr / freq
+        m_dR = 100.0f,           ///< target delay of the right line, 0.3 % longer
+        m_dLcur = 0.0f,          ///< the left delay as it glides towards m_dL (0 before the first set())
+        m_dRcur = 0.0f;          ///< the right delay as it glides
+    float m_fb = 0.8f,           ///< the loop gain
+        m_mix = 0.0f,            ///< wet against dry
+        m_lpL = 0.0f,            ///< the left loop's one-pole low-pass state
+        m_lpR = 0.0f;            ///< the right loop's low-pass state
 };
 
 /**
@@ -140,36 +152,42 @@ private:
  * neighbouring vowels and recomputed every 64 samples. The right channel's formants sit one per
  * cent higher for width. At mix 0 nothing is computed.
  */
-class VowelFilter {
+class VowelFilter
+{
 public:
     /**
      * @brief Takes the rate, seeds the drift and resets the filters.
      * @param[in] sampleRate  the engine's rate in Hz
      * @param[in] seed        seeds the filter's own generator, which drives the vowel drift
      */
-    void prepare(double sampleRate, uint64_t seed);
+    void prepare( double sampleRate, uint64_t seed );
     /**
      * @brief The mix and the morph rate, once a block.
      * @param[in] mix     0 .. 1 wet against dry
      * @param[in] rateHz  how fast the vowel wanders, in new targets per second (a Drifter's rate)
      */
-    void set(float mix, float rateHz) { m_mix = clampv(mix, 0.0f, 1.0f); m_rate = rateHz; }
+    void set( float mix, float rateHz )
+    {
+        m_mix = clampv( mix, 0.0f, 1.0f );
+        m_rate = rateHz;
+    }
     /**
      * @brief Runs a block in place.
      * @param[in,out] L  left channel, n samples, replaced by the mix
      * @param[in,out] R  right channel, likewise
      * @param[in]     n  samples in the block
      */
-    void process(float* L, float* R, int n);
+    void process( float *L, float *R, int n );
+
 private:
-    Svf     m_fL[3],   ///< the three formant band passes, left
-            m_fR[3];   ///< the three formant band passes, right (one per cent higher)
-    Drifter m_morph;   ///< the vowel position, -1 .. 1 mapped onto the five vowels
-    Rng     m_rng;     ///< the filter's own generator, for the drift
+    Svf m_fL[3],              ///< the three formant band passes, left
+        m_fR[3];              ///< the three formant band passes, right (one per cent higher)
+    Drifter m_morph;          ///< the vowel position, -1 .. 1 mapped onto the five vowels
+    Rng     m_rng;            ///< the filter's own generator, for the drift
     double  m_sr = 48000.0;   ///< sample rate in Hz
     float   m_mix = 0.0f,     ///< wet against dry
-            m_rate = 0.05f;   ///< the drift's rate in Hz
-    int     m_counter = 0;   ///< samples until the formant coefficients are recomputed (every 64)
+        m_rate = 0.05f;       ///< the drift's rate in Hz
+    int m_counter = 0;        ///< samples until the formant coefficients are recomputed (every 64)
 };
 
 /**
@@ -179,33 +197,35 @@ private:
  * run towards or away from the write head at the rate the interval asks for and wrap every 80 ms,
  * so the pitch changes and the delay does not. Mono: the shimmer loop runs one per channel.
  */
-class PitchShifter {
+class PitchShifter
+{
 public:
     /**
      * @brief Sizes the delay line (0.2 s) and sets the 80 ms window.
      * @param[in] sampleRate  the engine's rate in Hz
      */
-    void prepare(double sampleRate);
+    void prepare( double sampleRate );
     /**
      * @brief The interval, once a block.
      * @param[in] st  semitones, positive up; the read rate becomes 2^(st / 12)
      */
-    void setSemitones(float st);
+    void setSemitones( float st );
     /**
      * @brief Shifts a block; wet only.
      * @param[in]     in   n input samples
      * @param[in,out] out  n shifted samples (may not be the input)
      * @param[in]     n    samples in the block
      */
-    void process(const float* in, float* out, int n);
+    void process( const float *in, float *out, int n );
+
 private:
-    std::vector<float> m_buf;   ///< the delay line, a power-of-two ring
-    int    m_mask = 0,   ///< ring size - 1
-           m_w = 0;      ///< the write index
-    double m_sr = 48000.0;   ///< sample rate in Hz
-    float  m_window = 3840.0f,   ///< the heads' travel in samples, 80 ms
-           m_rate = 1.0f,        ///< the read rate, 2^(semitones / 12)
-           m_pos = 0.0f;         ///< the first head's position in its window, 0 .. 1; the second is half a window on
+    std::vector<float> m_buf;        ///< the delay line, a power-of-two ring
+    int                m_mask = 0,   ///< ring size - 1
+        m_w = 0;                     ///< the write index
+    double m_sr = 48000.0;           ///< sample rate in Hz
+    float  m_window = 3840.0f,       ///< the heads' travel in samples, 80 ms
+        m_rate = 1.0f,               ///< the read rate, 2^(semitones / 12)
+        m_pos = 0.0f;   ///< the first head's position in its window, 0 .. 1; the second is half a window on
 };
 
 /**
@@ -215,30 +235,32 @@ private:
  * threads. The forward transform turns by e^-i, the inverse by e^+i and divides by n, so the round
  * trip returns what went in. For a real signal use RealFft, which does the same for half the work.
  */
-class Fft {
+class Fft
+{
 public:
     /**
      * @brief Builds the twiddle and bit-reversal tables for a size.
      * @param[in] n  the transform length, a power of two (2048 by default)
      */
-    explicit Fft(int n = 2048);
+    explicit Fft( int n = 2048 );
     /**
      * @brief Transforms in place.
      * @param[in,out] re       n real parts, replaced by the spectrum's (or the signal's, on the way back)
      * @param[in,out] im       n imaginary parts, likewise
      * @param[in]     inverse  false for the forward transform, true for the inverse scaled by 1 / n
      */
-    void transform(float* re, float* im, bool inverse) const;
+    void transform( float *re, float *im, bool inverse ) const;
     /**
      * @brief The transform length.
      * @return  n as given to the constructor
      */
     int size() const { return m_n; }
+
 private:
-    int m_n;   ///< the transform length
+    int                m_n;     ///< the transform length
     std::vector<float> m_cos,   ///< cos(2 pi k / n), k = 0 .. n/2 - 1
-                       m_sin;   ///< sin(2 pi k / n), the same range
-    std::vector<int>   m_rev;   ///< the bit-reversal permutation of 0 .. n - 1
+        m_sin;                  ///< sin(2 pi k / n), the same range
+    std::vector<int> m_rev;     ///< the bit-reversal permutation of 0 .. n - 1
 };
 
 /**
@@ -267,13 +289,14 @@ private:
  * still has to read. Measured the hard way -- the round trip came back 1, 5, 3, 7, 5, 7, 7, 8 for
  * 1 to 8, every odd sample taken from two places further on.
  */
-class RealFft {
+class RealFft
+{
 public:
     /**
      * @brief Builds the half-length complex transform, the rotation table and the scratch half.
      * @param[in] n  the real transform length, a power of two (2048 by default)
      */
-    explicit RealFft(int n = 2048);
+    explicit RealFft( int n = 2048 );
     /**
      * @brief The transform length.
      * @return  n as given to the constructor
@@ -288,7 +311,7 @@ public:
      * @param[in,out] re  n floats, receives the real parts of the spectrum
      * @param[in,out] im  n floats, receives the imaginary parts
      */
-    void forward(const float* x, float* re, float* im) const;
+    void forward( const float *x, float *re, float *im ) const;
     /**
      * @brief The inverse transform back to a real signal, using the instance's own scratch half.
      *
@@ -298,7 +321,7 @@ public:
      * @param[in]     im  the imaginary parts
      * @param[in,out] x   n floats, receives the signal; may be the same array as re
      */
-    void inverse(const float* re, const float* im, float* x) const { inverse(re, im, x, m_work.data()); }
+    void inverse( const float *re, const float *im, float *x ) const { inverse( re, im, x, m_work.data() ); }
     /**
      * @brief The inverse transform with the scratch half supplied by the caller.
      *
@@ -312,12 +335,13 @@ public:
      * @param[in,out] x        n floats, receives the signal; may be the same array as re
      * @param[in,out] scratch  n/2 floats of working space; may be im itself
      */
-    void inverse(const float* re, const float* im, float* x, float* scratch) const;
+    void inverse( const float *re, const float *im, float *x, float *scratch ) const;
+
 private:
-    int m_n;   ///< the real transform length
-    Fft m_half;                     ///< the complex transform of n/2 that does the work
-    std::vector<float> m_tc,   ///< cos(2 pi k / n), k = 0 .. n/2
-                       m_ts;   ///< e^(-2 pi i k / n), k = 0 .. n/2 -- its sine
+    int                m_n;              ///< the real transform length
+    Fft                m_half;           ///< the complex transform of n/2 that does the work
+    std::vector<float> m_tc,             ///< cos(2 pi k / n), k = 0 .. n/2
+        m_ts;                            ///< e^(-2 pi i k / n), k = 0 .. n/2 -- its sine
     mutable std::vector<float> m_work;   ///< n/2, the inverse's imaginary half; sized in the constructor
 };
 
@@ -329,21 +353,22 @@ private:
  * resynthesised and overlap-added. At Smear 0 the magnitudes follow the input, at 1 the smoother's
  * time constant is minutes and the spectrum is frozen. Wet only, N samples late.
  */
-class Nebula {
+class Nebula
+{
 public:
-    static constexpr int N = 2048,    ///< the frame length and the latency in samples
-                         Hop = 512;   ///< samples between frames: a quarter of the frame
+    static constexpr int N = 2048,   ///< the frame length and the latency in samples
+        Hop = 512;                   ///< samples between frames: a quarter of the frame
     /**
      * @brief Allocates the two channels' buffers, builds the window and seeds the phase generators.
      * @param[in] sampleRate  the engine's rate (unused: the frame is fixed in samples)
      * @param[in] seed        seeds the two channels' phase generators
      */
-    void prepare(double sampleRate, uint64_t seed);
+    void prepare( double sampleRate, uint64_t seed );
     /**
      * @brief The smear, once a block.
      * @param[in] smear  0 = follows the input, 1 = frozen
      */
-    void set(float smear);
+    void set( float smear );
     /**
      * @brief Wet output only (latency N samples).
      * @param[in]  inL   left input, n samples
@@ -352,29 +377,31 @@ public:
      * @param[out] wetR  receives the right
      * @param[in]  n     samples in the block
      */
-    void process(const float* inL, const float* inR, float* wetL, float* wetR, int n);
+    void process( const float *inL, const float *inR, float *wetL, float *wetR, int n );
+
 private:
     /** @brief One channel's rings, spectrum and smoothed magnitudes. */
-    struct Channel {
-        std::vector<float> m_in,    ///< the input ring, N samples
-                           m_out,   ///< the overlap-add output ring, 2 N samples
-                           m_mag,   ///< the smoothed magnitudes, N / 2 + 1 bins
-                           m_re,    ///< the frame and then its spectrum's real parts, N
-                           m_im;    ///< the spectrum's imaginary parts, N
-        int m_inPos = 0,    ///< samples written into `in` so far
-            m_outPos = 0;   ///< samples read out of `out` so far
-        Rng m_rng;   ///< the channel's own generator for the random phases
+    struct Channel
+    {
+        std::vector<float> m_in,   ///< the input ring, N samples
+            m_out,                 ///< the overlap-add output ring, 2 N samples
+            m_mag,                 ///< the smoothed magnitudes, N / 2 + 1 bins
+            m_re,                  ///< the frame and then its spectrum's real parts, N
+            m_im;                  ///< the spectrum's imaginary parts, N
+        int m_inPos = 0,           ///< samples written into `in` so far
+            m_outPos = 0;          ///< samples read out of `out` so far
+        Rng m_rng;                 ///< the channel's own generator for the random phases
     };
     /**
      * @brief One frame of one channel: window, transform, smooth the magnitudes, random phases, back, overlap-add.
      * @param[in,out] c  the channel
      */
-    void frame(Channel& c);
-    Channel m_ch[2];   ///< left and right
-    RealFft m_fft{ N };   ///< the real transform of N
-    std::vector<float> m_window;   ///< the Hann window, N samples, used on the way in and out
-    int     m_hopCounter = 0;   ///< samples since the last frame; a frame runs when it reaches Hop
-    float   m_alpha = 1.0f;   ///< the magnitude smoother's coefficient, (1 - smear)^2 floored at 2e-4
+    void frame( Channel &c );
+    Channel            m_ch[2];            ///< left and right
+    RealFft            m_fft{ N };         ///< the real transform of N
+    std::vector<float> m_window;           ///< the Hann window, N samples, used on the way in and out
+    int                m_hopCounter = 0;   ///< samples since the last frame; a frame runs when it reaches Hop
+    float              m_alpha = 1.0f;     ///< the magnitude smoother's coefficient, (1 - smear)^2 floored at 2e-4
 };
 
-} // namespace ambient
+}   // namespace ambient

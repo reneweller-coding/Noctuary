@@ -15,7 +15,8 @@
 #pragma once
 #include "Gesture.h"
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief The rows of the hand menu, top to bottom, and what activating one asks the host to do.
@@ -24,32 +25,45 @@ namespace ambient {
  * right hand's height is mapped onto 0 .. Count - 1 with the hand high at the top row. None is
  * what HandMenu::update() returns in a frame in which nothing was fired.
  */
-enum class MenuActionE : int {
+enum class MenuActionE : int
+{
     NONE = -1,   ///< nothing fired this frame
-    TOGGLE_MORPH, CAPTURE_A, CAPTURE_B, PRESET_A_PREV, PRESET_A_NEXT, PRESET_B_PREV, PRESET_B_NEXT, TOGGLE_MAP, TOGGLE_ROUTE, TOGGLE_RECORD, CALIBRATE,   ///< the eleven rows: morph on/off, capture the live sound as A or B, step A's or B's preset back or forward, map on/off, route play/stop, record, run the hand calibration
+    TOGGLE_MORPH,
+    CAPTURE_A,
+    CAPTURE_B,
+    PRESET_A_PREV,
+    PRESET_A_NEXT,
+    PRESET_B_PREV,
+    PRESET_B_NEXT,
+    TOGGLE_MAP,
+    TOGGLE_ROUTE,
+    TOGGLE_RECORD,
+    CALIBRATE,   ///< the eleven rows: morph on/off, capture the live sound as A or B, step A's or B's preset back or forward, map on/off, route play/stop, record, run the hand calibration
     COUNT        ///< how many rows the menu draws
 };
-constexpr int MenuItems = static_cast<int>(MenuActionE::COUNT);   ///< rows of the menu, the range of HandMenu::highlighted()
+constexpr int MenuItems =
+    static_cast<int>( MenuActionE::COUNT );   ///< rows of the menu, the range of HandMenu::highlighted()
 
 /**
  * @brief The caption the host draws for a row, in capitals as the menu shows them.
  * @param[in] a  the item
  * @return its label ("MORPH ON/OFF", "A = NOW", ...), "" for None, Count or anything else
  */
-inline const char* menuLabel(MenuActionE a)
+inline const char *menuLabel( MenuActionE a )
 {
-    switch (a) {
-    case MenuActionE::TOGGLE_MORPH:  return "MORPH ON/OFF";
-    case MenuActionE::CAPTURE_A:     return "A = NOW";
-    case MenuActionE::CAPTURE_B:     return "B = NOW";
-    case MenuActionE::PRESET_A_PREV:  return "A PREV";
-    case MenuActionE::PRESET_A_NEXT:  return "A NEXT";
-    case MenuActionE::PRESET_B_PREV:  return "B PREV";
-    case MenuActionE::PRESET_B_NEXT:  return "B NEXT";
-    case MenuActionE::TOGGLE_MAP:    return "MAP ON/OFF";
-    case MenuActionE::TOGGLE_ROUTE:  return "ROUTE PLAY/STOP";
+    switch ( a )
+    {
+    case MenuActionE::TOGGLE_MORPH: return "MORPH ON/OFF";
+    case MenuActionE::CAPTURE_A: return "A = NOW";
+    case MenuActionE::CAPTURE_B: return "B = NOW";
+    case MenuActionE::PRESET_A_PREV: return "A PREV";
+    case MenuActionE::PRESET_A_NEXT: return "A NEXT";
+    case MenuActionE::PRESET_B_PREV: return "B PREV";
+    case MenuActionE::PRESET_B_NEXT: return "B NEXT";
+    case MenuActionE::TOGGLE_MAP: return "MAP ON/OFF";
+    case MenuActionE::TOGGLE_ROUTE: return "ROUTE PLAY/STOP";
     case MenuActionE::TOGGLE_RECORD: return "RECORD";
-    case MenuActionE::CALIBRATE:    return "CALIBRATE";
+    case MenuActionE::CALIBRATE: return "CALIBRATE";
     default: return "";
     }
 }
@@ -64,7 +78,8 @@ inline const char* menuLabel(MenuActionE a)
  * is to suspend the layer's clutched mappings while it is open (or the layer is calibrating), so
  * a hand reaching for a row cannot move anything.
  */
-class HandMenu {
+class HandMenu
+{
 public:
     /**
      * @brief Call once per frame.
@@ -80,35 +95,51 @@ public:
      * @param[in,out] g   the gesture layer: LeftPinch, RightPinch and RightHeight are read, its suspension is written
      * @return the row fired this frame, or MenuAction::None
      */
-    MenuActionE update(double dt, GestureLayer& g)
+    MenuActionE update( double dt, GestureLayer &g )
     {
-        const float left = g.input(GestureInputE::LEFT_PINCH);
-        const float right = g.input(GestureInputE::RIGHT_PINCH);
-        const bool pinchNow = right > 0.5f;
+        const float left = g.input( GestureInputE::LEFT_PINCH );
+        const float right = g.input( GestureInputE::RIGHT_PINCH );
+        const bool  pinchNow = right > 0.5f;
         MenuActionE fired = MenuActionE::NONE;
 
-        if (!m_open && left > 0.6f) { m_open = true; m_openTime = 0.0; m_armed = !pinchNow; }
-        else if (m_open && left < 0.4f) { m_open = false; }
+        if ( !m_open && left > 0.6f )
+        {
+            m_open = true;
+            m_openTime = 0.0;
+            m_armed = !pinchNow;
+        }
+        else if ( m_open && left < 0.4f )
+        {
+            m_open = false;
+        }
 
-        if (m_open) {
+        if ( m_open )
+        {
             m_openTime += dt;
-            const float h = g.input(GestureInputE::RIGHT_HEIGHT);
-            m_highlight = clampv(static_cast<int>((1.0f - h) * MenuItems), 0, MenuItems - 1);
-            if (!pinchNow) m_armed = true;                    // the right hand must open before it can select
-            if (pinchNow && !m_lastPinch && m_armed && m_openTime > 0.25) { fired = static_cast<MenuActionE>(m_highlight); m_armed = false; }
-        } else {
+            const float h = g.input( GestureInputE::RIGHT_HEIGHT );
+            m_highlight = clampv( static_cast<int>( ( 1.0f - h ) * MenuItems ), 0, MenuItems - 1 );
+            if ( !pinchNow ) m_armed = true;   // the right hand must open before it can select
+            if ( pinchNow && !m_lastPinch && m_armed && m_openTime > 0.25 )
+            {
+                fired = static_cast<MenuActionE>( m_highlight );
+                m_armed = false;
+            }
+        }
+        else
+        {
             m_highlight = -1;
         }
         m_lastPinch = pinchNow;
-        g.setSuspended(m_open || g.calibrating());
-        m_openness += (static_cast<float>(m_open ? 1.0 : 0.0) - m_openness) * static_cast<float>(std::min(1.0, dt * 8.0));
+        g.setSuspended( m_open || g.calibrating() );
+        m_openness +=
+            ( static_cast<float>( m_open ? 1.0 : 0.0 ) - m_openness ) * static_cast<float>( std::min( 1.0, dt * 8.0 ) );
         return fired;
     }
 
     /** @brief Whether the left pinch is holding the menu open. @return true while open */
-    bool  isOpen() const { return m_open; }
+    bool isOpen() const { return m_open; }
     /** @brief The row the right hand points at. @return 0 .. MenuItems - 1 while open, -1 while shut */
-    int   highlighted() const { return m_highlight; }
+    int highlighted() const { return m_highlight; }
     /**
      * @brief How far the menu has faded in, for drawing.
      * @return 0..1, eased, for drawing
@@ -120,10 +151,14 @@ private:
      *  @brief the menu is open: the left pinch went past 0.6 and has not dropped under 0.4 since */
     /** @var bool m_lastPinch
      *  @brief the right pinch's state last frame, for the rising edge that fires a row */
-    bool   m_open = false, m_lastPinch = false, m_armed = false;   ///< m_armed: the right hand has been open since the menu opened (or last fired), so its next pinch may fire
-    int    m_highlight = -1;      ///< the row under the right hand, -1 while shut
-    double m_openTime = 0.0;      ///< seconds the menu has been open; nothing fires in the first quarter second
-    float  m_openness = 0.0f;     ///< eased 0..1 towards m_open (about 8 per second), what openness() returns
+    bool
+           m_open = false,
+           m_lastPinch = false,
+           m_armed =
+               false;   ///< m_armed: the right hand has been open since the menu opened (or last fired), so its next pinch may fire
+    int    m_highlight = -1;    ///< the row under the right hand, -1 while shut
+    double m_openTime = 0.0;    ///< seconds the menu has been open; nothing fires in the first quarter second
+    float  m_openness = 0.0f;   ///< eased 0..1 towards m_open (about 8 per second), what openness() returns
 };
 
-} // namespace ambient
+}   // namespace ambient

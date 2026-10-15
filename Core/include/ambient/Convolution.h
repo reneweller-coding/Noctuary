@@ -34,7 +34,8 @@
 #include <cstdint>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief The Room: a stereo partitioned convolver with two morphable impulses and a scheduled tail.
@@ -46,7 +47,8 @@ namespace ambient {
  * at every 256-sample step (step()). The private part is the machinery the file comment
  * describes: a resumable transform, the per-stage state machine and the products.
  */
-class Convolver {
+class Convolver
+{
 public:
     static constexpr int Stages = 3;   ///< the three stretches of the impulse, each with its own partition size
 
@@ -65,7 +67,7 @@ public:
      * @param[in] sampleRate  the engine's rate in Hz
      * @param[in] maxSeconds  the longest impulse kept, in seconds (60 by default; 4 on the Quest)
      */
-    void prepare(double sampleRate, float maxSeconds = 60.0f);
+    void prepare( double sampleRate, float maxSeconds = 60.0f );
     /**
      * @brief Empties the delay lines and the rings; the impulses stay.
      *
@@ -83,7 +85,10 @@ public:
      * @param[in] n                  samples per channel
      * @param[in] impulseSampleRate  the rate the impulse was recorded at, in Hz; 0 or less means the engine's
      */
-    void setImpulse(const float* L, const float* R, int n, double impulseSampleRate)  { load(0, L, R, n, impulseSampleRate); }
+    void setImpulse( const float *L, const float *R, int n, double impulseSampleRate )
+    {
+        load( 0, L, R, n, impulseSampleRate );
+    }
     /**
      * @brief The second impulse, the one the morph goes to.
      *
@@ -93,7 +98,10 @@ public:
      * @param[in] n                  samples per channel
      * @param[in] impulseSampleRate  the rate the impulse was recorded at, in Hz
      */
-    void setImpulseB(const float* L, const float* R, int n, double impulseSampleRate) { load(1, L, R, n, impulseSampleRate); }
+    void setImpulseB( const float *L, const float *R, int n, double impulseSampleRate )
+    {
+        load( 1, L, R, n, impulseSampleRate );
+    }
     /**
      * @brief Forget impulse B: the room is A alone again, and B's memory goes back. Message thread.
      * @pre called on the message thread
@@ -107,7 +115,7 @@ public:
      * @param[in] seconds  the hall's length, 4 s by default
      * @pre called on the message thread
      */
-    void generateDefault(uint64_t seed, float seconds = 4.0f);
+    void generateDefault( uint64_t seed, float seconds = 4.0f );
     /**
      * @brief The built-in hall as samples.
      *
@@ -120,17 +128,18 @@ public:
      * @param[out] L           receives the left channel, seconds x sampleRate samples
      * @param[out] R           receives the right channel, half-coherent with the left in the bass
      */
-    static void makeDefaultImpulse(double sampleRate, uint64_t seed, float seconds, std::vector<float>& L, std::vector<float>& R);
+    static void makeDefaultImpulse( double sampleRate, uint64_t seed, float seconds, std::vector<float> &L,
+                                    std::vector<float> &R );
     /**
      * @brief Whether impulse A is loaded.
      * @return  true once setImpulse() or generateDefault() has published an impulse
      */
-    bool  hasImpulse() const  { return m_active[0].load(std::memory_order_acquire) >= 0; }
+    bool hasImpulse() const { return m_active[0].load( std::memory_order_acquire ) >= 0; }
     /**
      * @brief Whether impulse B is loaded.
      * @return  true between setImpulseB() and clearImpulseB()
      */
-    bool  hasImpulseB() const { return m_active[1].load(std::memory_order_acquire) >= 0; }
+    bool hasImpulseB() const { return m_active[1].load( std::memory_order_acquire ) >= 0; }
     /**
      * @brief Length of impulse A, as kept.
      * @return  seconds after resampling, shortening and trimming; 0 without an impulse
@@ -140,12 +149,12 @@ public:
      * @brief The Room's latency.
      * @return  the first stage's block in samples: 256 at rates under 64 kHz, 512 and 1024 above
      */
-    int   latency() const { return m_head; }
+    int latency() const { return m_head; }
     /**
      * @brief How long the output can still carry sound after the input has fallen silent.
      * @return  the longer impulse plus the latency and two of the last stage's blocks, in samples
      */
-    long  tailSamples() const;
+    long tailSamples() const;
     /**
      * @brief The morph between the two impulses.
      *
@@ -154,7 +163,7 @@ public:
      * @param[in] x  0 .. 1 (clamped when a block begins)
      * @pre called on the audio thread
      */
-    void  setMorph(float x) { m_morph = x; }
+    void setMorph( float x ) { m_morph = x; }
     /**
      * @brief Runs a block through the Room.
      *
@@ -166,7 +175,7 @@ public:
      * @param[in]  n     samples in the block
      * @pre called on the audio thread
      */
-    void  process(const float* inL, const float* inR, float* outL, float* outR, int n);
+    void process( const float *inL, const float *inR, float *outL, float *outR, int n );
 
     /**
      * @name For the tests.
@@ -176,13 +185,13 @@ public:
      * @param[in] s  0 .. Stages - 1
      * @return B in samples
      */
-    int   stageBlock(int s) const { return m_stage[s].m_block; }
+    int stageBlock( int s ) const { return m_stage[s].m_block; }
     /**
      * @brief Where a stage's stretch of the impulse begins.
      * @param[in] s  0 .. Stages - 1
      * @return D in samples
      */
-    int   stageStart(int s) const { return m_stage[s].m_start; }
+    int stageStart( int s ) const { return m_stage[s].m_start; }
     /**
      * @brief impulse A: spectrum bins stored after the band limits ...
      * @return  the bins kept over all partitions and stages; 0 without an impulse
@@ -200,23 +209,25 @@ private:
      * @brief A radix-2 transform that can stop after any block of butterflies and carry on at the next
      *        step. Level h (half the span) keeps its rotations together: cs[h + k] = cos(pi k / h).
      */
-    struct StepFft {
-        int m_n = 0;   ///< the transform length, a power of two
-        long long m_work = 0;                  ///< what one whole transform counts in the schedule
-        std::vector<int>   m_rev;   ///< the bit-reversal permutation of 0 .. n - 1
-        std::vector<float> m_cs,    ///< the cosines of every level, cs[h + k]
-                           m_snF,   ///< the sines for the forward transform, negated
-                           m_snI;   ///< sine negated for the forward transform, as is for the inverse
+    struct StepFft
+    {
+        int                m_n = 0;      ///< the transform length, a power of two
+        long long          m_work = 0;   ///< what one whole transform counts in the schedule
+        std::vector<int>   m_rev;        ///< the bit-reversal permutation of 0 .. n - 1
+        std::vector<float> m_cs,         ///< the cosines of every level, cs[h + k]
+            m_snF,                       ///< the sines for the forward transform, negated
+            m_snI;                       ///< sine negated for the forward transform, as is for the inverse
         /**
          * @brief Builds the tables for a size and its cost estimate.
          * @param[in] size  the transform length, a power of two
          */
-        void init(int size);
+        void init( int size );
     };
     /** @brief Where a stepwise transform has got to: the level (half the span) and the position in it. */
-    struct FftRun {
+    struct FftRun
+    {
         int m_half = 0,   ///< 0 during the bit reversal, then the level's half-span
-        m_pos = 0;        ///< the element the run continues at
+            m_pos = 0;    ///< the element the run continues at
     };   ///< half 0: the bit reversal, at element pos
     /**
      * @brief Runs a transform as far as a budget allows and remembers where it stopped.
@@ -232,52 +243,55 @@ private:
      * @param[in,out] budget   work units left in this slice; reduced by what was done, may go negative
      * @return true once the whole transform is done
      */
-    static bool runFft(const StepFft& f, FftRun& r, float* re, float* im, bool inverse, long long& budget);
+    static bool runFft( const StepFft &f, FftRun &r, float *re, float *im, bool inverse, long long &budget );
 
     /** @brief One impulse's partitions in one stage. */
-    struct Spectra {
+    struct Spectra
+    {
         std::vector<float> m_re[2],   ///< the kept bins' real parts per channel, packed
-                           m_im[2];   ///< packed: partition p's first cnt[p] bins start at off[p]
-        std::vector<int>   m_off,   ///< where each partition's bins start in re/im
-                           m_cnt;   ///< how many bins each partition keeps, a multiple of eight
-        int m_parts = 0;   ///< partitions of this stretch the impulse reaches into
+            m_im[2];                  ///< packed: partition p's first cnt[p] bins start at off[p]
+        std::vector<int> m_off,       ///< where each partition's bins start in re/im
+            m_cnt;                    ///< how many bins each partition keeps, a multiple of eight
+        int m_parts = 0;              ///< partitions of this stretch the impulse reaches into
     };
     /** @brief One impulse as the audio thread reads it: its spectra per stage and what it was. */
-    struct Impulse {
-        Spectra   m_st[Stages];   ///< the partitions of each stage
-        double    m_seconds = 0.0;   ///< length as kept, in seconds
-        long      m_samples = 0;   ///< length as kept, in samples
-        bool      m_stereo = false;   ///< whether the second channel holds its own spectra (false: read channel 0 for both)
-        long long m_kept = 0,   ///< bins stored over all partitions
-                  m_full = 0;   ///< bins a full spectrum per partition would have taken
+    struct Impulse
+    {
+        Spectra m_st[Stages];      ///< the partitions of each stage
+        double  m_seconds = 0.0;   ///< length as kept, in seconds
+        long    m_samples = 0;     ///< length as kept, in samples
+        bool m_stereo = false;   ///< whether the second channel holds its own spectra (false: read channel 0 for both)
+        long long m_kept = 0,    ///< bins stored over all partitions
+            m_full = 0;          ///< bins a full spectrum per partition would have taken
     };
     /** @brief One stretch of the impulse: its partition size, its delay line and the block in progress. */
-    struct Stage {
-        int  m_block = 0,      ///< B: partition and input block size in samples
-             m_start = 0,      ///< D: where the stretch begins in the impulse, in samples
-             m_capParts = 0,   ///< partitions the stretch can hold up to the cap
-             m_slot = 0;       ///< slot: bins per delay-line entry, block + 8
-        StepFft m_fft;   ///< the 2B transform
+    struct Stage
+    {
+        int m_block = 0,                 ///< B: partition and input block size in samples
+            m_start = 0,                 ///< D: where the stretch begins in the impulse, in samples
+            m_capParts = 0,              ///< partitions the stretch can hold up to the cap
+            m_slot = 0;                  ///< slot: bins per delay-line entry, block + 8
+        StepFft            m_fft;        ///< the 2B transform
         std::vector<float> m_fdlRe[2],   ///< the frequency-domain delay line's real parts per channel
-                           m_fdlIm[2];   ///< capParts x slot per channel
-        int  m_fdlHead = 0,     ///< the entry the next input spectrum goes into
-             m_fdlFilled = 0;   ///< entries holding a spectrum, up to capParts
-        std::vector<float> m_re[2],   ///< real parts of the working spectrum per channel
-                           m_im[2];   ///< 2 x block: the input block's transform, then the sum and its inverse
+            m_fdlIm[2];                  ///< capParts x slot per channel
+        int m_fdlHead = 0,               ///< the entry the next input spectrum goes into
+            m_fdlFilled = 0;             ///< entries holding a spectrum, up to capParts
+        std::vector<float> m_re[2],      ///< real parts of the working spectrum per channel
+            m_im[2];                     ///< 2 x block: the input block's transform, then the sum and its inverse
         /**
          * @name The block in progress.
          * @{ */
-        int  m_phase = 0,   ///< the state machine's phase (idle, forward transform, push, sum, inverse, deliver)
-             m_ch = 0,      ///< the channel being transformed
-             m_part = 0,    ///< the partition the sum is at
-             m_bin = 0,     ///< the bin within it
-             m_parts = 0;   ///< partitions this block sums, the delay line's fill when it was pushed
-        FftRun m_run;   ///< where the current transform stopped
+        int m_phase = 0,         ///< the state machine's phase (idle, forward transform, push, sum, inverse, deliver)
+            m_ch = 0,            ///< the channel being transformed
+            m_part = 0,          ///< the partition the sum is at
+            m_bin = 0,           ///< the bin within it
+            m_parts = 0;         ///< partitions this block sums, the delay line's fill when it was pushed
+        FftRun    m_run;         ///< where the current transform stopped
         long long m_write = 0,   ///< the absolute sample the answer lands at in the output ring
-                  m_due = 0,     ///< the step (in latencies) the block must be finished by
-                  m_work = 0;    ///< the work estimated to remain, for the equal slices
-        float m_wa = 1.0f,   ///< impulse A's weight for this block, 1 - morph
-              m_wb = 0.0f;   ///< impulse B's weight, the morph
+            m_due = 0,           ///< the step (in latencies) the block must be finished by
+            m_work = 0;          ///< the work estimated to remain, for the equal slices
+        float m_wa = 1.0f,       ///< impulse A's weight for this block, 1 - morph
+            m_wb = 0.0f;         ///< impulse B's weight, the morph
         /** @} */
     };
 
@@ -294,7 +308,7 @@ private:
      * @param[in] n      samples per channel
      * @param[in] rate   the impulse's own sample rate in Hz
      */
-    void load(int which, const float* L, const float* R, int n, double rate);
+    void load( int which, const float *L, const float *R, int n, double rate );
     /**
      * @brief Cuts an impulse into the stages' partitions and keeps each partition's spectrum up to
      *        the last bin that matters.
@@ -307,7 +321,7 @@ private:
      * @param[in]     stereo  whether ch[1] is to be analysed as well
      * @param[in]     len     samples to analyse (the trimmed length)
      */
-    void analyse(Impulse& imp, const std::vector<float>* ch, bool stereo, int len);
+    void analyse( Impulse &imp, const std::vector<float> *ch, bool stereo, int len );
     /**
      * @brief One scheduling step, every latency's worth of samples on the audio thread.
      *
@@ -321,7 +335,7 @@ private:
      *        and sets the phase, the deadline, the morph weights and the work estimate.
      * @param[in,out] s  the stage
      */
-    void begin(Stage& s);
+    void begin( Stage &s );
     /**
      * @brief Runs a stage's state machine until its block is done or the quota is spent.
      *
@@ -334,7 +348,7 @@ private:
      * @param[in]     B      impulse B, or nullptr
      * @return the work units used
      */
-    long long advance(Stage& s, int g, long long quota, const Impulse* A, const Impulse* B);
+    long long advance( Stage &s, int g, long long quota, const Impulse *A, const Impulse *B );
     /**
      * @brief The products: accumulates delayed input spectra times partition spectra, in chunks of bins.
      *
@@ -347,7 +361,7 @@ private:
      * @param[in]     B      impulse B or nullptr
      * @param[in,out] quota  work units left; reduced by what was done
      */
-    void sum(Stage& s, int g, const Impulse* A, const Impulse* B, long long& quota);
+    void sum( Stage &s, int g, const Impulse *A, const Impulse *B, long long &quota );
     /**
      * @brief Message thread: waits until every step that had begun when the call was made has ended.
      *
@@ -357,22 +371,22 @@ private:
      */
     void waitForQuiet();
 
-    Impulse m_imp[2][2];                        ///< [A, B] x [the two copies]
+    Impulse          m_imp[2][2];   ///< [A, B] x [the two copies]
     std::atomic<int> m_active[2];   ///< per impulse, the copy the audio thread reads (0 or 1), or -1 for none
     /** Begun and finished; see Engine::waitForQuiet for why it takes two of them. */
     std::atomic<unsigned long long> m_stepsBegun{ 0 },   ///< steps begun
-                                    m_stepsDone{ 0 };    ///< steps finished
-    Stage  m_stage[Stages];   ///< the stages, m_stages of them in use
-    int    m_stages = 0,   ///< stages the cap needs, up to Stages
-           m_head = 256;   ///< the latency and the step, in samples: 256 x the rate scale
-    double m_sr = 48000.0;   ///< sample rate in Hz
-    long   m_capSamples = 0;   ///< the longest impulse kept, in samples at the engine rate
-    float  m_morph = 0.0f;   ///< the morph as last set; each stage reads it when a block begins
-    long long m_t = 0;                          ///< samples taken in since reset()
-    std::vector<float> m_hist[2],   ///< the input's last blocks, a ring per channel
-                       m_ring[2];   ///< the input's last blocks; the output still to come
-    int    m_histMask = 0,   ///< m_hist size - 1
-           m_ringMask = 0;   ///< m_ring size - 1
+        m_stepsDone{ 0 };                                ///< steps finished
+    Stage m_stage[Stages];                               ///< the stages, m_stages of them in use
+    int   m_stages = 0,                                  ///< stages the cap needs, up to Stages
+        m_head = 256;                                    ///< the latency and the step, in samples: 256 x the rate scale
+    double             m_sr = 48000.0;                   ///< sample rate in Hz
+    long               m_capSamples = 0;                 ///< the longest impulse kept, in samples at the engine rate
+    float              m_morph = 0.0f;   ///< the morph as last set; each stage reads it when a block begins
+    long long          m_t = 0;          ///< samples taken in since reset()
+    std::vector<float> m_hist[2],        ///< the input's last blocks, a ring per channel
+        m_ring[2];                       ///< the input's last blocks; the output still to come
+    int m_histMask = 0,                  ///< m_hist size - 1
+        m_ringMask = 0;                  ///< m_ring size - 1
 };
 
-} // namespace ambient
+}   // namespace ambient

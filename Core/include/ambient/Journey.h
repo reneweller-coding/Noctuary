@@ -39,7 +39,8 @@
 #include <string>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief One line of a journey: the preset, how long it is held, how long the crossfade into it
@@ -48,15 +49,16 @@ namespace ambient {
  * Dwell and fade are ranges; JourneyPlayer draws a value from each when the step begins, so two
  * runs of the same journey differ. A single time in the file sets the two ends equal.
  */
-struct JourneyStep {
-    std::string m_preset;                        ///< the sound preset's name, as the bank spells it
+struct JourneyStep
+{
+    std::string m_preset;   ///< the sound preset's name, as the bank spells it
     /** @var double m_dwellLo
      *  @brief the shortest dwell, in seconds */
     double m_dwellLo = 300.0, m_dwellHi = 600.0;   ///< seconds the preset is held (drawn between)
     /** @var double m_fadeLo
      *  @brief the shortest crossfade, in seconds */
-    double m_fadeLo = 30.0, m_fadeHi = 90.0;       ///< seconds of the crossfade into it (drawn between)
-    std::string m_nearPreset;                    ///< "", "auto", "keep", or a near preset's name
+    double      m_fadeLo = 30.0, m_fadeHi = 90.0;   ///< seconds of the crossfade into it (drawn between)
+    std::string m_nearPreset;                       ///< "", "auto", "keep", or a near preset's name
 };
 
 /**
@@ -66,22 +68,25 @@ struct JourneyStep {
  * A plain value: copy it, edit the steps, hand it to a JourneyPlayer. The static helpers parse
  * and print the times the file uses (m:ss, h:mm:ss or plain seconds, a range as two with a dash).
  */
-struct Journey {
-    std::string m_name;                 ///< the "journey" line, "" when the file has none
-    bool m_cyclic = true;               ///< the "cyclic" line (on, 1, true or yes); on when the file has none
-    std::vector<JourneyStep> m_steps;   ///< the preset lines, in file order
+struct Journey
+{
+    std::string              m_name;            ///< the "journey" line, "" when the file has none
+    bool                     m_cyclic = true;   ///< the "cyclic" line (on, 1, true or yes); on when the file has none
+    std::vector<JourneyStep> m_steps;           ///< the preset lines, in file order
 
     /**
      * @brief Seconds as the file writes them: m:ss, or h:mm:ss from an hour up.
      * @param[in] s  seconds, rounded to the nearest whole one
      * @return "5:00", "1:02:03" and the like
      */
-    static std::string timeText(double s)
+    static std::string timeText( double s )
     {
-        char buf[32];
-        const int t = static_cast<int>(s + 0.5);
-        if (t >= 3600) std::snprintf(buf, sizeof(buf), "%d:%02d:%02d", t / 3600, (t / 60) % 60, t % 60);
-        else std::snprintf(buf, sizeof(buf), "%d:%02d", t / 60, t % 60);
+        char      buf[32];
+        const int t = static_cast<int>( s + 0.5 );
+        if ( t >= 3600 )
+            std::snprintf( buf, sizeof( buf ), "%d:%02d:%02d", t / 3600, ( t / 60 ) % 60, t % 60 );
+        else
+            std::snprintf( buf, sizeof( buf ), "%d:%02d", t / 60, t % 60 );
         return buf;
     }
     /**
@@ -90,9 +95,9 @@ struct Journey {
      * @param[in] hi  the upper end in seconds
      * @return timeText(lo), or timeText(lo) + "-" + timeText(hi)
      */
-    static std::string rangeText(double lo, double hi)
+    static std::string rangeText( double lo, double hi )
     {
-        return lo == hi ? timeText(lo) : timeText(lo) + "-" + timeText(hi);
+        return lo == hi ? timeText( lo ) : timeText( lo ) + "-" + timeText( hi );
     }
     /**
      * @brief m:ss, h:mm:ss or seconds; false when it is none of them.
@@ -100,14 +105,25 @@ struct Journey {
      * @param[out] out  receives the seconds it names; on failure what it holds is not to be trusted
      * @return true when the token parsed
      */
-    static bool parseTime(const std::string& s, double& out)
+    static bool parseTime( const std::string &s, double &out )
     {
-        int h = 0, m = 0; double sec = 0.0;
-        const int colons = static_cast<int>(std::count(s.begin(), s.end(), ':'));
-        if (colons == 2) { if (std::sscanf(s.c_str(), "%d:%d:%lf", &h, &m, &sec) != 3) return false; out = h * 3600.0 + m * 60.0 + sec; return true; }
-        if (colons == 1) { if (std::sscanf(s.c_str(), "%d:%lf", &m, &sec) != 2) return false; out = m * 60.0 + sec; return true; }
-        char* end = nullptr;
-        out = std::strtod(s.c_str(), &end);
+        int       h = 0, m = 0;
+        double    sec = 0.0;
+        const int colons = static_cast<int>( std::count( s.begin(), s.end(), ':' ) );
+        if ( colons == 2 )
+        {
+            if ( std::sscanf( s.c_str(), "%d:%d:%lf", &h, &m, &sec ) != 3 ) return false;
+            out = h * 3600.0 + m * 60.0 + sec;
+            return true;
+        }
+        if ( colons == 1 )
+        {
+            if ( std::sscanf( s.c_str(), "%d:%lf", &m, &sec ) != 2 ) return false;
+            out = m * 60.0 + sec;
+            return true;
+        }
+        char *end = nullptr;
+        out = std::strtod( s.c_str(), &end );
         return end != nullptr && end != s.c_str();
     }
     /**
@@ -117,13 +133,19 @@ struct Journey {
      * @param[out] hi  receives the upper end; equal to lo for a single time
      * @return false when either time fails to parse
      */
-    static bool parseRange(std::string s, double& lo, double& hi)
+    static bool parseRange( std::string s, double &lo, double &hi )
     {
-        s = trim(s);
-        const size_t dash = s.find('-', 1);   // not a leading minus
-        if (dash == std::string::npos) { if (!parseTime(s, lo)) return false; hi = lo; return true; }
-        if (!parseTime(trim(s.substr(0, dash)), lo) || !parseTime(trim(s.substr(dash + 1)), hi)) return false;
-        if (hi < lo) std::swap(lo, hi);
+        s = trim( s );
+        const size_t dash = s.find( '-', 1 );   // not a leading minus
+        if ( dash == std::string::npos )
+        {
+            if ( !parseTime( s, lo ) ) return false;
+            hi = lo;
+            return true;
+        }
+        if ( !parseTime( trim( s.substr( 0, dash ) ), lo ) || !parseTime( trim( s.substr( dash + 1 ) ), hi ) )
+            return false;
+        if ( hi < lo ) std::swap( lo, hi );
         return true;
     }
     /**
@@ -131,12 +153,12 @@ struct Journey {
      * @param[in] s  any text
      * @return the trimmed copy
      */
-    static std::string trim(const std::string& s)
+    static std::string trim( const std::string &s )
     {
         size_t a = 0, b = s.size();
-        while (a < b && (s[a] == ' ' || s[a] == '\t' || s[a] == '\r' || s[a] == '\n')) ++a;
-        while (b > a && (s[b - 1] == ' ' || s[b - 1] == '\t' || s[b - 1] == '\r' || s[b - 1] == '\n')) --b;
-        return s.substr(a, b - a);
+        while ( a < b && ( s[a] == ' ' || s[a] == '\t' || s[a] == '\r' || s[a] == '\n' ) ) ++a;
+        while ( b > a && ( s[b - 1] == ' ' || s[b - 1] == '\t' || s[b - 1] == '\r' || s[b - 1] == '\n' ) ) --b;
+        return s.substr( a, b - a );
     }
 
     /**
@@ -149,32 +171,48 @@ struct Journey {
      * @param[in] text  the whole file
      * @return true when every line was understood
      */
-    bool parse(const char* text)
+    bool parse( const char *text )
     {
-        m_name.clear(); m_cyclic = true; m_steps.clear();
-        std::istringstream in(text);
-        std::string line;
-        while (std::getline(in, line)) {
-            line = trim(line);
-            if (line.empty() || line[0] == '#') continue;
-            if (line.compare(0, 8, "journey ") == 0) { m_name = trim(line.substr(8)); continue; }
-            if (line.compare(0, 7, "cyclic ") == 0) { const std::string v = trim(line.substr(7)); m_cyclic = v == "on" || v == "1" || v == "true" || v == "yes"; continue; }
+        m_name.clear();
+        m_cyclic = true;
+        m_steps.clear();
+        std::istringstream in( text );
+        std::string        line;
+        while ( std::getline( in, line ) )
+        {
+            line = trim( line );
+            if ( line.empty() || line[0] == '#' ) continue;
+            if ( line.compare( 0, 8, "journey " ) == 0 )
+            {
+                m_name = trim( line.substr( 8 ) );
+                continue;
+            }
+            if ( line.compare( 0, 7, "cyclic " ) == 0 )
+            {
+                const std::string v = trim( line.substr( 7 ) );
+                m_cyclic = v == "on" || v == "1" || v == "true" || v == "yes";
+                continue;
+            }
             std::vector<std::string> fields;
-            size_t start = 0;
-            while (true) {
-                const size_t bar = line.find('|', start);
-                fields.push_back(trim(line.substr(start, bar == std::string::npos ? std::string::npos : bar - start)));
-                if (bar == std::string::npos) break;
+            size_t                   start = 0;
+            while ( true )
+            {
+                const size_t bar = line.find( '|', start );
+                fields.push_back(
+                    trim( line.substr( start, bar == std::string::npos ? std::string::npos : bar - start ) ) );
+                if ( bar == std::string::npos ) break;
                 start = bar + 1;
             }
-            if (fields.empty() || fields[0].empty()) return false;
+            if ( fields.empty() || fields[0].empty() ) return false;
             JourneyStep st;
             st.m_preset = fields[0];
-            if (fields.size() > 1 && !fields[1].empty() && !parseRange(fields[1], st.m_dwellLo, st.m_dwellHi)) return false;
-            if (fields.size() > 2 && !fields[2].empty() && !parseRange(fields[2], st.m_fadeLo, st.m_fadeHi)) return false;
-            for (size_t k = 3; k < fields.size(); ++k)
-                if (fields[k].compare(0, 5, "near=") == 0) st.m_nearPreset = trim(fields[k].substr(5));
-            m_steps.push_back(st);
+            if ( fields.size() > 1 && !fields[1].empty() && !parseRange( fields[1], st.m_dwellLo, st.m_dwellHi ) )
+                return false;
+            if ( fields.size() > 2 && !fields[2].empty() && !parseRange( fields[2], st.m_fadeLo, st.m_fadeHi ) )
+                return false;
+            for ( size_t k = 3; k < fields.size(); ++k )
+                if ( fields[k].compare( 0, 5, "near=" ) == 0 ) st.m_nearPreset = trim( fields[k].substr( 5 ) );
+            m_steps.push_back( st );
         }
         return true;
     }
@@ -185,12 +223,15 @@ struct Journey {
      */
     std::string text() const
     {
-        std::string out = "# Noctuary journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n";
+        std::string out =
+            "# Noctuary journey: <preset> | <dwell m:ss or a range> | <fade> [| near=<near preset, auto or keep>]\n";
         out += "journey " + m_name + "\n";
-        out += std::string("cyclic ") + (m_cyclic ? "on" : "off") + "\n";
-        for (const JourneyStep& st : m_steps) {
-            out += st.m_preset + " | " + rangeText(st.m_dwellLo, st.m_dwellHi) + " | " + rangeText(st.m_fadeLo, st.m_fadeHi);
-            if (!st.m_nearPreset.empty()) out += " | near=" + st.m_nearPreset;
+        out += std::string( "cyclic " ) + ( m_cyclic ? "on" : "off" ) + "\n";
+        for ( const JourneyStep &st : m_steps )
+        {
+            out += st.m_preset + " | " + rangeText( st.m_dwellLo, st.m_dwellHi ) + " | " +
+                   rangeText( st.m_fadeLo, st.m_fadeHi );
+            if ( !st.m_nearPreset.empty() ) out += " | near=" + st.m_nearPreset;
             out += "\n";
         }
         return out;
@@ -200,25 +241,26 @@ struct Journey {
      * @param[in] path  the file
      * @return false when it cannot be opened or a line fails to parse
      */
-    bool load(const char* path)
+    bool load( const char *path )
     {
-        std::ifstream f(path, std::ios::binary);
-        if (!f) return false;
-        std::stringstream ss; ss << f.rdbuf();
-        return parse(ss.str().c_str());
+        std::ifstream f( path, std::ios::binary );
+        if ( !f ) return false;
+        std::stringstream ss;
+        ss << f.rdbuf();
+        return parse( ss.str().c_str() );
     }
     /**
      * @brief Writes text() to a file.
      * @param[in] path  the file, overwritten
      * @return false when it cannot be opened or written
      */
-    bool save(const char* path) const
+    bool save( const char *path ) const
     {
-        std::ofstream f(path, std::ios::binary);
-        if (!f) return false;
+        std::ofstream f( path, std::ios::binary );
+        if ( !f ) return false;
         const std::string t = text();
-        f.write(t.data(), static_cast<std::streamsize>(t.size()));
-        return static_cast<bool>(f);
+        f.write( t.data(), static_cast<std::streamsize>( t.size() ) );
+        return static_cast<bool>( f );
     }
     /**
      * @brief The dwell of a whole pass, at the middle of every range.
@@ -227,7 +269,7 @@ struct Journey {
     double meanLength() const
     {
         double s = 0.0;
-        for (const JourneyStep& st : m_steps) s += 0.5 * (st.m_dwellLo + st.m_dwellHi);
+        for ( const JourneyStep &st : m_steps ) s += 0.5 * ( st.m_dwellLo + st.m_dwellHi );
         return s;
     }
 };
@@ -241,7 +283,8 @@ struct Journey {
  * foreground should do. Dwell and fade are drawn from their ranges with the player's own
  * generator, so a seed makes a run repeatable and no seed makes an evening.
  */
-class JourneyPlayer {
+class JourneyPlayer
+{
 public:
     /**
      * @brief Begins a journey from its first step (or another), with the generator seeded.
@@ -253,29 +296,35 @@ public:
      * @param[in] seed       the xorshift generator's seed; 0 selects the default constant
      * @param[in] startStep  the index of the step to begin with, taken modulo the step count
      */
-    void start(const Journey& j, uint64_t seed, int startStep = 0)
+    void start( const Journey &j, uint64_t seed, int startStep = 0 )
     {
         m_journey = j;
         m_rng = seed ? seed : 0x9E3779B97F4A7C15ull;
-        m_running = !m_journey.m_steps.empty(); m_left = 0.0; m_passes = 0;
+        m_running = !m_journey.m_steps.empty();
+        m_left = 0.0;
+        m_passes = 0;
         m_pending = m_running;
         // The step before the first one asked for: the first advance() moves on to it, and a
         // journey that is not cyclic must not see that first move as its end (it did once).
-        const int n = static_cast<int>(m_journey.m_steps.size());
-        m_step = m_running ? ((startStep % n + n) % n) - 1 : -1;
+        const int n = static_cast<int>( m_journey.m_steps.size() );
+        m_step = m_running ? ( ( startStep % n + n ) % n ) - 1 : -1;
     }
     /** @brief Ends the journey; advance() then returns false until start() is called again. */
-    void stop() { m_running = false; m_pending = false; }
+    void stop()
+    {
+        m_running = false;
+        m_pending = false;
+    }
     /** @brief Whether a journey is under way: started, not stopped, and not run off the end of a non-cyclic one. @return true while running */
     bool running() const { return m_running; }
     /** @brief The index of the current step. @return 0 .. steps - 1, or -1 before the first has begun */
-    int  step() const { return m_step; }
+    int step() const { return m_step; }
     /** @brief How many times a cyclic journey has wrapped round to its first step. @return the count of completed passes */
-    int  passes() const { return m_passes; }
+    int passes() const { return m_passes; }
     /** @brief Seconds left in the current step's dwell (the crossfade included). @return seconds, 0 or below once it is due */
     double remaining() const { return m_left; }
     /** @brief The journey being played, as start() copied it. @return the copy */
-    const Journey& journey() const { return m_journey; }
+    const Journey &journey() const { return m_journey; }
 
     /**
      * @brief Advance by dt.
@@ -288,29 +337,35 @@ public:
      * @return true when a step begins; false while the current one is still held, and once a non-cyclic journey has run
      *         off its end (running() is then false)
      */
-    bool advance(double dt, JourneyStep& step, double& fade)
+    bool advance( double dt, JourneyStep &step, double &fade )
     {
-        if (!m_running) return false;
-        if (!m_pending) {
+        if ( !m_running ) return false;
+        if ( !m_pending )
+        {
             m_left -= dt;
-            if (m_left > 0.0) return false;
+            if ( m_left > 0.0 ) return false;
         }
         m_pending = false;
-        const int n = static_cast<int>(m_journey.m_steps.size());
-        int next = m_step + 1;
-        if (next >= n) {
-            if (!m_journey.m_cyclic) { m_running = false; return false; }
-            next = 0; ++m_passes;
+        const int n = static_cast<int>( m_journey.m_steps.size() );
+        int       next = m_step + 1;
+        if ( next >= n )
+        {
+            if ( !m_journey.m_cyclic )
+            {
+                m_running = false;
+                return false;
+            }
+            next = 0;
+            ++m_passes;
         }
         m_step = next;
-        const JourneyStep& st = m_journey.m_steps[static_cast<size_t>(m_step)];
-        fade = draw(st.m_fadeLo, st.m_fadeHi);
+        const JourneyStep &st = m_journey.m_steps[static_cast<size_t>( m_step )];
+        fade = draw( st.m_fadeLo, st.m_fadeHi );
         // The dwell counts from now: the crossfade is part of the stay.
-        m_left = draw(st.m_dwellLo, st.m_dwellHi);
+        m_left = draw( st.m_dwellLo, st.m_dwellHi );
         step = st;
         return true;
     }
-
 
 private:
     /**
@@ -319,21 +374,26 @@ private:
      * @param[in] hi  upper end
      * @return lo + (hi - lo) * u, u uniform in [0, 1)
      */
-    double draw(double lo, double hi)
+    double draw( double lo, double hi )
     {
-        m_rng ^= m_rng << 13; m_rng ^= m_rng >> 7; m_rng ^= m_rng << 17;
-        const double u = static_cast<double>(m_rng >> 11) * (1.0 / 9007199254740992.0);
-        return lo + (hi - lo) * u;
+        m_rng ^= m_rng << 13;
+        m_rng ^= m_rng >> 7;
+        m_rng ^= m_rng << 17;
+        const double u = static_cast<double>( m_rng >> 11 ) * ( 1.0 / 9007199254740992.0 );
+        return lo + ( hi - lo ) * u;
     }
-    Journey  m_journey;                            ///< the journey being played, copied in start()
-    uint64_t m_rng = 0x9E3779B97F4A7C15ull;        ///< xorshift64 state; never zero
+    Journey  m_journey;                       ///< the journey being played, copied in start()
+    uint64_t m_rng = 0x9E3779B97F4A7C15ull;   ///< xorshift64 state; never zero
     /** @var int m_step
      *  @brief index of the current step, -1 before the first (start() puts it one before the step asked for) */
-    int      m_step = -1, m_passes = 0;             ///< m_passes: completed cycles of a cyclic journey
-    double   m_left = 0.0;                         ///< seconds left in the current dwell
+    int    m_step = -1, m_passes = 0;   ///< m_passes: completed cycles of a cyclic journey
+    double m_left = 0.0;                ///< seconds left in the current dwell
     /** @var bool m_running
      *  @brief a journey is under way */
-    bool     m_running = false, m_pending = false;  ///< m_pending: the first step has been asked for but not begun; the next advance() begins it whatever its dt
+    bool
+        m_running = false,
+        m_pending =
+            false;   ///< m_pending: the first step has been asked for but not begun; the next advance() begins it whatever its dt
 };
 
-} // namespace ambient
+}   // namespace ambient

@@ -34,9 +34,11 @@
 #include <limits>
 #include <thread>
 
-namespace ambient {
+namespace ambient
+{
 
-namespace {
+namespace
+{
 
 constexpr double PiD = 3.14159265358979323846;   ///< pi in double: the twiddles, the windows, the sinc
 /**
@@ -45,8 +47,10 @@ constexpr double PiD = 3.14159265358979323846;   ///< pi in double: the twiddles
  *
  * A fifth goes to the silence at the end, the rest is shared by the partitions.
  */
-constexpr double DropBudget = 1.0e-10;
-constexpr long long Unlimited = std::numeric_limits<long long>::max() / 4;   ///< a budget no transform can spend: the offline callers, and the last step before a block is due
+constexpr double    DropBudget = 1.0e-10;
+constexpr long long Unlimited =
+    std::numeric_limits<long long>::max() /
+    4;   ///< a budget no transform can spend: the offline callers, and the last step before a block is due
 /**
  * @brief Where a stage's block in progress stands (Stage::phase), in the order advance() runs them.
  *
@@ -56,14 +60,25 @@ constexpr long long Unlimited = std::numeric_limits<long long>::max() / 4;   ///
  * partitions, resumable at any bin. INVERT: the inverse transform of the sum, channel by channel.
  * DELIVER: the result, scaled by 1/N, is added into the output ring where the block is due.
  */
-enum PhaseE { IDLE = 0, FFT_IN, PUSH, SUM, INVERT, DELIVER };
+enum PhaseE
+{
+    IDLE = 0,
+    FFT_IN,
+    PUSH,
+    SUM,
+    INVERT,
+    DELIVER
+};
 
 /**
  * @brief @p v rounded up to a multiple of eight: the bin counts, so the vector paths cover every bin.
  * @param[in] v  a bin count
  * @return the smallest multiple of eight >= v
  */
-inline int roundUp8(int v) { return (v + 7) & ~7; }
+inline int roundUp8( int v )
+{
+    return ( v + 7 ) & ~7;
+}
 
 // ---------------------------------------------------------------- the products
 /**
@@ -75,14 +90,15 @@ inline int roundUp8(int v) { return (v + 7) & ~7; }
  * @{ */
 
 #if AMBIENT_HAS_NEON
-/**
+  /**
  * @name NEON multiply-add
  * a + b c and a - b c. Fused wherever the target has FMA: every AArch64 compiler says so with
  * \__ARM_FEATURE_FMA (the NDK header declares vfmaq_f32 only then), and MSVC's arm64 header has it
  * anyway -- one instruction each, rounded like the fmadd of the AVX path. The plain multiply-add is
  * for GCC or clang on a 32-bit ARM without VFPv4; the x86 test variant AMBIENT_NEON_SHIM_NOFMA runs it.
  * @{ */
-#if (defined(__ARM_FEATURE_FMA) || defined(_M_ARM64) || defined(AMBIENT_NEON_SHIM)) && !defined(AMBIENT_NEON_SHIM_NOFMA)
+  #if ( defined( __ARM_FEATURE_FMA ) || defined( _M_ARM64 ) || defined( AMBIENT_NEON_SHIM ) ) &&                       \
+      !defined( AMBIENT_NEON_SHIM_NOFMA )
 /**
  * @brief a + b c in one fused instruction.
  * @param[in] a  the addend, four lanes
@@ -90,7 +106,10 @@ inline int roundUp8(int v) { return (v + 7) & ~7; }
  * @param[in] c  second factor
  * @return   a + b * c, rounded once
  */
-inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vfmaq_f32(a, b, c); }
+inline float32x4_t neonAddMul( float32x4_t a, float32x4_t b, float32x4_t c )
+{
+    return vfmaq_f32( a, b, c );
+}
 /**
  * @brief a - b c in one fused instruction.
  * @param[in] a  the minuend, four lanes
@@ -98,8 +117,11 @@ inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { ret
  * @param[in] c  second factor
  * @return   a - b * c, rounded once
  */
-inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vfmsq_f32(a, b, c); }
-#else
+inline float32x4_t neonSubMul( float32x4_t a, float32x4_t b, float32x4_t c )
+{
+    return vfmsq_f32( a, b, c );
+}
+  #else
 /**
  * @brief a + b c as a multiply and an add, for a target without FMA.
  * @param[in] a  the addend, four lanes
@@ -107,7 +129,10 @@ inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { ret
  * @param[in] c  second factor
  * @return   a + b * c, rounded twice
  */
-inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vmlaq_f32(a, b, c); }
+inline float32x4_t neonAddMul( float32x4_t a, float32x4_t b, float32x4_t c )
+{
+    return vmlaq_f32( a, b, c );
+}
 /**
  * @brief a - b c as a multiply and a subtract, for a target without FMA.
  * @param[in] a  the minuend, four lanes
@@ -115,8 +140,11 @@ inline float32x4_t neonAddMul(float32x4_t a, float32x4_t b, float32x4_t c) { ret
  * @param[in] c  second factor
  * @return   a - b * c, rounded twice
  */
-inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { return vmlsq_f32(a, b, c); }
-#endif
+inline float32x4_t neonSubMul( float32x4_t a, float32x4_t b, float32x4_t c )
+{
+    return vmlsq_f32( a, b, c );
+}
+  #endif
 /** @} */
 #endif
 
@@ -132,31 +160,43 @@ inline float32x4_t neonSubMul(float32x4_t a, float32x4_t b, float32x4_t c) { ret
  * @param[in]     k0  the first bin
  * @param[in]     k1  one past the last bin; k1 - k0 is a multiple of eight
  */
-void sumOne(float* ar, float* ai, const float* xr, const float* xi, const float* hr, const float* hi, float w, int k0, int k1)
+void sumOne( float *ar, float *ai, const float *xr, const float *xi, const float *hr, const float *hi, float w, int k0,
+             int k1 )
 {
     int k = k0;
 #if AMBIENT_HAS_AVX
-    const __m256 W = _mm256_set1_ps(w);
-    const bool unit = w == 1.0f;
-    for (; k + 8 <= k1; k += 8) {
-        __m256 HR = _mm256_loadu_ps(hr + k), HI = _mm256_loadu_ps(hi + k);
-        if (!unit) { HR = _mm256_mul_ps(W, HR); HI = _mm256_mul_ps(W, HI); }
-        const __m256 XR = _mm256_loadu_ps(xr + k), XI = _mm256_loadu_ps(xi + k);
-        _mm256_storeu_ps(ar + k, _mm256_fnmadd_ps(XI, HI, _mm256_fmadd_ps(XR, HR, _mm256_loadu_ps(ar + k))));
-        _mm256_storeu_ps(ai + k, _mm256_fmadd_ps(XI, HR, _mm256_fmadd_ps(XR, HI, _mm256_loadu_ps(ai + k))));
+    const __m256 W = _mm256_set1_ps( w );
+    const bool   unit = w == 1.0f;
+    for ( ; k + 8 <= k1; k += 8 )
+    {
+        __m256 HR = _mm256_loadu_ps( hr + k ), HI = _mm256_loadu_ps( hi + k );
+        if ( !unit )
+        {
+            HR = _mm256_mul_ps( W, HR );
+            HI = _mm256_mul_ps( W, HI );
+        }
+        const __m256 XR = _mm256_loadu_ps( xr + k ), XI = _mm256_loadu_ps( xi + k );
+        _mm256_storeu_ps( ar + k, _mm256_fnmadd_ps( XI, HI, _mm256_fmadd_ps( XR, HR, _mm256_loadu_ps( ar + k ) ) ) );
+        _mm256_storeu_ps( ai + k, _mm256_fmadd_ps( XI, HR, _mm256_fmadd_ps( XR, HI, _mm256_loadu_ps( ai + k ) ) ) );
     }
 #elif AMBIENT_HAS_NEON
-    const float32x4_t W = vdupq_n_f32(w);
-    const bool unit = w == 1.0f;
-    for (; k + 4 <= k1; k += 4) {
-        float32x4_t HR = vld1q_f32(hr + k), HI = vld1q_f32(hi + k);
-        if (!unit) { HR = vmulq_f32(W, HR); HI = vmulq_f32(W, HI); }
-        const float32x4_t XR = vld1q_f32(xr + k), XI = vld1q_f32(xi + k);
-        vst1q_f32(ar + k, neonSubMul(neonAddMul(vld1q_f32(ar + k), XR, HR), XI, HI));   // + xr hr - xi hi
-        vst1q_f32(ai + k, neonAddMul(neonAddMul(vld1q_f32(ai + k), XR, HI), XI, HR));   // + xr hi + xi hr
+    const float32x4_t W = vdupq_n_f32( w );
+    const bool        unit = w == 1.0f;
+    for ( ; k + 4 <= k1; k += 4 )
+    {
+        float32x4_t HR = vld1q_f32( hr + k ), HI = vld1q_f32( hi + k );
+        if ( !unit )
+        {
+            HR = vmulq_f32( W, HR );
+            HI = vmulq_f32( W, HI );
+        }
+        const float32x4_t XR = vld1q_f32( xr + k ), XI = vld1q_f32( xi + k );
+        vst1q_f32( ar + k, neonSubMul( neonAddMul( vld1q_f32( ar + k ), XR, HR ), XI, HI ) );   // + xr hr - xi hi
+        vst1q_f32( ai + k, neonAddMul( neonAddMul( vld1q_f32( ai + k ), XR, HI ), XI, HR ) );   // + xr hi + xi hr
     }
 #endif
-    for (; k < k1; ++k) {
+    for ( ; k < k1; ++k )
+    {
         const float h_r = w * hr[k], h_i = w * hi[k];
         ar[k] += xr[k] * h_r - xi[k] * h_i;
         ai[k] += xr[k] * h_i + xi[k] * h_r;
@@ -179,39 +219,51 @@ void sumOne(float* ar, float* ai, const float* xr, const float* xi, const float*
  * @param[in]     k0   the first bin
  * @param[in]     k1   one past the last bin; k1 - k0 is a multiple of eight
  */
-void sumTwo(float* a0r, float* a0i, float* a1r, float* a1i,
-            const float* x0r, const float* x0i, const float* x1r, const float* x1i,
-            const float* hr, const float* hi, float w, int k0, int k1)
+void sumTwo( float *a0r, float *a0i, float *a1r, float *a1i, const float *x0r, const float *x0i, const float *x1r,
+             const float *x1i, const float *hr, const float *hi, float w, int k0, int k1 )
 {
     int k = k0;
 #if AMBIENT_HAS_AVX
-    const __m256 W = _mm256_set1_ps(w);
-    const bool unit = w == 1.0f;
-    for (; k + 8 <= k1; k += 8) {
-        __m256 HR = _mm256_loadu_ps(hr + k), HI = _mm256_loadu_ps(hi + k);
-        if (!unit) { HR = _mm256_mul_ps(W, HR); HI = _mm256_mul_ps(W, HI); }
-        __m256 XR = _mm256_loadu_ps(x0r + k), XI = _mm256_loadu_ps(x0i + k);
-        _mm256_storeu_ps(a0r + k, _mm256_fnmadd_ps(XI, HI, _mm256_fmadd_ps(XR, HR, _mm256_loadu_ps(a0r + k))));
-        _mm256_storeu_ps(a0i + k, _mm256_fmadd_ps(XI, HR, _mm256_fmadd_ps(XR, HI, _mm256_loadu_ps(a0i + k))));
-        XR = _mm256_loadu_ps(x1r + k); XI = _mm256_loadu_ps(x1i + k);
-        _mm256_storeu_ps(a1r + k, _mm256_fnmadd_ps(XI, HI, _mm256_fmadd_ps(XR, HR, _mm256_loadu_ps(a1r + k))));
-        _mm256_storeu_ps(a1i + k, _mm256_fmadd_ps(XI, HR, _mm256_fmadd_ps(XR, HI, _mm256_loadu_ps(a1i + k))));
+    const __m256 W = _mm256_set1_ps( w );
+    const bool   unit = w == 1.0f;
+    for ( ; k + 8 <= k1; k += 8 )
+    {
+        __m256 HR = _mm256_loadu_ps( hr + k ), HI = _mm256_loadu_ps( hi + k );
+        if ( !unit )
+        {
+            HR = _mm256_mul_ps( W, HR );
+            HI = _mm256_mul_ps( W, HI );
+        }
+        __m256 XR = _mm256_loadu_ps( x0r + k ), XI = _mm256_loadu_ps( x0i + k );
+        _mm256_storeu_ps( a0r + k, _mm256_fnmadd_ps( XI, HI, _mm256_fmadd_ps( XR, HR, _mm256_loadu_ps( a0r + k ) ) ) );
+        _mm256_storeu_ps( a0i + k, _mm256_fmadd_ps( XI, HR, _mm256_fmadd_ps( XR, HI, _mm256_loadu_ps( a0i + k ) ) ) );
+        XR = _mm256_loadu_ps( x1r + k );
+        XI = _mm256_loadu_ps( x1i + k );
+        _mm256_storeu_ps( a1r + k, _mm256_fnmadd_ps( XI, HI, _mm256_fmadd_ps( XR, HR, _mm256_loadu_ps( a1r + k ) ) ) );
+        _mm256_storeu_ps( a1i + k, _mm256_fmadd_ps( XI, HR, _mm256_fmadd_ps( XR, HI, _mm256_loadu_ps( a1i + k ) ) ) );
     }
 #elif AMBIENT_HAS_NEON
-    const float32x4_t W = vdupq_n_f32(w);
-    const bool unit = w == 1.0f;
-    for (; k + 4 <= k1; k += 4) {
-        float32x4_t HR = vld1q_f32(hr + k), HI = vld1q_f32(hi + k);
-        if (!unit) { HR = vmulq_f32(W, HR); HI = vmulq_f32(W, HI); }
-        float32x4_t XR = vld1q_f32(x0r + k), XI = vld1q_f32(x0i + k);
-        vst1q_f32(a0r + k, neonSubMul(neonAddMul(vld1q_f32(a0r + k), XR, HR), XI, HI));
-        vst1q_f32(a0i + k, neonAddMul(neonAddMul(vld1q_f32(a0i + k), XR, HI), XI, HR));
-        XR = vld1q_f32(x1r + k); XI = vld1q_f32(x1i + k);
-        vst1q_f32(a1r + k, neonSubMul(neonAddMul(vld1q_f32(a1r + k), XR, HR), XI, HI));
-        vst1q_f32(a1i + k, neonAddMul(neonAddMul(vld1q_f32(a1i + k), XR, HI), XI, HR));
+    const float32x4_t W = vdupq_n_f32( w );
+    const bool        unit = w == 1.0f;
+    for ( ; k + 4 <= k1; k += 4 )
+    {
+        float32x4_t HR = vld1q_f32( hr + k ), HI = vld1q_f32( hi + k );
+        if ( !unit )
+        {
+            HR = vmulq_f32( W, HR );
+            HI = vmulq_f32( W, HI );
+        }
+        float32x4_t XR = vld1q_f32( x0r + k ), XI = vld1q_f32( x0i + k );
+        vst1q_f32( a0r + k, neonSubMul( neonAddMul( vld1q_f32( a0r + k ), XR, HR ), XI, HI ) );
+        vst1q_f32( a0i + k, neonAddMul( neonAddMul( vld1q_f32( a0i + k ), XR, HI ), XI, HR ) );
+        XR = vld1q_f32( x1r + k );
+        XI = vld1q_f32( x1i + k );
+        vst1q_f32( a1r + k, neonSubMul( neonAddMul( vld1q_f32( a1r + k ), XR, HR ), XI, HI ) );
+        vst1q_f32( a1i + k, neonAddMul( neonAddMul( vld1q_f32( a1i + k ), XR, HI ), XI, HR ) );
     }
 #endif
-    for (; k < k1; ++k) {
+    for ( ; k < k1; ++k )
+    {
         const float h_r = w * hr[k], h_i = w * hi[k];
         a0r[k] += x0r[k] * h_r - x0i[k] * h_i;
         a0i[k] += x0r[k] * h_i + x0i[k] * h_r;
@@ -235,30 +287,36 @@ void sumTwo(float* a0r, float* a0i, float* a1r, float* a1i,
  * @param[in]     k0   the first bin
  * @param[in]     k1   one past the last bin; k1 - k0 is a multiple of eight
  */
-void blendOne(float* ar, float* ai, const float* xr, const float* xi,
-              const float* har, const float* hai, float wa, const float* hbr, const float* hbi, float wb, int k0, int k1)
+void blendOne( float *ar, float *ai, const float *xr, const float *xi, const float *har, const float *hai, float wa,
+               const float *hbr, const float *hbi, float wb, int k0, int k1 )
 {
     int k = k0;
 #if AMBIENT_HAS_AVX
-    const __m256 WA = _mm256_set1_ps(wa), WB = _mm256_set1_ps(wb);
-    for (; k + 8 <= k1; k += 8) {
-        const __m256 HR = _mm256_fmadd_ps(WA, _mm256_loadu_ps(har + k), _mm256_mul_ps(WB, _mm256_loadu_ps(hbr + k)));
-        const __m256 HI = _mm256_fmadd_ps(WA, _mm256_loadu_ps(hai + k), _mm256_mul_ps(WB, _mm256_loadu_ps(hbi + k)));
-        const __m256 XR = _mm256_loadu_ps(xr + k), XI = _mm256_loadu_ps(xi + k);
-        _mm256_storeu_ps(ar + k, _mm256_fnmadd_ps(XI, HI, _mm256_fmadd_ps(XR, HR, _mm256_loadu_ps(ar + k))));
-        _mm256_storeu_ps(ai + k, _mm256_fmadd_ps(XI, HR, _mm256_fmadd_ps(XR, HI, _mm256_loadu_ps(ai + k))));
+    const __m256 WA = _mm256_set1_ps( wa ), WB = _mm256_set1_ps( wb );
+    for ( ; k + 8 <= k1; k += 8 )
+    {
+        const __m256 HR =
+            _mm256_fmadd_ps( WA, _mm256_loadu_ps( har + k ), _mm256_mul_ps( WB, _mm256_loadu_ps( hbr + k ) ) );
+        const __m256 HI =
+            _mm256_fmadd_ps( WA, _mm256_loadu_ps( hai + k ), _mm256_mul_ps( WB, _mm256_loadu_ps( hbi + k ) ) );
+        const __m256 XR = _mm256_loadu_ps( xr + k ), XI = _mm256_loadu_ps( xi + k );
+        _mm256_storeu_ps( ar + k, _mm256_fnmadd_ps( XI, HI, _mm256_fmadd_ps( XR, HR, _mm256_loadu_ps( ar + k ) ) ) );
+        _mm256_storeu_ps( ai + k, _mm256_fmadd_ps( XI, HR, _mm256_fmadd_ps( XR, HI, _mm256_loadu_ps( ai + k ) ) ) );
     }
 #elif AMBIENT_HAS_NEON
-    const float32x4_t WA = vdupq_n_f32(wa), WB = vdupq_n_f32(wb);
-    for (; k + 4 <= k1; k += 4) {
-        const float32x4_t HR = neonAddMul(vmulq_f32(WB, vld1q_f32(hbr + k)), WA, vld1q_f32(har + k));   // wa ha + wb hb
-        const float32x4_t HI = neonAddMul(vmulq_f32(WB, vld1q_f32(hbi + k)), WA, vld1q_f32(hai + k));
-        const float32x4_t XR = vld1q_f32(xr + k), XI = vld1q_f32(xi + k);
-        vst1q_f32(ar + k, neonSubMul(neonAddMul(vld1q_f32(ar + k), XR, HR), XI, HI));
-        vst1q_f32(ai + k, neonAddMul(neonAddMul(vld1q_f32(ai + k), XR, HI), XI, HR));
+    const float32x4_t WA = vdupq_n_f32( wa ), WB = vdupq_n_f32( wb );
+    for ( ; k + 4 <= k1; k += 4 )
+    {
+        const float32x4_t HR =
+            neonAddMul( vmulq_f32( WB, vld1q_f32( hbr + k ) ), WA, vld1q_f32( har + k ) );   // wa ha + wb hb
+        const float32x4_t HI = neonAddMul( vmulq_f32( WB, vld1q_f32( hbi + k ) ), WA, vld1q_f32( hai + k ) );
+        const float32x4_t XR = vld1q_f32( xr + k ), XI = vld1q_f32( xi + k );
+        vst1q_f32( ar + k, neonSubMul( neonAddMul( vld1q_f32( ar + k ), XR, HR ), XI, HI ) );
+        vst1q_f32( ai + k, neonAddMul( neonAddMul( vld1q_f32( ai + k ), XR, HI ), XI, HR ) );
     }
 #endif
-    for (; k < k1; ++k) {
+    for ( ; k < k1; ++k )
+    {
         const float h_r = wa * har[k] + wb * hbr[k], h_i = wa * hai[k] + wb * hbi[k];
         ar[k] += xr[k] * h_r - xi[k] * h_i;
         ai[k] += xr[k] * h_i + xi[k] * h_r;
@@ -284,37 +342,44 @@ void blendOne(float* ar, float* ai, const float* xr, const float* xi,
  * @param[in]     k0   the first bin
  * @param[in]     k1   one past the last bin; k1 - k0 is a multiple of eight
  */
-void blendTwo(float* a0r, float* a0i, float* a1r, float* a1i,
-              const float* x0r, const float* x0i, const float* x1r, const float* x1i,
-              const float* har, const float* hai, float wa, const float* hbr, const float* hbi, float wb, int k0, int k1)
+void blendTwo( float *a0r, float *a0i, float *a1r, float *a1i, const float *x0r, const float *x0i, const float *x1r,
+               const float *x1i, const float *har, const float *hai, float wa, const float *hbr, const float *hbi,
+               float wb, int k0, int k1 )
 {
     int k = k0;
 #if AMBIENT_HAS_AVX
-    const __m256 WA = _mm256_set1_ps(wa), WB = _mm256_set1_ps(wb);
-    for (; k + 8 <= k1; k += 8) {
-        const __m256 HR = _mm256_fmadd_ps(WA, _mm256_loadu_ps(har + k), _mm256_mul_ps(WB, _mm256_loadu_ps(hbr + k)));
-        const __m256 HI = _mm256_fmadd_ps(WA, _mm256_loadu_ps(hai + k), _mm256_mul_ps(WB, _mm256_loadu_ps(hbi + k)));
-        __m256 XR = _mm256_loadu_ps(x0r + k), XI = _mm256_loadu_ps(x0i + k);
-        _mm256_storeu_ps(a0r + k, _mm256_fnmadd_ps(XI, HI, _mm256_fmadd_ps(XR, HR, _mm256_loadu_ps(a0r + k))));
-        _mm256_storeu_ps(a0i + k, _mm256_fmadd_ps(XI, HR, _mm256_fmadd_ps(XR, HI, _mm256_loadu_ps(a0i + k))));
-        XR = _mm256_loadu_ps(x1r + k); XI = _mm256_loadu_ps(x1i + k);
-        _mm256_storeu_ps(a1r + k, _mm256_fnmadd_ps(XI, HI, _mm256_fmadd_ps(XR, HR, _mm256_loadu_ps(a1r + k))));
-        _mm256_storeu_ps(a1i + k, _mm256_fmadd_ps(XI, HR, _mm256_fmadd_ps(XR, HI, _mm256_loadu_ps(a1i + k))));
+    const __m256 WA = _mm256_set1_ps( wa ), WB = _mm256_set1_ps( wb );
+    for ( ; k + 8 <= k1; k += 8 )
+    {
+        const __m256 HR =
+            _mm256_fmadd_ps( WA, _mm256_loadu_ps( har + k ), _mm256_mul_ps( WB, _mm256_loadu_ps( hbr + k ) ) );
+        const __m256 HI =
+            _mm256_fmadd_ps( WA, _mm256_loadu_ps( hai + k ), _mm256_mul_ps( WB, _mm256_loadu_ps( hbi + k ) ) );
+        __m256 XR = _mm256_loadu_ps( x0r + k ), XI = _mm256_loadu_ps( x0i + k );
+        _mm256_storeu_ps( a0r + k, _mm256_fnmadd_ps( XI, HI, _mm256_fmadd_ps( XR, HR, _mm256_loadu_ps( a0r + k ) ) ) );
+        _mm256_storeu_ps( a0i + k, _mm256_fmadd_ps( XI, HR, _mm256_fmadd_ps( XR, HI, _mm256_loadu_ps( a0i + k ) ) ) );
+        XR = _mm256_loadu_ps( x1r + k );
+        XI = _mm256_loadu_ps( x1i + k );
+        _mm256_storeu_ps( a1r + k, _mm256_fnmadd_ps( XI, HI, _mm256_fmadd_ps( XR, HR, _mm256_loadu_ps( a1r + k ) ) ) );
+        _mm256_storeu_ps( a1i + k, _mm256_fmadd_ps( XI, HR, _mm256_fmadd_ps( XR, HI, _mm256_loadu_ps( a1i + k ) ) ) );
     }
 #elif AMBIENT_HAS_NEON
-    const float32x4_t WA = vdupq_n_f32(wa), WB = vdupq_n_f32(wb);
-    for (; k + 4 <= k1; k += 4) {
-        const float32x4_t HR = neonAddMul(vmulq_f32(WB, vld1q_f32(hbr + k)), WA, vld1q_f32(har + k));
-        const float32x4_t HI = neonAddMul(vmulq_f32(WB, vld1q_f32(hbi + k)), WA, vld1q_f32(hai + k));
-        float32x4_t XR = vld1q_f32(x0r + k), XI = vld1q_f32(x0i + k);
-        vst1q_f32(a0r + k, neonSubMul(neonAddMul(vld1q_f32(a0r + k), XR, HR), XI, HI));
-        vst1q_f32(a0i + k, neonAddMul(neonAddMul(vld1q_f32(a0i + k), XR, HI), XI, HR));
-        XR = vld1q_f32(x1r + k); XI = vld1q_f32(x1i + k);
-        vst1q_f32(a1r + k, neonSubMul(neonAddMul(vld1q_f32(a1r + k), XR, HR), XI, HI));
-        vst1q_f32(a1i + k, neonAddMul(neonAddMul(vld1q_f32(a1i + k), XR, HI), XI, HR));
+    const float32x4_t WA = vdupq_n_f32( wa ), WB = vdupq_n_f32( wb );
+    for ( ; k + 4 <= k1; k += 4 )
+    {
+        const float32x4_t HR = neonAddMul( vmulq_f32( WB, vld1q_f32( hbr + k ) ), WA, vld1q_f32( har + k ) );
+        const float32x4_t HI = neonAddMul( vmulq_f32( WB, vld1q_f32( hbi + k ) ), WA, vld1q_f32( hai + k ) );
+        float32x4_t       XR = vld1q_f32( x0r + k ), XI = vld1q_f32( x0i + k );
+        vst1q_f32( a0r + k, neonSubMul( neonAddMul( vld1q_f32( a0r + k ), XR, HR ), XI, HI ) );
+        vst1q_f32( a0i + k, neonAddMul( neonAddMul( vld1q_f32( a0i + k ), XR, HI ), XI, HR ) );
+        XR = vld1q_f32( x1r + k );
+        XI = vld1q_f32( x1i + k );
+        vst1q_f32( a1r + k, neonSubMul( neonAddMul( vld1q_f32( a1r + k ), XR, HR ), XI, HI ) );
+        vst1q_f32( a1i + k, neonAddMul( neonAddMul( vld1q_f32( a1i + k ), XR, HI ), XI, HR ) );
     }
 #endif
-    for (; k < k1; ++k) {
+    for ( ; k < k1; ++k )
+    {
         const float h_r = wa * har[k] + wb * hbr[k], h_i = wa * hai[k] + wb * hbi[k];
         a0r[k] += x0r[k] * h_r - x0i[k] * h_i;
         a0i[k] += x0r[k] * h_i + x0i[k] * h_r;
@@ -334,14 +399,15 @@ void blendTwo(float* a0r, float* a0i, float* a1r, float* a1i,
  * @param[in] x  the argument, non-negative
  * @return I0(x), 1 at zero and growing like e^x / sqrt(2 pi x)
  */
-double besselI0(double x)
+double besselI0( double x )
 {
-    double sum = 1.0, term = 1.0;
+    double       sum = 1.0, term = 1.0;
     const double q = 0.25 * x * x;
-    for (int k = 1; k < 200; ++k) {
-        term *= q / (static_cast<double>(k) * static_cast<double>(k));
+    for ( int k = 1; k < 200; ++k )
+    {
+        term *= q / ( static_cast<double>( k ) * static_cast<double>( k ) );
         sum += term;
-        if (term < 1.0e-14 * sum) break;
+        if ( term < 1.0e-14 * sum ) break;
     }
     return sum;
 }
@@ -359,37 +425,42 @@ double besselI0(double x)
  * @param[in] limit  the most samples to produce (the Room's cap); the rest of the impulse is not computed
  * @return the impulse at the engine rate; a copy of the first `limit` samples when the rates match
  */
-std::vector<float> resample(const float* x, int n, double ratio, long limit)
+std::vector<float> resample( const float *x, int n, double ratio, long limit )
 {
-    if (std::fabs(ratio - 1.0) < 1.0e-9) return std::vector<float>(x, x + std::min<long>(n, limit));
-    constexpr int Half = 16, Table = 512;
-    constexpr double Beta = 7.0;
-    const double a = std::min(1.0, ratio) * 0.95;   // kernel a * sinc(a u): cutoff 0.475 of the lower rate
-    const double i0b = besselI0(Beta);
-    std::vector<float> table(static_cast<size_t>(Half * Table + 2), 0.0f);
-    for (int j = 0; j <= Half * Table; ++j) {
-        const double v = static_cast<double>(j) / Table;   // in zero crossings
+    if ( std::fabs( ratio - 1.0 ) < 1.0e-9 ) return std::vector<float>( x, x + std::min<long>( n, limit ) );
+    constexpr int      Half = 16, Table = 512;
+    constexpr double   Beta = 7.0;
+    const double       a = std::min( 1.0, ratio ) * 0.95;   // kernel a * sinc(a u): cutoff 0.475 of the lower rate
+    const double       i0b = besselI0( Beta );
+    std::vector<float> table( static_cast<size_t>( Half * Table + 2 ), 0.0f );
+    for ( int j = 0; j <= Half * Table; ++j )
+    {
+        const double v = static_cast<double>( j ) / Table;   // in zero crossings
         const double z = v / Half;
-        const double sinc = j == 0 ? 1.0 : std::sin(PiD * v) / (PiD * v);
-        table[static_cast<size_t>(j)] = static_cast<float>(sinc * besselI0(Beta * std::sqrt(std::max(0.0, 1.0 - z * z))) / i0b);
+        const double sinc = j == 0 ? 1.0 : std::sin( PiD * v ) / ( PiD * v );
+        table[static_cast<size_t>( j )] =
+            static_cast<float>( sinc * besselI0( Beta * std::sqrt( std::max( 0.0, 1.0 - z * z ) ) ) / i0b );
     }
-    const long outN = std::min(limit, static_cast<long>(std::floor(static_cast<double>(n) * ratio)));
-    std::vector<float> y(static_cast<size_t>(std::max(0L, outN)), 0.0f);
-    const double reach = Half / a;      // in input samples
-    const double toTable = a * Table;
-    for (long i = 0; i < outN; ++i) {
-        const double t = static_cast<double>(i) / ratio;
-        const int j0 = std::max(0, static_cast<int>(std::ceil(t - reach)));
-        const int j1 = std::min(n - 1, static_cast<int>(std::floor(t + reach)));
-        double acc = 0.0;
-        for (int j = j0; j <= j1; ++j) {
-            const double v = std::fabs(t - j) * toTable;
-            const int iv = static_cast<int>(v);
-            if (iv >= Half * Table) continue;
+    const long         outN = std::min( limit, static_cast<long>( std::floor( static_cast<double>( n ) * ratio ) ) );
+    std::vector<float> y( static_cast<size_t>( std::max( 0L, outN ) ), 0.0f );
+    const double       reach = Half / a;   // in input samples
+    const double       toTable = a * Table;
+    for ( long i = 0; i < outN; ++i )
+    {
+        const double t = static_cast<double>( i ) / ratio;
+        const int    j0 = std::max( 0, static_cast<int>( std::ceil( t - reach ) ) );
+        const int    j1 = std::min( n - 1, static_cast<int>( std::floor( t + reach ) ) );
+        double       acc = 0.0;
+        for ( int j = j0; j <= j1; ++j )
+        {
+            const double v = std::fabs( t - j ) * toTable;
+            const int    iv = static_cast<int>( v );
+            if ( iv >= Half * Table ) continue;
             const double f = v - iv;
-            acc += x[j] * (table[static_cast<size_t>(iv)] + f * (table[static_cast<size_t>(iv) + 1] - table[static_cast<size_t>(iv)]));
+            acc += x[j] * ( table[static_cast<size_t>( iv )] +
+                            f * ( table[static_cast<size_t>( iv ) + 1] - table[static_cast<size_t>( iv )] ) );
         }
-        y[static_cast<size_t>(i)] = static_cast<float>(a * acc);
+        y[static_cast<size_t>( i )] = static_cast<float>( a * acc );
     }
     return y;
 }
@@ -408,36 +479,40 @@ std::vector<float> resample(const float* x, int n, double ratio, long limit)
  * @param[in]     channels  1 or 2, how many of @p ch are in use
  * @param[in]     sr        the engine's sample rate, for the 50 ms windows
  */
-void shrinkToCap(std::vector<float>* ch, int channels, double sr)
+void shrinkToCap( std::vector<float> *ch, int channels, double sr )
 {
     const size_t len = ch[0].size();
-    const size_t k = std::max<size_t>(1, static_cast<size_t>(0.05 * sr));
-    if (len < 2 * k) return;
-    auto energy = [&](size_t i) {
+    const size_t k = std::max<size_t>( 1, static_cast<size_t>( 0.05 * sr ) );
+    if ( len < 2 * k ) return;
+    auto energy = [&]( size_t i )
+    {
         double e = 0.0;
-        for (int c = 0; c < channels; ++c) e += static_cast<double>(ch[c][i]) * ch[c][i];
+        for ( int c = 0; c < channels; ++c ) e += static_cast<double>( ch[c][i] ) * ch[c][i];
         return e;
     };
     double run = 0.0, loud = 0.0;
-    for (size_t i = 0; i < len; ++i) {
-        run += energy(i);
-        if (i >= k) run -= energy(i - k);
-        if (i + 1 >= k) loud = std::max(loud, run);
+    for ( size_t i = 0; i < len; ++i )
+    {
+        run += energy( i );
+        if ( i >= k ) run -= energy( i - k );
+        if ( i + 1 >= k ) loud = std::max( loud, run );
     }
-    if (loud <= 0.0) return;
+    if ( loud <= 0.0 ) return;
     double last = 0.0;
-    for (size_t i = len - k; i < len; ++i) last += energy(i);
-    const double levelDb = 10.0 * std::log10(std::max(last, 1.0e-300) / loud);
-    const double extraDb = std::min(0.0, -60.0 - levelDb);         // what the window adds by the cap
-    const double step = std::pow(10.0, extraDb / 20.0 / static_cast<double>(len));
-    double w = 1.0;
-    for (size_t i = 0; i < len; ++i) {
+    for ( size_t i = len - k; i < len; ++i ) last += energy( i );
+    const double levelDb = 10.0 * std::log10( std::max( last, 1.0e-300 ) / loud );
+    const double extraDb = std::min( 0.0, -60.0 - levelDb );   // what the window adds by the cap
+    const double step = std::pow( 10.0, extraDb / 20.0 / static_cast<double>( len ) );
+    double       w = 1.0;
+    for ( size_t i = 0; i < len; ++i )
+    {
         double g = w;
-        if (i >= len - k) {
-            const double c = std::cos(0.5 * PiD * static_cast<double>(i - (len - k)) / static_cast<double>(k));
+        if ( i >= len - k )
+        {
+            const double c = std::cos( 0.5 * PiD * static_cast<double>( i - ( len - k ) ) / static_cast<double>( k ) );
             g *= c * c;
         }
-        for (int c = 0; c < channels; ++c) ch[c][i] = static_cast<float>(ch[c][i] * g);
+        for ( int c = 0; c < channels; ++c ) ch[c][i] = static_cast<float>( ch[c][i] * g );
         w *= step;
     }
 }
@@ -447,10 +522,16 @@ void shrinkToCap(std::vector<float>* ch, int channels, double sr)
  * The built-in hall's design, solved offline by the generator that makes the library's rooms
  * (Tools/ImpulseGen/roomgen.py): the initial spectrum in dB and T60 in seconds at the octaves.
  * @{ */
-constexpr int Oct = 9;   ///< the octave bands, 63 Hz .. 16 kHz
-constexpr double OctHz[Oct]  = { 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0 };   ///< the bands' centres in Hz
-constexpr double OctB[Oct]   = { -3.7, -3.5, -2.5, -1.1, -1.4, -3.9, -7.5, -11.9, -17.9 };   ///< the initial spectrum at each band, in dB
-constexpr double OctT60[Oct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85, 0.37 };   ///< the decay to -60 dB at each band, in seconds
+constexpr int    Oct = 9;   ///< the octave bands, 63 Hz .. 16 kHz
+constexpr double OctHz[Oct] = {
+    63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0, 4000.0, 8000.0, 16000.0
+};   ///< the bands' centres in Hz
+constexpr double OctB[Oct] = {
+    -3.7, -3.5, -2.5, -1.1, -1.4, -3.9, -7.5, -11.9, -17.9
+};   ///< the initial spectrum at each band, in dB
+constexpr double OctT60[Oct] = {
+    2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85, 0.37
+};   ///< the decay to -60 dB at each band, in seconds
 /** @} */
 
 /**
@@ -460,27 +541,30 @@ constexpr double OctT60[Oct] = { 2.52, 2.66, 2.80, 2.80, 2.80, 2.06, 1.43, 0.85,
  * @param[out] bDb  receives the initial level in dB
  * @param[out] t60  receives the decay time to -60 dB in seconds
  */
-void octaveDesign(double f, double& bDb, double& t60)
+void octaveDesign( double f, double &bDb, double &t60 )
 {
-    f = std::max(f, 1.0);
-    const double lf = std::log2(f);
-    if (f <= OctHz[0]) {
-        bDb = OctB[0] - 10.0 * std::log10(1.0 + std::pow(40.0 / f, 4.0)) + 10.0 * std::log10(1.0 + std::pow(40.0 / OctHz[0], 4.0));
+    f = std::max( f, 1.0 );
+    const double lf = std::log2( f );
+    if ( f <= OctHz[0] )
+    {
+        bDb = OctB[0] - 10.0 * std::log10( 1.0 + std::pow( 40.0 / f, 4.0 ) ) +
+              10.0 * std::log10( 1.0 + std::pow( 40.0 / OctHz[0], 4.0 ) );
         t60 = OctT60[0];
         return;
     }
-    if (f >= OctHz[Oct - 1]) {
+    if ( f >= OctHz[Oct - 1] )
+    {
         const double top = OctHz[Oct - 1] / 14000.0, here = f / 14000.0;
-        bDb = OctB[Oct - 1] - 10.0 * std::log10(1.0 + here * here) + 10.0 * std::log10(1.0 + top * top);
+        bDb = OctB[Oct - 1] - 10.0 * std::log10( 1.0 + here * here ) + 10.0 * std::log10( 1.0 + top * top );
         t60 = OctT60[Oct - 1];
         return;
     }
     int i = 0;
-    while (i + 2 < Oct && f >= OctHz[i + 1]) ++i;
-    const double a = std::log2(OctHz[i]), b = std::log2(OctHz[i + 1]);
-    const double u = (lf - a) / (b - a);
-    bDb = OctB[i] + u * (OctB[i + 1] - OctB[i]);
-    t60 = std::exp(std::log(OctT60[i]) + u * (std::log(OctT60[i + 1]) - std::log(OctT60[i])));
+    while ( i + 2 < Oct && f >= OctHz[i + 1] ) ++i;
+    const double a = std::log2( OctHz[i] ), b = std::log2( OctHz[i + 1] );
+    const double u = ( lf - a ) / ( b - a );
+    bDb = OctB[i] + u * ( OctB[i + 1] - OctB[i] );
+    t60 = std::exp( std::log( OctT60[i] ) + u * ( std::log( OctT60[i + 1] ) - std::log( OctT60[i] ) ) );
 }
 
 // ---------------------------------------------------------------- rings
@@ -492,12 +576,12 @@ void octaveDesign(double f, double& bDb, double& t60)
  * @param[in]     src   the samples
  * @param[in]     m     how many; never more than the ring holds
  */
-void ringWrite(std::vector<float>& ring, int at, const float* src, int m)
+void ringWrite( std::vector<float> &ring, int at, const float *src, int m )
 {
-    const int size = static_cast<int>(ring.size());
-    const int first = std::min(m, size - at);
-    std::memcpy(ring.data() + at, src, sizeof(float) * static_cast<size_t>(first));
-    if (first < m) std::memcpy(ring.data(), src + first, sizeof(float) * static_cast<size_t>(m - first));
+    const int size = static_cast<int>( ring.size() );
+    const int first = std::min( m, size - at );
+    std::memcpy( ring.data() + at, src, sizeof( float ) * static_cast<size_t>( first ) );
+    if ( first < m ) std::memcpy( ring.data(), src + first, sizeof( float ) * static_cast<size_t>( m - first ) );
 }
 
 /**
@@ -507,44 +591,48 @@ void ringWrite(std::vector<float>& ring, int at, const float* src, int m)
  * @param[out]    dst   receives the samples
  * @param[in]     m     how many; never more than the ring holds
  */
-void ringTake(std::vector<float>& ring, int at, float* dst, int m)
+void ringTake( std::vector<float> &ring, int at, float *dst, int m )
 {
-    const int size = static_cast<int>(ring.size());
-    const int first = std::min(m, size - at);
-    std::memcpy(dst, ring.data() + at, sizeof(float) * static_cast<size_t>(first));
-    std::memset(ring.data() + at, 0, sizeof(float) * static_cast<size_t>(first));
-    if (first < m) {
-        std::memcpy(dst + first, ring.data(), sizeof(float) * static_cast<size_t>(m - first));
-        std::memset(ring.data(), 0, sizeof(float) * static_cast<size_t>(m - first));
+    const int size = static_cast<int>( ring.size() );
+    const int first = std::min( m, size - at );
+    std::memcpy( dst, ring.data() + at, sizeof( float ) * static_cast<size_t>( first ) );
+    std::memset( ring.data() + at, 0, sizeof( float ) * static_cast<size_t>( first ) );
+    if ( first < m )
+    {
+        std::memcpy( dst + first, ring.data(), sizeof( float ) * static_cast<size_t>( m - first ) );
+        std::memset( ring.data(), 0, sizeof( float ) * static_cast<size_t>( m - first ) );
     }
 }
 
-} // namespace
+}   // namespace
 
 // ---------------------------------------------------------------- the transform
 
-void Convolver::StepFft::init(int size)
+void Convolver::StepFft::init( int size )
 {
     m_n = size;
     int bits = 0;
-    while ((1 << bits) < m_n) ++bits;
-    m_rev.assign(static_cast<size_t>(m_n), 0);
-    for (int i = 0; i < m_n; ++i) {
+    while ( ( 1 << bits ) < m_n ) ++bits;
+    m_rev.assign( static_cast<size_t>( m_n ), 0 );
+    for ( int i = 0; i < m_n; ++i )
+    {
         int r = 0;
-        for (int b = 0; b < bits; ++b) if (i & (1 << b)) r |= 1 << (bits - 1 - b);
-        m_rev[static_cast<size_t>(i)] = r;
+        for ( int b = 0; b < bits; ++b )
+            if ( i & ( 1 << b ) ) r |= 1 << ( bits - 1 - b );
+        m_rev[static_cast<size_t>( i )] = r;
     }
-    m_cs.assign(static_cast<size_t>(m_n), 0.0f);
-    m_snF.assign(static_cast<size_t>(m_n), 0.0f);
-    m_snI.assign(static_cast<size_t>(m_n), 0.0f);
-    for (int h = 1; h < m_n; h <<= 1)
-        for (int k = 0; k < h; ++k) {
+    m_cs.assign( static_cast<size_t>( m_n ), 0.0f );
+    m_snF.assign( static_cast<size_t>( m_n ), 0.0f );
+    m_snI.assign( static_cast<size_t>( m_n ), 0.0f );
+    for ( int h = 1; h < m_n; h <<= 1 )
+        for ( int k = 0; k < h; ++k )
+        {
             const double ang = PiD * k / h;
-            m_cs[static_cast<size_t>(h + k)]  = static_cast<float>(std::cos(ang));
-            m_snI[static_cast<size_t>(h + k)] = static_cast<float>(std::sin(ang));
-            m_snF[static_cast<size_t>(h + k)] = -m_snI[static_cast<size_t>(h + k)];
+            m_cs[static_cast<size_t>( h + k )] = static_cast<float>( std::cos( ang ) );
+            m_snI[static_cast<size_t>( h + k )] = static_cast<float>( std::sin( ang ) );
+            m_snF[static_cast<size_t>( h + k )] = -m_snI[static_cast<size_t>( h + k )];
         }
-    m_work = static_cast<long long>(m_n) / 4 + static_cast<long long>(m_n) * bits / 2;
+    m_work = static_cast<long long>( m_n ) / 4 + static_cast<long long>( m_n ) * bits / 2;
 }
 
 /**
@@ -554,70 +642,89 @@ void Convolver::StepFft::init(int size)
  * Stops when the budget is spent, at
  * the end of a run of butterflies, and returns true once the whole transform is done.
  */
-bool Convolver::runFft(const StepFft& f, FftRun& r, float* re, float* im, bool inverse, long long& budget)
+bool Convolver::runFft( const StepFft &f, FftRun &r, float *re, float *im, bool inverse, long long &budget )
 {
     const int n = f.m_n;
-    if (r.m_half == 0) {
-        while (r.m_pos < n) {
-            if (budget <= 0) return false;
-            const int end = std::min(n, r.m_pos + 4096);
-            for (int i = r.m_pos; i < end; ++i) {
-                const int j = f.m_rev[static_cast<size_t>(i)];
-                if (j > i) { std::swap(re[i], re[j]); std::swap(im[i], im[j]); }
+    if ( r.m_half == 0 )
+    {
+        while ( r.m_pos < n )
+        {
+            if ( budget <= 0 ) return false;
+            const int end = std::min( n, r.m_pos + 4096 );
+            for ( int i = r.m_pos; i < end; ++i )
+            {
+                const int j = f.m_rev[static_cast<size_t>( i )];
+                if ( j > i )
+                {
+                    std::swap( re[i], re[j] );
+                    std::swap( im[i], im[j] );
+                }
             }
-            budget -= (end - r.m_pos) / 4 + 1;
+            budget -= ( end - r.m_pos ) / 4 + 1;
             r.m_pos = end;
         }
-        r.m_half = 1; r.m_pos = 0;
+        r.m_half = 1;
+        r.m_pos = 0;
     }
-    const float* sn = inverse ? f.m_snI.data() : f.m_snF.data();
-    while (r.m_half < n) {
-        const int h = r.m_half;
-        const float* c = f.m_cs.data() + h;
-        const float* s = sn + h;
-        while (r.m_pos < n) {
-            if (budget <= 0) return false;
-            const int end = std::min(n, r.m_pos + std::max(2 * h, 1024));
-            for (int start = r.m_pos; start < end; start += 2 * h) {
-                float* ra = re + start; float* ia = im + start;
-                float* rb = ra + h;     float* ib = ia + h;
-                int k = 0;
+    const float *sn = inverse ? f.m_snI.data() : f.m_snF.data();
+    while ( r.m_half < n )
+    {
+        const int    h = r.m_half;
+        const float *c = f.m_cs.data() + h;
+        const float *s = sn + h;
+        while ( r.m_pos < n )
+        {
+            if ( budget <= 0 ) return false;
+            const int end = std::min( n, r.m_pos + std::max( 2 * h, 1024 ) );
+            for ( int start = r.m_pos; start < end; start += 2 * h )
+            {
+                float *ra = re + start;
+                float *ia = im + start;
+                float *rb = ra + h;
+                float *ib = ia + h;
+                int    k = 0;
 #if AMBIENT_HAS_AVX
-                for (; k + 8 <= h; k += 8) {
-                    const __m256 C = _mm256_loadu_ps(c + k), S = _mm256_loadu_ps(s + k);
-                    const __m256 RB = _mm256_loadu_ps(rb + k), IB = _mm256_loadu_ps(ib + k);
-                    const __m256 RA = _mm256_loadu_ps(ra + k), IA = _mm256_loadu_ps(ia + k);
-                    const __m256 tr = _mm256_fnmadd_ps(IB, S, _mm256_mul_ps(RB, C));   // rb c - ib s
-                    const __m256 ti = _mm256_fmadd_ps(IB, C, _mm256_mul_ps(RB, S));    // rb s + ib c
-                    _mm256_storeu_ps(rb + k, _mm256_sub_ps(RA, tr));
-                    _mm256_storeu_ps(ib + k, _mm256_sub_ps(IA, ti));
-                    _mm256_storeu_ps(ra + k, _mm256_add_ps(RA, tr));
-                    _mm256_storeu_ps(ia + k, _mm256_add_ps(IA, ti));
+                for ( ; k + 8 <= h; k += 8 )
+                {
+                    const __m256 C = _mm256_loadu_ps( c + k ), S = _mm256_loadu_ps( s + k );
+                    const __m256 RB = _mm256_loadu_ps( rb + k ), IB = _mm256_loadu_ps( ib + k );
+                    const __m256 RA = _mm256_loadu_ps( ra + k ), IA = _mm256_loadu_ps( ia + k );
+                    const __m256 tr = _mm256_fnmadd_ps( IB, S, _mm256_mul_ps( RB, C ) );   // rb c - ib s
+                    const __m256 ti = _mm256_fmadd_ps( IB, C, _mm256_mul_ps( RB, S ) );    // rb s + ib c
+                    _mm256_storeu_ps( rb + k, _mm256_sub_ps( RA, tr ) );
+                    _mm256_storeu_ps( ib + k, _mm256_sub_ps( IA, ti ) );
+                    _mm256_storeu_ps( ra + k, _mm256_add_ps( RA, tr ) );
+                    _mm256_storeu_ps( ia + k, _mm256_add_ps( IA, ti ) );
                 }
 #elif AMBIENT_HAS_NEON
-                for (; k + 4 <= h; k += 4) {
-                    const float32x4_t C = vld1q_f32(c + k), S = vld1q_f32(s + k);
-                    const float32x4_t RB = vld1q_f32(rb + k), IB = vld1q_f32(ib + k);
-                    const float32x4_t RA = vld1q_f32(ra + k), IA = vld1q_f32(ia + k);
-                    const float32x4_t tr = neonSubMul(vmulq_f32(RB, C), IB, S);   // rb c - ib s
-                    const float32x4_t ti = neonAddMul(vmulq_f32(RB, S), IB, C);   // rb s + ib c
-                    vst1q_f32(rb + k, vsubq_f32(RA, tr));
-                    vst1q_f32(ib + k, vsubq_f32(IA, ti));
-                    vst1q_f32(ra + k, vaddq_f32(RA, tr));
-                    vst1q_f32(ia + k, vaddq_f32(IA, ti));
+                for ( ; k + 4 <= h; k += 4 )
+                {
+                    const float32x4_t C = vld1q_f32( c + k ), S = vld1q_f32( s + k );
+                    const float32x4_t RB = vld1q_f32( rb + k ), IB = vld1q_f32( ib + k );
+                    const float32x4_t RA = vld1q_f32( ra + k ), IA = vld1q_f32( ia + k );
+                    const float32x4_t tr = neonSubMul( vmulq_f32( RB, C ), IB, S );   // rb c - ib s
+                    const float32x4_t ti = neonAddMul( vmulq_f32( RB, S ), IB, C );   // rb s + ib c
+                    vst1q_f32( rb + k, vsubq_f32( RA, tr ) );
+                    vst1q_f32( ib + k, vsubq_f32( IA, ti ) );
+                    vst1q_f32( ra + k, vaddq_f32( RA, tr ) );
+                    vst1q_f32( ia + k, vaddq_f32( IA, ti ) );
                 }
 #endif
-                for (; k < h; ++k) {
+                for ( ; k < h; ++k )
+                {
                     const float tr = rb[k] * c[k] - ib[k] * s[k];
                     const float ti = rb[k] * s[k] + ib[k] * c[k];
-                    rb[k] = ra[k] - tr; ib[k] = ia[k] - ti;
-                    ra[k] += tr;        ia[k] += ti;
+                    rb[k] = ra[k] - tr;
+                    ib[k] = ia[k] - ti;
+                    ra[k] += tr;
+                    ia[k] += ti;
                 }
             }
-            budget -= (end - r.m_pos) / 2;
+            budget -= ( end - r.m_pos ) / 2;
             r.m_pos = end;
         }
-        r.m_half <<= 1; r.m_pos = 0;
+        r.m_half <<= 1;
+        r.m_pos = 0;
     }
     return true;
 }
@@ -626,54 +733,60 @@ bool Convolver::runFft(const StepFft& f, FftRun& r, float* re, float* im, bool i
 
 Convolver::Convolver()
 {
-    m_active[0].store(-1, std::memory_order_relaxed);
-    m_active[1].store(-1, std::memory_order_relaxed);
+    m_active[0].store( -1, std::memory_order_relaxed );
+    m_active[1].store( -1, std::memory_order_relaxed );
 }
 
-void Convolver::prepare(double sampleRate, float maxSeconds)
+void Convolver::prepare( double sampleRate, float maxSeconds )
 {
     m_sr = sampleRate;
-    const int scale = sampleRate < 64000.0 ? 1 : (sampleRate < 128000.0 ? 2 : 4);
+    const int scale = sampleRate < 64000.0 ? 1 : ( sampleRate < 128000.0 ? 2 : 4 );
     m_head = 256 * scale;
-    m_capSamples = std::max<long>(m_head, static_cast<long>(std::ceil(maxSeconds * m_sr)));
+    m_capSamples = std::max<long>( m_head, static_cast<long>( std::ceil( maxSeconds * m_sr ) ) );
     // Partition sizes and where their stretches begin. Every stage keeps start >= 2 block - 2 head,
     // so its answer is never due before its next block: see the header.
     const int  blocks[Stages] = { 256 * scale, 2048 * scale, 16384 * scale };
     const long starts[Stages] = { 0L, 4096L * scale, 32768L * scale };
     m_stages = 0;
     long ringNeed = 0;
-    int histNeed = 0;
-    for (int g = 0; g < Stages; ++g) {
-        if (m_capSamples <= starts[g]) break;
-        const long end = g + 1 < Stages ? std::min(starts[g + 1], m_capSamples) : m_capSamples;
-        Stage& s = m_stage[g];
+    int  histNeed = 0;
+    for ( int g = 0; g < Stages; ++g )
+    {
+        if ( m_capSamples <= starts[g] ) break;
+        const long end = g + 1 < Stages ? std::min( starts[g + 1], m_capSamples ) : m_capSamples;
+        Stage     &s = m_stage[g];
         s = Stage{};
         s.m_block = blocks[g];
-        s.m_start = static_cast<int>(starts[g]);
-        s.m_capParts = static_cast<int>((end - starts[g] + s.m_block - 1) / s.m_block);
+        s.m_start = static_cast<int>( starts[g] );
+        s.m_capParts = static_cast<int>( ( end - starts[g] + s.m_block - 1 ) / s.m_block );
         s.m_slot = s.m_block + 8;
-        s.m_fft.init(2 * s.m_block);
-        for (int c = 0; c < 2; ++c) {
-            s.m_fdlRe[c].assign(static_cast<size_t>(s.m_capParts) * static_cast<size_t>(s.m_slot), 0.0f);
-            s.m_fdlIm[c].assign(static_cast<size_t>(s.m_capParts) * static_cast<size_t>(s.m_slot), 0.0f);
-            s.m_re[c].assign(static_cast<size_t>(2 * s.m_block), 0.0f);
-            s.m_im[c].assign(static_cast<size_t>(2 * s.m_block), 0.0f);
+        s.m_fft.init( 2 * s.m_block );
+        for ( int c = 0; c < 2; ++c )
+        {
+            s.m_fdlRe[c].assign( static_cast<size_t>( s.m_capParts ) * static_cast<size_t>( s.m_slot ), 0.0f );
+            s.m_fdlIm[c].assign( static_cast<size_t>( s.m_capParts ) * static_cast<size_t>( s.m_slot ), 0.0f );
+            s.m_re[c].assign( static_cast<size_t>( 2 * s.m_block ), 0.0f );
+            s.m_im[c].assign( static_cast<size_t>( 2 * s.m_block ), 0.0f );
         }
-        ringNeed = std::max(ringNeed, starts[g] + 2L * s.m_block + 2L * m_head);
-        histNeed = std::max(histNeed, s.m_block);
+        ringNeed = std::max( ringNeed, starts[g] + 2L * s.m_block + 2L * m_head );
+        histNeed = std::max( histNeed, s.m_block );
         m_stages = g + 1;
     }
-    int ring = 1; while (ring < ringNeed) ring <<= 1;
-    int hist = 1; while (hist < histNeed + m_head) hist <<= 1;
-    for (int c = 0; c < 2; ++c) {
-        m_ring[c].assign(static_cast<size_t>(ring), 0.0f);
-        m_hist[c].assign(static_cast<size_t>(hist), 0.0f);
+    int ring = 1;
+    while ( ring < ringNeed ) ring <<= 1;
+    int hist = 1;
+    while ( hist < histNeed + m_head ) hist <<= 1;
+    for ( int c = 0; c < 2; ++c )
+    {
+        m_ring[c].assign( static_cast<size_t>( ring ), 0.0f );
+        m_hist[c].assign( static_cast<size_t>( hist ), 0.0f );
     }
     m_ringMask = ring - 1;
     m_histMask = hist - 1;
-    for (auto& pair : m_imp) for (auto& im : pair) im = Impulse{};
-    m_active[0].store(-1, std::memory_order_release);
-    m_active[1].store(-1, std::memory_order_release);
+    for ( auto &pair : m_imp )
+        for ( auto &im : pair ) im = Impulse{};
+    m_active[0].store( -1, std::memory_order_release );
+    m_active[1].store( -1, std::memory_order_release );
     reset();
 }
 
@@ -685,87 +798,103 @@ void Convolver::prepare(double sampleRate, float maxSeconds)
  */
 void Convolver::reset()
 {
-    for (int g = 0; g < m_stages; ++g) {
-        Stage& s = m_stage[g];
-        s.m_fdlHead = 0; s.m_fdlFilled = 0;
-        s.m_phase = IDLE; s.m_ch = 0; s.m_part = 0; s.m_bin = 0; s.m_parts = 0;
+    for ( int g = 0; g < m_stages; ++g )
+    {
+        Stage &s = m_stage[g];
+        s.m_fdlHead = 0;
+        s.m_fdlFilled = 0;
+        s.m_phase = IDLE;
+        s.m_ch = 0;
+        s.m_part = 0;
+        s.m_bin = 0;
+        s.m_parts = 0;
         s.m_run = FftRun{};
     }
-    for (int c = 0; c < 2; ++c) {
-        std::fill(m_ring[c].begin(), m_ring[c].end(), 0.0f);
-        std::fill(m_hist[c].begin(), m_hist[c].end(), 0.0f);
+    for ( int c = 0; c < 2; ++c )
+    {
+        std::fill( m_ring[c].begin(), m_ring[c].end(), 0.0f );
+        std::fill( m_hist[c].begin(), m_hist[c].end(), 0.0f );
     }
     m_t = 0;
 }
 
 float Convolver::impulseSeconds() const
 {
-    const int a = m_active[0].load(std::memory_order_acquire);
-    return a < 0 ? 0.0f : static_cast<float>(m_imp[0][a].m_seconds);
+    const int a = m_active[0].load( std::memory_order_acquire );
+    return a < 0 ? 0.0f : static_cast<float>( m_imp[0][a].m_seconds );
 }
 
 long Convolver::tailSamples() const
 {
     long longest = 0;
-    for (int w = 0; w < 2; ++w) {
-        const int a = m_active[w].load(std::memory_order_acquire);
-        if (a >= 0) longest = std::max(longest, m_imp[w][a].m_samples);
+    for ( int w = 0; w < 2; ++w )
+    {
+        const int a = m_active[w].load( std::memory_order_acquire );
+        if ( a >= 0 ) longest = std::max( longest, m_imp[w][a].m_samples );
     }
-    return longest + m_head + (m_stages > 0 ? 2L * m_stage[m_stages - 1].m_block : 0L);
+    return longest + m_head + ( m_stages > 0 ? 2L * m_stage[m_stages - 1].m_block : 0L );
 }
 
 long long Convolver::keptBins() const
 {
-    const int a = m_active[0].load(std::memory_order_acquire);
+    const int a = m_active[0].load( std::memory_order_acquire );
     return a < 0 ? 0 : m_imp[0][a].m_kept;
 }
 
 long long Convolver::fullBins() const
 {
-    const int a = m_active[0].load(std::memory_order_acquire);
+    const int a = m_active[0].load( std::memory_order_acquire );
     return a < 0 ? 0 : m_imp[0][a].m_full;
 }
 
 // ---------------------------------------------------------------- loading
 
-void Convolver::load(int which, const float* L, const float* R, int n, double rate)
+void Convolver::load( int which, const float *L, const float *R, int n, double rate )
 {
-    if (L == nullptr || n <= 0 || m_stages == 0) return;
-    const double ratio = rate > 0.0 ? m_sr / rate : 1.0;
-    const bool stereo = R != nullptr;
+    if ( L == nullptr || n <= 0 || m_stages == 0 ) return;
+    const double       ratio = rate > 0.0 ? m_sr / rate : 1.0;
+    const bool         stereo = R != nullptr;
     std::vector<float> ch[2];
-    ch[0] = resample(L, n, ratio, m_capSamples);
-    if (stereo) ch[1] = resample(R, n, ratio, m_capSamples);
-    int len = static_cast<int>(ch[0].size());
-    if (len <= 0) return;
-    if (static_cast<double>(n) * ratio >= static_cast<double>(m_capSamples) + 1.0)   // longer than the Room keeps
-        shrinkToCap(ch, stereo ? 2 : 1, m_sr);
+    ch[0] = resample( L, n, ratio, m_capSamples );
+    if ( stereo ) ch[1] = resample( R, n, ratio, m_capSamples );
+    int len = static_cast<int>( ch[0].size() );
+    if ( len <= 0 ) return;
+    if ( static_cast<double>( n ) * ratio >= static_cast<double>( m_capSamples ) + 1.0 )   // longer than the Room keeps
+        shrinkToCap( ch, stereo ? 2 : 1, m_sr );
     // Energy normalised to 1, so a room never changes the level of what it reverberates.
-    auto energyAt = [&](int i) {
-        const double l = ch[0][static_cast<size_t>(i)];
-        if (!stereo) return l * l;
-        const double r = ch[1][static_cast<size_t>(i)];
-        return 0.5 * (l * l + r * r);
+    auto energyAt = [&]( int i )
+    {
+        const double l = ch[0][static_cast<size_t>( i )];
+        if ( !stereo ) return l * l;
+        const double r = ch[1][static_cast<size_t>( i )];
+        return 0.5 * ( l * l + r * r );
     };
     double e = 0.0;
-    for (int i = 0; i < len; ++i) e += energyAt(i);
-    if (e > 1.0e-12) {
-        const float g = static_cast<float>(1.0 / std::sqrt(e));
-        for (int c = 0; c < (stereo ? 2 : 1); ++c) for (int i = 0; i < len; ++i) ch[c][static_cast<size_t>(i)] *= g;
+    for ( int i = 0; i < len; ++i ) e += energyAt( i );
+    if ( e > 1.0e-12 )
+    {
+        const float g = static_cast<float>( 1.0 / std::sqrt( e ) );
+        for ( int c = 0; c < ( stereo ? 2 : 1 ); ++c )
+            for ( int i = 0; i < len; ++i ) ch[c][static_cast<size_t>( i )] *= g;
         // The silence at the end costs as much as the sound; it goes, as far as a fifth of the budget reaches.
         double tail = 0.0;
-        while (len > 1 && tail + energyAt(len - 1) <= 0.2 * DropBudget) { tail += energyAt(len - 1); --len; }
+        while ( len > 1 && tail + energyAt( len - 1 ) <= 0.2 * DropBudget )
+        {
+            tail += energyAt( len - 1 );
+            --len;
+        }
     }
-    const int activeNow = m_active[which].load(std::memory_order_acquire);
+    const int activeNow = m_active[which].load( std::memory_order_acquire );
     const int target = activeNow < 0 ? 0 : 1 - activeNow;
     // The other copy is written only once every step that had begun has ended: the same reasoning
     // as Engine::setTexture. A step that began before this call chose its copy back then.
     waitForQuiet();
-    analyse(m_imp[which][target], ch, stereo, len);
-    m_active[which].store(target, std::memory_order_release);
+    analyse( m_imp[which][target], ch, stereo, len );
+    m_active[which].store( target, std::memory_order_release );
     // The copy that was playing is read by nothing once the steps that began before the swap have
     // ended; its memory goes back now instead of when the next impulse overwrites it.
-    if (activeNow >= 0) {
+    if ( activeNow >= 0 )
+    {
         waitForQuiet();
         m_imp[which][activeNow] = Impulse{};
     }
@@ -773,92 +902,114 @@ void Convolver::load(int which, const float* L, const float* R, int n, double ra
 
 void Convolver::clearImpulseB()
 {
-    if (m_active[1].load(std::memory_order_acquire) < 0) return;
-    m_active[1].store(-1, std::memory_order_release);
+    if ( m_active[1].load( std::memory_order_acquire ) < 0 ) return;
+    m_active[1].store( -1, std::memory_order_release );
     // A step that began while B was playing chose it back then; its memory goes once those have ended.
     waitForQuiet();
     m_imp[1][0] = Impulse{};
     m_imp[1][1] = Impulse{};
 }
 
-void Convolver::analyse(Impulse& imp, const std::vector<float>* ch, bool stereo, int len)
+void Convolver::analyse( Impulse &imp, const std::vector<float> *ch, bool stereo, int len )
 {
     imp = Impulse{};
     imp.m_stereo = stereo;
     imp.m_samples = len;
-    imp.m_seconds = static_cast<double>(len) / m_sr;
+    imp.m_seconds = static_cast<double>( len ) / m_sr;
     const int channels = stereo ? 2 : 1;
-    int totalParts = 0;
-    for (int g = 0; g < m_stages; ++g) {
-        const Stage& s = m_stage[g];
-        const long end = g + 1 < m_stages ? static_cast<long>(m_stage[g + 1].m_start) : m_capSamples;
-        const long stop = std::min<long>(end, len);
-        imp.m_st[g].m_parts = stop > s.m_start ? std::min(s.m_capParts, static_cast<int>((stop - s.m_start + s.m_block - 1) / s.m_block)) : 0;
+    int       totalParts = 0;
+    for ( int g = 0; g < m_stages; ++g )
+    {
+        const Stage &s = m_stage[g];
+        const long   end = g + 1 < m_stages ? static_cast<long>( m_stage[g + 1].m_start ) : m_capSamples;
+        const long   stop = std::min<long>( end, len );
+        imp.m_st[g].m_parts =
+            stop > s.m_start
+                ? std::min( s.m_capParts, static_cast<int>( ( stop - s.m_start + s.m_block - 1 ) / s.m_block ) )
+                : 0;
         totalParts += imp.m_st[g].m_parts;
     }
-    const double partBudget = 0.8 * DropBudget / std::max(1, totalParts);
-    for (int g = 0; g < m_stages; ++g) {
-        const Stage& s = m_stage[g];
-        Spectra& sp = imp.m_st[g];
-        const int b = s.m_block, N = 2 * b;
-        std::vector<float> re[2], im[2];
-        std::vector<double> power(static_cast<size_t>(b + 1));
-        sp.m_off.assign(static_cast<size_t>(sp.m_parts), 0);
-        sp.m_cnt.assign(static_cast<size_t>(sp.m_parts), 0);
-        for (int c = 0; c < channels; ++c) {
-            sp.m_re[c].reserve(static_cast<size_t>(sp.m_parts) * static_cast<size_t>(s.m_slot));
-            sp.m_im[c].reserve(static_cast<size_t>(sp.m_parts) * static_cast<size_t>(s.m_slot));
+    const double partBudget = 0.8 * DropBudget / std::max( 1, totalParts );
+    for ( int g = 0; g < m_stages; ++g )
+    {
+        const Stage        &s = m_stage[g];
+        Spectra            &sp = imp.m_st[g];
+        const int           b = s.m_block, N = 2 * b;
+        std::vector<float>  re[2], im[2];
+        std::vector<double> power( static_cast<size_t>( b + 1 ) );
+        sp.m_off.assign( static_cast<size_t>( sp.m_parts ), 0 );
+        sp.m_cnt.assign( static_cast<size_t>( sp.m_parts ), 0 );
+        for ( int c = 0; c < channels; ++c )
+        {
+            sp.m_re[c].reserve( static_cast<size_t>( sp.m_parts ) * static_cast<size_t>( s.m_slot ) );
+            sp.m_im[c].reserve( static_cast<size_t>( sp.m_parts ) * static_cast<size_t>( s.m_slot ) );
         }
-        for (int p = 0; p < sp.m_parts; ++p) {
-            const long from = s.m_start + static_cast<long>(p) * b;
-            for (int c = 0; c < channels; ++c) {
-                re[c].assign(static_cast<size_t>(N), 0.0f);
-                im[c].assign(static_cast<size_t>(N), 0.0f);
-                for (int i = 0; i < b && from + i < len; ++i) re[c][static_cast<size_t>(i)] = ch[c][static_cast<size_t>(from + i)];
-                FftRun run;
+        for ( int p = 0; p < sp.m_parts; ++p )
+        {
+            const long from = s.m_start + static_cast<long>( p ) * b;
+            for ( int c = 0; c < channels; ++c )
+            {
+                re[c].assign( static_cast<size_t>( N ), 0.0f );
+                im[c].assign( static_cast<size_t>( N ), 0.0f );
+                for ( int i = 0; i < b && from + i < len; ++i )
+                    re[c][static_cast<size_t>( i )] = ch[c][static_cast<size_t>( from + i )];
+                FftRun    run;
                 long long budget = Unlimited;
-                runFft(s.m_fft, run, re[c].data(), im[c].data(), false, budget);
+                runFft( s.m_fft, run, re[c].data(), im[c].data(), false, budget );
             }
-            for (int k = 0; k <= b; ++k) {
+            for ( int k = 0; k <= b; ++k )
+            {
                 double pk = 0.0;
-                for (int c = 0; c < channels; ++c) {
-                    const double v = static_cast<double>(re[c][static_cast<size_t>(k)]) * re[c][static_cast<size_t>(k)]
-                                   + static_cast<double>(im[c][static_cast<size_t>(k)]) * im[c][static_cast<size_t>(k)];
-                    pk = std::max(pk, v);
+                for ( int c = 0; c < channels; ++c )
+                {
+                    const double v =
+                        static_cast<double>( re[c][static_cast<size_t>( k )] ) * re[c][static_cast<size_t>( k )] +
+                        static_cast<double>( im[c][static_cast<size_t>( k )] ) * im[c][static_cast<size_t>( k )];
+                    pk = std::max( pk, v );
                 }
-                power[static_cast<size_t>(k)] = pk;
+                power[static_cast<size_t>( k )] = pk;
             }
             // The highest bin that matters: everything above it, mirror half included, stays
             // inside this partition's share of the budget (Parseval: bin power / N is energy).
             double dropped = 0.0;
-            int top = -1;
-            for (int k = b; k >= 0; --k) {
-                const double v = (k == 0 || k == b ? 1.0 : 2.0) * power[static_cast<size_t>(k)] / N;
-                if (dropped + v > partBudget) { top = k; break; }
+            int    top = -1;
+            for ( int k = b; k >= 0; --k )
+            {
+                const double v = ( k == 0 || k == b ? 1.0 : 2.0 ) * power[static_cast<size_t>( k )] / N;
+                if ( dropped + v > partBudget )
+                {
+                    top = k;
+                    break;
+                }
                 dropped += v;
             }
-            const int count = top < 0 ? 0 : std::min(roundUp8(top + 1), s.m_slot);
-            sp.m_off[static_cast<size_t>(p)] = static_cast<int>(sp.m_re[0].size());
-            sp.m_cnt[static_cast<size_t>(p)] = count;
-            const int real = std::min(count, b + 1);   // bins past b are the mirror half: padding is zeros
-            for (int c = 0; c < channels; ++c) {
-                sp.m_re[c].insert(sp.m_re[c].end(), re[c].begin(), re[c].begin() + real);
-                sp.m_im[c].insert(sp.m_im[c].end(), im[c].begin(), im[c].begin() + real);
-                sp.m_re[c].insert(sp.m_re[c].end(), static_cast<size_t>(count - real), 0.0f);
-                sp.m_im[c].insert(sp.m_im[c].end(), static_cast<size_t>(count - real), 0.0f);
+            const int count = top < 0 ? 0 : std::min( roundUp8( top + 1 ), s.m_slot );
+            sp.m_off[static_cast<size_t>( p )] = static_cast<int>( sp.m_re[0].size() );
+            sp.m_cnt[static_cast<size_t>( p )] = count;
+            const int real = std::min( count, b + 1 );   // bins past b are the mirror half: padding is zeros
+            for ( int c = 0; c < channels; ++c )
+            {
+                sp.m_re[c].insert( sp.m_re[c].end(), re[c].begin(), re[c].begin() + real );
+                sp.m_im[c].insert( sp.m_im[c].end(), im[c].begin(), im[c].begin() + real );
+                sp.m_re[c].insert( sp.m_re[c].end(), static_cast<size_t>( count - real ), 0.0f );
+                sp.m_im[c].insert( sp.m_im[c].end(), static_cast<size_t>( count - real ), 0.0f );
             }
             imp.m_kept += count;
             imp.m_full += b + 1;
         }
-        for (int c = 0; c < channels; ++c) { sp.m_re[c].shrink_to_fit(); sp.m_im[c].shrink_to_fit(); }
+        for ( int c = 0; c < channels; ++c )
+        {
+            sp.m_re[c].shrink_to_fit();
+            sp.m_im[c].shrink_to_fit();
+        }
     }
 }
 
-void Convolver::generateDefault(uint64_t seed, float seconds)
+void Convolver::generateDefault( uint64_t seed, float seconds )
 {
     std::vector<float> L, R;
-    makeDefaultImpulse(m_sr, seed, seconds, L, R);
-    setImpulse(L.data(), R.data(), static_cast<int>(L.size()), m_sr);
+    makeDefaultImpulse( m_sr, seed, seconds, L, R );
+    setImpulse( L.data(), R.data(), static_cast<int>( L.size() ), m_sr );
 }
 
 /**
@@ -878,300 +1029,374 @@ void Convolver::generateDefault(uint64_t seed, float seconds)
  * leaked into the middle: a centroid of 8.7 kHz and a T30 of 3.3 s at 8 kHz, the brightest room
  * the instrument had, and the one every fresh instance played.
  */
-void Convolver::makeDefaultImpulse(double sampleRate, uint64_t seed, float seconds, std::vector<float>& L, std::vector<float>& R)
+void Convolver::makeDefaultImpulse( double sampleRate, uint64_t seed, float seconds, std::vector<float> &L,
+                                    std::vector<float> &R )
 {
-    const int scale = sampleRate < 64000.0 ? 1 : (sampleRate < 128000.0 ? 2 : 4);
-    const int N = 2048 * scale, hop = N / 4, half = N / 2;
-    const int n = std::max(1, static_cast<int>(std::lround(static_cast<double>(seconds) * sampleRate)));
-    constexpr double Ln1e6 = 13.815510557964274;                   // energy down 60 dB at this exponent
-    std::vector<double> amp(static_cast<size_t>(half + 1)), rate(static_cast<size_t>(half + 1));
-    std::vector<float> rotC(static_cast<size_t>(half + 1)), rotS(static_cast<size_t>(half + 1));
-    for (int k = 0; k <= half; ++k) {
+    const int        scale = sampleRate < 64000.0 ? 1 : ( sampleRate < 128000.0 ? 2 : 4 );
+    const int        N = 2048 * scale, hop = N / 4, half = N / 2;
+    const int        n = std::max( 1, static_cast<int>( std::lround( static_cast<double>( seconds ) * sampleRate ) ) );
+    constexpr double Ln1e6 = 13.815510557964274;   // energy down 60 dB at this exponent
+    std::vector<double> amp( static_cast<size_t>( half + 1 ) ), rate( static_cast<size_t>( half + 1 ) );
+    std::vector<float>  rotC( static_cast<size_t>( half + 1 ) ), rotS( static_cast<size_t>( half + 1 ) );
+    for ( int k = 0; k <= half; ++k )
+    {
         const double f = k * sampleRate / N;
-        double bDb = 0.0, t60 = 1.0;
-        octaveDesign(f, bDb, t60);
-        amp[static_cast<size_t>(k)] = std::pow(10.0, bDb / 20.0);
-        rate[static_cast<size_t>(k)] = 0.5 * Ln1e6 / t60;        // of the amplitude, per second
-        const double rho = 0.05 + (0.5 - 0.05) / (1.0 + (f / 300.0) * (f / 300.0));
-        const double th = 0.5 * std::asin(rho);
-        rotC[static_cast<size_t>(k)] = static_cast<float>(std::cos(th));
-        rotS[static_cast<size_t>(k)] = static_cast<float>(std::sin(th));
+        double       bDb = 0.0, t60 = 1.0;
+        octaveDesign( f, bDb, t60 );
+        amp[static_cast<size_t>( k )] = std::pow( 10.0, bDb / 20.0 );
+        rate[static_cast<size_t>( k )] = 0.5 * Ln1e6 / t60;   // of the amplitude, per second
+        const double rho = 0.05 + ( 0.5 - 0.05 ) / ( 1.0 + ( f / 300.0 ) * ( f / 300.0 ) );
+        const double th = 0.5 * std::asin( rho );
+        rotC[static_cast<size_t>( k )] = static_cast<float>( std::cos( th ) );
+        rotS[static_cast<size_t>( k )] = static_cast<float>( std::sin( th ) );
     }
-    Rng rng; rng.seed(seed + 77);
-    const int pad = N;
-    const int frames = (n + 2 * pad + hop - 1) / hop;
-    const int total = (frames - 1) * hop + N;
+    Rng rng;
+    rng.seed( seed + 77 );
+    const int          pad = N;
+    const int          frames = ( n + 2 * pad + hop - 1 ) / hop;
+    const int          total = ( frames - 1 ) * hop + N;
     std::vector<float> noise[2], out[2];
-    for (int c = 0; c < 2; ++c) {
-        noise[c].resize(static_cast<size_t>(total));
-        for (int i = 0; i < total; ++i) {                          // Box-Muller: the late field is Gaussian
-            const double u1 = std::max(1.0e-12, static_cast<double>(rng.uniform()));
+    for ( int c = 0; c < 2; ++c )
+    {
+        noise[c].resize( static_cast<size_t>( total ) );
+        for ( int i = 0; i < total; ++i )
+        {   // Box-Muller: the late field is Gaussian
+            const double u1 = std::max( 1.0e-12, static_cast<double>( rng.uniform() ) );
             const double u2 = rng.uniform();
-            noise[c][static_cast<size_t>(i)] = static_cast<float>(std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * PiD * u2));
+            noise[c][static_cast<size_t>( i )] =
+                static_cast<float>( std::sqrt( -2.0 * std::log( u1 ) ) * std::cos( 2.0 * PiD * u2 ) );
         }
-        out[c].assign(static_cast<size_t>(total), 0.0f);
+        out[c].assign( static_cast<size_t>( total ), 0.0f );
     }
-    std::vector<float> win(static_cast<size_t>(N));
-    for (int i = 0; i < N; ++i) win[static_cast<size_t>(i)] = static_cast<float>(0.5 - 0.5 * std::cos(2.0 * PiD * i / N));
+    std::vector<float> win( static_cast<size_t>( N ) );
+    for ( int i = 0; i < N; ++i )
+        win[static_cast<size_t>( i )] = static_cast<float>( 0.5 - 0.5 * std::cos( 2.0 * PiD * i / N ) );
     StepFft fft;
-    fft.init(N);
-    std::vector<float> re0(static_cast<size_t>(N)), im0(static_cast<size_t>(N)), re1(static_cast<size_t>(N)), im1(static_cast<size_t>(N));
-    std::vector<float> lr(static_cast<size_t>(N)), li(static_cast<size_t>(N)), rr(static_cast<size_t>(N)), ri(static_cast<size_t>(N));
-    std::vector<float> g(static_cast<size_t>(half + 1));
-    const float inv = 1.0f / (1.5f * static_cast<float>(N));   // the inverse is unscaled; Hann in and out at a quarter hop sums to 1.5
-    for (int j = 0; j < frames; ++j) {
-        const size_t a = static_cast<size_t>(j) * static_cast<size_t>(hop);
-        for (int i = 0; i < N; ++i) {
-            re0[static_cast<size_t>(i)] = win[static_cast<size_t>(i)] * noise[0][a + static_cast<size_t>(i)];
-            re1[static_cast<size_t>(i)] = win[static_cast<size_t>(i)] * noise[1][a + static_cast<size_t>(i)];
-            im0[static_cast<size_t>(i)] = im1[static_cast<size_t>(i)] = 0.0f;
+    fft.init( N );
+    std::vector<float> re0( static_cast<size_t>( N ) ), im0( static_cast<size_t>( N ) ),
+        re1( static_cast<size_t>( N ) ), im1( static_cast<size_t>( N ) );
+    std::vector<float> lr( static_cast<size_t>( N ) ), li( static_cast<size_t>( N ) ), rr( static_cast<size_t>( N ) ),
+        ri( static_cast<size_t>( N ) );
+    std::vector<float> g( static_cast<size_t>( half + 1 ) );
+    const float        inv =
+        1.0f /
+        ( 1.5f * static_cast<float>( N ) );   // the inverse is unscaled; Hann in and out at a quarter hop sums to 1.5
+    for ( int j = 0; j < frames; ++j )
+    {
+        const size_t a = static_cast<size_t>( j ) * static_cast<size_t>( hop );
+        for ( int i = 0; i < N; ++i )
+        {
+            re0[static_cast<size_t>( i )] = win[static_cast<size_t>( i )] * noise[0][a + static_cast<size_t>( i )];
+            re1[static_cast<size_t>( i )] = win[static_cast<size_t>( i )] * noise[1][a + static_cast<size_t>( i )];
+            im0[static_cast<size_t>( i )] = im1[static_cast<size_t>( i )] = 0.0f;
         }
-        FftRun r0, r1, r2, r3;
+        FftRun    r0, r1, r2, r3;
         long long b0 = Unlimited, b1 = Unlimited, b2 = Unlimited, b3 = Unlimited;
-        runFft(fft, r0, re0.data(), im0.data(), false, b0);
-        runFft(fft, r1, re1.data(), im1.data(), false, b1);
-        const double t = std::min(static_cast<double>(seconds), std::max(0.0, (static_cast<double>(a) + 0.5 * N - pad) / sampleRate));
-        for (int k = 0; k <= half; ++k)
-            g[static_cast<size_t>(k)] = static_cast<float>(amp[static_cast<size_t>(k)] * std::exp(-rate[static_cast<size_t>(k)] * t));
-        for (int i = 0; i < N; ++i) {
-            const size_t k = static_cast<size_t>(i <= half ? i : N - i);
-            const float c = rotC[k] * g[k], s = rotS[k] * g[k];
-            const size_t u = static_cast<size_t>(i);
-            lr[u] = c * re0[u] + s * re1[u];  li[u] = c * im0[u] + s * im1[u];
-            rr[u] = s * re0[u] + c * re1[u];  ri[u] = s * im0[u] + c * im1[u];
+        runFft( fft, r0, re0.data(), im0.data(), false, b0 );
+        runFft( fft, r1, re1.data(), im1.data(), false, b1 );
+        const double t = std::min( static_cast<double>( seconds ),
+                                   std::max( 0.0, ( static_cast<double>( a ) + 0.5 * N - pad ) / sampleRate ) );
+        for ( int k = 0; k <= half; ++k )
+            g[static_cast<size_t>( k )] =
+                static_cast<float>( amp[static_cast<size_t>( k )] * std::exp( -rate[static_cast<size_t>( k )] * t ) );
+        for ( int i = 0; i < N; ++i )
+        {
+            const size_t k = static_cast<size_t>( i <= half ? i : N - i );
+            const float  c = rotC[k] * g[k], s = rotS[k] * g[k];
+            const size_t u = static_cast<size_t>( i );
+            lr[u] = c * re0[u] + s * re1[u];
+            li[u] = c * im0[u] + s * im1[u];
+            rr[u] = s * re0[u] + c * re1[u];
+            ri[u] = s * im0[u] + c * im1[u];
         }
-        runFft(fft, r2, lr.data(), li.data(), true, b2);
-        runFft(fft, r3, rr.data(), ri.data(), true, b3);
-        for (int i = 0; i < N; ++i) {
-            out[0][a + static_cast<size_t>(i)] += inv * win[static_cast<size_t>(i)] * lr[static_cast<size_t>(i)];
-            out[1][a + static_cast<size_t>(i)] += inv * win[static_cast<size_t>(i)] * rr[static_cast<size_t>(i)];
+        runFft( fft, r2, lr.data(), li.data(), true, b2 );
+        runFft( fft, r3, rr.data(), ri.data(), true, b3 );
+        for ( int i = 0; i < N; ++i )
+        {
+            out[0][a + static_cast<size_t>( i )] += inv * win[static_cast<size_t>( i )] * lr[static_cast<size_t>( i )];
+            out[1][a + static_cast<size_t>( i )] += inv * win[static_cast<size_t>( i )] * rr[static_cast<size_t>( i )];
         }
     }
-    L.assign(out[0].begin() + pad, out[0].begin() + pad + n);
-    R.assign(out[1].begin() + pad, out[1].begin() + pad + n);
-    const int onset = std::max(1, static_cast<int>(0.015 * sampleRate));
-    const int fadeN = std::max(1, std::min(n / 10, static_cast<int>(0.1 * sampleRate)));
-    for (int i = 0; i < n; ++i) {
+    L.assign( out[0].begin() + pad, out[0].begin() + pad + n );
+    R.assign( out[1].begin() + pad, out[1].begin() + pad + n );
+    const int onset = std::max( 1, static_cast<int>( 0.015 * sampleRate ) );
+    const int fadeN = std::max( 1, std::min( n / 10, static_cast<int>( 0.1 * sampleRate ) ) );
+    for ( int i = 0; i < n; ++i )
+    {
         double w = 1.0;
-        if (i < onset) { const double s = std::sin(0.5 * PiD * i / onset); w = s * s; }
-        if (i >= n - fadeN) { const double c = std::cos(0.5 * PiD * (i - (n - fadeN)) / fadeN); w *= c * c; }
-        L[static_cast<size_t>(i)] *= static_cast<float>(w);
-        R[static_cast<size_t>(i)] *= static_cast<float>(w);
+        if ( i < onset )
+        {
+            const double s = std::sin( 0.5 * PiD * i / onset );
+            w = s * s;
+        }
+        if ( i >= n - fadeN )
+        {
+            const double c = std::cos( 0.5 * PiD * ( i - ( n - fadeN ) ) / fadeN );
+            w *= c * c;
+        }
+        L[static_cast<size_t>( i )] *= static_cast<float>( w );
+        R[static_cast<size_t>( i )] *= static_cast<float>( w );
     }
 }
 
 /** @brief Message thread: see Engine::waitForQuiet. */
 void Convolver::waitForQuiet()
 {
-    const unsigned long long begun = m_stepsBegun.load(std::memory_order_acquire);
-    for (int spin = 0; spin < 8000; ++spin) {
-        if (m_stepsDone.load(std::memory_order_acquire) >= begun) return;
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
+    const unsigned long long begun = m_stepsBegun.load( std::memory_order_acquire );
+    for ( int spin = 0; spin < 8000; ++spin )
+    {
+        if ( m_stepsDone.load( std::memory_order_acquire ) >= begun ) return;
+        std::this_thread::sleep_for( std::chrono::microseconds( 50 ) );
     }
 }
 
 // ---------------------------------------------------------------- the audio thread
 
-void Convolver::begin(Stage& s)
+void Convolver::begin( Stage &s )
 {
     const int b = s.m_block;
     const int size = m_histMask + 1;
-    const int from = static_cast<int>((m_t - b) & m_histMask);
-    const int first = std::min(b, size - from);
-    for (int c = 0; c < 2; ++c) {
-        float* re = s.m_re[c].data();
-        std::memcpy(re, m_hist[c].data() + from, sizeof(float) * static_cast<size_t>(first));
-        if (first < b) std::memcpy(re + first, m_hist[c].data(), sizeof(float) * static_cast<size_t>(b - first));
-        std::memset(re + b, 0, sizeof(float) * static_cast<size_t>(b));
-        std::memset(s.m_im[c].data(), 0, sizeof(float) * static_cast<size_t>(2 * b));
+    const int from = static_cast<int>( ( m_t - b ) & m_histMask );
+    const int first = std::min( b, size - from );
+    for ( int c = 0; c < 2; ++c )
+    {
+        float *re = s.m_re[c].data();
+        std::memcpy( re, m_hist[c].data() + from, sizeof( float ) * static_cast<size_t>( first ) );
+        if ( first < b )
+            std::memcpy( re + first, m_hist[c].data(), sizeof( float ) * static_cast<size_t>( b - first ) );
+        std::memset( re + b, 0, sizeof( float ) * static_cast<size_t>( b ) );
+        std::memset( s.m_im[c].data(), 0, sizeof( float ) * static_cast<size_t>( 2 * b ) );
     }
-    s.m_phase = FFT_IN; s.m_ch = 0; s.m_run = FftRun{};
+    s.m_phase = FFT_IN;
+    s.m_ch = 0;
+    s.m_run = FftRun{};
     // The answer begins where this block meets the stretch's first partition, one latency on. It
     // is due then -- and by the step before this stage's next block at the latest, so a stage
     // never holds two blocks at once.
     s.m_write = m_t - b + s.m_start + m_head;
-    s.m_due = std::min(s.m_write, m_t + b - m_head) / m_head;
-    const float m = std::min(1.0f, std::max(0.0f, m_morph));
+    s.m_due = std::min( s.m_write, m_t + b - m_head ) / m_head;
+    const float m = std::min( 1.0f, std::max( 0.0f, m_morph ) );
     s.m_wa = 1.0f - m;
     s.m_wb = m;
-    const int parts = std::min(s.m_fdlFilled + 1, s.m_capParts);
-    s.m_work = 4 * s.m_fft.m_work + 4LL * b + static_cast<long long>(parts) * 2LL * (b + 1) + 2LL * b;
+    const int parts = std::min( s.m_fdlFilled + 1, s.m_capParts );
+    s.m_work = 4 * s.m_fft.m_work + 4LL * b + static_cast<long long>( parts ) * 2LL * ( b + 1 ) + 2LL * b;
 }
 
-long long Convolver::advance(Stage& s, int g, long long quota, const Impulse* A, const Impulse* B)
+long long Convolver::advance( Stage &s, int g, long long quota, const Impulse *A, const Impulse *B )
 {
     const long long given = quota;
-    const int b = s.m_block, N = 2 * b;
-    while (s.m_phase != IDLE && quota > 0) {
-        switch (s.m_phase) {
+    const int       b = s.m_block, N = 2 * b;
+    while ( s.m_phase != IDLE && quota > 0 )
+    {
+        switch ( s.m_phase )
+        {
         case FFT_IN:
-            if (runFft(s.m_fft, s.m_run, s.m_re[s.m_ch].data(), s.m_im[s.m_ch].data(), false, quota)) {
+            if ( runFft( s.m_fft, s.m_run, s.m_re[s.m_ch].data(), s.m_im[s.m_ch].data(), false, quota ) )
+            {
                 s.m_run = FftRun{};
-                if (++s.m_ch == 2) s.m_phase = PUSH;
+                if ( ++s.m_ch == 2 ) s.m_phase = PUSH;
             }
             break;
         case PUSH:
-            for (int c = 0; c < 2; ++c) {
-                const size_t at = static_cast<size_t>(s.m_fdlHead) * static_cast<size_t>(s.m_slot);
-                float* dr = s.m_fdlRe[c].data() + at;
-                float* di = s.m_fdlIm[c].data() + at;
-                std::memcpy(dr, s.m_re[c].data(), sizeof(float) * static_cast<size_t>(b + 1));
-                std::memcpy(di, s.m_im[c].data(), sizeof(float) * static_cast<size_t>(b + 1));
-                std::memset(dr + b + 1, 0, sizeof(float) * static_cast<size_t>(s.m_slot - b - 1));
-                std::memset(di + b + 1, 0, sizeof(float) * static_cast<size_t>(s.m_slot - b - 1));
+            for ( int c = 0; c < 2; ++c )
+            {
+                const size_t at = static_cast<size_t>( s.m_fdlHead ) * static_cast<size_t>( s.m_slot );
+                float       *dr = s.m_fdlRe[c].data() + at;
+                float       *di = s.m_fdlIm[c].data() + at;
+                std::memcpy( dr, s.m_re[c].data(), sizeof( float ) * static_cast<size_t>( b + 1 ) );
+                std::memcpy( di, s.m_im[c].data(), sizeof( float ) * static_cast<size_t>( b + 1 ) );
+                std::memset( dr + b + 1, 0, sizeof( float ) * static_cast<size_t>( s.m_slot - b - 1 ) );
+                std::memset( di + b + 1, 0, sizeof( float ) * static_cast<size_t>( s.m_slot - b - 1 ) );
                 // the sum starts from nothing; the mirror half is written whole before the inverse
-                std::memset(s.m_re[c].data(), 0, sizeof(float) * static_cast<size_t>(s.m_slot));
-                std::memset(s.m_im[c].data(), 0, sizeof(float) * static_cast<size_t>(s.m_slot));
+                std::memset( s.m_re[c].data(), 0, sizeof( float ) * static_cast<size_t>( s.m_slot ) );
+                std::memset( s.m_im[c].data(), 0, sizeof( float ) * static_cast<size_t>( s.m_slot ) );
             }
-            s.m_fdlHead = (s.m_fdlHead + 1) % s.m_capParts;
-            s.m_fdlFilled = std::min(s.m_fdlFilled + 1, s.m_capParts);
-            s.m_parts = s.m_fdlFilled; s.m_part = 0; s.m_bin = 0;
+            s.m_fdlHead = ( s.m_fdlHead + 1 ) % s.m_capParts;
+            s.m_fdlFilled = std::min( s.m_fdlFilled + 1, s.m_capParts );
+            s.m_parts = s.m_fdlFilled;
+            s.m_part = 0;
+            s.m_bin = 0;
             s.m_phase = SUM;
             quota -= 2LL * b;
             break;
-        case SUM:
-            sum(s, g, A, B, quota);
-            break;
+        case SUM: sum( s, g, A, B, quota ); break;
         case INVERT:
-            if (runFft(s.m_fft, s.m_run, s.m_re[s.m_ch].data(), s.m_im[s.m_ch].data(), true, quota)) {
+            if ( runFft( s.m_fft, s.m_run, s.m_re[s.m_ch].data(), s.m_im[s.m_ch].data(), true, quota ) )
+            {
                 s.m_run = FftRun{};
-                if (++s.m_ch == 2) s.m_phase = DELIVER;
+                if ( ++s.m_ch == 2 ) s.m_phase = DELIVER;
             }
             break;
-        case DELIVER: {
-            const float inv = 1.0f / static_cast<float>(N);
-            const int size = m_ringMask + 1;
-            for (int c = 0; c < 2; ++c) {
-                const float* src = s.m_re[c].data();
-                float* dst = m_ring[c].data();
-                int at = static_cast<int>(s.m_write & m_ringMask);
-                for (int i = 0; i < N - 1;) {
-                    const int m = std::min(N - 1 - i, size - at);
-                    for (int j = 0; j < m; ++j) dst[at + j] += inv * src[i + j];
+        case DELIVER:
+        {
+            const float inv = 1.0f / static_cast<float>( N );
+            const int   size = m_ringMask + 1;
+            for ( int c = 0; c < 2; ++c )
+            {
+                const float *src = s.m_re[c].data();
+                float       *dst = m_ring[c].data();
+                int          at = static_cast<int>( s.m_write & m_ringMask );
+                for ( int i = 0; i < N - 1; )
+                {
+                    const int m = std::min( N - 1 - i, size - at );
+                    for ( int j = 0; j < m; ++j ) dst[at + j] += inv * src[i + j];
                     i += m;
-                    at = (at + m) & m_ringMask;
+                    at = ( at + m ) & m_ringMask;
                 }
             }
             s.m_phase = IDLE;
             quota -= 2LL * b;
             break;
         }
-        default:
-            s.m_phase = IDLE;
-            break;
+        default: s.m_phase = IDLE; break;
         }
     }
     return given - quota;
 }
 
-void Convolver::sum(Stage& s, int g, const Impulse* A, const Impulse* B, long long& quota)
+void Convolver::sum( Stage &s, int g, const Impulse *A, const Impulse *B, long long &quota )
 {
-    const Spectra* sa = (A != nullptr && s.m_wa > 0.0f) ? &A->m_st[g] : nullptr;
-    const Spectra* sb = (B != nullptr && s.m_wb > 0.0f) ? &B->m_st[g] : nullptr;
-    float* a0r = s.m_re[0].data(); float* a0i = s.m_im[0].data();
-    float* a1r = s.m_re[1].data(); float* a1i = s.m_im[1].data();
-    while (s.m_part < s.m_parts) {
-        if (quota <= 0) return;
+    const Spectra *sa = ( A != nullptr && s.m_wa > 0.0f ) ? &A->m_st[g] : nullptr;
+    const Spectra *sb = ( B != nullptr && s.m_wb > 0.0f ) ? &B->m_st[g] : nullptr;
+    float         *a0r = s.m_re[0].data();
+    float         *a0i = s.m_im[0].data();
+    float         *a1r = s.m_re[1].data();
+    float         *a1i = s.m_im[1].data();
+    while ( s.m_part < s.m_parts )
+    {
+        if ( quota <= 0 ) return;
         const int p = s.m_part;
-        const int ca = (sa != nullptr && p < sa->m_parts) ? sa->m_cnt[static_cast<size_t>(p)] : 0;
-        const int cb = (sb != nullptr && p < sb->m_parts) ? sb->m_cnt[static_cast<size_t>(p)] : 0;
-        const int top = std::max(ca, cb);
-        if (s.m_bin >= top) { ++s.m_part; s.m_bin = 0; continue; }
+        const int ca = ( sa != nullptr && p < sa->m_parts ) ? sa->m_cnt[static_cast<size_t>( p )] : 0;
+        const int cb = ( sb != nullptr && p < sb->m_parts ) ? sb->m_cnt[static_cast<size_t>( p )] : 0;
+        const int top = std::max( ca, cb );
+        if ( s.m_bin >= top )
+        {
+            ++s.m_part;
+            s.m_bin = 0;
+            continue;
+        }
         // Partition p meets the input block p blocks older than the newest.
         int slotIndex = s.m_fdlHead - 1 - p;
-        if (slotIndex < 0) slotIndex += s.m_capParts;
-        const size_t xo = static_cast<size_t>(slotIndex) * static_cast<size_t>(s.m_slot);
-        const float* x0r = s.m_fdlRe[0].data() + xo; const float* x0i = s.m_fdlIm[0].data() + xo;
-        const float* x1r = s.m_fdlRe[1].data() + xo; const float* x1i = s.m_fdlIm[1].data() + xo;
-        const int k0 = s.m_bin;
-        const int chunk = roundUp8(static_cast<int>(std::min<long long>(std::max<long long>(64, quota / 2), 1 << 24)));
-        const int k1 = std::min(top, k0 + chunk);
-        const int both = std::min(ca, cb);
-        if (k0 < both) {   // the two impulses blended
-            const int e = std::min(k1, both);
-            const size_t oa = static_cast<size_t>(sa->m_off[static_cast<size_t>(p)]), ob = static_cast<size_t>(sb->m_off[static_cast<size_t>(p)]);
-            if (!A->m_stereo && !B->m_stereo) {
-                blendTwo(a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i,
-                         sa->m_re[0].data() + oa, sa->m_im[0].data() + oa, s.m_wa, sb->m_re[0].data() + ob, sb->m_im[0].data() + ob, s.m_wb, k0, e);
-            } else {
+        if ( slotIndex < 0 ) slotIndex += s.m_capParts;
+        const size_t xo = static_cast<size_t>( slotIndex ) * static_cast<size_t>( s.m_slot );
+        const float *x0r = s.m_fdlRe[0].data() + xo;
+        const float *x0i = s.m_fdlIm[0].data() + xo;
+        const float *x1r = s.m_fdlRe[1].data() + xo;
+        const float *x1i = s.m_fdlIm[1].data() + xo;
+        const int    k0 = s.m_bin;
+        const int    chunk =
+            roundUp8( static_cast<int>( std::min<long long>( std::max<long long>( 64, quota / 2 ), 1 << 24 ) ) );
+        const int k1 = std::min( top, k0 + chunk );
+        const int both = std::min( ca, cb );
+        if ( k0 < both )
+        {   // the two impulses blended
+            const int    e = std::min( k1, both );
+            const size_t oa = static_cast<size_t>( sa->m_off[static_cast<size_t>( p )] ),
+                         ob = static_cast<size_t>( sb->m_off[static_cast<size_t>( p )] );
+            if ( !A->m_stereo && !B->m_stereo )
+            {
+                blendTwo( a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i, sa->m_re[0].data() + oa, sa->m_im[0].data() + oa,
+                          s.m_wa, sb->m_re[0].data() + ob, sb->m_im[0].data() + ob, s.m_wb, k0, e );
+            }
+            else
+            {
                 const int a0 = 0, a1 = A->m_stereo ? 1 : 0, b0 = 0, b1 = B->m_stereo ? 1 : 0;
-                blendOne(a0r, a0i, x0r, x0i, sa->m_re[a0].data() + oa, sa->m_im[a0].data() + oa, s.m_wa, sb->m_re[b0].data() + ob, sb->m_im[b0].data() + ob, s.m_wb, k0, e);
-                blendOne(a1r, a1i, x1r, x1i, sa->m_re[a1].data() + oa, sa->m_im[a1].data() + oa, s.m_wa, sb->m_re[b1].data() + ob, sb->m_im[b1].data() + ob, s.m_wb, k0, e);
+                blendOne( a0r, a0i, x0r, x0i, sa->m_re[a0].data() + oa, sa->m_im[a0].data() + oa, s.m_wa,
+                          sb->m_re[b0].data() + ob, sb->m_im[b0].data() + ob, s.m_wb, k0, e );
+                blendOne( a1r, a1i, x1r, x1i, sa->m_re[a1].data() + oa, sa->m_im[a1].data() + oa, s.m_wa,
+                          sb->m_re[b1].data() + ob, sb->m_im[b1].data() + ob, s.m_wb, k0, e );
             }
         }
-        const int f = std::max(k0, both);
-        if (f < k1) {      // only the one that reaches further up
-            const bool fromA = ca > cb;
-            const Impulse* I = fromA ? A : B;
-            const Spectra* sp = fromA ? sa : sb;
-            const float w = fromA ? s.m_wa : s.m_wb;
-            const size_t o = static_cast<size_t>(sp->m_off[static_cast<size_t>(p)]);
-            if (!I->m_stereo) {
-                sumTwo(a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i, sp->m_re[0].data() + o, sp->m_im[0].data() + o, w, f, k1);
-            } else {
-                sumOne(a0r, a0i, x0r, x0i, sp->m_re[0].data() + o, sp->m_im[0].data() + o, w, f, k1);
-                sumOne(a1r, a1i, x1r, x1i, sp->m_re[1].data() + o, sp->m_im[1].data() + o, w, f, k1);
+        const int f = std::max( k0, both );
+        if ( f < k1 )
+        {   // only the one that reaches further up
+            const bool     fromA = ca > cb;
+            const Impulse *I = fromA ? A : B;
+            const Spectra *sp = fromA ? sa : sb;
+            const float    w = fromA ? s.m_wa : s.m_wb;
+            const size_t   o = static_cast<size_t>( sp->m_off[static_cast<size_t>( p )] );
+            if ( !I->m_stereo )
+            {
+                sumTwo( a0r, a0i, a1r, a1i, x0r, x0i, x1r, x1i, sp->m_re[0].data() + o, sp->m_im[0].data() + o, w, f,
+                        k1 );
+            }
+            else
+            {
+                sumOne( a0r, a0i, x0r, x0i, sp->m_re[0].data() + o, sp->m_im[0].data() + o, w, f, k1 );
+                sumOne( a1r, a1i, x1r, x1i, sp->m_re[1].data() + o, sp->m_im[1].data() + o, w, f, k1 );
             }
         }
-        quota -= 2LL * (k1 - k0);
+        quota -= 2LL * ( k1 - k0 );
         s.m_bin = k1;
     }
     // Real input, so the upper half of the spectrum is the conjugate of the lower.
     const int b = s.m_block, N = 2 * b;
-    for (int c = 0; c < 2; ++c) {
-        float* re = s.m_re[c].data(); float* im = s.m_im[c].data();
-        for (int k = 1; k < b; ++k) { re[N - k] = re[k]; im[N - k] = -im[k]; }
+    for ( int c = 0; c < 2; ++c )
+    {
+        float *re = s.m_re[c].data();
+        float *im = s.m_im[c].data();
+        for ( int k = 1; k < b; ++k )
+        {
+            re[N - k] = re[k];
+            im[N - k] = -im[k];
+        }
     }
     quota -= 2LL * b;
-    s.m_phase = INVERT; s.m_ch = 0; s.m_run = FftRun{};
+    s.m_phase = INVERT;
+    s.m_ch = 0;
+    s.m_run = FftRun{};
 }
 
 void Convolver::step()
 {
-    m_stepsBegun.fetch_add(1, std::memory_order_acq_rel);
+    m_stepsBegun.fetch_add( 1, std::memory_order_acq_rel );
     // Every way out of this function has to say so, including this one. A step that is counted
     // as begun and never as done leaves the two counters apart for good, and every loader after
     // it waits out its whole timeout for a step that ended long ago.
-    struct Done {
-        std::atomic<unsigned long long>& m_c;
-        ~Done() { m_c.fetch_add(1, std::memory_order_release); }
-    } done { m_stepsDone };
-    const int ia = m_active[0].load(std::memory_order_acquire), ib = m_active[1].load(std::memory_order_acquire);
-    const Impulse* A = ia >= 0 ? &m_imp[0][ia] : nullptr;
-    const Impulse* B = ib >= 0 ? &m_imp[1][ib] : nullptr;
+    struct Done
+    {
+        std::atomic<unsigned long long> &m_c;
+        ~Done() { m_c.fetch_add( 1, std::memory_order_release ); }
+    } done{ m_stepsDone };
+    const int ia = m_active[0].load( std::memory_order_acquire ), ib = m_active[1].load( std::memory_order_acquire );
+    const Impulse  *A = ia >= 0 ? &m_imp[0][ia] : nullptr;
+    const Impulse  *B = ib >= 0 ? &m_imp[1][ib] : nullptr;
     const long long now = m_t / m_head;
-    for (int g = 0; g < m_stages; ++g) {
-        Stage& s = m_stage[g];
-        if (m_t % s.m_block == 0) {
+    for ( int g = 0; g < m_stages; ++g )
+    {
+        Stage &s = m_stage[g];
+        if ( m_t % s.m_block == 0 )
+        {
             // The schedule finishes every block a step before the next; should one ever be left,
             // it is finished here rather than dropped.
-            if (s.m_phase != IDLE) advance(s, g, Unlimited, A, B);
-            begin(s);
+            if ( s.m_phase != IDLE ) advance( s, g, Unlimited, A, B );
+            begin( s );
         }
-        if (s.m_phase == IDLE) continue;
+        if ( s.m_phase == IDLE ) continue;
         // An equal share of what is left for every step until it is due; the last takes the rest.
         const long long left = s.m_due - now + 1;
-        const long long quota = left <= 1 ? Unlimited : std::max<long long>(1, (s.m_work + left - 1) / left);
-        const long long used = advance(s, g, quota, A, B);
-        s.m_work = std::max<long long>(1, s.m_work - used);
+        const long long quota = left <= 1 ? Unlimited : std::max<long long>( 1, ( s.m_work + left - 1 ) / left );
+        const long long used = advance( s, g, quota, A, B );
+        s.m_work = std::max<long long>( 1, s.m_work - used );
     }
 }
 
-void Convolver::process(const float* inL, const float* inR, float* outL, float* outR, int n)
+void Convolver::process( const float *inL, const float *inR, float *outL, float *outR, int n )
 {
     int i = 0;
-    while (i < n) {
-        const int toStep = m_head - static_cast<int>(m_t & (m_head - 1));
-        const int m = std::min(n - i, toStep);
+    while ( i < n )
+    {
+        const int toStep = m_head - static_cast<int>( m_t & ( m_head - 1 ) );
+        const int m = std::min( n - i, toStep );
         // In before out, so the outputs may be the inputs.
-        ringWrite(m_hist[0], static_cast<int>(m_t & m_histMask), inL + i, m);
-        ringWrite(m_hist[1], static_cast<int>(m_t & m_histMask), inR + i, m);
-        ringTake(m_ring[0], static_cast<int>(m_t & m_ringMask), outL + i, m);
-        ringTake(m_ring[1], static_cast<int>(m_t & m_ringMask), outR + i, m);
+        ringWrite( m_hist[0], static_cast<int>( m_t & m_histMask ), inL + i, m );
+        ringWrite( m_hist[1], static_cast<int>( m_t & m_histMask ), inR + i, m );
+        ringTake( m_ring[0], static_cast<int>( m_t & m_ringMask ), outL + i, m );
+        ringTake( m_ring[1], static_cast<int>( m_t & m_ringMask ), outR + i, m );
         m_t += m;
         i += m;
-        if ((m_t & (m_head - 1)) == 0) step();
+        if ( ( m_t & ( m_head - 1 ) ) == 0 ) step();
     }
 }
 
-} // namespace ambient
+}   // namespace ambient

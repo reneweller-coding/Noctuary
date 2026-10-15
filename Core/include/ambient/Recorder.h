@@ -20,7 +20,8 @@
 #include <thread>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief The recorder: one file at a time, written by its own thread from a ring the audio thread fills.
@@ -28,7 +29,8 @@ namespace ambient {
  * start() and stop() belong to the message thread; write() is the only method meant for the audio
  * thread, and the counters may be read from anywhere. Single producer, single consumer.
  */
-class WavRecorder {
+class WavRecorder
+{
 public:
     /** @brief An idle recorder: no file, no thread, until start(). */
     WavRecorder() = default;
@@ -44,7 +46,7 @@ public:
      * @param[in] channels    channels written into the header; write() itself always interleaves two
      * @return false when the file could not be opened
      */
-    bool start(const char* path, int sampleRate, int channels = 2);
+    bool start( const char *path, int sampleRate, int channels = 2 );
     /**
      * @brief Stops recording and finalises the header.
      *
@@ -54,7 +56,7 @@ public:
      */
     void stop();
     /** @return whether a recording is in progress (true between start() and stop()) */
-    bool recording() const { return m_recording.load(std::memory_order_relaxed); }
+    bool recording() const { return m_recording.load( std::memory_order_relaxed ); }
     /**
      * @brief Audio thread: interleaves L/R into the ring. Frames that do not fit are dropped and counted.
      *
@@ -65,13 +67,14 @@ public:
      * @param[in] n  frames in both
      * @pre called on the audio thread
      */
-    void write(const float* L, const float* R, int n);
+    void write( const float *L, const float *R, int n );
     /** @return frames the writer thread has put into the file so far */
-    uint64_t framesWritten() const { return m_framesWritten.load(std::memory_order_relaxed); }
+    uint64_t framesWritten() const { return m_framesWritten.load( std::memory_order_relaxed ); }
     /** @return frames write() had to drop because the ring was full (the disk fell behind) */
-    uint64_t framesDropped() const { return m_framesDropped.load(std::memory_order_relaxed); }
+    uint64_t framesDropped() const { return m_framesDropped.load( std::memory_order_relaxed ); }
     /** @return the length of the recording written so far, in seconds (0 before start()) */
-    double seconds() const { return m_sampleRate > 0 ? static_cast<double>(framesWritten()) / m_sampleRate : 0.0; }
+    double seconds() const { return m_sampleRate > 0 ? static_cast<double>( framesWritten() ) / m_sampleRate : 0.0; }
+
 private:
     /** @brief The writer thread's loop: drains the ring to the file in chunks until stop() asks and the ring is empty. */
     void run();
@@ -79,19 +82,19 @@ private:
      * @brief Writes the 44-byte RIFF/WAVE header (format 3, 32-bit float) at the start of the file.
      * @param[in] dataBytes  length of the data chunk to write into the header; 0 while recording
      */
-    void writeHeader(uint32_t dataBytes);
-    std::vector<float> m_ring;                         ///< the lock-free ring, a power of two of floats
+    void writeHeader( uint32_t dataBytes );
+    std::vector<float>    m_ring;        ///< the lock-free ring, a power of two of floats
     std::atomic<uint32_t> m_head{ 0 },   ///< @brief write position, in floats, advanced by the audio thread
-                          m_tail{ 0 };   ///< in floats (frames * channels): the read position, advanced by the writer thread
+        m_tail{ 0 };   ///< in floats (frames * channels): the read position, advanced by the writer thread
     std::atomic<bool> m_recording{ false },       ///< @brief gates write(): true between start() and stop()
-                      m_stopRequested{ false };   ///< tells run() to drain what is left and leave
+        m_stopRequested{ false };                 ///< tells run() to drain what is left and leave
     std::atomic<uint64_t> m_framesWritten{ 0 },   ///< @brief frames the writer put into the file (framesWritten())
-                          m_framesDropped{ 0 };   ///< frames write() dropped for lack of room (framesDropped())
-    std::thread m_thread;                              ///< the writer thread, joined in stop()
-    FILE* m_file = nullptr;                            ///< the open file, nullptr when idle
-    int m_sampleRate = 0,   ///< @brief the rate start() was told, for the header and seconds()
-        m_channels = 2;     ///< the channel count start() was told, for the header
-    uint32_t m_mask = 0;                               ///< ring size minus one, for wrapping indices
+        m_framesDropped{ 0 };                     ///< frames write() dropped for lack of room (framesDropped())
+    std::thread m_thread;                         ///< the writer thread, joined in stop()
+    FILE       *m_file = nullptr;                 ///< the open file, nullptr when idle
+    int         m_sampleRate = 0,                 ///< @brief the rate start() was told, for the header and seconds()
+        m_channels = 2;                           ///< the channel count start() was told, for the header
+    uint32_t m_mask = 0;                          ///< ring size minus one, for wrapping indices
 };
 
-} // namespace ambient
+}   // namespace ambient

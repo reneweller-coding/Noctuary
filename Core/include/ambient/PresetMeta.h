@@ -17,22 +17,48 @@
 #pragma once
 #include <cstdint>
 
-namespace ambient {
+namespace ambient
+{
 
 /**
  * @brief The tag bits a preset may carry (PresetMeta::tags), set by the measurement and by the
  *        preset's own settings; presetTagName() gives each bit's name.
  */
-enum PresetTagE : uint32_t {
-    TAG_DARK = 1u << 0, TAG_BRIGHT = 1u << 1, TAG_CALM = 1u << 2, TAG_MOVING = 1u << 3,   ///< Dark and Bright from the spectral centroid; Calm and Moving from the spectral flux
-    TAG_TONAL = 1u << 4, TAG_NOISY = 1u << 5, TAG_WIDE = 1u << 6, TAG_BASS = 1u << 7,   ///< Tonal and Noisy from the flatness; Wide from the stereo correlation; Bass from the energy below 150 Hz
-    TAG_DENSE = 1u << 8, TAG_SPARSE = 1u << 9, TAG_KEYS = 1u << 10, TAG_GENERATIVE = 1u << 11,   ///< Dense and Sparse from the voice count; Keys means played rather than self-playing; Generative the brain is on
-    TAG_COSMOS = 1u << 12, TAG_FEEDBACK = 1u << 13, TAG_SOURCES = 1u << 14, TAG_JUST_INTONATION = 1u << 15,   ///< what the settings switch on: the Cosmos send, the feedback loop, extra source slots, a just scale
-    TAG_SUB = 1u << 16, TAG_STACK = 1u << 17, TAG_AIR = 1u << 18,   ///< the Foundation sub, strands at pure ratios (Stack), the Air layer
+enum PresetTagE : uint32_t
+{
+    TAG_DARK = 1u << 0,
+    TAG_BRIGHT = 1u << 1,
+    TAG_CALM = 1u << 2,
+    TAG_MOVING = 1u << 3,   ///< Dark and Bright from the spectral centroid; Calm and Moving from the spectral flux
+    TAG_TONAL = 1u << 4,
+    TAG_NOISY = 1u << 5,
+    TAG_WIDE = 1u << 6,
+    TAG_BASS =
+        1u
+        << 7,   ///< Tonal and Noisy from the flatness; Wide from the stereo correlation; Bass from the energy below 150 Hz
+    TAG_DENSE = 1u << 8,
+    TAG_SPARSE = 1u << 9,
+    TAG_KEYS = 1u << 10,
+    TAG_GENERATIVE =
+        1u
+        << 11,   ///< Dense and Sparse from the voice count; Keys means played rather than self-playing; Generative the brain is on
+    TAG_COSMOS = 1u << 12,
+    TAG_FEEDBACK = 1u << 13,
+    TAG_SOURCES = 1u << 14,
+    TAG_JUST_INTONATION =
+        1u
+        << 15,   ///< what the settings switch on: the Cosmos send, the feedback loop, extra source slots, a just scale
+    TAG_SUB = 1u << 16,
+    TAG_STACK = 1u << 17,
+    TAG_AIR = 1u << 18,   ///< the Foundation sub, strands at pure ratios (Stack), the Air layer
     /// What a drone is: whether it goes anywhere, whether its partials grind, and how far away it
     /// stands. Added in 1.11.0 with the descriptors behind them.
-    TAG_STILL = 1u << 19, TAG_EVOLVING = 1u << 20, TAG_SMOOTH = 1u << 21, TAG_ROUGH = 1u << 22,   ///< Still and Evolving from evolve; Smooth and Rough from rough
-    TAG_NEAR = 1u << 23, TAG_FAR = 1u << 24,   ///< Near and Far from wet
+    TAG_STILL = 1u << 19,
+    TAG_EVOLVING = 1u << 20,
+    TAG_SMOOTH = 1u << 21,
+    TAG_ROUGH = 1u << 22,   ///< Still and Evolving from evolve; Smooth and Rough from rough
+    TAG_NEAR = 1u << 23,
+    TAG_FAR = 1u << 24,   ///< Near and Far from wet
 };
 constexpr int NumPresetTags = 25;   ///< how many bits of PresetTag are defined (0 .. NumPresetTags-1 name a tag)
 
@@ -43,33 +69,34 @@ constexpr int NumPresetTags = 25;   ///< how many bits of PresetTag are defined 
  * Every descriptor is a rank over the library (0 = the least of all presets, 1 = the most), so the
  * browser's sliders and the map's axes mean the same thing for a built-in and a pack preset.
  */
-struct PresetMeta {
-    float m_x,   ///< @brief map position, 0..1: across
-          m_y;   ///< map position, 0..1
-    float m_bright;               ///< 0..1 rank of the spectral centroid
-    float m_motion;               ///< 0..1 rank of the spectral flux
-    float m_width;                ///< 0..1 rank of stereo width (1 - |correlation|)
-    float m_noisy;                ///< 0..1 rank of spectral flatness
-    float m_bass;                 ///< 0..1 rank of the energy below 150 Hz
-    float m_density;              ///< 0..1 rank of the mean voice count
-    int   m_family;               ///< index into familyName()
-    uint32_t m_tags;              ///< PresetTag bits
-    float m_loudDb;               ///< measured RMS of a 12 s render, dBFS; 0 = never measured
+struct PresetMeta
+{
+    float m_x,            ///< @brief map position, 0..1: across
+        m_y;              ///< map position, 0..1
+    float    m_bright;    ///< 0..1 rank of the spectral centroid
+    float    m_motion;    ///< 0..1 rank of the spectral flux
+    float    m_width;     ///< 0..1 rank of stereo width (1 - |correlation|)
+    float    m_noisy;     ///< 0..1 rank of spectral flatness
+    float    m_bass;      ///< 0..1 rank of the energy below 150 Hz
+    float    m_density;   ///< 0..1 rank of the mean voice count
+    int      m_family;    ///< index into familyName()
+    uint32_t m_tags;      ///< PresetTag bits
+    float    m_loudDb;    ///< measured RMS of a 12 s render, dBFS; 0 = never measured
     /// Three descriptors that say what a DRONE is like rather than what a note is like. Flux and
     /// centroid describe a moment; these describe a minute, a spectrum's friction and a distance.
-    float m_evolve;               ///< 0..1 rank: how far the sound travels over the render
-    float m_rough;                ///< 0..1 rank: Plomp-Levelt roughness of its own spectrum
-    float m_wet;                  ///< 0..1 rank: what comes back from the far planes, against the near
+    float m_evolve;   ///< 0..1 rank: how far the sound travels over the render
+    float m_rough;    ///< 0..1 rank: Plomp-Levelt roughness of its own spectrum
+    float m_wet;      ///< 0..1 rank: what comes back from the far planes, against the near
     /// What a model that listened to the render says it sounds like: two indices into the phrase
     /// table, best first, or -1. CLAP scores a written vocabulary against every preset (see
     /// Tools/library/clap_embed.py); it cannot invent a phrase, only choose one, which is what
     /// makes the line honest -- a person wrote the words, a measurement picked them.
-    short m_phrase[2];            ///< indices into presetPhrase(), best first; -1 for none
+    short m_phrase[2];   ///< indices into presetPhrase(), best first; -1 for none
     /// The group this preset was put in when the whole library was laid out, or -1. It is stored
     /// rather than recomputed because the grouping sees more than the nine numbers above -- the
     /// fingerprint and the learned embedding have a say -- so a nearest-centroid guess would put
     /// some presets in a different group than the map draws them in.
-    short m_cluster;              ///< the stored group (see presetClusterOf), or -1
+    short m_cluster;   ///< the stored group (see presetClusterOf), or -1
 };
 constexpr int NumMapDescriptors = 9;   ///< bright motion width noisy bass density evolve rough wet
 
@@ -83,19 +110,19 @@ constexpr int NumMapDescriptors = 9;   ///< bright motion width noisy bass densi
  *
  * @return how many clusters the generated table holds (0 for the stub)
  */
-int               numPresetClusters();
+int numPresetClusters();
 /**
  * @brief The name of a cluster, for the browser.
  * @param[in] cluster  0 .. numPresetClusters()-1
  * @return the name, or "" when out of range
  */
-const char*       presetClusterName(int cluster);
+const char *presetClusterName( int cluster );
 /**
  * @brief The centroid of a cluster in descriptor space.
  * @param[in] cluster  0 .. numPresetClusters()-1
  * @return NumMapDescriptors values in the order of NumMapDescriptors' comment, or nullptr when out of range
  */
-const float*      presetClusterCentre(int cluster);
+const float *presetClusterCentre( int cluster );
 /**
  * @brief The stored group, else the nearest centroid, else -1.
  *
@@ -104,64 +131,64 @@ const float*      presetClusterCentre(int cluster);
  *
  * @return the cluster index, or -1 when there are no clusters
  */
-int               presetClusterOf(const PresetMeta&);
+int presetClusterOf( const PresetMeta & );
 
 /**
  * @brief The vocabulary CLAP chose from, and one preset's phrases.
  * @return how many phrases the generated table holds (0 for the stub)
  */
-int               numPresetPhrases();
+int numPresetPhrases();
 /**
  * @brief One phrase of the vocabulary, as PresetMeta::phrase indexes it.
  * @param[in] index  0 .. numPresetPhrases()-1
  * @return "" when out of range or not generated
  */
-const char*       presetPhrase(int index);
+const char *presetPhrase( int index );
 
 /**
  * @brief Public view: the built-in table followed by the loaded packs (see Presets.h).
  * @return equals numPresets() once generated, 0 for the stub
  */
-int               numPresetMeta();
+int numPresetMeta();
 /**
  * @brief The metadata of one preset, built-in or pack, indexed as numPresets() counts.
  * @param[in] index  0 .. numPresetMeta()-1
  * @return the entry, or a neutral one (everything 0.5, no tags, no cluster) when out of range
  */
-const PresetMeta& presetMeta(int index);
+const PresetMeta &presetMeta( int index );
 /** @return built-in families plus one per pack */
-int               numPresetFamilies();
+int numPresetFamilies();
 /**
  * @brief The name of a family, for the browser's list.
  * @param[in] family  0 .. numPresetFamilies()-1: a built-in family, then the packs in load order
  * @return the built-in family's name or the pack's name, "" when out of range
  */
-const char*       presetFamilyName(int family);
+const char *presetFamilyName( int family );
 /**
  * @brief The name of a tag bit.
  * @param[in] bit  0 .. NumPresetTags-1
  * @return the name ("Dark", "Bright", ...), or "" when out of range
  */
-const char*       presetTagName(int bit);
+const char *presetTagName( int bit );
 
 /**
  * @brief The generated table alone (Core/src/PresetMeta.cpp, written by Tools/preset_map.py).
  * @return how many built-in presets were measured
  */
-int               builtinPresetMetaCount();
+int builtinPresetMetaCount();
 /**
  * @brief One built-in preset's metadata.
  * @param[in] index  0 .. builtinPresetMetaCount()-1
  * @return the entry, or a neutral one when out of range
  */
-const PresetMeta& builtinPresetMeta(int index);
+const PresetMeta &builtinPresetMeta( int index );
 /** @return how many built-in families the generated table names */
-int               builtinPresetFamilyCount();
+int builtinPresetFamilyCount();
 /**
  * @brief The name of a built-in family.
  * @param[in] family  0 .. builtinPresetFamilyCount()-1
  * @return the name, or "" when out of range
  */
-const char*       builtinPresetFamilyName(int family);
+const char *builtinPresetFamilyName( int family );
 
-} // namespace ambient
+}   // namespace ambient

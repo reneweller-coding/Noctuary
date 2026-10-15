@@ -19,16 +19,23 @@
 #include <cstddef>
 #include <vector>
 
-namespace ambient {
+namespace ambient
+{
 
 /** @brief One event of a set: a parameter written, a note begun or a note let go, at a time. */
-struct TimelineEvent {
+struct TimelineEvent
+{
     /** @brief What happened: Param is a parameter change (a the ParamId, v the value in its real range), NoteOn a note begun (a the MIDI note, v the velocity 0..1), NoteOff a note let go (a the MIDI note). */
-    enum class TypeE : int { PARAM = 0, NOTE_ON = 1, NOTE_OFF = 2 };
-    double m_t = 0.0;     ///< seconds from the start of the set
-    TypeE   m_type = TypeE::PARAM;   ///< which of the three
-    int    m_a = 0;       ///< ParamId or note
-    float  m_v = 0.0f;    ///< value or velocity
+    enum class TypeE : int
+    {
+        PARAM = 0,
+        NOTE_ON = 1,
+        NOTE_OFF = 2
+    };
+    double m_t = 0.0;               ///< seconds from the start of the set
+    TypeE  m_type = TypeE::PARAM;   ///< which of the three
+    int    m_a = 0;                 ///< ParamId or note
+    float  m_v = 0.0f;              ///< value or velocity
 };
 
 /**
@@ -38,10 +45,15 @@ struct TimelineEvent {
  * emits events in order into a sink; the text form goes to and from .ambientset files on the
  * message thread.
  */
-class SetTimeline {
+class SetTimeline
+{
 public:
     /** @brief Forgets every event and rewinds the cursor; the reserved room stays. */
-    void clear() { m_events.clear(); m_cursor = 0; }
+    void clear()
+    {
+        m_events.clear();
+        m_cursor = 0;
+    }
     /** @return how many events are recorded */
     size_t size() const { return m_events.size(); }
     /** @return the time of the last event in seconds, 0 when empty */
@@ -51,7 +63,7 @@ public:
      * @param[in] i  0 .. size()-1, unchecked
      * @return the event
      */
-    const TimelineEvent& event(size_t i) const { return m_events[i]; }
+    const TimelineEvent &event( size_t i ) const { return m_events[i]; }
 
     /**
      * @brief Recording. Called from the audio thread while a set is being recorded, so it must not
@@ -64,7 +76,11 @@ public:
      * Message thread: allocates.
      * @param[in] events  how many events to make room for; add() never goes past it
      */
-    void reserve(size_t events) { m_events.reserve(events); m_capacity = events; }
+    void reserve( size_t events )
+    {
+        m_events.reserve( events );
+        m_capacity = events;
+    }
     /** @return whether the reserved room is used up, so add() would drop the next event */
     bool full() const { return m_events.size() >= m_capacity; }
     /**
@@ -76,7 +92,7 @@ public:
      * @param[in] e  the event
      * @pre called on the audio thread
      */
-    void add(const TimelineEvent& e);
+    void add( const TimelineEvent &e );
 
     /**
      * @brief Playback: seek, then step() emits every event with from <= t < to, in order.
@@ -84,7 +100,7 @@ public:
      * Puts the cursor on the first event at or after @p t.
      * @param[in] t  seconds from the start
      */
-    void seek(double t);
+    void seek( double t );
     /**
      * @brief Emits every event with from <= t < to, in order, and moves the cursor past them.
      *
@@ -95,10 +111,12 @@ public:
      * @param[in] sink  receives each event
      * @tparam Sink  callable as sink(const TimelineEvent&)
      */
-    template <class SinkT> void step(double from, double to, SinkT&& sink)
+    template <class SinkT>
+    void step( double from, double to, SinkT &&sink )
     {
-        while (m_cursor < m_events.size() && m_events[m_cursor].m_t < to) {
-            if (m_events[m_cursor].m_t >= from) sink(m_events[m_cursor]);
+        while ( m_cursor < m_events.size() && m_events[m_cursor].m_t < to )
+        {
+            if ( m_events[m_cursor].m_t >= from ) sink( m_events[m_cursor] );
             ++m_cursor;
         }
     }
@@ -115,7 +133,7 @@ public:
      * @return true when every line parsed
      * @pre called on the message thread
      */
-    bool parse(const char* text);
+    bool parse( const char *text );
     /**
      * @brief The text form of every event, with a header comment line.
      * @return the text, NUL-terminated (the terminator is included in the vector's size)
@@ -126,18 +144,18 @@ public:
      * @param[in] path  the file to create
      * @return false when the file could not be opened or written in full
      */
-    bool save(const char* path) const;
+    bool save( const char *path ) const;
     /**
      * @brief Reads a file and parses it (see parse()).
      * @param[in] path  the file to read
      * @return false when the file is missing or a line is malformed
      */
-    bool load(const char* path);
+    bool load( const char *path );
 
 private:
-    std::vector<TimelineEvent> m_events;   ///< the events, sorted by time
-    size_t m_capacity = 0;   ///< what reserve() promised; add() never goes past it
-    size_t m_cursor = 0;     ///< playback position: the next event step() will look at
+    std::vector<TimelineEvent> m_events;         ///< the events, sorted by time
+    size_t                     m_capacity = 0;   ///< what reserve() promised; add() never goes past it
+    size_t                     m_cursor = 0;     ///< playback position: the next event step() will look at
 };
 
-} // namespace ambient
+}   // namespace ambient

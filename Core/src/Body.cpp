@@ -15,11 +15,13 @@
 #include "ambient/Body.h"
 #include <cmath>
 
-namespace ambient {
+namespace ambient
+{
 
-const char* const BodyMaterialNames[NumBodyMaterials] = { "Wood", "Plate", "Bell", "String" };
+const char *const BodyMaterialNames[NumBodyMaterials] = { "Wood", "Plate", "Bell", "String" };
 
-namespace {
+namespace
+{
 
 /**
  * @brief Mode ratios.
@@ -44,49 +46,55 @@ const float Ratios[NumBodyMaterials][BodyModes] = {
  */
 const float Damping[NumBodyMaterials] = { 0.55f, 0.40f, 0.20f, 0.35f };
 
-} // namespace
+}   // namespace
 
-void Body::prepare(double sampleRate, uint64_t seed)
+void Body::prepare( double sampleRate, uint64_t seed )
 {
-    m_sr = static_cast<float>(sampleRate);
-    m_rng.seed(seed);
-    for (float& m : m_modePan) m = 0.45f + 0.55f * m_rng.uniform();
+    m_sr = static_cast<float>( sampleRate );
+    m_rng.seed( seed );
+    for ( float &m : m_modePan ) m = 0.45f + 0.55f * m_rng.uniform();
     reset();
     m_lastMat = BodyMaterialE::COUNT;   // force a rebuild
 }
 
 void Body::reset()
 {
-    for (auto& r : m_res) r.reset();
+    for ( auto &r : m_res ) r.reset();
 }
 
-void Body::set(BodyMaterialE material, float baseHz, float decaySeconds, float tone, float spread)
+void Body::set( BodyMaterialE material, float baseHz, float decaySeconds, float tone, float spread )
 {
-    const int m = clampv(static_cast<int>(material), 0, NumBodyMaterials - 1);
-    const float base = clampv(baseHz, 20.0f, 2000.0f);
-    const float decay = clampv(decaySeconds, 0.05f, 30.0f);
-    const float t = clampv(tone, 0.0f, 1.0f);
-    const float sp = clampv(spread, 0.0f, 1.0f);
+    const int   m = clampv( static_cast<int>( material ), 0, NumBodyMaterials - 1 );
+    const float base = clampv( baseHz, 20.0f, 2000.0f );
+    const float decay = clampv( decaySeconds, 0.05f, 30.0f );
+    const float t = clampv( tone, 0.0f, 1.0f );
+    const float sp = clampv( spread, 0.0f, 1.0f );
     // Rebuilding twelve resonators is twelve cos and twelve exp: cheap per block, but pointless
     // when nothing moved, and the brain's root only changes every few minutes.
-    if (static_cast<BodyMaterialE>(m) == m_lastMat && base == m_lastBase && decay == m_lastDecay
-        && t == m_lastTone && sp == m_lastSpread) return;
-    m_lastMat = static_cast<BodyMaterialE>(m); m_lastBase = base; m_lastDecay = decay; m_lastTone = t; m_lastSpread = sp;
+    if ( static_cast<BodyMaterialE>( m ) == m_lastMat && base == m_lastBase && decay == m_lastDecay &&
+         t == m_lastTone && sp == m_lastSpread )
+        return;
+    m_lastMat = static_cast<BodyMaterialE>( m );
+    m_lastBase = base;
+    m_lastDecay = decay;
+    m_lastTone = t;
+    m_lastSpread = sp;
 
     float sumSq = 0.0f;
-    for (int i = 0; i < BodyModes; ++i) {
+    for ( int i = 0; i < BodyModes; ++i )
+    {
         const float ratio = Ratios[m][i];
-        const float hz = clampv(base * ratio, 20.0f, m_sr * 0.45f);
+        const float hz = clampv( base * ratio, 20.0f, m_sr * 0.45f );
         // Decay: the first mode gets the full time, the higher ones lose it at the material's rate.
         // A resonator's T60 is 2.2 / bandwidth, so the bandwidth follows from the time we want.
-        const float t60 = decay * std::pow(ratio, -Damping[m]);
+        const float t60 = decay * std::pow( ratio, -Damping[m] );
         // Q is capped at 300: a mode narrower than that is never excited by a drone that drifts
         // a couple of cents, and a body whose modes cannot be excited is not a body.
-        const float bw = clampv(2.2f / std::max(t60, 0.02f), hz / 300.0f, 400.0f);
+        const float bw = clampv( 2.2f / std::max( t60, 0.02f ), hz / 300.0f, 400.0f );
         // Tone tilts the gains: at 0 the body is dark (only the low modes speak), at 1 the high
         // modes are as loud as the low ones.
-        const float g = std::pow(ratio, -1.4f + 1.4f * t);
-        m_res[i].set(hz, bw, g, m_sr);
+        const float g = std::pow( ratio, -1.4f + 1.4f * t );
+        m_res[i].set( hz, bw, g, m_sr );
         // Each mode has its own place, and neighbouring modes sit on opposite sides. Scattering
         // them randomly around the centre put most modes in both channels, and since they are all
         // driven by the same mono signal the two channels came out correlated: the body collapsed
@@ -96,33 +104,35 @@ void Body::set(BodyMaterialE material, float baseHz, float decaySeconds, float t
         // any of its five arguments moves, and Tone, Decay and the root all move -- an LFO on Tone
         // called it every block, so a fresh draw here meant all twelve modes jumping to new places
         // a hundred times a second. The body is a body; where its modes are does not flutter.
-        const float pan = sp * ((i & 1) ? 1.0f : -1.0f) * m_modePan[i];
-        const float angle = (pan + 1.0f) * 0.25f * Pi;
-        m_gainL[i] = std::cos(angle);
-        m_gainR[i] = std::sin(angle);
+        const float pan = sp * ( ( i & 1 ) ? 1.0f : -1.0f ) * m_modePan[i];
+        const float angle = ( pan + 1.0f ) * 0.25f * Pi;
+        m_gainL[i] = std::cos( angle );
+        m_gainR[i] = std::sin( angle );
         // A resonator normalised to unity at its peak passes almost nothing of a broadband
         // signal when it is narrow: the power it collects is proportional to its bandwidth. So
         // the level is normalised on the expected power instead, the way the Air band is --
         // otherwise the Body knob would do nothing at long decays and far too much at short
         // ones. (Measured before this: a body at 0.8 changed the mix by 0.02 dB.)
-        sumSq += g * g * Pi * bw / (2.0f * m_sr);
+        sumSq += g * g * Pi * bw / ( 2.0f * m_sr );
     }
     // The cap keeps a very long, very narrow body from turning a partial that happens to sit on
     // a mode into a howl: past 60 the resonance is a feedback loop, not a body.
     // 0.05 puts the body at Level 1 at about the level of the dry mix it is answering (measured
     // on the default patch); 0.32 made it 11 dB louder than the music and drove the clipper.
-    m_norm = std::min(0.05f / std::sqrt(std::max(sumSq, 1e-9f)), 60.0f);
+    m_norm = std::min( 0.05f / std::sqrt( std::max( sumSq, 1e-9f ) ), 60.0f );
 }
 
-void Body::process(const float* in, float* outL, float* outR, int n, float level)
+void Body::process( const float *in, float *outL, float *outR, int n, float level )
 {
-    if (level <= 0.0f) return;
+    if ( level <= 0.0f ) return;
     const float g = level * m_norm;
-    for (int i = 0; i < n; ++i) {
+    for ( int i = 0; i < n; ++i )
+    {
         const float x = in[i];
-        float l = 0.0f, r = 0.0f;
-        for (int m = 0; m < BodyModes; ++m) {
-            const float y = m_res[m].tick(x);
+        float       l = 0.0f, r = 0.0f;
+        for ( int m = 0; m < BodyModes; ++m )
+        {
+            const float y = m_res[m].tick( x );
             l += y * m_gainL[m];
             r += y * m_gainR[m];
         }
@@ -130,7 +140,7 @@ void Body::process(const float* in, float* outL, float* outR, int n, float level
         outR[i] += r * g;
     }
     // Once a block, after the modes have run: see Resonator::guard.
-    for (auto& r : m_res) r.guard();
+    for ( auto &r : m_res ) r.guard();
 }
 
-} // namespace ambient
+}   // namespace ambient
