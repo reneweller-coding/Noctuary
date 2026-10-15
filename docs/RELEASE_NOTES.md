@@ -1,6 +1,6 @@
 # Noctuary release notes
 
-## Next (not yet released)
+## 2.5.0 (15.10.2026): the ways around the panel
 
 **The ways around the panel** (15.10.2026, the family's Frame.h, from Empyrean): the search (Ctrl+K or the magnifier in
 the header) finds any knob -- its tab opens and it lights up; a number after its name sets it --, any preset, tab or
@@ -9,6 +9,12 @@ for the preset as it was loaded, and a star beside the Sound box while the knobs
 the header: the one under way step by step, a click goes there; the one being written, its steps' times and order
 changed by hand); a knob's right-click menu with each route's depth to drag and every source to add; the standalone's
 window back where it was left (place, size, maximised); ASIO in the standalone's audio settings (Windows).
+
+**The code** (15.10.2026) follows the programming guideline of the CGVR group of the Universität Bremen: its names
+(`m_` for members, constants without `k`, enum types with `E`), its comment template for Doxygen (every parameter with
+its direction, every return value; the test `doccheck` holds it) and its layout, kept by clang-format; docs/STYLE.md
+says where the code deviates and why. Nothing of it changes what is heard: parameter keys, saved sets and presets are
+as they were.
 
 ## 2.4.0 (03.10.2026): the family plays together
 
