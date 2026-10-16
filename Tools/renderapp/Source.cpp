@@ -5,13 +5,16 @@
  *
  * As ambient_render plays a journey (Tools/render/main.cpp, its journey path) and the instrument does: the packs loaded
  * (loadDefaultPresetPacks), the first step's preset applied with its media (its clips, its wavetable, its rooms), the
- * engine prepared at 48 kHz with blocks of 256; every later step brought up on a second engine with everything the
- * instrument stands at, the preset's own on top, the conductor's chord and the near layer handed over, and crossfaded
- * in on a sine/cosine pair once it is audible (at most eight seconds' wait), so the sum keeps its power. The near layer
- * as the instrument chooses it: Auto (fore_auto) from the pack's table, or the step's own near preset ("keep" pins what
- * plays). The dwells and fades are drawn from the journey's ranges with the dice, so the length is known before.
- * @note The media and the crossfade after ambient_render's runOnce (16.10.2026), which matches the plugin's
- *       beginTransition; the near layer per step after NoctuaryProcessor::journeyTick.
+ * engine prepared at 48 kHz with blocks of 256; every later step brought up on a fresh engine, as the instrument
+ * builds one for every transition: everything the instrument stands at, what the engine leaving holds (its clips, its
+ * wavetable, the near layer's clips, the room last read), the preset's own on top, the conductor's chord and the near
+ * layer handed over, and crossfaded in on a sine/cosine pair once it is audible (at most eight seconds' wait), so the
+ * sum keeps its power. The near layer as the instrument chooses it: Auto (fore_auto) from the pack's table, or the
+ * step's own near preset ("keep" pins what plays). The arc of the presets that follow the clock (arc_clock) hears the
+ * hour the rendering would be played at -- from now, or from 23:00 -- running with the file. The dwells and fades are
+ * drawn from the journey's ranges with the dice, so the length is known before.
+ * @note The media after the plugin's loadPresetFiles, the crossfade after its beginTransition and carryUserData, the
+ *       near layer per step after NoctuaryProcessor::journeyTick (16.10.2026).
  * @author Rene Weller
  */
 #include "RenderKit.h"
@@ -26,6 +29,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <ctime>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -113,8 +117,9 @@ double lengthOf( const ambient::Journey &journey, std::uint64_t seed, int passes
  *        kept to twenty seconds), as ambient_render's loadNearClips and the plugin load them.
  * @param[in,out] engine  the engine
  * @param[in]     path    a WAV/FLAC/AIFF file, or a folder of them
+ * @return whether a clip was loaded
  */
-void loadNearClips( Engine &engine, const std::string &path )
+bool loadNearClips( Engine &engine, const std::string &path )
 {
     namespace fs = std::filesystem;
     std::error_code ec;
@@ -150,18 +155,22 @@ void loadNearClips( Engine &engine, const std::string &path )
                                                       ambient::loopFromName( f.c_str() ), 20.0 );
             if ( !t.empty() ) pool.push_back( std::move( t ) );
         }
-        if ( !pool.empty() ) engine.setNearTextures( std::move( pool ) );
-        return;
+        if ( pool.empty() ) return false;
+        engine.setNearTextures( std::move( pool ) );
+        return true;
     }
     std::vector<std::vector<float>> ch;
     int                             rate = 0;
-    if ( !ambient::readWavChannels( path.c_str(), ch, rate ) || ch.empty() ) return;
+    if ( !ambient::readWavChannels( path.c_str(), ch, rate ) || ch.empty() ) return false;
     engine.setNearTexture( ch[0].data(), ch.size() > 1 ? ch[1].data() : nullptr, static_cast<int>( ch[0].size() ), rate,
                            261.6256, ambient::loopFromName( path.c_str() ) );
+    return true;
 }
 
 /**
- * @brief A near preset applied with its clips, as the instrument applies one.
+ * @brief A near preset applied with its clips, as the instrument applies one (applyNearPreset): a preset that names no
+ *        clip, or one not found, takes the clip that was loaded away, so the flute after the radio finds no voice in
+ *        its slot.
  * @param[in,out] e     the engine
  * @param[in]     pick  the near preset (0: Near Off)
  */
@@ -169,11 +178,9 @@ void applyNear( Engine &e, int pick )
 {
     e.applyNearPreset( pick );
     const ambient::Preset &np = ambient::nearPreset( pick );
-    if ( np.m_texture != nullptr && *np.m_texture != 0 )
-    {
-        const std::string got = ambient::resolveLibraryFile( np.m_texture );
-        if ( !got.empty() ) loadNearClips( e, got );
-    }
+    const std::string      got =
+        np.m_texture != nullptr && *np.m_texture != 0 ? ambient::resolveLibraryFile( np.m_texture ) : std::string();
+    if ( got.empty() || !loadNearClips( e, got ) ) e.clearNearTexture();
 }
 
 /**
@@ -196,32 +203,56 @@ void nearAuto( Engine &e, int idx )
 }
 
 /**
- * @brief The near layer a journey's step asks for (NoctuaryProcessor::journeyTick): "keep" pins what plays (Auto off),
- *        a near preset's name pins that one, nothing or "auto" leaves it to the sound preset's Auto.
+ * @brief A journey's step's sound preset and near layer, in the instrument's order (NoctuaryProcessor::journeyTick,
+ *        setCurrentProgram): "keep" turns Auto off before the preset could bring its own foreground; the preset applied
+ *        whole; Auto's foreground (fore_auto); a near preset's name over it, Auto off ("auto" or nothing leaves it to
+ *        Auto).
  * @param[in,out] e     the engine the step is on
+ * @param[in]     idx   the sound preset
  * @param[in]     want  the step's near field
  */
-void stepNear( Engine &e, const std::string &want )
+void applyStep( Engine &e, int idx, const std::string &want )
 {
-    if ( want.empty() || want == "auto" ) return;
-    e.setParam( ParamIdE::FORE_AUTO, 0.0f );
-    if ( want == "keep" ) return;
+    if ( want == "keep" ) e.setParam( ParamIdE::FORE_AUTO, 0.0f );
+    e.applyPreset( idx );
+    nearAuto( e, idx );
+    if ( want.empty() || want == "auto" || want == "keep" ) return;
     for ( int i = 0; i < ambient::numNearPresets(); ++i )
         if ( want == ambient::nearPreset( i ).m_name )
         {
+            e.setParam( ParamIdE::FORE_AUTO, 0.0f );
             applyNear( e, i );
             return;
         }
 }
 
-/** @brief A journey being rendered: two engines at most, a step crossfaded in on the second. */
+/**
+ * @brief The hour a rendering begins at, for the presets whose arc follows the clock (arc_clock): 23:00 when the night
+ *        is asked for, else the local time now -- what the instrument would read if it were played from this moment.
+ * @param[in] night  as from 23:00
+ * @return 0 .. 24
+ */
+double startHour( bool night )
+{
+    if ( night ) return 23.0;
+    const std::time_t t = std::time( nullptr );
+    std::tm           lt{};
+#if defined( _WIN32 )
+    localtime_s( &lt, &t );
+#else
+    localtime_r( &t, &lt );
+#endif
+    return lt.tm_hour + lt.tm_min / 60.0 + lt.tm_sec / 3600.0;
+}
+
+/** @brief A journey being rendered: two engines at most, each step crossfaded in on a fresh one. */
 class JourneyRendering : public renderkit::Rendering
 {
 public:
     /**
      * @brief Sets the engine up on the journey's first step.
      * @param[in]  journey  the journey
-     * @param[in]  r        the request (passes, fade)
+     * @param[in]  r        the request (passes, fade, night)
      * @param[in]  seed     the dice for this journey (renderkit::seedFor)
      * @param[out] why      receives why it cannot be rendered
      */
@@ -232,41 +263,34 @@ public:
         const std::uint64_t s = seed | 1ull;   // as ambient_render's --journey-seed
         m_seconds = lengthOf( journey, s, r.option( "passes" ) + 1 );
         m_fade = r.option( "fade", 1 ) ? 20.0 : 0.0;
+        m_hour = startHour( r.option( "night" ) != 0 );
         m_frames = static_cast<std::int64_t>( std::llround( m_seconds * Rate ) );
-        m_a = std::make_unique<Engine>();   // on the heap: it is large
-        m_live = m_a.get();
+        m_live = std::make_unique<Engine>();   // on the heap: it is large
         m_player.start( journey, s, 0 );
         ambient::JourneyStep st;
         double               fade = 0.0;
         if ( !m_player.advance( 0.0, st, fade ) )
         {
             why = "the journey has no steps";
-            m_a.reset();
+            m_live.reset();
             return;
         }
         const int idx = presetIndex( st.m_preset );
         if ( idx < 0 )
         {
             why = "its first preset is not in the library: " + juce::String( st.m_preset );
-            m_a.reset();
+            m_live.reset();
             return;
         }
         // The first step like --preset: applied, its media read, its rooms set once the engine is prepared.
-        m_a->applyPreset( idx );
-        loadMedia( *m_a, idx, false );
-        nearAuto( *m_a, idx );
-        stepNear( *m_a, st.m_nearPreset );
-        m_a->prepare( Rate, EngineBlock );
-        if ( !m_ir.empty() )
-            m_a->setImpulse( m_ir[0].data(), m_ir.size() > 1 ? m_ir[1].data() : nullptr,
-                             static_cast<int>( m_ir[0].size() ), m_irRate );
-        if ( !m_irB.empty() )
-            m_a->setImpulseB( m_irB[0].data(), m_irB.size() > 1 ? m_irB[1].data() : nullptr,
-                              static_cast<int>( m_irB[0].size() ), m_irBRate );
+        applyStep( *m_live, idx, st.m_nearPreset );
+        loadMedia( *m_live, idx, false );
+        m_live->prepare( Rate, EngineBlock );
+        setRooms( *m_live );
         m_step = st.m_preset;
     }
     /** @brief Whether it could be set up. @return true when it renders */
-    bool ok() const { return m_a != nullptr; }
+    bool ok() const { return m_live != nullptr; }
     double seconds() const override { return m_seconds; }
     double fadeSeconds() const override { return m_fade; }
     void render( float *left, float *right, int frames ) override
@@ -288,6 +312,11 @@ public:
                     m_step = st.m_preset;
                 }
             }
+            // The arc's clock runs with the file: the engine would read the wall clock, which an offline rendering
+            // races past (and which is no hour of the piece).
+            const double hour = std::fmod( m_hour + static_cast<double>( m_done ) / Rate / 3600.0, 24.0 );
+            m_live->setClockHourOverride( hour );
+            if ( m_fading != nullptr ) m_fading->setClockHourOverride( hour );
             float *L = left + at, *R = right + at;
             m_live->process( L, R, n );
             if ( m_fading != nullptr ) crossfade( L, R, n );
@@ -304,8 +333,10 @@ public:
 
 private:
     /**
-     * @brief A pack preset's media: its clips (one file for every slot, or up to four separated by ';'), its
-     *        wavetable, its rooms -- into the engine at once when it is prepared, else the rooms kept for after.
+     * @brief A pack preset's media as the instrument reads them (loadPresetFiles): its clips (one file for every slot,
+     *        or up to four separated by ';', a slot the per-slot form leaves empty cleared), its wavetable, its rooms (a
+     *        room named without a second takes the second away) -- kept as the room the next engine takes over, and
+     *        into the engine at once when it is prepared.
      * @param[in,out] e         the engine
      * @param[in]     idx       the preset
      * @param[in]     roomsNow  the engine is prepared: the rooms go in now
@@ -318,15 +349,23 @@ private:
         int                rate = 0;
         if ( tex && *tex )
         {
-            const std::string all( tex );
-            const bool        perSlot = all.find( ';' ) != std::string::npos;
-            size_t            start = 0;
-            for ( int slot = 0; slot < ambient::Slots; ++slot )
+            std::vector<std::string> parts;   // one file for every slot, or one for each
+            const std::string        all( tex );
+            for ( size_t start = 0;; )
             {
                 const size_t semi = all.find( ';', start );
                 std::string  one = all.substr( start, semi == std::string::npos ? std::string::npos : semi - start );
                 while ( !one.empty() && one.front() == ' ' ) one.erase( one.begin() );
                 while ( !one.empty() && one.back() == ' ' ) one.pop_back();
+                parts.push_back( one );
+                if ( semi == std::string::npos ) break;
+                start = semi + 1;
+            }
+            const bool perSlot = parts.size() > 1;
+            for ( int slot = 0; slot < ( perSlot ? ambient::Slots : 1 ); ++slot )
+            {
+                const std::string one =
+                    static_cast<size_t>( slot ) < parts.size() ? parts[static_cast<size_t>( slot )] : std::string();
                 std::vector<float> right;
                 if ( !one.empty() && ambient::readWavStereo( one.c_str(), mono, right, rate ) )
                 {
@@ -339,8 +378,8 @@ private:
                     else
                         e.setTexture( mono.data(), rp, static_cast<int>( mono.size() ), rate, base, seamless );
                 }
-                if ( semi == std::string::npos ) break;
-                start = semi + 1;
+                else if ( perSlot )
+                    e.clearTexture( slot );   // the per-slot form names every slot: one it leaves empty has nothing
             }
         }
         if ( tab && *tab )
@@ -349,76 +388,87 @@ private:
             if ( ambient::readWavetableFile( tab, mono, cycle ) )
                 e.loadUserWavetable( mono.data(), static_cast<int>( mono.size() ), cycle );
         }
-        for ( int which = 2; which <= 3; ++which )
+        const char                     *imp = ambient::presetFilePath( idx, 2 );
+        const char                     *impB = ambient::presetFilePath( idx, 3 );
+        std::vector<std::vector<float>> ch, chB;
+        int                             r2 = 0;
+        if ( imp && *imp && ambient::readWavChannels( imp, ch, r2 ) && !ch.empty() )
         {
-            const char *imp = ambient::presetFilePath( idx, which );
-            if ( !imp || !*imp ) continue;
-            std::vector<std::vector<float>> ch;
-            int                             r2 = 0;
-            if ( !ambient::readWavChannels( imp, ch, r2 ) || ch.empty() ) continue;
-            if ( roomsNow )
-            {
-                if ( which == 2 )
-                    e.setImpulse( ch[0].data(), ch.size() > 1 ? ch[1].data() : nullptr,
-                                  static_cast<int>( ch[0].size() ), r2 );
-                else
-                    e.setImpulseB( ch[0].data(), ch.size() > 1 ? ch[1].data() : nullptr,
-                                   static_cast<int>( ch[0].size() ), r2 );
-            }
-            else if ( which == 2 )
-            {
-                m_ir = ch;
-                m_irRate = r2;
-            }
-            else
-            {
-                m_irB = ch;
-                m_irBRate = r2;
-            }
+            m_ir = std::move( ch );
+            m_irRate = r2;
+            if ( roomsNow ) setRoom( e, false );
+        }
+        if ( impB && *impB && ambient::readWavChannels( impB, chB, r2 ) && !chB.empty() )
+        {
+            m_irB = std::move( chB );
+            m_irBRate = r2;
+            if ( roomsNow ) setRoom( e, true );
+        }
+        else if ( ( impB && *impB ) || ( imp && *imp ) )
+        {   // a room named without its second (or a second not found): Room Morph has nothing left over to go to
+            m_irB.clear();
+            if ( roomsNow ) e.clearImpulseB();
         }
     }
     /**
-     * @brief The next step: a cut when its fade is nothing, else the preset brought up on the other engine with
-     *        everything the instrument stands at, the conductor's chord and the near layer handed over.
+     * @brief The room last read from a preset, or its second (Room Morph's), into an engine that is prepared.
+     * @param[in,out] e       the engine
+     * @param[in]     second  the second room
+     */
+    void setRoom( Engine &e, bool second ) const
+    {
+        const std::vector<std::vector<float>> &ch = second ? m_irB : m_ir;
+        if ( ch.empty() ) return;
+        if ( second )
+            e.setImpulseB( ch[0].data(), ch.size() > 1 ? ch[1].data() : nullptr, static_cast<int>( ch[0].size() ),
+                           m_irBRate );
+        else
+            e.setImpulse( ch[0].data(), ch.size() > 1 ? ch[1].data() : nullptr, static_cast<int>( ch[0].size() ),
+                          m_irRate );
+    }
+    /**
+     * @brief Both rooms last read from presets into an engine that is prepared.
+     * @param[in,out] e  the engine
+     */
+    void setRooms( Engine &e ) const
+    {
+        setRoom( e, false );
+        setRoom( e, true );
+    }
+    /**
+     * @brief The next step: a cut when its fade is nothing, else the preset brought up on a fresh engine, as the
+     *        instrument builds one for every transition (ensureEngine: the idle one goes back between steps), with
+     *        everything the instrument stands at and what the engine leaving holds (carryUserData), the preset's own on
+     *        top, the conductor's chord and the near layer handed over.
      * @param[in] idx   the preset
      * @param[in] fade  seconds of the crossfade
      * @param[in] near  the step's near field
      */
     void beginStep( int idx, double fade, const std::string &near )
     {
-        Engine &out = *m_live;
         if ( fade < 0.05 )
-        {
-            out.applyPreset( idx );
-            loadMedia( out, idx, true );
-            nearAuto( out, idx );
-            stepNear( out, near );
+        {   // a cut: the preset on the engine that plays
+            applyStep( *m_live, idx, near );
+            loadMedia( *m_live, idx, true );
             return;
         }
-        // only ever two engines: a step whose fade is still running is finished here
-        if ( m_fading != nullptr )
-        {
-            m_fading->allNotesOff();
-            m_fading->reset();
-            m_fading = nullptr;
-        }
-        if ( m_b == nullptr ) m_b = std::make_unique<Engine>();
-        Engine &in = m_live == m_a.get() ? *m_b : *m_a;
-        in.allNotesOff();
-        in.reset();
+        m_fading.reset();   // only ever two engines: a step whose fade is still running is finished here
+        auto    held = std::make_unique<Engine>();
+        Engine &out = *m_live, &in = *held;
         for ( int i = 0; i < ambient::NumParams; ++i )
             in.setParam( static_cast<ParamIdE>( i ), out.getParam( static_cast<ParamIdE>( i ) ) );
-        in.applyPreset( idx );
-        nearAuto( in, idx );
-        stepNear( in, near );
         in.prepare( Rate, EngineBlock );
-        // the first preset's rooms, then the preset's own over them (ambient_render)
-        if ( !m_ir.empty() )
-            in.setImpulse( m_ir[0].data(), m_ir.size() > 1 ? m_ir[1].data() : nullptr,
-                           static_cast<int>( m_ir[0].size() ), m_irRate );
-        if ( !m_irB.empty() )
-            in.setImpulseB( m_irB[0].data(), m_irB.size() > 1 ? m_irB[1].data() : nullptr,
-                            static_cast<int>( m_irB[0].size() ), m_irBRate );
+        // What the instrument carries into a new engine (carryUserData): the clips, the wavetable, the near layer's
+        // clips, the room -- the engine keeps rooms as spectra, so the last one read comes from the samples kept here.
+        // The preset's own come over them.
+        for ( int k = 0; k < ambient::Slots; ++k )
+            if ( const ambient::Texture *t = out.displayTexture( k ) )
+                if ( !t->empty() ) in.setTexture( k, *t );
+        if ( const ambient::Wavetable *wt = out.userWavetable() ) in.setUserWavetable( *wt );
+        if ( const ambient::CycleTable *ct = out.userCycles() ) in.setUserCycles( *ct );
+        if ( const std::vector<ambient::Texture> *pool = out.displayNearPool() ) in.setNearTextures( *pool );
+        setRooms( in );
+        applyStep( in, idx, near );
         loadMedia( in, idx, true );
         {   // the conductor's chord taken over (a crossfade changes the instrument, not the music)
             int   cn[ambient::ClusterBrain::Slots];
@@ -434,8 +484,8 @@ private:
             }
             in.adoptNear( out.nearState() );
         }
-        m_live = &in;
-        m_fading = &out;
+        m_fading = std::move( m_live );
+        m_live = std::move( held );
         m_fadePos = 0.0;
         m_fadeHead = 0.0;
         m_fadeSeconds = fade;
@@ -469,31 +519,25 @@ private:
             R[i] = R[i] * gIn + m_fadeR[static_cast<size_t>( i )] * gOut;
         }
         m_fadePos = t1;
-        if ( t1 >= 1.0 )
-        {
-            m_fading->allNotesOff();
-            m_fading->reset();
-            m_fading = nullptr;
-        }
+        if ( t1 >= 1.0 ) m_fading.reset();
     }
 
     ambient::Journey                m_journey;             ///< the journey
     ambient::JourneyPlayer          m_player;              ///< its clock
-    std::unique_ptr<Engine>         m_a;                   ///< the first engine
-    std::unique_ptr<Engine>         m_b;                   ///< the second, built at the first crossfade
-    Engine                         *m_live = nullptr;      ///< the one the instrument is
-    Engine                         *m_fading = nullptr;    ///< the one on its way out, or none
+    std::unique_ptr<Engine>         m_live;                ///< the engine the instrument is
+    std::unique_ptr<Engine>         m_fading;              ///< the one on its way out, or none
     double                          m_fadePos = 0.0;       ///< 0 .. 1 across the crossfade
     double                          m_fadeHead = 0.0;      ///< s waited for the arriving preset to be audible
     double                          m_fadeSeconds = 0.0;   ///< the crossfade's length
-    std::vector<std::vector<float>> m_ir;                  ///< the first preset's room
-    std::vector<std::vector<float>> m_irB;                 ///< ... and its second (Room Morph's)
+    std::vector<std::vector<float>> m_ir;                  ///< the room last read from a preset
+    std::vector<std::vector<float>> m_irB;                 ///< ... and its second (Room Morph's), or none
     int                             m_irRate = 0;          ///< the room's rate
     int                             m_irBRate = 0;         ///< the second room's rate
     std::vector<float>              m_fadeL;               ///< the leaving engine's block, left
     std::vector<float>              m_fadeR;               ///< ... right
     double                          m_seconds = 0.0;       ///< the length
     double                          m_fade = 0.0;          ///< the fade over the end, s
+    double                          m_hour = 0.0;          ///< the arc clock's hour at the file's start
     std::int64_t                    m_frames = 0;          ///< the length in samples
     std::int64_t                    m_done = 0;            ///< samples rendered
     mutable std::mutex              m_lock;                ///< guards m_step
@@ -577,6 +621,13 @@ public:
                    "The end faded out, so the file does not stop dead.",
                    {},
                    1,
+                   false },
+                 { "night",
+                   "As at night (the clock arc from 23:00)",
+                   "The presets whose arc follows the clock play as from 23:00 on, the clock running with the file; "
+                   "otherwise as from the moment the rendering starts.",
+                   {},
+                   0,
                    false } };
     }
     bool applies( const renderkit::Item &item, const juce::String &key ) const override

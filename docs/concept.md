@@ -3274,8 +3274,10 @@ starts one, `+ now` and `Save...` to write one's own into
 `Documents/Noctuary/Journeys`, and `--journey` in the render tool (which
 cuts where the plugin crossfades). Noctuary Journeys (Tools/renderapp, 16.10.2026: the family's render app with
 Noctuary's source) renders a journey into a WAV, FLAC, Ogg Vorbis or MP3 file faster than real time, as the instrument
-plays it: the render tool's two engines and crossfade, the near layer as Auto or the step asks (journeyTick), the
-length drawn before it begins. The templates the instrument ships,
+plays it: a fresh engine for every step as the plugin's transition builds one (carryUserData: the clips, the
+wavetable, the near pool and the room of the engine leaving), the crossfade once it is audible, the near layer as Auto
+or the step asks (journeyTick), the clock arc running with the file (from now or from 23:00), the length drawn before
+it begins. The templates the instrument ships,
 `Tools/make_journeys.py` makes from the library's own measurement: for every
 pack a *Journey* of twelve presets spread across the pack's space (farthest
 points on the standardised descriptors, then chained by nearest neighbour so

@@ -6,9 +6,10 @@
 into files: the templates beside the packs and your own (Documents/Noctuary/Journeys), each listed with its steps, its
 shortest and longest pass and the length of its rendering -- the dwells and fades are drawn with the dice before it
 begins, so the length is exact. Rendered as the instrument plays a journey: every step's preset with its clips, its
-wavetable and its rooms, brought up on a second engine and crossfaded in once it is audible, the conductor's chord and
-the near layer handed over, the foreground as Auto (or the step) asks; the passes of a cyclic journey, the last twenty
-seconds faded. Several chosen are rendered one after another, with progress, speed and time left. WAV or FLAC at 24
+wavetable and its rooms, brought up on a fresh engine that takes over what the one leaving holds (its clips, its
+wavetable, the near layer's clips, its room) and crossfaded in once it is audible, the conductor's chord and the near
+layer handed over, the foreground as Auto (or the step) asks; the presets whose arc follows the clock hear the hours of
+the rendering, from now or from 23:00; the passes of a cyclic journey, the last twenty seconds faded. Several chosen are rendered one after another, with progress, speed and time left. WAV or FLAC at 24
 bits, Ogg Vorbis or MP3 at 320 kbit/s (MP3 through Windows' own encoder). The family's render app (Tools/renderapp,
 the same in all six instruments); `--list`, `--render`, and a self-test of every format and the queue (ctest
 `renderapp`).
