@@ -1141,7 +1141,7 @@ void NoctuaryEditor::buildCells()
         auto jb = std::make_unique<juce::ComboBox>();
         jb->setTextWhenNothingSelected( "Journey" );
         jb->setTooltip(
-            "A journey: presets in a row, each held for a while drawn from its range and crossfaded into the next over a drawn fade, round and round when it is cyclic. Choosing one starts it. The files are plain text (*.journey): one preset a line with its dwell and fade, editable by hand." );
+            "A journey: presets in a row, each held for a while drawn from its range and crossfaded into the next over a drawn fade, round and round when it is cyclic. Choosing one starts it. The files are plain text (*.journey): one preset a line with its dwell and fade, editable by hand. Noctuary Journeys, beside the instrument, renders one into a WAV, FLAC, Ogg or MP3 file." );
         m_journeyBox = jb.get();
         fillJourneyBox();
         jb->onChange = [this]

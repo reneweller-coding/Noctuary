@@ -139,7 +139,10 @@ Sort and filter by family, character, motion and features, or search; star what 
 favourites rise to the top of any sort and ring gold on the map. A **route** walks the map by
 itself between waypoints. A **journey** is a list of presets for an evening that plays itself —
 each held for a time drawn from a range, then crossfaded into the next — and 119 of them ship with
-the library, a journey and a night for every pack and a crossing for every family.
+the library, a journey and a night for every pack and a crossing for every family. **Noctuary Journeys**
+(`NoctuaryJourneys.exe`, in the Start menu) renders them into files with a small window of its own: every journey with
+the length of its rendering, as WAV or FLAC (24 bit), Ogg Vorbis or MP3 (320 kbit/s), faster than real time and
+crossfaded as the instrument plays it; `NoctuaryJourneys --render "NAME" --format flac` without the window.
 
 Beside the presets: **8686 samples** (5748 textures and 2938 field recordings, every one of the
 latter made seamless by construction), **2191 wavetables** on three shelves, and **1100 impulse

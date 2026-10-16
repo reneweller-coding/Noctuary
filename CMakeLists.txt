@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(Noctuary VERSION 2.5.0 LANGUAGES C CXX)
+project(Noctuary VERSION 2.6.0 LANGUAGES C CXX)
 
 # The family's layout (01.10.2026): build/<preset>, bin/<preset>, dist/, work/ -- cmake/Family.cmake,
 # CMakePresets.json and build.ps1, the same in every repository of the family.
@@ -61,6 +61,9 @@ endif()
 if(AMBIENT_BUILD_PLUGIN)
     family_juce(${AMBIENT_JUCE_TAG})   # ThirdParty/JUCE, the sibling Phosphene's, or fetched (cmake/Family.cmake)
     add_subdirectory(Plugin)
+    # Noctuary Journeys: journeys rendered into WAV, FLAC, Ogg Vorbis or MP3, faster than real time (16.10.2026),
+    # on the family's render app (Tools/renderapp/RenderKit.h).
+    add_subdirectory(Tools/renderapp)
 endif()
 
 # After the plugin, so the host-contract test can link against its shared code.

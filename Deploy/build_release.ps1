@@ -259,6 +259,10 @@ if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stage, $out | Out-Null
 Copy-Item $exe $stage
 Copy-Item $vst (Join-Path $stage "Noctuary.vst3") -Recurse
+# Noctuary Journeys, the render app beside the instrument (Tools/renderapp).
+$journeysApp = Get-ChildItem -Recurse (Join-Path $buildDir "Tools\renderapp") -Filter NoctuaryJourneys.exe | Select-Object -First 1
+if (-not $journeysApp) { throw "no NoctuaryJourneys.exe in the build" }
+Copy-Item $journeysApp.FullName $stage
 Copy-Item (Join-Path $root "docs\logo.ico") $stage
 if (Test-Path $manualPdf) { Copy-Item $manualPdf $stage } else { Write-Warning "no manual PDF to ship" }
 # And beside the setup, where Deploy\publish_release.ps1 takes it from (02.10.2026: dist held the 2.1.0 manual until a
@@ -290,6 +294,8 @@ WHAT IS HERE
   Noctuary.vst3       the plug-in. Copy the whole folder to
                           C:\Program Files\Common Files\VST3\ and rescan in your DAW.
   Noctuary-Manual.pdf the manual, the same one the Help page shows.
+  NoctuaryJourneys.exe  Noctuary Journeys: the journeys rendered into WAV, FLAC, Ogg Vorbis or MP3
+                          with a window of its own, faster than real time.
   Packs\                  $packCount preset packs. Copy them to
                           C:\ProgramData\Noctuary\Packs (for everyone on the machine) or
                           Documents\Noctuary\Packs (just for you). The instrument reads both.

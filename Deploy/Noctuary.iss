@@ -77,6 +77,7 @@ Name: "de"; MessagesFile: "compiler:Languages\German.isl"
 en.CompStandalone=Standalone application
 en.CompVst3=VST3 plug-in (for a DAW)
 en.CompPacks=Preset library (56 packs, 14336 presets)
+en.CompJourneys=Noctuary Journeys (journeys into WAV, FLAC, Ogg Vorbis or MP3)
 en.CompContent=Sample library: the samples, wavetables and impulse responses the presets use (downloaded, %1 GB)
 en.TaskDesktop=Create a desktop shortcut
 en.DownloadFailed=The sample library could not be downloaded:%n%n%1%n%nEverything else installs and works without it; presets that want a sample fall back to the built-in sources. You can install the library later by unpacking the content archives from the release into the Noctuary folder.%n%nInstall without the sample library?
@@ -84,6 +85,7 @@ en.NoAvx2=This processor reports no AVX2 support.%n%nNoctuary is built for AVX2,
 de.CompStandalone=Eigenstaendiges Programm
 de.CompVst3=VST3-Plugin (fuer eine DAW)
 de.CompPacks=Preset-Bibliothek (56 Pakete, 14336 Presets)
+de.CompJourneys=Noctuary Journeys (Journeys als WAV, FLAC, Ogg Vorbis oder MP3)
 de.CompContent=Sample-Bibliothek: die Samples, Wavetables und Impulsantworten der Presets (wird geladen, %1 GB)
 de.TaskDesktop=Verknuepfung auf dem Desktop anlegen
 de.DownloadFailed=Die Sample-Bibliothek konnte nicht geladen werden:%n%n%1%n%nAlles andere wird installiert und funktioniert auch ohne sie; Presets, die ein Sample moechten, greifen auf die eingebauten Quellen zurueck. Die Bibliothek laesst sich spaeter nachlegen, indem man die Content-Archive aus dem Release in den Noctuary-Ordner entpackt.%n%nOhne die Sample-Bibliothek installieren?
@@ -97,6 +99,7 @@ Name: "custom"; Description: "{code:CustomTypeName}"; Flags: iscustom
 Name: "standalone"; Description: "{cm:CompStandalone}"; Types: full custom; Flags: fixed
 Name: "vst3";       Description: "{cm:CompVst3}";       Types: full custom
 Name: "packs";      Description: "{cm:CompPacks}";      Types: full custom
+Name: "journeys";   Description: "{cm:CompJourneys}";   Types: full custom
 #if HaveContent
 ; The presets name their samples by relative path, so the sample library only makes sense
 ; alongside the packs -- hence "packs" is a dependency, not just a suggestion.
@@ -109,6 +112,8 @@ Name: "desktopicon"; Description: "{cm:TaskDesktop}"; GroupDescription: "{cm:Add
 [Files]
 Source: "{#Stage}\Noctuary.exe"; DestDir: "{app}"; Components: standalone; Flags: ignoreversion
 Source: "{#Stage}\LICENSE.txt";      DestDir: "{app}"; Components: standalone; Flags: ignoreversion
+; Noctuary Journeys, the render app: it reads the packs and the journeys where the instrument reads them.
+Source: "{#Stage}\NoctuaryJourneys.exe"; DestDir: "{app}"; Components: journeys; Flags: ignoreversion
 Source: "{#Stage}\README.txt";       DestDir: "{app}"; Components: standalone; Flags: ignoreversion isreadme
 ; The manual, so it is on the machine rather than only on a web page somewhere.
 Source: "{#Stage}\Noctuary-Manual.pdf"; DestDir: "{app}"; Components: standalone;     Flags: ignoreversion skipifsourcedoesntexist
@@ -137,6 +142,7 @@ Source: "{#Stage}\Journeys\*.journey"; DestDir: "{code:LibDir}\Journeys"; \
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\Noctuary.exe"; Components: standalone
 Name: "{group}\Manual"; Filename: "{app}\Noctuary-Manual.pdf"; Components: standalone;     Check: FileExists(ExpandConstant('{app}\Noctuary-Manual.pdf'))
+Name: "{group}\Noctuary Journeys"; Filename: "{app}\NoctuaryJourneys.exe"; Components: journeys
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\Noctuary.exe"; Tasks: desktopicon
 
