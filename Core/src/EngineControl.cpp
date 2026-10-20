@@ -1313,6 +1313,10 @@ void Engine::readParams()
                   g( ParamIdE::DELAY2_ABSORB ) );
     m_delay2Mix = g( ParamIdE::DELAY2_MIX );
     m_delay2ToFar = g( ParamIdE::DELAY2_TO_FAR );
+    m_loop.set( g( ParamIdE::LOOP_TIME ), g( ParamIdE::LOOP_FEEDBACK ), g( ParamIdE::LOOP_TONE ),
+                g( ParamIdE::LOOP_DRIVE ) );
+    m_loopMix = g( ParamIdE::LOOP_MIX );
+    m_loopToFar = g( ParamIdE::LOOP_TO_FAR );
     m_cloud.set( syncedHz( ParamIdE::CLOUD_SYNC, g( ParamIdE::CLOUD_DENSITY ) ), g( ParamIdE::CLOUD_SIZE ),
                  g( ParamIdE::CLOUD_PITCH ), g( ParamIdE::CLOUD_SPRAY ), g( ParamIdE::CLOUD_LEVEL ) );
     m_cloud.setLoop( g( ParamIdE::CLOUD_FEEDBACK ), g( ParamIdE::CLOUD_TONE ) );

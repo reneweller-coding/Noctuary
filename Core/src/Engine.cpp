@@ -106,6 +106,10 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
     m_smDelayToFar.snap( getParam( ParamIdE::DELAY_TO_FAR ) );
     m_smDelay2Mix.snap( getParam( ParamIdE::DELAY2_MIX ) );
     m_smDelay2ToFar.snap( getParam( ParamIdE::DELAY2_TO_FAR ) );
+    m_smLoopMix.setTime( 0.02f, m_sr );
+    m_smLoopToFar.setTime( 0.02f, m_sr );
+    m_smLoopMix.snap( getParam( ParamIdE::LOOP_MIX ) );
+    m_smLoopToFar.snap( getParam( ParamIdE::LOOP_TO_FAR ) );
     m_smCloudSend.snap( getParam( ParamIdE::CLOUD_SEND ) );
     m_smCosmosSend.snap( getParam( ParamIdE::COSMOS_SEND ) );
     m_smMemSend.snap( getParam( ParamIdE::MEM_SEND ) );
@@ -172,6 +176,7 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
     m_ensemble.prepare( m_sr );
     m_delay.prepare( m_sr );
     m_delay2.prepare( m_sr );
+    m_loop.prepare( m_sr );
     m_cloud.prepare( m_sr, m_rng.fork() );
     m_memory.prepare( m_sr, 0x4D454D4F52ull );   // its own stream: a fork here would move every voice's dice
     m_nearReverb.prepare( m_sr );

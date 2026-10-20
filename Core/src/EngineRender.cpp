@@ -645,6 +645,20 @@ void Engine::renderChunk( float *L, float *R, int n )
         fl[i] += wl[i] * tf;
         fr[i] += wr[i] * tf;
     }
+    // The long loop (20.10.2026): the near bus with its echoes, circling on many seconds (Rich's sleep concerts: the
+    // effects go into the loop with what is played), onto the near plane and into the far.
+    if ( m_loopMix > 0.0f || m_smLoopMix.m_value > 1.0e-4f )   // Mix 0: off, To Far too (a share of the loop)
+    {
+        m_loop.process( nl, nr, wl, wr, n );
+        for ( int i = 0; i < n; ++i )
+        {
+            const float m = m_smLoopMix.next( m_loopMix ), tf = m * m_smLoopToFar.next( m_loopToFar );
+            nl[i] += wl[i] * m;
+            nr[i] += wr[i] * m;
+            fl[i] += wl[i] * tf;
+            fr[i] += wr[i] * tf;
+        }
+    }
     // Granular cloud on the far plane: grains of the foreground, scattered and transposed,
     // dropped into the far reverb.
     // Kept running while it still sounds with the send closed: its loop and its resonators ring on,

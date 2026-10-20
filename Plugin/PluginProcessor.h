@@ -1066,6 +1066,10 @@ private:
     /** @return the standalone's settings, or null in a plugin */
     static juce::PropertySet *standaloneSettings();
     void timerCallback() override;         ///< session recall: save when the state has changed
+    /** @brief Scene (20.10.2026, Scene.h): a newly chosen scene sets its knobs; not after a preset or a state load. */
+    void sceneTick();
+    int    m_scene = 0;               ///< the scene the knobs were last set to (or loaded with)
+    double m_sceneQuietUntil = 0.0;   ///< until this time (ms) a scene's change is a load's, not a choice
     bool         m_sessionRecall = true;   ///< the session-recall switch
     juce::uint32 m_savedStateHash =
         0;   ///< FNV-1a of the state last written, so an unchanged state is not written again

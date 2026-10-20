@@ -1493,6 +1493,11 @@ private:
     /** @var StereoDelay m_delay
      *  @brief the first delay on the near bus */
     StereoDelay m_delay, m_delay2;   ///< m_delay2: the second, in series after the first
+    LongLoop    m_loop;              ///< the long loop (loop_*, 20.10.2026)
+    float       m_loopMix = 0.0f;    ///< its mix onto the near plane
+    float       m_loopToFar = 0.0f;  ///< and its send into the far plane
+    Smoother    m_smLoopMix;         ///< smooths m_loopMix
+    Smoother    m_smLoopToFar;       ///< smooths m_loopToFar
     GrainCloud  m_cloud;             ///< the granular cloud, fed from the near bus
     /** @var float m_delay2Mix
      *  @brief the second delay's share into the near bus */

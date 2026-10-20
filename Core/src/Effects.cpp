@@ -240,6 +240,66 @@ void Ensemble::processChorus( float *L, float *R, int n )
 
 // ---------------------------------------------------------------- StereoDelay
 
+void LongLoop::prepare( double sampleRate )
+{
+    m_sr = sampleRate;
+    const int size = pow2At( static_cast<int>( 16.5 * 1.0435 * m_sr ) + 64 );
+    m_bufL.assign( static_cast<size_t>( size ), 0.0f );
+    m_bufR.assign( static_cast<size_t>( size ), 0.0f );
+    m_mask = size - 1;
+    m_w = 0;
+    m_tCur = 0.0f;
+    m_glide = static_cast<float>( 1.0 - std::exp( -1.0 / ( 0.7 * m_sr ) ) );   // about two seconds to arrive
+    m_hpc = static_cast<float>( 1.0 - std::exp( -2.0 * 3.14159265358979 * 20.0 / m_sr ) );
+    clear();
+}
+
+void LongLoop::clear()
+{
+    std::fill( m_bufL.begin(), m_bufL.end(), 0.0f );
+    std::fill( m_bufR.begin(), m_bufR.end(), 0.0f );
+    m_lpL = m_lpR = m_dcL = m_dcR = 0.0f;
+}
+
+void LongLoop::set( float seconds, float feedback, float toneHz, float drive )
+{
+    const float maxT = static_cast<float>( m_mask - 64 ) / 1.0435f;
+    m_t = clampv( seconds * static_cast<float>( m_sr ), 1.0f, maxT );
+    if ( m_tCur <= 0.0f ) m_tCur = m_t;   // the first set(): at once
+    m_fb = clampv( feedback, 0.0f, 0.98f );
+    const double hz = clampv( toneHz, 100.0f, 20000.0f );
+    m_lpc = clampv( static_cast<float>( 1.0 - std::exp( -2.0 * 3.14159265358979 * hz / m_sr ) ), 0.0f, 1.0f );
+    m_drive = clampv( drive, 0.0f, 1.0f ) * 3.0f;   // into tanh at up to 3 times the level, matched back
+}
+
+void LongLoop::process( const float *inL, const float *inR, float *wetL, float *wetR, int n )
+{
+    float *bl = m_bufL.data();
+    float *br = m_bufR.data();
+    for ( int i = 0; i < n; ++i )
+    {
+        m_tCur += ( m_t - m_tCur ) * m_glide;
+        const float oL = ringRead( bl, m_mask, m_w, m_tCur + 1.0f );
+        const float oR = ringRead( br, m_mask, m_w, m_tCur * 1.0435f + 1.0f );
+        // A round: the low pass, the high pass at 20 Hz, the saturation (level-matched, so Drive only rounds).
+        m_lpL += m_lpc * ( oL - m_lpL );
+        m_lpR += m_lpc * ( oR - m_lpR );
+        m_dcL += m_hpc * ( m_lpL - m_dcL );
+        m_dcR += m_hpc * ( m_lpR - m_dcR );
+        float fL = m_lpL - m_dcL, fR = m_lpR - m_dcR;
+        if ( m_drive > 0.0f )
+        {
+            fL = std::tanh( m_drive * fL ) / m_drive;
+            fR = std::tanh( m_drive * fR ) / m_drive;
+        }
+        bl[m_w] = inL[i] + m_fb * fL;
+        br[m_w] = inR[i] + m_fb * fR;
+        m_w = ( m_w + 1 ) & m_mask;
+        wetL[i] = oL;
+        wetR[i] = oR;
+    }
+}
+
 void StereoDelay::prepare( double sampleRate )
 {
     m_sr = sampleRate;

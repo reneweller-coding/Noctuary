@@ -15,6 +15,7 @@
  * closed. Reaching it here is what lets the session be written while the app is still running.
  * @author Rene Weller
  */
+#include "ambient/Scene.h"
 #include "PluginProcessor.h"
 #include "ambient/WavFile.h"
 #include "Frame.h"
@@ -326,6 +327,21 @@ void NoctuaryProcessor::saveSession()
 void NoctuaryProcessor::timerCallback()
 {
     saveSession();
+    sceneTick();
+}
+
+void NoctuaryProcessor::sceneTick()
+{
+    const auto *p = m_apvts.getParameter( paramTable()[static_cast<size_t>( ParamIdE::SCENE )].m_key );
+    if ( p == nullptr ) return;
+    const int scene = static_cast<int>( std::lround( p->convertFrom0to1( p->getValue() ) ) );
+    if ( scene == m_scene ) return;
+    m_scene = scene;
+    if ( juce::Time::getMillisecondCounterHiRes() < m_sceneQuietUntil ) return;   // a preset or a state brought it
+    int                          count = 0;
+    const ambient::SceneSetting *s = ambient::sceneSettings( scene, count );
+    for ( int i = 0; i < count; ++i )
+        if ( const ParamDesc *d = findParam( s[i].m_key ) ) setParam( d->m_id, s[i].m_value );
 }
 
 // ---------------------------------------------------------------- OSC sink + gestures
@@ -983,6 +999,7 @@ void NoctuaryProcessor::loadPresetFiles( int index )
 
 void NoctuaryProcessor::applyScoped( const Preset &pr, PresetScopeE scope )
 {
+    m_sceneQuietUntil = juce::Time::getMillisecondCounterHiRes() + 1500.0;   // its scene is the preset's, not a choice
     applyPreset(
         pr,
         [this]( ParamIdE id, float v )
@@ -1978,6 +1995,7 @@ void NoctuaryProcessor::getStateInformation( juce::MemoryBlock &destData )
 
 void NoctuaryProcessor::setStateInformation( const void *data, int sizeInBytes )
 {
+    m_sceneQuietUntil = juce::Time::getMillisecondCounterHiRes() + 1500.0;   // its scene is the state's, not a choice
     if ( auto xml = getXmlFromBinary( data, sizeInBytes ) )
     {
         if ( xml->hasTagName( m_apvts.state.getType() ) )

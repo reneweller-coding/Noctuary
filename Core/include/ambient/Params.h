@@ -922,6 +922,15 @@ enum class ParamIdE : int
     /// The image (20.10.2026, Image.h): the width per band into the range of Ultimae's and Polymorph's masters, and
     /// never a side over its mid (what cancels in mono); off in the binaural mode.
     IMAGE,
+    /// The long loop (20.10.2026, Effects.h LongLoop): Robert Rich's sleep-concert loops -- the near bus circling on a
+    /// delay of many seconds, each round darker and softer.
+    LOOP_MIX,
+    LOOP_TIME,
+    LOOP_FEEDBACK,
+    LOOP_TONE,
+    LOOP_DRIVE,
+    LOOP_TO_FAR,   ///< mix, time (4 .. 16 s), feedback, tone (Hz), drive, to far
+    SCENE,         ///< SceneNames (Scene.h, 20.10.2026): the space set as a place, once when chosen
     COUNT           ///< one past the last: NumParams
 };
 
@@ -1038,6 +1047,7 @@ enum class ParamSectionE : int
     FEEDBACK,
     ROOM,
     BODY,   ///< the expression, the planes, and the effects chain from the ensemble to the body
+    LOOP,   ///< the long loop (20.10.2026)
     PATINA,
     COSMOS,
     CLOUD,

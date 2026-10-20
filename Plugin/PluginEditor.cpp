@@ -147,7 +147,7 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
         // sound at once, with the vector's square as the row's display. (The vector used to be a
         // tab of the sources, and the macros a page with nothing beside them.)
         { "MORPH", MorphHue, { { "Morph", "Macros", "Vector" } }, {}, 0 },
-        { "FOREGROUND", ForeHue, { { "Ensemble", "Delay", "Delay 2", "Near Reverb", "Blur" } }, {}, 1 },
+        { "FOREGROUND", ForeHue, { { "Ensemble", "Delay", "Delay 2", "Loop", "Near Reverb", "Blur" } }, {}, 1 },
         { "BACKGROUND",
           BackHue,
           { { "Cloud", "Far Reverb", "Feedback", "Room", "Early Room", "Body", "Patina" } },
@@ -189,7 +189,7 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
         { 2,
           0,
           { "ENSEMBLE + DELAY", "DELAY 2 + NEAR REVERB + BLUR" },
-          { { "Ensemble", "Delay" }, { "Delay 2", "Near Reverb", "Blur" } } },
+          { { "Ensemble", "Delay" }, { "Delay 2", "Loop", "Near Reverb", "Blur" } } },
         { 3,
           0,
           { "CLOUD + FAR REVERB", "FEEDBACK + ROOM", "EARLY ROOM + BODY + PATINA" },
@@ -538,7 +538,7 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
           {},
           1,
           { m_filterView.get(), m_envView.get(), m_vectorView.get() } },
-        { "FOREGROUND", ForeHue, { { "Ensemble", "Delay", "Delay 2", "Near Reverb", "Blur" } }, {}, 1 },
+        { "FOREGROUND", ForeHue, { { "Ensemble", "Delay", "Delay 2", "Loop", "Near Reverb", "Blur" } }, {}, 1 },
         { "BACKGROUND",
           BackHue,
           { { "Cloud", "Far Reverb", "Feedback", "Room", "Early Room", "Body", "Patina", "Cosmos", "Strike", "Memory",

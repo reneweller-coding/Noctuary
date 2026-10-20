@@ -145,6 +145,64 @@ private:
 };
 
 /**
+ * @brief The long loop (20.10.2026, from Empyrean `Core/include/additiv/Effects.h`): Robert Rich's sleep concerts laid loops on a long delay under the field recordings
+ *        -- an Electro-Harmonix 16-second delay then: play into it, let it circle, a drone under it.
+ *
+ * A stereo delay of 4 .. 16 s fed with the dry voices. Every round passes a low pass (Tone), a gentle saturation
+ * (Drive, level-matched) and a high pass at 20 Hz against what a round of saturation leaves at DC, so the loop grows
+ * a little darker and softer each time round -- at a feedback of 0.9 it loses 0.92 dB a round, the highs much faster:
+ * the fundamental stands for minutes, the attack is gone after a few rounds. The right side is a 23rd longer than
+ * the left, so the two rounds drift apart and the loop stays wide without a Haas delay (which would comb in mono).
+ * A new time glides in over about two seconds, as a tape's speed would. Wet only: the caller mixes.
+ */
+class LongLoop
+{
+public:
+    /**
+     * @brief Sizes the delay lines for 16.5 s and clears them.
+     * @param[in] sampleRate  the engine's rate in Hz
+     */
+    void prepare( double sampleRate );
+    /**
+     * @brief The loop's settings, once a block.
+     * @param[in] seconds   the left side's time, 4 .. 16 s (the right is a 23rd longer)
+     * @param[in] feedback  the loop gain, 0 .. 0.98
+     * @param[in] toneHz    the low pass in the loop, Hz
+     * @param[in] drive     0 .. 1: the saturation in the loop (0: none)
+     */
+    void set( float seconds, float feedback, float toneHz, float drive );
+    /**
+     * @brief Writes the wet signal only; the caller mixes it.
+     * @param[in]  inL   left input, n samples
+     * @param[in]  inR   right input
+     * @param[out] wetL  receives the left loop
+     * @param[out] wetR  receives the right loop
+     * @param[in]  n     samples in the block
+     */
+    void process( const float *inL, const float *inR, float *wetL, float *wetR, int n );
+    /** @brief Empties the loop. */
+    void clear();
+
+private:
+    std::vector<float> m_bufL;           ///< the left line, a power-of-two ring
+    std::vector<float> m_bufR;           ///< the right line
+    int                m_mask = 0;       ///< ring size - 1
+    int                m_w = 0;          ///< the write index, shared by both lines
+    double             m_sr = 48000.0;   ///< sample rate in Hz
+    float              m_t = 0.0f;       ///< the left time asked for, in samples
+    float              m_tCur = 0.0f;    ///< the left time as it glides (0 before the first set())
+    float              m_glide = 0.0f;   ///< the glide's step per sample (about two seconds)
+    float              m_fb = 0.9f;      ///< the loop gain
+    float              m_lpc = 0.3f;     ///< the loop's low pass coefficient
+    float              m_drive = 0.0f;   ///< the saturation's gain into tanh (0: none)
+    float              m_hpc = 0.0f;     ///< the 20 Hz high pass's coefficient
+    float              m_lpL = 0.0f;     ///< the low pass's state, left
+    float              m_lpR = 0.0f;     ///< and right
+    float              m_dcL = 0.0f;     ///< the high pass's state, left
+    float              m_dcR = 0.0f;     ///< and right
+};
+
+/**
  * @brief Asymmetric stereo delay with cross-feed, damping, an absorption band and a duck on the loop's brightness.
  *
  * Two delay lines whose times glide to their targets and wander by 0.3 ms; the feedback of each

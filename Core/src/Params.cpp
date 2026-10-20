@@ -22,6 +22,7 @@
  * @author Rene Weller
  */
 #include "ambient/Params.h"
+#include "ambient/Scene.h"
 #include "ambient/Filter.h"
 #include "ambient/Clock.h"
 #include "ambient/Body.h"
@@ -943,7 +944,14 @@ const std::array<ParamDesc, NumParams> Table = { {
     // The circuit models of the voice filter (26.09.2026): the SEM's knob, low pass by default so
     // that the model sounds like a low pass until it is turned.
     F( ParamIdE::FILTER_MORPH, "filter_morph", "Morph", "Filter", 0.f, 1.f, 0.f, 1.f, "" ),
-    F( ParamIdE::IMAGE, "image", "Image", "Master", 0.f, 1.f, 0.f, 1.f, "" ),   // 20.10.2026 (Image.h); 0 until the bank is measured with it
+    F( ParamIdE::IMAGE, "image", "Image", "Master", 0.f, 1.f, 0.f, 1.f, "" ),
+    F( ParamIdE::LOOP_MIX, "loop_mix", "Mix", "Loop", 0.f, 1.f, 0.f, 1.f, "" ),   // 20.10.2026 (LongLoop)
+    F( ParamIdE::LOOP_TIME, "loop_time", "Time", "Loop", 4.f, 16.f, 12.f, 1.f, "s" ),
+    F( ParamIdE::LOOP_FEEDBACK, "loop_feedback", "Feedback", "Loop", 0.f, 0.98f, 0.9f, 1.f, "" ),
+    F( ParamIdE::LOOP_TONE, "loop_tone", "Tone", "Loop", 300.f, 12000.f, 3500.f, 0.3f, "Hz" ),
+    F( ParamIdE::LOOP_DRIVE, "loop_drive", "Drive", "Loop", 0.f, 1.f, 0.3f, 1.f, "" ),
+    F( ParamIdE::LOOP_TO_FAR, "loop_to_far", "To Far", "Loop", 0.f, 1.f, 0.3f, 1.f, "" ),
+    C( ParamIdE::SCENE, "scene", "Scene", "Space", SceneNames, NumScenes, 0 ),   // 20.10.2026 (Scene.h)   // 20.10.2026 (Image.h); 0 until the bank is measured with it
 } };
 }   // namespace
 
@@ -1081,6 +1089,7 @@ const SectionName Sections[] = {
     { "Room", ParamSectionE::ROOM },
     { "Early Room", ParamSectionE::ROOM },
     { "Body", ParamSectionE::BODY },
+    { "Loop", ParamSectionE::LOOP },
     { "Patina", ParamSectionE::PATINA },
     { "Cosmos", ParamSectionE::COSMOS },
     { "Cloud", ParamSectionE::CLOUD },

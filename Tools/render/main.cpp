@@ -24,6 +24,7 @@
  * adds --batch. Each option is described where it is parsed.
  * @author Rene Weller
  */
+#include "ambient/Scene.h"
 #include "ambient/Engine.h"
 #include "ambient/MainStack.h"
 #include "ambient/Params.h"
@@ -1019,6 +1020,13 @@ static int runOnce( int argc, char **argv )
                 return 2;
             }
             engine.setParam( d->m_id, paramValueFromText( *d, kv.substr( eq + 1 ).c_str() ) );
+            if ( d->m_id == ParamIdE::SCENE )
+            {   // a scene sets its knobs here, so a later --set wins (Scene.h)
+                int                 count = 0;
+                const SceneSetting *s = sceneSettings( static_cast<int>( engine.getParam( ParamIdE::SCENE ) ), count );
+                for ( int k = 0; k < count; ++k )
+                    if ( const ParamDesc *t = findParam( s[k].m_key ) ) engine.setParam( t->m_id, s[k].m_value );
+            }
         }
         else if ( a == "--list-choices" )
         {
