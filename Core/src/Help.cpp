@@ -217,6 +217,8 @@ const HelpEntry Help[] = {
     { "keytrack", "How much the cutoff follows the note: 1 keeps the same partials in the passband on every key." },
     { "filter_drive",
       "Soft saturation ahead of the filter, level-compensated: adds harmonics, not loudness. On Moog, SEM, Prophet, Juno and Diode it is the level into the circuit, whose own stages saturate -- the way these filters were overdriven." },
+    { "image",
+      "The width per band brought into the range of Ultimae's and Polymorph's masters (measured on 383 records): a band wider than theirs is narrowed, a narrower one opened a little, and no band's side ever stands over its mid -- what would cancel when the piece is played in mono. Slow, and only while the music is near its loudest. Off in the binaural mode. 0 (the default, until the bank is measured with it) leaves the image alone." },
     { "filter_morph",
       "The SEM's response: low pass at 0, a notch at 0.5 (low pass and high pass together, a hole at Cutoff), high pass at 1, and every blend on the way. Slowly modulated it moves a drone's colour without the sound of a sweep. Only the SEM listens to it." },
     { "filter_fold",

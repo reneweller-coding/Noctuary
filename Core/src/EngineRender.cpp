@@ -1368,6 +1368,7 @@ void Engine::renderChunk( float *L, float *R, int n )
         m_body.process( mono, L, R, n, 1.0f );
     }
     m_midSide.process( L, R, n );
+    m_image.process( L, R, n );   // the width per band (Image.h, 20.10.2026)
     if ( subOn )
     {
         // The Foundation's own ceiling (25.09.2026). A beating sub swings its peaks by up to six

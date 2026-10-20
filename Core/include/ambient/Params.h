@@ -919,6 +919,9 @@ enum class ParamIdE : int
     /// The circuit models of the voice filter (26.09.2026, from Ephemeris): the SEM's response,
     /// from low pass through notch to high pass.
     FILTER_MORPH,   ///< 0 .. 1: low pass, notch at 0.5, high pass (the SEM; the other models ignore it)
+    /// The image (20.10.2026, Image.h): the width per band into the range of Ultimae's and Polymorph's masters, and
+    /// never a side over its mid (what cancels in mono); off in the binaural mode.
+    IMAGE,
     COUNT           ///< one past the last: NumParams
 };
 

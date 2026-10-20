@@ -8435,6 +8435,7 @@ void testResearchBatch()
             e.setParam( ParamIdE::WIDTH, 1.0f );
             e.setParam( ParamIdE::BASS_MONO, 40.0f );
             e.setParam( ParamIdE::SIDE_AIR, 0.0f );
+            e.setParam( ParamIdE::IMAGE, 0.0f );   // (20.10.2026) a hard-panned source is all side: the guard narrows it
             e.setParam( ParamIdE::PARTIAL_SPREAD, spread );
             e.setParam( ParamIdE::SRC1_PAN, 1.0f );   // hard right: the pan the old sum could not survive
             e.setParam( ParamIdE::PAN_DRIFT, 0.0f );

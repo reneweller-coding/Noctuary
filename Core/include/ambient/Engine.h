@@ -33,6 +33,7 @@
 #include "Tuning.h"
 #include "Voice.h"
 #include "Effects.h"
+#include "Image.h"
 #include "Cloud.h"
 #include "Memory.h"
 #include "Cosmos.h"
@@ -1553,6 +1554,7 @@ private:
     float    m_bodyLevel = 0.0f, m_bodyPitch = 1.0f;   ///< m_bodyPitch: the body's pitch as a factor on the root
     Smoother m_smBody;                                 ///< per-sample smoothing of m_bodyLevel
     MidSide  m_midSide;                                ///< the mid/side stage: bass mono, side air, width, tilt
+    ImageMatch m_image;   ///< the width per band toward Ultimae's and Polymorph's masters (image, Image.h)
     /**
      * @name Room (convolution) on the far plane
      * Room (convolution) on the far plane: level, source, pre-delay ring, tail low-pass

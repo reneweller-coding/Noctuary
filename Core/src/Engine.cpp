@@ -177,6 +177,12 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
     m_nearReverb.prepare( m_sr );
     m_farReverb.prepare( m_sr );
     m_midSide.prepare( m_sr );
+    // The image's ranges (20.10.2026): the width per band of Ultimae's and Polymorph's masters, first and third quartile -- side over mid in
+    // dB, 383 recordings (Family/tools/mix_audit.py --image-ranges ultimae+polymorph).
+    static const float ImageLo[ImageMatch::Bands] = { -14.9f, -6.1f, -4.2f, -5.6f, -7.9f };
+    static const float ImageHi[ImageMatch::Bands] = { -5.7f, -2.3f, -1.3f, -2.1f, -2.7f };
+    m_image.prepare( m_sr );
+    m_image.setRanges( ImageLo, ImageHi );
     m_shifter.prepare( m_sr );
     m_resonator.prepare( m_sr );
     m_vowel.prepare( m_sr, m_rng.fork() );

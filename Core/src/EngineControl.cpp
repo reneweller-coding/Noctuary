@@ -1360,6 +1360,7 @@ void Engine::readParams()
     m_farLevel = g( ParamIdE::FAR_LEVEL );
     m_midSide.set( g( ParamIdE::BASS_MONO ), g( ParamIdE::SIDE_AIR ), g( ParamIdE::WIDTH ) );
     m_midSide.setMonoGuard( g( ParamIdE::MONO_GUARD ) >= 0.5f );
+    m_image.set( g( ParamIdE::BINAURAL ) >= 0.5f ? 0.0f : g( ParamIdE::IMAGE ) );   // the head's cues left alone
     m_midSide.setTilt( g( ParamIdE::TILT2 ), g( ParamIdE::TILT_PIVOT ) );
     m_diffuser.set( g( ParamIdE::FAR_DIFFUSE ) );
     m_farDiffuse = g( ParamIdE::FAR_DIFFUSE );   // also drives the air saturation ahead of the reverb
