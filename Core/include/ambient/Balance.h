@@ -22,7 +22,8 @@
  *
  * **The equaliser** is a low shelf, four bells and a high shelf on both channels (ToneEq). Feed-forward from the
  * input, so nothing in the loop can swing. Amount 0 with every trim back at 0 dB is a true bypass.
- * @note The family's canonical copy (Noctuary, 21.10.2026); copies in Empyrean, Ephemeris and Analemma.
+ * @note The family's canonical copy (Noctuary, 21.10.2026); copies in Empyrean, Totality, Parhelion, Phosphene,
+ *       Ephemeris and Analemma (the composed ones with setTiming: learnt on the loudest part and held).
  * @author Rene Weller
  */
 #pragma once
@@ -90,6 +91,18 @@ public:
     void set( float amount );
 
     /**
+     * @brief How fast it listens and moves (21.10.2026). The defaults (8 s, half a dB a second, 8 dB, 10 dB a minute)
+     *        suit an instrument played live; a composed piece wants its balance learnt on its loudest part and held
+     *        through the breakdowns -- no equaliser chasing the arrangement (30 s, 0.1 dB a second, 3 dB, 1 dB a
+     *        minute: in Parhelion's energy test the drop stood 3.9 LU over the breakdown, with the defaults 2.1).
+     * @param[in] averageSeconds     the averages' time
+     * @param[in] glideDbPerSecond   how fast a trim moves
+     * @param[in] gateDb             blocks within this of the loudest count
+     * @param[in] fallDbPerMinute    how fast the loudest is forgotten
+     */
+    void setTiming( float averageSeconds, float glideDbPerSecond, float gateDb, float fallDbPerMinute );
+
+    /**
      * @brief Processes @p n samples in place.
      * @param[in,out] L  the left channel
      * @param[in,out] R  the right channel
@@ -133,6 +146,11 @@ private:
     int                       m_blockLength = 4800;   ///< samples a block (100 ms)
     float                     m_avgCoef = 0.0f;       ///< the averages' step per gated block (about 8 s)
     float                     m_glide = 0.05f;        ///< the trims' step per block, dB (half a dB a second)
+    float                     m_avgSeconds = 8.0f;    ///< the averages' time (setTiming)
+    float                     m_glidePerSecond = 0.5f;   ///< the trims' speed, dB a second
+    float                     m_gateDb = 8.0f;        ///< blocks within this of the loudest count
+    float                     m_fallPerMinute = 10.0f;   ///< how fast the loudest is forgotten, dB a minute
+    double                    m_fall = 1.0;           ///< the loudest's factor per block (falling)
     bool                      m_heard = false;        ///< a gated block has been averaged
     ToneEq                    m_eq;                   ///< the shelves and bells
     ToneEq::State             m_state;                ///< their memory
