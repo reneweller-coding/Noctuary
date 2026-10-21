@@ -161,6 +161,18 @@ Stats render( Engine &e, double seconds, std::vector<float> *capture = nullptr )
 }
 
 /**
+ * @brief The master's stages that answer the music (21.10.2026: the tonal balance and the floor) off: the tests measure
+ *        the voices and effects themselves -- a floor under a flute's note is not the flute's pitch. testFloor runs
+ *        them on.
+ * @param[in,out] e  the engine
+ */
+static void neutralMaster( Engine &e )
+{
+    e.setParam( ParamIdE::BALANCE, 0.0f );
+    e.setParam( ParamIdE::FLOOR, 0.0f );
+}
+
+/**
  * @brief Self test: the parameter table's shape.
  *
  * Every row's id equals its position, every default lies inside its range, and no two rows share a
@@ -255,6 +267,7 @@ void testTuning()
         CHECK( paramValueFromText( d, "nan" ) == d.m_def, "param text 'nan' is the default" );
         CHECK( paramValueFromText( d, "inf" ) == d.m_max, "param text 'inf' is clamped" );
         Engine eng;
+        neutralMaster( eng );
         eng.prepare( 48000.0, 64 );
         CHECK( !eng.setModMatrixText( "lfo1>cutoff:nan" ), "a NaN modulation depth is refused" );
     }
@@ -339,6 +352,7 @@ void testEnvelope()
 void testEngineMidi()
 {
     Engine e;
+    neutralMaster( e );
     e.setParam( ParamIdE::BRAIN_ON, 0.0f );
     e.setParam( ParamIdE::ATTACK, 1.0f );
     e.setParam( ParamIdE::RELEASE, 2.0f );
@@ -379,6 +393,7 @@ void testEngineMidi()
 void testBrain()
 {
     Engine e;
+    neutralMaster( e );
     e.setParam( ParamIdE::BRAIN_ON, 1.0f );
     e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
     e.setParam( ParamIdE::BRAIN_HOLD_MIN, 8.0f );
@@ -412,6 +427,7 @@ void testDeterminism()
     for ( int pass = 0; pass < 2; ++pass )
     {
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_RATE, 2.0f );
         e.setParam( ParamIdE::SEED, 7.0f );
         e.prepare( 44100.0, 128 );
@@ -430,6 +446,7 @@ void testDeterminism()
 void testUserScale()
 {
     Engine e;
+    neutralMaster( e );
     e.prepare( 48000.0, 256 );
     FixedScale s;
     CHECK( parseScala( "Fifths only\n 2\n 3/2\n 2/1\n", s ), "parse 2-degree scale" );
@@ -615,6 +632,7 @@ void testPresets()
         CHECK( !touchedNear, "and no built-in preset reaches into the near layer at all" );
     }
     Engine e;
+    neutralMaster( e );
     CHECK( e.applyPreset( 1 ), "apply preset 1" );
     {   // A choice may be written by name instead of by index, which is how the whole library
         // writes them -- an index would silently mean the wrong scale the day one is inserted.
@@ -641,6 +659,7 @@ void testPresets()
 void testSpace()
 {
     Engine e;
+    neutralMaster( e );
     e.setParam( ParamIdE::BRAIN_RATE, 2.0f );
     e.setParam( ParamIdE::ATTACK, 0.5f );
     e.setParam( ParamIdE::DEPTH, 1.0f );
@@ -740,6 +759,7 @@ void testSources()
         const double s1 = goertzel( m.data(), sr, 220.0, sr ), s2 = goertzel( m.data(), sr, 440.0, sr );
         CHECK( s1 > 100.0 * s2, "wavetable position 0 (sine) has no second partial" );
         Engine saw;
+        neutralMaster( saw );
         quietVoice( saw );
         saw.setParam( ParamIdE::SRC2_TYPE, 1.0f );
         saw.setParam( ParamIdE::SRC2_TABLE, 0.0f );
@@ -750,6 +770,7 @@ void testSources()
         CHECK( w2 > 0.15 * w1 && w2 < 0.4 * w1 && w3 > 0.05 * w1, "wavetable position 0.5 (saw) has 1/h partials" );
         // Ratio 3/2 and octave +1 move the slot: 220 * 1.5 * 2 = 660 Hz.
         Engine moved;
+        neutralMaster( moved );
         quietVoice( moved );
         moved.setParam( ParamIdE::SRC2_TYPE, 1.0f );
         moved.setParam( ParamIdE::SRC2_POSITION, 0.0f );
@@ -770,6 +791,7 @@ void testSources()
         const double c0 = goertzel( m.data(), sr, 220.0, sr ), sb0 = goertzel( m.data(), sr, 660.0, sr );
         CHECK( c0 > 100.0 * sb0, "FM index 0 is a plain sine" );
         Engine fm;
+        neutralMaster( fm );
         quietVoice( fm );
         fm.setParam( ParamIdE::SRC2_TYPE, 2.0f );
         fm.setParam( ParamIdE::SRC2_FM_INDEX, 3.0f );
@@ -779,6 +801,7 @@ void testSources()
         CHECK( sb1 > 0.1 * c1 && sb1 > 100.0 * sb0, "FM index 3 puts energy on the sidebands" );
         // Ratio 1 with a deep index carries a DC term (J1 of the index); the slot must block it.
         Engine dc;
+        neutralMaster( dc );
         quietVoice( dc );
         dc.setParam( ParamIdE::SRC2_TYPE, 2.0f );
         dc.setParam( ParamIdE::SRC2_FM_INDEX, 1.5f );
@@ -804,6 +827,7 @@ void testSources()
         const double f440 = goertzel( m.data(), sr, 440.0, sr ), f370 = goertzel( m.data(), sr, 370.0, sr );
         CHECK( f440 > 20.0 * f370 && f440 > 1.0, "texture Free plays the sample at its own pitch" );
         Engine noteT;
+        neutralMaster( noteT );
         quietVoice( noteT );
         noteT.setParam( ParamIdE::SRC2_TYPE, 3.0f );
         noteT.setParam( ParamIdE::SRC2_FOLLOW, 1.0f );
@@ -813,6 +837,7 @@ void testSources()
         const double n440 = goertzel( m.data(), sr, 440.0, sr ), n370 = goertzel( m.data(), sr, 370.0, sr );
         CHECK( n370 > 20.0 * n440, "texture Note pitches the sample to the key" );
         Engine none;
+        neutralMaster( none );
         quietVoice( none );
         none.setParam( ParamIdE::SRC2_TYPE, 3.0f );
         monoSecond( none, 57, m );
@@ -883,6 +908,7 @@ void testPurityFreezeSleep()
     const int sr = 48000;
     {   // Purity 0 = 12-TET, 1 = the scale, 0.5 = geometric middle; sounding voices glide there.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::SCALE, 1.0f );
         e.setParam( ParamIdE::ROOT_NOTE, 0.0f );   // Ptolemy major, root C: E4 = 5/4 * 261.63 = 327.03 Hz
@@ -931,6 +957,7 @@ void testPurityFreezeSleep()
         auto spectralWobble = [&]( bool freeze )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::ATTACK, 0.1f );
             e.setParam( ParamIdE::SHIMMER, 1.0f );
@@ -982,6 +1009,7 @@ void testPurityFreezeSleep()
         auto entered = [&]( bool freeze )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::ATTACK, 0.05f );
             e.setParam( ParamIdE::SRC1_TYPE, 0.0f );   // slot 1 off: only the delayed slot can sound
@@ -1049,6 +1077,7 @@ void testPurityFreezeSleep()
         }
         {   // and the whole: the offending recipe, thirty seconds, still audible at the end
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::ATTACK, 0.05f );
             e.setParam( ParamIdE::SRC1_TYPE, 3.0f );   // 3 = Texture
@@ -1075,6 +1104,7 @@ void testPurityFreezeSleep()
     }
     {   // Sleep: after two silent seconds the engine sleeps; a note wakes it.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::RELEASE, 0.1f );
         e.setParam( ParamIdE::FAR_DECAY, 1.0f );
@@ -1142,6 +1172,7 @@ void testGhostPortaInertiaTapeCoherence()
     };
     {   // Ghost: noise alone (bank level 0) through the resonators shows the note's harmonics.
         Engine e;
+        neutralMaster( e );
         dryVoice( e );
         e.setParam( ParamIdE::OSC_LEVEL, 0.0f );
         e.setParam( ParamIdE::AIR, 1.0f );
@@ -1163,6 +1194,7 @@ void testGhostPortaInertiaTapeCoherence()
         auto pitchAt = [&]( float gravity, double t )
         {
             Engine e;
+            neutralMaster( e );
             dryVoice( e );
             e.setParam( ParamIdE::PARTIALS, 1.0f );
             e.setParam( ParamIdE::AIR, 0.0f );
@@ -1192,6 +1224,7 @@ void testGhostPortaInertiaTapeCoherence()
     }
     {   // Inertia: a parameter jump arrives slowly.
         Engine e;
+        neutralMaster( e );
         dryVoice( e );
         e.setParam( ParamIdE::INERTIA, 2.0f );
         e.prepare( sr, 256 );
@@ -1203,6 +1236,7 @@ void testGhostPortaInertiaTapeCoherence()
         CHECK( early >= 80.0f - 1e-3f, "effectiveParam is the target (inertia works on what the engine reads)" );
         // the brain depth is read through the inertia; check via the read value used for far reverb: use a probe parameter
         Engine f;
+        neutralMaster( f );
         dryVoice( f );
         f.setParam( ParamIdE::INERTIA, 0.0f );
         f.prepare( sr, 256 );
@@ -1210,6 +1244,7 @@ void testGhostPortaInertiaTapeCoherence()
     }
     {   // Tape in the loop stays bounded and free of DC.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::FEEDBACK_BUS, 0.8f );
         e.setParam( ParamIdE::FEEDBACK_DRIVE, 0.8f );
@@ -1227,6 +1262,7 @@ void testGhostPortaInertiaTapeCoherence()
         auto spread = [&]( float k )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::COHERENCE, k );
             e.setParam( ParamIdE::COHERENCE_RATE, 5.0f );
@@ -1246,6 +1282,69 @@ void testGhostPortaInertiaTapeCoherence()
         CHECK( locked > 0.9f, "full coherence locks the four oscillators" );
         CHECK( free < 0.9f, "without coupling they drift apart" );
     }
+}
+
+/**
+ * @brief Self test: the floor and the tonal balance on (21.10.2026, Balance.h).
+ *
+ * Silent before any note; a chord whose preset has no Foundation of its own stands on one (more than 10 % of its
+ * power under 100 Hz, where without the floor there is next to none); and silent again after the release and the
+ * tail -- the floor follows the music's presence, it does not play on its own.
+ */
+void testFloor()
+{
+    // Four one-pole low passes at 100 Hz on the mono sum: the floor's share of the power, from @p from on.
+    auto lowShare = []( const std::vector<float> &lr, size_t from )
+    {
+        const float c = 1.0f - std::exp( -2.0f * 3.14159265f * 100.0f / 48000.0f );
+        float       s[4] = {};
+        double      low = 0.0, all = 0.0;
+        for ( size_t i = 0; i + 1 < lr.size(); i += 2 )
+        {
+            const float m = 0.5f * ( lr[i] + lr[i + 1] );
+            float       x = m;
+            for ( float &v : s )
+            {
+                v += c * ( x - v );
+                x = v;
+            }
+            if ( i / 2 >= from )
+            {
+                low += static_cast<double>( x ) * x;
+                all += static_cast<double>( m ) * m;
+            }
+        }
+        return all > 0.0 ? low / all : 0.0;
+    };
+    auto play = [&]( float floor, std::vector<float> &lr, Stats &before, Stats &tail )
+    {
+        Engine e;
+        e.setParam( ParamIdE::BRAIN_ON, 0.0f );
+        e.setParam( ParamIdE::SUB_LEVEL, 0.0f );   // no Foundation of its own
+        e.setParam( ParamIdE::FLOOR, floor );
+        e.setParam( ParamIdE::ATTACK, 1.0f );
+        e.setParam( ParamIdE::RELEASE, 2.0f );
+        e.setParam( ParamIdE::FAR_DECAY, 1.0f );
+        e.setParam( ParamIdE::NEAR_DECAY, 0.5f );
+        e.setParam( ParamIdE::DELAY_FEEDBACK, 0.0f );
+        e.prepare( 48000.0, 256 );
+        before = render( e, 0.5 );
+        for ( int note : { 57, 64, 69 } ) e.noteOn( note, 0.8f );
+        render( e, 20.0, &lr );
+        for ( int note : { 57, 64, 69 } ) e.noteOff( note );
+        render( e, 12.0 );
+        tail = render( e, 1.0 );
+    };
+    std::vector<float> off, on;
+    Stats              before0, tail0, before1, tail1;
+    play( 0.0f, off, before0, tail0 );
+    play( 1.0f, on, before1, tail1 );
+    const double s0 = lowShare( off, 10 * 48000 ), s1 = lowShare( on, 10 * 48000 );
+    std::printf( "  floor: under 100 Hz %.1f %% without, %.1f %% with; before %.2g, tail %.2g\n", 100.0 * s0, 100.0 * s1,
+                 before1.m_rms, tail1.m_rms );
+    CHECK( before1.m_rms < 1e-6, "floor: silent before any note" );
+    CHECK( s0 < 0.05 && s1 > 0.10, "floor: a chord without a Foundation of its own stands on one" );
+    CHECK( tail1.m_rms < 1e-3 && tail1.m_nonFinite == 0, "floor: silent again after the release and the tail" );
 }
 
 /**
@@ -1400,6 +1499,7 @@ void testZPlane()
     auto bandRatio = [&]( float zx, float zy, int mode )
     {
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ATTACK, 0.2f );
         e.setParam( ParamIdE::BRIGHTNESS, 1.0f );
@@ -1493,6 +1593,7 @@ void testRoute()
     }
     {   // Engine: the route moves MapX and turns the map on; speed scales time.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.prepare( 48000.0, 256 );
         CHECK( e.setRouteText( "0.1,0.5|4|2|0.1;0.9,0.5|4|2|0.1" ), "engine route set" );
@@ -1548,6 +1649,7 @@ void testRoom()
         auto tailEnergy = [&]( float level )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::ATTACK, 0.05f );
             e.setParam( ParamIdE::RELEASE, 0.1f );
@@ -1764,6 +1866,7 @@ void testPresetMap()
     }
     {   // Engine map mode: the effective parameters glide to the blend and stay put when the map is left.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.prepare( 48000.0, 256 );
         // Any built-in whose far decay is a long way from where the engine stands: the glide has to
@@ -1811,6 +1914,7 @@ void testStackAndWander()
     const int sr = 48000;
     {   // Major stack, three strands, one partial each: A3 gives 220 + 330 + 275 Hz and nothing else.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ATTACK, 0.2f );
         e.setParam( ParamIdE::SCALE, 0.0f );
@@ -1849,6 +1953,7 @@ void testStackAndWander()
         auto capture = [&]( float wander, int seed )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::RATE_WANDER, wander );
             e.setParam( ParamIdE::SEED, static_cast<float>( seed ) );
             e.prepare( sr, 256 );
@@ -1876,6 +1981,7 @@ void testFeedback()
     const int sr = 48000;
     {   // Silence stays silence, a held drone with a hot loop stays bounded and gets fuller.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::FEEDBACK_BUS, 1.0f );
         e.setParam( ParamIdE::FEEDBACK_DRIVE, 1.0f );
@@ -1886,6 +1992,7 @@ void testFeedback()
         Stats hot = render( e, 20.0 );
         CHECK( hot.m_nonFinite == 0 && hot.m_peak < 0.95f, "bus feedback at 1.0 stays bounded (throttled)" );
         Engine d;
+        neutralMaster( d );
         d.setParam( ParamIdE::BRAIN_ON, 0.0f );
         d.prepare( sr, 256 );
         d.noteOn( 57, 0.8f );
@@ -1896,6 +2003,7 @@ void testFeedback()
         auto harmonicShare = [&]( float fm )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::ATTACK, 0.2f );
             e.setParam( ParamIdE::SCALE, 0.0f );
@@ -1998,11 +2106,13 @@ void testRichCarving()
         const double presRatio = bandPower( pres, 60, f0, 8, 20 ) / bandPower( pres, 60, f0, 1, 4 );
         CHECK( presRatio > 1.8 * flatRatio, "presence lifts the 2-5 kHz band of a near voice" );
         Engine farV;
+        neutralMaster( farV );
         pureVoice( farV );
         farV.setParam( ParamIdE::PRESENCE, 6.0f );
         farV.setParam( ParamIdE::KEYS_DEPTH, 1.0f );
         farV.setParam( ParamIdE::CUTOFF, 18000.0f );
         Engine farFlat;
+        neutralMaster( farFlat );
         pureVoice( farFlat );
         farFlat.setParam( ParamIdE::KEYS_DEPTH, 1.0f );
         const double farRatio = bandPower( farV, 60, f0, 8, 20 ) / bandPower( farV, 60, f0, 1, 4 );
@@ -2024,6 +2134,7 @@ void testRichCarving()
         auto sweep = [&]( float breath, float &spread, float &maxStep )
         {
             Engine e;
+            neutralMaster( e );
             pureVoice( e );
             e.setParam( ParamIdE::KEYS_DEPTH, 0.5f );
             e.setParam( ParamIdE::BREATH, breath );
@@ -2053,6 +2164,7 @@ void testRichCarving()
     {   // Ghost tone: with Source = Difference the sub doubles f2 - f1 of the two lowest voices,
         // folded into the root sub's octave. A3 (220) and D4 (4:3 = 293.33): 73.33 Hz -> 146.67 Hz.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::SUB_LEVEL, 0.8f );
         e.setParam( ParamIdE::SUB_BINAURAL, 0.0f );
@@ -2151,6 +2263,7 @@ void testCosmos()
     }
     {
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::COSMOS_SEND, 1.0f );
         e.setParam( ParamIdE::COSMOS_SHIFT, 50.0f );
         e.setParam( ParamIdE::COSMOS_RES, 0.6f );
@@ -2293,6 +2406,7 @@ void testSpectralShifter()
     }
     {   // the shimmer in the engine: spectral by default, finite and inside the clipper
         Engine e;
+        neutralMaster( e );
         e.prepare( 48000.0, 256 );
         CHECK( e.getParam( ParamIdE::COSMOS_SHIMMER_MODE ) == 0.0f, "the shimmer shifts in the spectrum by default" );
         e.setParam( ParamIdE::COSMOS_SHIMMER, 1.0f );
@@ -2560,6 +2674,7 @@ void testMemory()
     }
     {   // in the engine: a full memory with everything on stays finite and inside the clipper
         Engine e;
+        neutralMaster( e );
         e.prepare( 48000.0, 256 );
         e.setParam( ParamIdE::MEM_SEND, 1.0f );
         e.setParam( ParamIdE::MEM_RETURN, 1.0f );
@@ -2842,6 +2957,7 @@ void testCloudAether()
     }
     {   // in the engine, every new control at full at once: finite, and inside the clipper
         Engine e;
+        neutralMaster( e );
         e.prepare( 48000.0, 256 );
         e.setParam( ParamIdE::CLOUD_SEND, 1.0f );
         e.setParam( ParamIdE::CLOUD_DENSITY, 60.0f );
@@ -2896,6 +3012,7 @@ void testCloudAndLayers()
     {
         // Independent layers: a sound preset must not touch Cosmos, and vice versa.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::COSMOS_SEND, 0.9f );
         e.setParam( ParamIdE::PARTIALS, 4.0f );
         CHECK( e.applySoundPreset( 1 ), "sound preset applies" );
@@ -2935,6 +3052,7 @@ void testCloudAndLayers()
         for ( int p = 1; p < numCosmosPresets(); ++p )
         {
             Engine c;
+            neutralMaster( c );
             c.applyCosmosPreset( p );
             bool moved = false;
             for ( const ParamDesc &d : paramTable() )
@@ -2952,6 +3070,7 @@ void testCloudAndLayers()
     }
     {
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::DELAY2_MIX, 0.5f );
         e.setParam( ParamIdE::CLOUD_SEND, 1.0f );
         e.setParam( ParamIdE::BRAIN_RATE, 2.0f );
@@ -2973,6 +3092,7 @@ void testCloudAndLayers()
 void testMorph()
 {
     Engine e;
+    neutralMaster( e );
     e.prepare( 48000.0, 256 );
     float a[NumParams], b[NumParams];
     for ( int i = 0; i < NumParams; ++i ) a[i] = b[i] = paramTable()[static_cast<size_t>( i )].m_def;
@@ -3382,6 +3502,7 @@ void testFeaturesRound7()
     const int sr = 48000;
     {   // Hold: keys latch, pressing again releases, switching Hold off releases everything.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::HOLD, 1.0f );
         e.setParam( ParamIdE::ATTACK, 0.1f );
@@ -3410,6 +3531,7 @@ void testFeaturesRound7()
     }
     {   // Foundation: sub follows the root an octave below (Octave -1), binaural offset splits L/R.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::SUB_LEVEL, 0.8f );
         e.setParam( ParamIdE::SUB_BINAURAL, 0.0f );
@@ -3445,6 +3567,7 @@ void testFeaturesRound7()
         auto centroidAt = [&]( float bloom )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::BLOOM, bloom );
             e.setParam( ParamIdE::BLOOM_TIME, 5.0f );
@@ -3624,6 +3747,7 @@ void testCalibrationMenuRecorder()
     }
     {   // Per-note level observer.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ATTACK, 0.05f );
         e.prepare( 48000.0, 256 );
@@ -3674,6 +3798,7 @@ void testPresetPacks()
     CHECK( std::strcmp( preset( base + 1 ).m_name, "Pack Beta" ) == 0, "second pack preset by index" );
 
     Engine e;
+    neutralMaster( e );
     CHECK( e.applyPreset( base ), "apply a pack preset" );
     CHECK( e.getParam( ParamIdE::BRAIN_DENSITY ) == 9.0f, "pack preset sets density" );
     CHECK( std::fabs( e.getParam( ParamIdE::CUTOFF ) - 440.0f ) < 0.01f, "pack preset sets cutoff" );
@@ -3698,6 +3823,7 @@ void testPresetPacks()
 
     {   // The pack's modulation travels with the preset, like its sample does.
         Engine me;
+        neutralMaster( me );
         CHECK( me.applyPreset( base ), "apply the pack preset with its modulation" );
         CHECK( me.modMatrix().count() == 2, "the pack preset's matrix arrived" );
         CHECK( me.modMatrix().route( 0 ).m_target == ParamIdE::CUTOFF, "and its first route" );
@@ -3849,6 +3975,7 @@ void testModulation()
             // past the end of the shape and snapped to its final value. The clock is now put on
             // the sustain point at that moment, so the tail plays from where the hold ended.
             Engine e;
+            neutralMaster( e );
             e.prepare( 48000.0, 256 );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::ENV1_MODE, static_cast<float>( EnvModeE::SUSTAIN_LOOP ) );
@@ -3880,6 +4007,7 @@ void testModulation()
             auto phaseAfter = []( const char *matrix )
             {
                 Engine e;
+                neutralMaster( e );
                 e.prepare( 48000.0, 256 );
                 e.setParam( ParamIdE::BRAIN_ON, 0.0f );
                 e.setParam( ParamIdE::LFO1_RATE, 0.2f );
@@ -3939,6 +4067,7 @@ void testModulation()
             auto render = [&]( const char *type, bool follow, float stretch, int note )
             {
                 Engine e;
+                neutralMaster( e );
                 e.prepare( 48000.0, 256 );
                 e.setTexture( clip.data(), static_cast<int>( clip.size() ), 48000.0, 110.0, false );
                 e.setParam( ParamIdE::BRAIN_ON, 0.0f );
@@ -4007,6 +4136,7 @@ void testModulation()
             auto sounding = [&]( float density, float grainMs, float grains )
             {
                 Engine e;
+                neutralMaster( e );
                 e.prepare( 48000.0, 256 );
                 e.setTexture( clip.data(), static_cast<int>( clip.size() ), 48000.0, 220.0, false );
                 e.setParam( ParamIdE::BRAIN_ON, 0.0f );
@@ -4044,6 +4174,7 @@ void testModulation()
                 auto weight = [&]( float root )
                 {
                     Engine e;
+                    neutralMaster( e );
                     e.prepare( 48000.0, 256 );
                     e.loadUserWavetable( table.data(), static_cast<int>( table.size() ), 2048 );
                     e.setParam( ParamIdE::BRAIN_ON, 0.0f );
@@ -4117,6 +4248,7 @@ void testModulation()
                 auto bands = [&]( int interp )
                 {
                     Engine e;
+                    neutralMaster( e );
                     e.prepare( 48000.0, 256 );
                     e.setTexture( noise.data(), static_cast<int>( noise.size() ), 48000.0, 261.6256, false );
                     e.setParam( ParamIdE::BRAIN_ON, 0.0f );
@@ -4201,6 +4333,7 @@ void testModulation()
                 auto run = [&]( const float *L, const float *R )
                 {
                     Engine e;
+                    neutralMaster( e );
                     e.prepare( 48000.0, 256 );
                     if ( R != nullptr )
                         e.setTexture( L, R, static_cast<int>( a.size() ), 48000.0, 261.6256, false );
@@ -4288,6 +4421,7 @@ void testModulation()
                 for ( size_t i = 0; i < tiny.size(); ++i )
                     tiny[i] = 0.2f * std::sin( 2.0f * 3.14159265f * 300.0f * static_cast<float>( i ) / 48000.0f );
                 Engine e;
+                neutralMaster( e );
                 e.prepare( 48000.0, 256 );
                 e.setTexture( tiny.data(), static_cast<int>( tiny.size() ), 48000.0, 300.0f / rate, false );
                 e.setParam( ParamIdE::BRAIN_ON, 0.0f );
@@ -4320,6 +4454,7 @@ void testModulation()
             auto window = []( float delaySec, int fromSec, int toSec )
             {
                 Engine e;
+                neutralMaster( e );
                 e.prepare( 48000.0, 256 );
                 e.setParam( ParamIdE::BRAIN_ON, 0.0f );
                 e.setParam( ParamIdE::SRC1_TYPE, paramValueFromText( paramDesc( ParamIdE::SRC1_TYPE ), "Additive" ) );
@@ -5167,6 +5302,7 @@ void testStems()
     // From the defaults, not from a preset: what the stems have to sum to is set here, and a
     // generated preset may carry sections this test was never about (the Memory, the Cloud).
     e.applyPreset( 0 );
+    neutralMaster( e );   // the stems are summed before the master: its answering stages would stand between
     e.setParam( ParamIdE::MASTER_GAIN, 0.0f );
     e.setParam( ParamIdE::OSC_LEVEL, 0.2f );   // quiet, so the soft clipper is linear
     e.setParam( ParamIdE::COSMOS_SEND, 0.3f );
@@ -5230,6 +5366,7 @@ void testSampleRates()
 
         {   // A whole preset renders finite, unclipped and without a step, whatever the rate.
             Engine e;
+            neutralMaster( e );
             e.applyPreset( 1 );
             e.prepare( sr, block );
             double peak = 0.0, jump = 0.0, sq = 0.0;
@@ -5303,6 +5440,7 @@ void testSampleRates()
         }
         {   // A tuning is a pitch: A4 must be 440 Hz however many samples a second there are.
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SCALE, 5.0f );   // 12-TET
             e.setParam( ParamIdE::PARTIALS, 1.0f );
@@ -5341,6 +5479,7 @@ void testSampleRates()
         }
         {   // A modulation rate is a rate: a 2 Hz LFO must swing twice a second.
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setModMatrixText( "lfo1>cutoff:0.5" );
             e.setParam( ParamIdE::LFO1_SHAPE, 0.0f );
@@ -5394,6 +5533,7 @@ void testExpressionBodyPatina()
     };
     auto plain = [&]( Engine &e )
     {
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ATTACK, 0.05f );
         e.setParam( ParamIdE::RELEASE, 0.2f );
@@ -5418,6 +5558,7 @@ void testExpressionBodyPatina()
         const double q = rms( a, 0.5, 1.0 ), p2 = rms( b, 0.5, 1.0 );
         CHECK( p2 > q * 1.5, "pressure raises the voice's level" );
         Engine c;
+        neutralMaster( c );
         plain( c );
         c.prepare( sr, block );
         c.noteOn( 60, 0.8f );
@@ -5427,6 +5568,7 @@ void testExpressionBodyPatina()
     }
     {   // Bend moves the pitch by the range it is given: a semitone is 2^(1/12).
         Engine e;
+        neutralMaster( e );
         plain( e );
         e.setParam( ParamIdE::BEND_RANGE, 12.0f );
         e.setParam( ParamIdE::PARTIALS, 1.0f );
@@ -5487,6 +5629,7 @@ void testExpressionBodyPatina()
     }
     {   // The second conductor adds voices of its own.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::BRAIN2_ON, 1.0f );
         e.setParam( ParamIdE::BRAIN2_RATE, 2.0f );
@@ -5536,6 +5679,7 @@ void testSourceEnvelopes()
     };
     {   // the shape, from the note, as a level
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::SRC2_TYPE, noise );
         e.setParam( ParamIdE::SRC2_ENV, own );
@@ -5567,6 +5711,7 @@ void testSourceEnvelopes()
         // The note's clock runs on while a shape holds, and the release used to be read from it:
         // five seconds into a shape whose sustain point is at two, it jumped three seconds ahead.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::RELEASE, 30.0f );   // the voice outlives the shapes' tails
         e.setParam( ParamIdE::SRC2_TYPE, noise );
@@ -5596,6 +5741,7 @@ void testSourceEnvelopes()
         // to be put on the sustain point, and a shape with a loop and no sustain point has none --
         // the release found the clock past the end and snapped to the last value.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ENV1_MODE, static_cast<float>( EnvModeE::SUSTAIN_LOOP ) );
         e.setParam( ParamIdE::ENV1_TIME, 1.0f );
@@ -5612,6 +5758,7 @@ void testSourceEnvelopes()
     }
     {   // the text form: the six, then the sources' own, in the one field
         Engine e;
+        neutralMaster( e );
         Preset p{ "t", "" };
         p.m_envs = "0:0/1:1~~0:1/2:0~~~~~0:0/3:1:0.5!s1";
         CHECK( e.applyPresetModulation( p ), "an envelope field with a source's shape in it applies" );
@@ -5627,6 +5774,7 @@ void testSourceEnvelopes()
         CHECK( e.setSrcEnvShape( 3, "0:0/2:0.8:-0.4/6:1!s1" ) && e.writeSrcEnvShape( 3, buf, sizeof( buf ) ) > 0,
                "a source shape writes" );
         Engine f;
+        neutralMaster( f );
         CHECK( f.setSrcEnvShape( 3, buf ) && f.srcEnvShape( 3 ).count() == 3 && f.srcEnvShape( 3 ).sustain() == 1,
                "and reads back" );
         CHECK( !e.setSrcEnvShape( 4, "0:0/1:1" ) && !e.setSrcEnvShape( -1, "0:0/1:1" ),
@@ -5729,6 +5877,7 @@ void testBeatSource()
     auto rateFor = []( int high )
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( 48000.0, 256 );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::TUNE_PURITY, 0.0f );   // equal temperament, so the octave is exact
@@ -6236,6 +6385,7 @@ void testModulationEngine()
 
     {   // An LFO on the cutoff swings by depth x the parameter's own range, both ways.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         CHECK( e.setModMatrixText( "lfo1>cutoff:0.5" ), "engine takes a matrix" );
         e.setParam( ParamIdE::LFO1_SHAPE, 0.0f );   // sine
@@ -6249,6 +6399,7 @@ void testModulationEngine()
     }
     {   // Depth zero is silence, and a route nobody set does nothing.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.prepare( sr, block );
         float lo = 0.0f, hi = 0.0f;
@@ -6257,6 +6408,7 @@ void testModulationEngine()
     }
     {   // Unipolar: the same route only ever adds.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         CHECK( e.setModMatrixText( "lfo1>cutoff:0.5:none:u" ), "unipolar route" );
         e.setParam( ParamIdE::LFO1_RATE, 2.0f );
@@ -6268,6 +6420,7 @@ void testModulationEngine()
     }
     {   // One source, several targets: what the soldered drifters could never do.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         CHECK( e.setModMatrixText( "lfo1>cutoff:0.4;lfo1>dly_mix:0.3;lfo1>shimmer:0.2" ), "three targets" );
         e.setParam( ParamIdE::LFO1_RATE, 2.0f );
@@ -6281,6 +6434,7 @@ void testModulationEngine()
     }
     {   // Performance state is never a target: the morph position belongs to the hand holding it.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         CHECK( e.setModMatrixText( "lfo1>morph:1" ), "a route to the morph position parses" );
         e.setParam( ParamIdE::LFO1_RATE, 4.0f );
@@ -6291,6 +6445,7 @@ void testModulationEngine()
     }
     {   // An envelope drives a target and follows its shape; the clock starts with the phrase.
         Engine e;
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         CHECK( e.setEnvShape( 0, "0:0/1:1/2:0" ), "engine takes an envelope shape" );
         CHECK( e.setModMatrixText( "env1>cutoff:0.5" ), "envelope route" );
@@ -6310,10 +6465,12 @@ void testModulationEngine()
     }
     {   // Matrix and shapes survive the text form the preset and the plugin state use.
         Engine e;
+        neutralMaster( e );
         CHECK( e.setModMatrixText( "lfo2>far_decay:0.3;env3>air:-0.2:macro_b" ), "matrix set" );
         char buf[512];
         CHECK( e.writeModMatrix( buf, sizeof( buf ) ) > 0, "matrix writes" );
         Engine f;
+        neutralMaster( f );
         CHECK( f.setModMatrixText( buf ) && f.modMatrix().count() == 2, "matrix round trip through the engine" );
         CHECK( e.setEnvShape( 2, "0:0/3:1:0.5/9:0!s1" ), "shape set" );
         CHECK( e.writeEnvShape( 2, buf, sizeof( buf ) ) > 0, "shape writes" );
@@ -6401,9 +6558,11 @@ void testMixDeskFive()
         auto sideOfFar = [&]( float width, double &side, double &mid )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::FAR_LEVEL, 0.8f );
             e.setParam( ParamIdE::FAR_ASYM, 0.8f );   // the two sides deliberately different
@@ -6596,9 +6755,11 @@ void testMixDeskFive()
         // In the engine: at rest a unipolar route must do nothing at all, which is what lets one
         // be put into a preset without changing how that preset sounds untouched.
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::CUTOFF, 1000.0f );
         e.setModMatrixText( "pressure>cutoff:0.5:u;wheel>cutoff:0.25:u" );
@@ -6623,9 +6784,11 @@ void testMixDeskFive()
         CHECK( e.modAmount( ParamIdE::CUTOFF ) > 100.0f, "the wheel works with no note held" );
         // And it is smoothed: no step from a seven-bit controller.
         Engine e2;
+        neutralMaster( e2 );
         e2.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e2.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e2 );
         e2.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e2.setModMatrixText( "wheel>cutoff:1.0:u" );
         e2.reset();
@@ -6660,6 +6823,7 @@ void testAfterTheClassics()
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::TUNE_PURITY, 1.0f );
         e.setParam( ParamIdE::SCALE, 0.0f );   // 12-TET, so the octave is exactly 2:1 to begin with
@@ -6669,6 +6833,7 @@ void testAfterTheClassics()
     // ---- 1. the stretched octave ------------------------------------------------------------
     {
         Engine e;
+        neutralMaster( e );
         fresh( e );
         std::vector<float> L( 256 ), R( 256 );
         e.process( L.data(), R.data(), 256 );
@@ -6688,6 +6853,7 @@ void testAfterTheClassics()
                "two octaves, twice the stretch" );
         // A held note follows: the retune path picks the change up.
         Engine h;
+        neutralMaster( h );
         fresh( h );
         h.noteOn( 81, 0.8f );
         for ( int b = 0; b < 20; ++b ) h.process( L.data(), R.data(), 256 );
@@ -6846,6 +7012,7 @@ void testAfterTheClassics()
         auto renderHash = [&]( bool binaural, float yaw, float pan, std::vector<float> *outL, std::vector<float> *outR )
         {
             Engine e;
+            neutralMaster( e );
             fresh( e );
             e.setParam( ParamIdE::BINAURAL, binaural ? 1.0f : 0.0f );
             e.setParam( ParamIdE::SRC1_PAN, pan );
@@ -7314,9 +7481,11 @@ void testResearchBatch()
             auto chosen = [&]( float harmonic, int density, int seed = 1 )
             {
                 Engine en;
+                neutralMaster( en );
                 en.prepare( sr, 256 );
                 for ( int i = 0; i < NumParams; ++i )
                     en.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+                neutralMaster( en );
                 en.setParam( ParamIdE::SEED, static_cast<float>( seed ) );
                 en.setParam( ParamIdE::BRAIN_HARMONIC, harmonic );
                 en.setParam( ParamIdE::BRAIN_ON, 1.0f );
@@ -7501,9 +7670,11 @@ void testResearchBatch()
     // ---- adaptive intonation and the comma --------------------------------------------------
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::TUNE_PURITY, 0.0f );   // equal temperament underneath
         e.setParam( ParamIdE::TUNE_ADAPT, 1.0f );
@@ -7554,9 +7725,11 @@ void testResearchBatch()
         auto voicesAfter = [&]( float blend )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 1.0f );
             e.setParam( ParamIdE::BRAIN_DENSITY, 5.0f );
             e.setParam( ParamIdE::BRAIN_RATE, 2.0f );
@@ -7580,9 +7753,11 @@ void testResearchBatch()
         auto envelopes = [&]( float comod, double *indexOut )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::PARTIALS, 32.0f );
             e.setParam( ParamIdE::BRIGHTNESS, 1.0f );
@@ -7778,9 +7953,11 @@ void testResearchBatch()
         auto ild = [&]( float nearIld, double &highOut )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::PARTIALS, 32.0f );
             e.setParam( ParamIdE::BRIGHTNESS, 1.0f );
@@ -7909,9 +8086,11 @@ void testResearchBatch()
         auto index = [&]( float pulse )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SUB_LEVEL, 1.0f );
             e.setParam( ParamIdE::SUB_BINAURAL, 4.0f );
@@ -7962,9 +8141,11 @@ void testResearchBatch()
         auto secondHarmonic = [&]( float bias )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::PARTIALS, 1.0f );
             e.setParam( ParamIdE::UNISON, 1.0f );
@@ -8032,6 +8213,7 @@ void testResearchBatch()
         auto run = [&]( const char *matrix, double seconds, std::vector<float> *trace )
         {
             auto e = std::make_unique<Engine>();
+            neutralMaster( *e );
             e->prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e->setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
@@ -8180,6 +8362,7 @@ void testResearchBatch()
         auto run = [&]( const char *matrix, double seconds, int which, std::vector<float> *trace )
         {
             auto e = std::make_unique<Engine>();
+            neutralMaster( *e );
             e->prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e->setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
@@ -8252,9 +8435,11 @@ void testResearchBatch()
         auto pressure = [&]( int filter, bool jitter, std::vector<float> *trace )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::KEYS_FILTER, static_cast<float>( filter ) );
             e.reset();
@@ -8307,9 +8492,11 @@ void testResearchBatch()
     // ---- transposition -------------------------------------------------------------------------
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.reset();
         std::vector<float> L( 256 ), R( 256 );
@@ -8341,9 +8528,11 @@ void testResearchBatch()
         auto picture = [&]( float spread, double &energy )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::PARTIALS, 32.0f );
             e.setParam( ParamIdE::BRIGHTNESS, 1.0f );
@@ -8408,9 +8597,11 @@ void testResearchBatch()
         auto swing = [&]( float spread )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::PARTIALS, 1.0f );
             e.setParam( ParamIdE::SHIMMER, 0.0f );
@@ -8477,9 +8668,11 @@ void testResearchBatch()
         auto beating = [&]( float width )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SRC1_TYPE, 1.0f );   // Harmonic: a bank with unison copies
             e.setParam( ParamIdE::SRC1_UNISON, 2.0f );
@@ -8546,9 +8739,11 @@ void testResearchBatch()
         auto run = [&]( float chance, float cluster, float cascade )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 1.0f );
             e.setParam( ParamIdE::BRAIN_RATE, 2.0f );   // a note every two seconds: enough of them to count
             e.setParam( ParamIdE::BRAIN_HOLD_MIN, 5.0f );
@@ -8625,9 +8820,11 @@ void testResearchBatch()
         auto run = [&]( float swell, float cascade, double &cv, double &corr, std::vector<float> *tail )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 1.0f );
             e.setParam( ParamIdE::BRAIN_RATE, 2.0f );
             e.setParam( ParamIdE::BRAIN_HOLD_MIN, 5.0f );
@@ -8715,9 +8912,11 @@ void testResearchBatch()
         CHECK( worst < 0.005f, "and from one minute to the next it moves by less than half a per cent" );
         // Through the engine: on, the arc reads the clock's value (gliding towards it); off, the drift's.
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ARC_CLOCK, 1.0f );
         e.reset();
@@ -8741,9 +8940,11 @@ void testResearchBatch()
         auto placed = [&]( float law, float depth )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::KEYS_DEPTH, depth );
             e.setParam( ParamIdE::DEPTH_LAW, law );
@@ -8774,9 +8975,11 @@ void testResearchBatch()
         auto ratio = [&]( float elev )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::PARTIALS, 32.0f );
             e.setParam( ParamIdE::BRIGHTNESS, 1.0f );
@@ -8831,9 +9034,11 @@ void testResearchBatch()
         auto sideBand = [&]( float envelop, double &midOut )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::KEYS_DEPTH, 1.0f );   // straight into the far reverb
             e.setParam( ParamIdE::FAR_LEVEL, 1.0f );
@@ -8931,6 +9136,7 @@ void testResearchBatch()
         auto engineWith = [&]( int scale, float match, float inharm )
         {
             auto e = std::make_unique<Engine>();
+            neutralMaster( *e );
             e->prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e->setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
@@ -9020,9 +9226,11 @@ void testResearchBatch()
         auto leanSeen = [&]( float amount )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::ARC_HARMONY, amount );
             e.setParam( ParamIdE::ARC_PERIOD, 2.0f );   // the shortest arc, two minutes
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
@@ -9049,9 +9257,11 @@ void testResearchBatch()
         auto inBand = [&]( float guard, float &lowestFactor )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SCALE, 1.0f );   // JI major, so purity has somewhere to go
             e.setParam( ParamIdE::TUNE_PURITY, 0.85f );
@@ -9156,9 +9366,11 @@ void testResearchBatch()
         // the sound runs is worth nothing if the thing that computes it never gets asked.
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::SCALE, static_cast<float>( TimbreScaleIndex ) );
             e.setParam( ParamIdE::INHARMONIC, 0.0f );
             e.reset();
@@ -9188,9 +9400,11 @@ void testResearchBatch()
             // further down that flag was assigned over -- so the scale changed underneath the
             // notes and not one of them heard about it. The table test passed throughout.
             Engine tet;
+            neutralMaster( tet );
             tet.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 tet.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( tet );
             tet.setParam( ParamIdE::SCALE, 0.0f );
             tet.reset();
             std::vector<float> tl( 256 ), tr( 256 );
@@ -9416,9 +9630,11 @@ void testResearchBatch()
         auto run = [&]( float keyAmount, int &classes, float &conf )
         {
             Engine en;
+            neutralMaster( en );
             en.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 en.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( en );
             en.setParam( ParamIdE::BRAIN_ON, 1.0f );
             en.setParam( ParamIdE::BRAIN_KEY, keyAmount );
             en.setParam( ParamIdE::BRAIN_RATE, 2.0f );
@@ -9610,9 +9826,11 @@ void testResearchBatch()
             auto render = [&]( float rate, float breath, int note, std::vector<float> &cap )
             {
                 Engine e;
+                neutralMaster( e );
                 e.prepare( sr, 256 );
                 for ( int i = 0; i < NumParams; ++i )
                     e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+                neutralMaster( e );
                 e.setTexture( clip.data(), clipLen, sr, 300.0, false );
                 e.setParam( ParamIdE::BRAIN_ON, 0.0f );
                 e.setParam( ParamIdE::SRC1_TYPE, static_cast<float>( SourceTypeE::SPECTRAL ) );
@@ -9721,9 +9939,11 @@ void testResearchBatch()
         auto capture = [&]( float type, std::vector<float> &cap, double &peak, int note = 57, float bright = -1.0f )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SRC1_TYPE, type );
             e.setParam( ParamIdE::SRC1_BOW_FORCE, 0.5f );
@@ -9833,10 +10053,12 @@ void testResearchBatch()
             return 1200.0 * std::log2( ( sr / ( static_cast<double>( at ) + off ) ) / wantHz );
         };
         {
-            Engine ask;   // what the instrument itself calls these notes
+            Engine ask;
+            neutralMaster( ask );   // what the instrument itself calls these notes
             ask.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 ask.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( ask );
             const struct
             {
                 int         m_note;
@@ -9867,9 +10089,11 @@ void testResearchBatch()
         // A bow that stops moving stops sounding: the hair is still on the string, and hair that
         // does not move absorbs. Bowed again at zero speed the note has to die, not ring on.
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::SRC1_TYPE, 7.0f );
         e.setParam( ParamIdE::SRC1_BOW_FORCE, 0.5f );
@@ -10186,6 +10410,7 @@ void testCycleTable()
             [&]( const std::vector<float> &table, const char *type, int note, float pos, std::vector<float> &mono )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( 48000.0, 256 );
             CHECK( e.loadUserWavetable( table.data(), static_cast<int>( table.size() ), L ), "the test table loads" );
             auto set = [&]( const char *key, const char *value )
@@ -10410,9 +10635,11 @@ static void testNearLayer()
                         int blocks = 800, int keepFrom = 400 )
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::SRC1_TYPE, type );
         e.setParam( ParamIdE::SRC1_BOW_FORCE, k.m_force );
@@ -10495,9 +10722,11 @@ static void testNearLayer()
         return d / std::max( e, 1e-30 );
     };
     Engine ask;
+    neutralMaster( ask );
     ask.prepare( sr, 256 );
     for ( int i = 0; i < NumParams; ++i )
         ask.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+    neutralMaster( ask );
 
     std::vector<float> ref;
     double             refPeak = 0.0;
@@ -10608,9 +10837,11 @@ static void testNearLayer()
         double rlo = 1e9, rhi = 0.0;
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SRC1_TYPE, 12.0f );
             e.setParam( ParamIdE::SRC1_BOW_FORCE, k.m_force );
@@ -10750,9 +10981,11 @@ static void testNearLayer()
         auto run = [&]( float role, double &before, double &after )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SRC1_TYPE, 2.0f );       // FM
             e.setParam( ParamIdE::SRC1_FM_INDEX, 0.0f );   // ...at index 0: a sine
@@ -10933,9 +11166,11 @@ static void testNearLayer()
     // ---- inside the engine, without audio: the conductor begins no note while a near note speaks
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 1.0f );
         e.setParam( ParamIdE::BRAIN_RATE, 4.0f );
         e.setParam( ParamIdE::BRAIN_HOLD_MIN, 6.0f );
@@ -10987,9 +11222,11 @@ static void testNearLayer()
     // ---- inside the engine: the events sound on the near source, near
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 1.0f );
         e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
         e.setParam( ParamIdE::OSC_LEVEL, 0.05f );   // the background quiet, so the near stem is the events' own
@@ -11043,9 +11280,11 @@ static void testNearLayer()
     // nothing of it after, and the four slots' own clips are not touched.
     {
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         e.setParam( ParamIdE::BRAIN_ON, 1.0f );
         e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
         e.setParam( ParamIdE::SRC1_TYPE, 0.0f );   // the background as quiet as it gets: the conductor's
@@ -11479,6 +11718,7 @@ static void testNearLayer()
         e.prepare( sr, 256 );
         for ( int i = 0; i < NumParams; ++i )
             e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
         // A foreground chosen for the night, and a sound setting that the preset must overwrite.
         e.setParam( ParamIdE::FORE_LEVEL, 0.8f );
         e.setParam( ParamIdE::FORE_TYPE, 11.0f );   // Flute
@@ -11513,6 +11753,7 @@ static void testNearLayer()
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 1.0f );
             e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
             e.setParam( ParamIdE::SRC1_TYPE, 0.0f );
@@ -11555,9 +11796,11 @@ static void testNearLayer()
         auto planes = [&]( float distance, float dry, double &nearE, double &farE, double &mixE )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 1.0f );
             e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
             e.setParam( ParamIdE::SRC1_TYPE, 0.0f );
@@ -11630,9 +11873,11 @@ static void testNearLayer()
         auto sends = [&]( float toDelay2, float toCosmos, float delay2Mix, float cosmosReturn )
         {
             Engine e;
+            neutralMaster( e );
             e.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
             e.setParam( ParamIdE::SRC1_TYPE, 0.0f );
             e.setParam( ParamIdE::OSC_LEVEL, 0.0f );
@@ -11693,6 +11938,7 @@ static void testNearLayer()
                    !inScope( ParamIdE::ATTACK, PresetScopeE::NEAR_LAYER ),
                "and is exactly what a near preset sets" );
         Engine e;
+        neutralMaster( e );
         e.prepare( sr, 256 );
         e.setParam( ParamIdE::FORE_LEVEL, 0.5f );
         e.applySoundPreset( 0 );
@@ -11701,7 +11947,7 @@ static void testNearLayer()
         int bad = 0;
         for ( int p = 1; p < numNearPresets(); ++p )
         {
-            Engine f;
+            Engine f;   // every knob at its default, the master's stages too: "nothing else" is read against them
             f.prepare( sr, 256 );
             for ( int i = 0; i < NumParams; ++i )
                 f.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
@@ -11743,6 +11989,7 @@ void testGuideRound()
         auto rmsAt = [&]( float range, float keysDepth )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::AIR, 0.0f );
             e.setParam( ParamIdE::DELAY_MIX, 0.0f );
@@ -11856,6 +12103,7 @@ void testGuideRound()
         auto sub = [&]( float harmonics, float beat, std::vector<float> &cap )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SUB_LEVEL, 0.8f );
             e.setParam( ParamIdE::SUB_BINAURAL, 0.0f );
@@ -12340,6 +12588,7 @@ void testGuideRound2()
     auto farStemRms = [&]( float roomLevel, float toFar, float midCut, float sendCut, double &lowMid, double &lowSide )
     {
         Engine e;
+        neutralMaster( e );
         e.applyPreset( 0 );
         e.setParam( ParamIdE::BRAIN_ON, 0.0f );
         e.setParam( ParamIdE::ROOM_LEVEL, roomLevel );
@@ -12407,6 +12656,7 @@ void testGuideRound2()
         auto subPeak = [&]( float ceiling )
         {
             Engine e;
+            neutralMaster( e );
             e.setParam( ParamIdE::BRAIN_ON, 0.0f );
             e.setParam( ParamIdE::SUB_LEVEL, 1.0f );
             e.setParam( ParamIdE::SUB_BINAURAL, 0.0f );
@@ -12479,6 +12729,7 @@ void testGuideRound2()
 void testJam()
 {
     Engine e;
+    neutralMaster( e );
     e.setParam( ParamIdE::BRAIN_ON, 1.0f );
     e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
     e.prepare( 48000.0, 256 );
@@ -12513,6 +12764,7 @@ void testJam()
 void testNoteTap()
 {
     Engine e;
+    neutralMaster( e );
     e.setParam( ParamIdE::BRAIN_ON, 1.0f );
     e.setParam( ParamIdE::BRAIN_RATE, 3.0f );
     e.setParam( ParamIdE::BRAIN_HOLD_MIN, 2.0f );
@@ -12617,6 +12869,7 @@ int main()
     testRoute();
     testZPlane();
     testTimeline();
+    testFloor();
     testPurityFreezeSleep();
     testGhostPortaInertiaTapeCoherence();
     testParamTable();

@@ -33,6 +33,7 @@
 #include "Tuning.h"
 #include "Voice.h"
 #include "Effects.h"
+#include "Balance.h"
 #include "Image.h"
 #include "Cloud.h"
 #include "Memory.h"
@@ -1560,6 +1561,19 @@ private:
     Smoother m_smBody;                                 ///< per-sample smoothing of m_bodyLevel
     MidSide  m_midSide;                                ///< the mid/side stage: bass mono, side air, width, tilt
     ImageMatch m_image;   ///< the width per band toward Ultimae's and Polymorph's masters (image, Image.h)
+    BalanceMatch m_balance;   ///< the tonal balance toward them (balance, Balance.h)
+    FloorMatch   m_floorMatch;          ///< the Foundation's two voices set by the music (floor, Balance.h)
+    float        m_floor = 0.0f;        ///< the Floor knob (0: the Foundation as its knobs set it)
+    double       m_floorPhaseL = 0.0;   ///< the voice above the Foundation: its phase, left
+    double       m_floorPhaseR = 0.0;   ///< and right
+    double       m_floorOctave = 2.0;   ///< its frequency over the Foundation's (a power of two)
+    float        m_floorPresence = 0.0f;   ///< it fades in when the floor is first heard (0 .. 1)
+    std::vector<float> m_floorAL;       ///< the Foundation at a level of one, left
+    std::vector<float> m_floorAR;       ///< and right
+    std::vector<float> m_floorBL;       ///< the voice above it at a level of one, left
+    std::vector<float> m_floorBR;       ///< and right
+    std::vector<float> m_floorOL;       ///< the floor, both voices at their levels, left
+    std::vector<float> m_floorOR;       ///< and right
     /**
      * @name Room (convolution) on the far plane
      * Room (convolution) on the far plane: level, source, pre-delay ring, tail low-pass

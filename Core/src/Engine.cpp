@@ -188,6 +188,18 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
     static const float ImageHi[ImageMatch::Bands] = { -5.7f, -2.3f, -1.3f, -2.1f, -2.7f };
     m_image.prepare( m_sr );
     m_image.setRanges( ImageLo, ImageHi );
+    // The tonal balance's range (21.10.2026): each band's share of the whole in dB, the first and third quartile of
+    // 308 Ultimae and 75 Polymorph recordings (Family/tools/mix_audit.py, their third-octave curves folded).
+    static const float BalanceLo[BalanceMatch::Bands] = { -33.6f, -4.5f, -8.1f, -11.9f, -18.0f, -25.9f };
+    static const float BalanceHi[BalanceMatch::Bands] = { -19.6f, -1.7f, -4.6f, -7.6f, -12.5f, -17.5f };
+    m_balance.prepare( m_sr );
+    // The floor's aims (21.10.2026): the bass band at the first quartile of 308 Ultimae and 75 Polymorph masters
+    // (-4.5 dB of the whole), the sub at their median (-27.1 dB).
+    m_floorMatch.prepare( m_sr );
+    m_floorMatch.setAims( -4.5f, -27.1f );
+    for ( std::vector<float> *b : { &m_floorAL, &m_floorAR, &m_floorBL, &m_floorBR, &m_floorOL, &m_floorOR } )
+        b->assign( static_cast<size_t>( m_maxBlock ), 0.0f );
+    m_balance.setRanges( BalanceLo, BalanceHi );
     m_shifter.prepare( m_sr );
     m_resonator.prepare( m_sr );
     m_vowel.prepare( m_sr, m_rng.fork() );

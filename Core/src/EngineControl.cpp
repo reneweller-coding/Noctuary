@@ -943,6 +943,7 @@ void Engine::readParams()
     }
     m_masterGain = g( ParamIdE::MASTER_GAIN );   // through g(), so the matrix can reach it
     m_subLevel = g( ParamIdE::SUB_LEVEL );
+    m_floor = g( ParamIdE::FLOOR );
     m_subOctave = std::lround( g( ParamIdE::SUB_OCTAVE ) ) == 0 ? 1 : 2;
     m_subGlide = g( ParamIdE::SUB_GLIDE );
     m_subBinaural = g( ParamIdE::SUB_BINAURAL );
@@ -1365,6 +1366,7 @@ void Engine::readParams()
     m_midSide.set( g( ParamIdE::BASS_MONO ), g( ParamIdE::SIDE_AIR ), g( ParamIdE::WIDTH ) );
     m_midSide.setMonoGuard( g( ParamIdE::MONO_GUARD ) >= 0.5f );
     m_image.set( g( ParamIdE::BINAURAL ) >= 0.5f ? 0.0f : g( ParamIdE::IMAGE ) );   // the head's cues left alone
+    m_balance.set( g( ParamIdE::BALANCE ) );   // the same on both ears: binaural too
     m_midSide.setTilt( g( ParamIdE::TILT2 ), g( ParamIdE::TILT_PIVOT ) );
     m_diffuser.set( g( ParamIdE::FAR_DIFFUSE ) );
     m_farDiffuse = g( ParamIdE::FAR_DIFFUSE );   // also drives the air saturation ahead of the reverb

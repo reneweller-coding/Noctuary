@@ -4,6 +4,7 @@ add_library(NoctuaryCore STATIC
     src/Voice.cpp
     src/Effects.cpp
     src/Scene.cpp
+    src/Balance.cpp
     src/Image.cpp
     src/Cloud.cpp
     src/Memory.cpp

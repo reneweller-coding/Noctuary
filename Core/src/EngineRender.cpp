@@ -1216,7 +1216,7 @@ void Engine::renderChunk( float *L, float *R, int n )
     // only in the mid channel -- so the beat is kept by feeding it after the mid/side stage.
     float     *subL = wl;
     float     *subR = wr;   // the delay scratch buffers are free by now
-    const bool subOn = m_subLevel > 0.0f || m_subLevelCur > 1e-4f;
+    const bool subOn = m_subLevel > 0.0f || m_subLevelCur > 1e-4f || m_floor > 0.0f;   // the floor gives every preset one
     if ( subOn )
     {
         const double rootHz = frequencyOf( m_brain.root() );
@@ -1296,6 +1296,9 @@ void Engine::renderChunk( float *L, float *R, int n )
         if ( m_subFreqCur <= 0.0 ) m_subFreqCur = target;
         const double glideC = 1.0 - std::exp( -1.0 / ( std::max( m_subGlide, 0.05f ) * m_sr ) );
         const float  levelC = 1.0f - std::exp( -1.0f / ( 2.0f * static_cast<float>( m_sr ) ) );
+        // The floor's voice above the Foundation fades in and out over about 50 ms.
+        const float  presenceC = 1.0f - std::exp( -1.0f / ( 0.05f * static_cast<float>( m_sr ) ) );
+        const bool   floorOn = m_floor > 0.0f;
         // The glide is a one-pole in the log domain, so its end point over this block is known in
         // closed form: take exp twice and walk the frequency linearly, instead of an exp per sample.
         const double reach = 1.0 - std::pow( 1.0 - glideC, static_cast<double>( n ) );
@@ -1355,6 +1358,32 @@ void Engine::renderChunk( float *L, float *R, int n )
             }
             subL[i] = g * sL;
             subR[i] = g * sR;
+            if ( floorOn )
+            {
+                // The floor (21.10.2026): the Foundation at a level of one, and a voice on its pitch class in the bass
+                // (56 .. 112 Hz, where Ultimae's floor is) -- octaves above a deep Foundation, below a high one;
+                // FloorMatch sets both levels. On the Foundation's own octave the first voice carries the band alone.
+                m_floorAL[i] = 0.45f * sL;
+                m_floorAR[i] = 0.45f * sR;
+                m_floorPresence += ( 1.0f - m_floorPresence ) * presenceC;
+                while ( f * m_floorOctave < 50.0 && m_floorOctave < 16.0 ) m_floorOctave *= 2.0;
+                while ( f * m_floorOctave >= 125.0 && m_floorOctave > 1.0 / 16.0 ) m_floorOctave *= 0.5;
+                if ( m_floorPresence > 1.0e-4f )
+                {
+                    const double fb = f * m_floorOctave;
+                    m_floorPhaseL += std::max( fb - 0.5 * m_subBinaural, 5.0 ) / m_sr;
+                    if ( m_floorPhaseL >= 1.0 ) m_floorPhaseL -= 1.0;
+                    m_floorPhaseR += std::max( fb + 0.5 * m_subBinaural, 5.0 ) / m_sr;
+                    if ( m_floorPhaseR >= 1.0 ) m_floorPhaseR -= 1.0;
+                    const float tL = 4.0f * std::fabs( static_cast<float>( m_floorPhaseL ) - 0.5f ) - 1.0f;
+                    const float tR = 4.0f * std::fabs( static_cast<float>( m_floorPhaseR ) - 0.5f ) - 1.0f;
+                    const float w = 0.45f * m_floorPresence;
+                    m_floorBL[i] = w * ( ( 1.0f - m_subTone ) * sin01( m_floorPhaseL ) + m_subTone * tL );
+                    m_floorBR[i] = w * ( ( 1.0f - m_subTone ) * sin01( m_floorPhaseR ) + m_subTone * tR );
+                }
+                else
+                    m_floorBL[i] = m_floorBR[i] = 0.0f;
+            }
             if ( m_subPulse > 0.0f || m_subPulseCur > 1.0e-4f )
             {
                 // A raised cosine at the Binaural rate: 1 at the top of every cycle, 1 - Pulse at
@@ -1368,6 +1397,11 @@ void Engine::renderChunk( float *L, float *R, int n )
                 const float pulse = 1.0f - m_subPulseCur * ( 0.5f - 0.5f * sin01( q ) );
                 subL[i] *= pulse;
                 subR[i] *= pulse;
+                if ( floorOn )
+                {
+                    m_floorAL[i] *= pulse;
+                    m_floorAR[i] *= pulse;
+                }
             }
         }
     }
@@ -1391,6 +1425,20 @@ void Engine::renderChunk( float *L, float *R, int n )
         // answer is a limiter on the sub alone, before the sum: here, at Ceiling dBFS at the output
         // (the master gain is taken out of it), instant to hold a peak, 5 ms to act on it and half a
         // second to let go -- slow enough that a 25 Hz sine is not distorted by its own limiter.
+        if ( m_floor > 0.0f )
+        {
+            // The floor (FloorMatch): both voices set by the rest of the music as it stands now, blended with the
+            // Foundation as its own knobs set it by the Floor knob.
+            float *oL = m_floorOL.data(), *oR = m_floorOR.data();
+            m_floorMatch.process( L, R, m_floorAL.data(), m_floorAR.data(), m_floorBL.data(), m_floorBR.data(), oL, oR,
+                                  n );
+            const float keep = 1.0f - m_floor;
+            for ( int i = 0; i < n; ++i )
+            {
+                subL[i] = keep * subL[i] + m_floor * oL[i];
+                subR[i] = keep * subR[i] + m_floor * oR[i];
+            }
+        }
         const float master = dbToGain( m_masterGain );
         const float ceiling = dbToGain( m_subCeiling ) / std::max( master, 1.0e-3f );
         const float hold = std::exp( -1.0f / ( 0.5f * static_cast<float>( m_sr ) ) );
@@ -1411,6 +1459,9 @@ void Engine::renderChunk( float *L, float *R, int n )
         m_subPeak = 0.0f;
         m_subLimGain = 1.0f;
     }
+    // The tonal balance (Balance.h, 21.10.2026), on everything with the Foundation in it: its floor is part of what
+    // the bands are measured by.
+    m_balance.process( L, R, n );
     // Output DC blocker at 4 Hz, below the lowest sub the Foundation can reach. Several paths
     // can leave an offset behind -- FM at an integer ratio, the asymmetric tape term, a granular
     // window over a clip that carries one, the shimmer's pitch shifter -- and an offset costs

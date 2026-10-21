@@ -931,6 +931,8 @@ enum class ParamIdE : int
     LOOP_DRIVE,
     LOOP_TO_FAR,   ///< mix, time (4 .. 16 s), feedback, tone (Hz), drive, to far
     SCENE,         ///< SceneNames (Scene.h, 20.10.2026): the space set as a place, once when chosen
+    BALANCE,       ///< 0 .. 1: the tonal balance in six bands toward Ultimae's and Polymorph's masters (Balance.h)
+    FLOOR,         ///< 0 .. 1: the Foundation set where Ultimae's floor lies, a voice in the bass over a quiet sub (Balance.h)
     COUNT           ///< one past the last: NumParams
 };
 
