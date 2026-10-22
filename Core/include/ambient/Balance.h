@@ -103,6 +103,15 @@ public:
     void setTiming( float averageSeconds, float glideDbPerSecond, float gateDb, float fallDbPerMinute );
 
     /**
+     * @brief Whether the trims keep the whole's power where it was (22.10.2026). The shares do not change when every
+     *        band moves alike, so without this the trims may all drift up or down together -- in Parhelion by about
+     *        3 dB, which its Leveler then took back before the master, and every stem stood 3 to 4 LU lower against
+     *        the mix. Off by default: Noctuary's and Empyrean's banks are levelled with it off.
+     * @param[in] neutral  true: a common offset after every round of the aims holds the whole's power
+     */
+    void setNeutral( bool neutral ) { m_neutral = neutral; }
+
+    /**
      * @brief Processes @p n samples in place.
      * @param[in,out] L  the left channel
      * @param[in,out] R  the right channel
@@ -152,6 +161,7 @@ private:
     float                     m_fallPerMinute = 10.0f;   ///< how fast the loudest is forgotten, dB a minute
     double                    m_fall = 1.0;           ///< the loudest's factor per block (falling)
     bool                      m_heard = false;        ///< a gated block has been averaged
+    bool                      m_neutral = false;      ///< the trims keep the whole's power (setNeutral)
     ToneEq                    m_eq;                   ///< the shelves and bells
     ToneEq::State             m_state;                ///< their memory
 };

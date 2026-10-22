@@ -155,6 +155,20 @@ void BalanceMatch::aims( float *aim ) const
                 d = m_lo[i] - s;
             t[b] = std::clamp( t[b] + d, DownDb, UpDb );
         }
+        if ( m_neutral )
+        {   // a common offset that brings the whole's power back to where it was
+            double before = 0.0, after = 0.0;
+            for ( int b = 0; b < Bands; ++b )
+            {
+                before += m_avg[static_cast<size_t>( b )];
+                after += m_avg[static_cast<size_t>( b )] * m_eq.powerGain( t, Centres[b] );
+            }
+            if ( before > 1e-30 && after > 1e-30 )
+            {
+                const float offset = static_cast<float>( -10.0 * std::log10( after / before ) );
+                for ( int b = 0; b < Bands; ++b ) t[b] = std::clamp( t[b] + offset, DownDb, UpDb );
+            }
+        }
     }
     for ( int b = 0; b < Bands; ++b ) aim[b] = std::clamp( t[b] * m_amount, DownDb, UpDb );
 }
