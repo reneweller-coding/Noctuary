@@ -99,8 +99,22 @@ public:
      * @param[in] glideDbPerSecond   how fast a trim moves
      * @param[in] gateDb             blocks within this of the loudest count
      * @param[in] fallDbPerMinute    how fast the loudest is forgotten
+     * @param[in] gateSeconds        what the gate compares: 0 each 100 ms block (the default), else the loudness over
+     *                               that many seconds -- so a dance track's loud passages count, not its kick hits
+     *                               (22.10.2026: gated on 100 ms blocks, Parhelion's loudest blocks were its kicks, and
+     *                               their mids and highs read 3 to 5 dB under the passage's)
      */
-    void setTiming( float averageSeconds, float glideDbPerSecond, float gateDb, float fallDbPerMinute );
+    void setTiming( float averageSeconds, float glideDbPerSecond, float gateDb, float fallDbPerMinute,
+                    float gateSeconds = 0.0f );
+
+    /**
+     * @brief The sub band's lower edge (22.10.2026). The references' third octaves begin at 40 Hz (35.6 Hz its lower
+     *        edge): what lies under it is not in their curves, and a kick's fundamental and its sub under 35 Hz read
+     *        as a sub 15 dB over theirs. 0, the default, counts everything under 56 Hz (Noctuary's and Empyrean's
+     *        banks are levelled so); the generators set 35.6.
+     * @param[in] hz  the edge (0: none)
+     */
+    void setLowEdge( float hz );
 
     /**
      * @brief Whether the trims keep the whole's power where it was (22.10.2026). The shares do not change when every
@@ -162,6 +176,10 @@ private:
     double                    m_fall = 1.0;           ///< the loudest's factor per block (falling)
     bool                      m_heard = false;        ///< a gated block has been averaged
     bool                      m_neutral = false;      ///< the trims keep the whole's power (setNeutral)
+    float                     m_gateSeconds = 0.0f;   ///< the gate's measure: 0 a block, else seconds (setTiming)
+    float                     m_shortCoef = 1.0f;     ///< that measure's step per block
+    double                    m_short = 0.0;          ///< the loudness over m_gateSeconds (the blocks' power, followed)
+    float                     m_lowEdge = 0.0f;       ///< the sub band's lower edge, Hz (setLowEdge)
     ToneEq                    m_eq;                   ///< the shelves and bells
     ToneEq::State             m_state;                ///< their memory
 };

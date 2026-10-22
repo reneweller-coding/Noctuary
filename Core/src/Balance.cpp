@@ -71,16 +71,25 @@ void BalanceMatch::prepare( double sampleRate )
     m_rate = sampleRate;
     for ( int b = 0; b < Bands; ++b )
     {
-        m_left[static_cast<size_t>( b )].prepare( Edges[b][0], Edges[b][1], sampleRate );
-        m_right[static_cast<size_t>( b )].prepare( Edges[b][0], Edges[b][1], sampleRate );
+        const float low = b == 0 ? m_lowEdge : Edges[b][0];
+        m_left[static_cast<size_t>( b )].prepare( low, Edges[b][1], sampleRate );
+        m_right[static_cast<size_t>( b )].prepare( low, Edges[b][1], sampleRate );
     }
     m_blockLength = std::max( 1, static_cast<int>( 0.1 * sampleRate ) );
-    setTiming( m_avgSeconds, m_glidePerSecond, m_gateDb, m_fallPerMinute );
+    setTiming( m_avgSeconds, m_glidePerSecond, m_gateDb, m_fallPerMinute, m_gateSeconds );
     m_eq.prepare( sampleRate, EqBands, Bands );
     reset();
 }
 
-void BalanceMatch::setTiming( float averageSeconds, float glideDbPerSecond, float gateDb, float fallDbPerMinute )
+void BalanceMatch::setLowEdge( float hz )
+{
+    m_lowEdge = std::max( hz, 0.0f );
+    m_left[0].prepare( m_lowEdge, Edges[0][1], m_rate );
+    m_right[0].prepare( m_lowEdge, Edges[0][1], m_rate );
+}
+
+void BalanceMatch::setTiming( float averageSeconds, float glideDbPerSecond, float gateDb, float fallDbPerMinute,
+                              float gateSeconds )
 {
     m_avgSeconds = std::max( averageSeconds, 0.1f );
     m_glidePerSecond = std::max( glideDbPerSecond, 0.0f );
@@ -90,6 +99,8 @@ void BalanceMatch::setTiming( float averageSeconds, float glideDbPerSecond, floa
     m_avgCoef = static_cast<float>( 1.0 - std::exp( -block / m_avgSeconds ) );
     m_glide = static_cast<float>( m_glidePerSecond * block );
     m_fall = std::pow( 10.0, -m_fallPerMinute * block / 600.0 );
+    m_gateSeconds = std::max( gateSeconds, 0.0f );
+    m_shortCoef = m_gateSeconds > 0.0f ? static_cast<float>( 1.0 - std::exp( -block / m_gateSeconds ) ) : 1.0f;
 }
 
 void BalanceMatch::reset()
@@ -100,6 +111,7 @@ void BalanceMatch::reset()
     m_avg.fill( 0.0 );
     m_trim.fill( 0.0f );
     m_loudest = 0.0;
+    m_short = 0.0;
     m_count = 0;
     m_heard = false;
     m_eq.setGains( m_trim.data() );
@@ -178,8 +190,15 @@ void BalanceMatch::block()
     // The gate: this block counts if it is within GateDb of the loudest of about the last minute.
     double total = 0.0;
     for ( double p : m_block ) total += p;
-    m_loudest = std::max( m_loudest * m_fall, total );   // by default falling 1 dB in 6 s
-    if ( total > 1e-12 && total >= m_loudest * std::pow( 10.0, -m_gateDb / 10.0 ) )
+    // What the gate compares: the block itself, or the loudness over m_gateSeconds (a passage, not a hit).
+    double level = total;
+    if ( m_gateSeconds > 0.0f )
+    {
+        m_short = m_short > 0.0 ? m_short + ( total - m_short ) * m_shortCoef : total;
+        level = m_short;
+    }
+    m_loudest = std::max( m_loudest * m_fall, level );   // by default falling 1 dB in 6 s
+    if ( total > 1e-12 && level >= m_loudest * std::pow( 10.0, -m_gateDb / 10.0 ) )
     {
         for ( size_t i = 0; i < m_avg.size(); ++i )
             m_avg[i] = m_heard ? m_avg[i] + ( m_block[i] - m_avg[i] ) * m_avgCoef : m_block[i];
