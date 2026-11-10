@@ -40,7 +40,7 @@ float ImageMatch::run( Meter &m, float x )
     for ( int s = 0; s < 4; ++s )
     {
         if ( ( s < 2 && !m.m_high ) || ( s >= 2 && !m.m_low ) ) continue;
-        const float a1 = 1.0f / ( 1.0f + m.m_g[s] * ( m.m_g[s] + m.m_k ) ), a2 = m.m_g[s] * a1, a3 = m.m_g[s] * a2;
+        const float a1 = m.m_a1[s], a2 = m.m_a2[s], a3 = m.m_a3[s];
         const float v3 = x - m.m_s2[s];
         const float v1 = a1 * m.m_s1[s] + a2 * v3;
         const float v2 = m.m_s2[s] + a2 * m.m_s1[s] + a3 * v3;
@@ -66,6 +66,9 @@ void ImageMatch::prepare( double sampleRate )
                 const float hz = s < 2 ? Edges[b][0] : Edges[b][1];
                 const double f = std::min( static_cast<double>( hz ), 0.45 * sampleRate );
                 m.m_g[s] = hz > 0.0f ? static_cast<float>( std::tan( Pi * f / sampleRate ) ) : 0.0f;
+                m.m_a1[s] = 1.0f / ( 1.0f + m.m_g[s] * ( m.m_g[s] + m.m_k ) );
+                m.m_a2[s] = m.m_g[s] * m.m_a1[s];
+                m.m_a3[s] = m.m_g[s] * m.m_a2[s];
             }
         }
     m_blockLength = std::max( 1, static_cast<int>( 0.1 * sampleRate ) );

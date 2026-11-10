@@ -86,6 +86,14 @@ private:
     struct Meter
     {
         float m_g[4] = {};     ///< the four stages' g
+        /** @name The stages' factors, worked out by prepare() (11.11.2026, as Balance.h's BandMeter)
+         *  run() divided for each of them in every stage of every sample: 40 divisions a sample through the five
+         *  bands of mid and side. The same numbers, once. (Not yet in Totality's copy, which this one was taken from.)
+         *  @{ */
+        float m_a1[4] = {};    ///< 1 / (1 + g (g + k))
+        float m_a2[4] = {};    ///< g a1
+        float m_a3[4] = {};    ///< g a2
+        /** @} */
         float m_k = 1.414f;    ///< their damping (Butterworth)
         float m_s1[4] = {};    ///< their first integrators
         float m_s2[4] = {};    ///< their second
