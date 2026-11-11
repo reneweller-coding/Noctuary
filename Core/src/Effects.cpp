@@ -721,6 +721,11 @@ void Reverb::prepare( double sampleRate )
     m_outDelayCur = 0.0f;
     m_hcL = m_hcR = 0.0f;
     m_lcL1 = m_lcR1 = m_lcL2 = m_lcR2 = 0.0f;
+    // The send's high pass too (11.11.2026). It kept its state through a prepare: with everything else emptied, what
+    // the two filters still held came out into the network and rang its low modes -- the chord's lows, 40 dB under
+    // what had sounded, for as long as the hall decays (found through the panic, which empties by preparing).
+    m_sendHpL.reset();
+    m_sendHpR.reset();
     setSpace( m_asym, 20000.0f );
     set( m_size, m_decay, m_damp, 40.0f, false, m_mix );
 }
