@@ -100,6 +100,24 @@ public:
      * @param[in,out] midi    notes, expression, MPE, clock and controllers; cleared on return
      */
     void processBlock( juce::AudioBuffer<float> &, juce::MidiBuffer & ) override;
+    /**
+     * @name Panic (11.11.2026)
+     * Everything silent at once, and held. The block the panic arrives in fades out; from the next on processBlock
+     * returns silence and touches neither engine, and the message thread (the preset pump, 30 times a second)
+     * empties both the way a new prepareToPlay does -- every voice, echo, loop, grain, room and hall, a frozen one
+     * too -- and stops the journey and a set's playback. The sound's settings, its samples and rooms stay. It plays
+     * again (the conductor's chord at once, the piece from its beginning) when resume() is called, a note is played,
+     * a preset is chosen, a journey starts or a state is loaded.
+     * @{ */
+    /** @brief Silence at once, held. Any thread. */
+    void panic();
+    /** @brief Plays again after a panic (nothing when none holds). Any thread. */
+    void resume();
+    /** @brief Whether a panic holds the instrument silent. Any thread. @return true from panic() until it plays again */
+    bool halted() const { return m_halt.load( std::memory_order_relaxed ) != HaltNone; }
+    /** @brief The message thread's part: empties the engines once the audio thread has let go of them (the pump calls it). */
+    void servePanic();
+    /** @} */
 
     /** @return a new NoctuaryEditor over this processor; the host owns and deletes it */
     juce::AudioProcessorEditor *createEditor() override;
@@ -873,6 +891,7 @@ private:
         /** @brief 30 times a second: the OSC preset requests, a pending transition, the journey's step. */
         void timerCallback() override
         {
+            m_proc.servePanic();
             m_proc.servePresetRequests();
             m_proc.servePendingPreset();
             m_proc.journeyTick();
@@ -908,6 +927,26 @@ private:
      */
     std::atomic<int>   m_fading{ -1 };
     std::atomic<float> m_fadePos{ 0.0f };   ///< the crossfade's position, 0 .. 1
+    /**
+     * @name The panic's handshake
+     * m_halt goes None -> Asked (panic(), any thread) -> Held (the audio thread, after the block that fades out: from
+     * here it touches no engine) -> Purged (the message thread, after it emptied them) -> None (the audio thread,
+     * when a resume was asked for). The engines belong to the message thread exactly while it reads Held.
+     * @{ */
+    static constexpr int HaltNone = 0;      ///< playing
+    static constexpr int HaltAsked = 1;     ///< a panic asked for: the next block fades out
+    static constexpr int HaltHeld = 2;      ///< silent; the engines wait to be emptied
+    static constexpr int HaltPurged = 3;    ///< silent and empty: a resume wakes it
+    std::atomic<int>     m_halt{ HaltNone };          ///< where the handshake stands
+    std::atomic<bool>    m_resumeAsked{ false };      ///< resume() was asked for (or a note played into the silence)
+    float                m_haltGain = 1.0f;           ///< audio thread: the output's gain at the last block's end
+    /**
+     * @brief A block as the instrument plays it (what processBlock was before the panic stood in front of it).
+     * @param[in,out] buffer  the output buses
+     * @param[in,out] midi    notes, expression, MPE, clock and controllers; cleared on return
+     */
+    void renderBlock( juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi );
+    /** @} */
     /**
      * @brief Which preset the leaving engine is playing, so the map can draw the line from there.
      *

@@ -668,6 +668,7 @@ private:
     void runManualStep();
     std::unique_ptr<HelpView>            m_help;          ///< the help page
     std::unique_ptr<juce::TextButton>    m_helpButton;    ///< Help, in the header
+    std::unique_ptr<juce::TextButton>    m_panicButton;   ///< Panic, in the header: lit while it holds (11.11.2026)
     std::unique_ptr<juce::TextButton>    m_aboutButton;   ///< "?": version, build time, what is loaded
     std::unique_ptr<juce::TooltipWindow> m_tooltips;      ///< tooltips after 600 ms
 

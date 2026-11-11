@@ -473,7 +473,101 @@ bool NoctuaryProcessor::isBusesLayoutSupported( const BusesLayout &layouts ) con
     return true;
 }
 
+void NoctuaryProcessor::panic()
+{
+    // The journey and a set's playback are the message thread's: stopped here when this is it, by the pump else.
+    if ( juce::MessageManager::existsAndIsCurrentThread() )
+    {
+        stopJourney();
+        stopSetPlayback();
+        m_pendingPreset = -1;
+    }
+    m_resumeAsked.store( false, std::memory_order_release );   // (again while it holds: a wake on its way is cancelled)
+    int none = HaltNone;
+    m_halt.compare_exchange_strong( none, HaltAsked, std::memory_order_acq_rel );
+}
+
+void NoctuaryProcessor::resume()
+{
+    // Not taken up yet (the audio is not running): as if it had not been asked.
+    int asked = HaltAsked;
+    if ( m_halt.compare_exchange_strong( asked, HaltNone, std::memory_order_acq_rel ) ) return;
+    if ( asked != HaltNone ) m_resumeAsked.store( true, std::memory_order_release );
+}
+
+void NoctuaryProcessor::servePanic()
+{
+    if ( m_halt.load( std::memory_order_acquire ) != HaltHeld ) return;
+    // The audio thread has let go of the engines (processBlock returns silence while this reads Held). A change of
+    // preset on its way is carried out here; then both engines are emptied the way a new prepareToPlay empties them
+    // -- voices, echoes, grains, rooms, halls -- and the conductors begin their piece again when it wakes.
+    if ( const int sw = m_swapTo.load( std::memory_order_acquire ); sw >= 0 )
+        m_live.store( sw, std::memory_order_release );
+    stopJourney();
+    stopSetPlayback();
+    m_pendingPreset = -1;
+    for ( auto &h : m_heldVel ) h.store( 0.0f, std::memory_order_relaxed );
+    for ( auto &e : m_engines )
+        if ( e != nullptr )
+        {
+            e->allNotesOff();
+            e->reset();
+        }
+    prepareToPlay( m_sampleRate, m_lastBlockSize );
+    m_halt.store( HaltPurged, std::memory_order_release );
+}
+
 void NoctuaryProcessor::processBlock( juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi )
+{
+    // The panic (11.11.2026) stands in front of the block. While it holds, nothing of the engines is touched here:
+    // they are the message thread's until it has emptied them (servePanic).
+    int halt = m_halt.load( std::memory_order_acquire );
+    if ( halt >= HaltHeld )
+    {
+        // A note played into the silence wakes the instrument (from the keys or from OSC).
+        bool wake = m_resumeAsked.load( std::memory_order_acquire );
+        for ( const auto meta : midi )
+            if ( meta.getMessage().isNoteOn() ) wake = true;
+        if ( halt == HaltPurged && wake )
+        {   // awake: the chord at once; the block plays as any other and fades in
+            m_resumeAsked.store( false, std::memory_order_release );
+            m_halt.store( HaltNone, std::memory_order_release );
+            m_haltGain = 0.0f;
+            // (only where the conductor plays: the request would sound a chord once even with it switched off)
+            if ( m_raw[static_cast<size_t>( ParamIdE::BRAIN_ON )]->load() >= 0.5f ) live().requestBrainFill();
+            halt = HaltNone;
+        }
+        else
+        {
+            ControlEvent ev;   // OSC's notes do not pile up for the moment it wakes; one of them wakes it
+            while ( m_events.pop( ev ) )
+                if ( ev.m_type == ControlEvent::TypeE::NOTE_ON ) wake = true;
+            if ( wake ) m_resumeAsked.store( true, std::memory_order_release );
+            buffer.clear();
+            midi.clear();
+            return;
+        }
+    }
+    renderBlock( buffer, midi );
+    const int n = buffer.getNumSamples();
+    if ( n <= 0 ) return;
+    if ( halt == HaltAsked )
+    {   // the block the panic arrived in: down to nothing, on every bus; then the engines are let go
+        for ( int c = 0; c < buffer.getNumChannels(); ++c ) buffer.applyGainRamp( c, 0, n, m_haltGain, 0.0f );
+        m_haltGain = 0.0f;
+        int asked = HaltAsked;
+        m_halt.compare_exchange_strong( asked, HaltHeld, std::memory_order_acq_rel );
+    }
+    else if ( m_haltGain < 1.0f )
+    {   // waking: open again over a fiftieth of a second
+        const float to =
+            std::min( 1.0f, m_haltGain + static_cast<float>( n ) / ( 0.02f * static_cast<float>( m_sampleRate ) ) );
+        for ( int c = 0; c < buffer.getNumChannels(); ++c ) buffer.applyGainRamp( c, 0, n, m_haltGain, to );
+        m_haltGain = to;
+    }
+}
+
+void NoctuaryProcessor::renderBlock( juce::AudioBuffer<float> &buffer, juce::MidiBuffer &midi )
 {
     juce::ScopedNoDenormals noDenormals;
     m_noteTap.clear();   // MIDI out (02.10.2026): what the conductors play in this block, written out at its end
@@ -1454,6 +1548,7 @@ bool NoctuaryProcessor::loadPresetFile( const juce::File &file )
 void NoctuaryProcessor::selectPreset( int index, bool viaMorph )
 {
     if ( index < 0 || index >= numPresets() ) return;
+    resume();   // after a panic: a preset chosen is to be heard
     if ( !viaMorph || !m_morphOnSelect )
     {
         m_endFade.store( true, std::memory_order_release );
@@ -1489,6 +1584,7 @@ bool NoctuaryProcessor::startJourney( const juce::File &file )
 bool NoctuaryProcessor::startJourney( const ambient::Journey &j )
 {
     if ( j.m_steps.empty() ) return false;
+    resume();   // after a panic
     m_journey = j;
     // A journey is presets in a row, and Morph is the instrument held between two chosen ones:
     // with both on, every preset the journey loaded was overruled by the blend and the journey
@@ -1995,6 +2091,7 @@ void NoctuaryProcessor::getStateInformation( juce::MemoryBlock &destData )
 
 void NoctuaryProcessor::setStateInformation( const void *data, int sizeInBytes )
 {
+    resume();   // after a panic: a state loaded is to be heard
     m_sceneQuietUntil = juce::Time::getMillisecondCounterHiRes() + 1500.0;   // its scene is the state's, not a choice
     if ( auto xml = getXmlFromBinary( data, sizeInBytes ) )
     {

@@ -2,6 +2,11 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**Panic** (11.11.2026). A button in the header (Shift+Esc, and in the search): everything is silent at once -- every
+voice, echo, grain, room and hall, a frozen one too -- and stays silent; a journey or a set's playback stops. The
+same button, a key played or a preset chosen wakes the instrument: the conductor's chord at once, the piece from its
+beginning. The sound's settings, its samples and rooms stay as they are.
+
 **Noctuary Journeys.** A small program beside the instrument (Start menu, NoctuaryJourneys.exe) that renders journeys
 into files: the templates beside the packs and your own (Documents/Noctuary/Journeys), each listed with its steps, its
 shortest and longest pass and the length of its rendering -- the dwells and fades are drawn with the dice before it

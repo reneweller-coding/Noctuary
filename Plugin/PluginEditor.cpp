@@ -261,6 +261,19 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
                                 } );
     };
     addAndMakeVisible( *m_recButton );
+    // Panic (11.11.2026): everything silent at once, and held; the same button plays again.
+    m_panicButton = std::make_unique<juce::TextButton>( "Panic" );
+    m_panicButton->setTooltip(
+        "Panic: everything silent at once -- every voice, echo, grain, room and hall -- and it stays silent; a journey stops. Click again, play a key or choose a preset, and it plays again: the conductor's chord at once, the piece from its beginning. (Shift+Esc)" );
+    m_panicButton->setColour( juce::TextButton::buttonOnColourId, juce::Colour( 0xffa8483c ) );
+    m_panicButton->onClick = [this]
+    {
+        if ( m_proc.halted() )
+            m_proc.resume();
+        else
+            m_proc.panic();
+    };
+    addAndMakeVisible( *m_panicButton );
     // Main: the panel, from wherever you are. It is the one page that had no button of its own --
     // you got back by switching the others off, which is a rule nobody should have to learn.
     m_mainButton = std::make_unique<juce::TextButton>( "Main" );
@@ -1478,6 +1491,7 @@ void NoctuaryEditor::resized()
     if ( m_nightIcon ) m_nightIcon->setBounds( 610, 8, 28, 24 );
     if ( m_holdIcon ) m_holdIcon->setBounds( 640, 8, 28, 24 );
     if ( m_journeyButton ) m_journeyButton->setBounds( 674, 8, 66, 24 );
+    if ( m_panicButton ) m_panicButton->setBounds( 752, 8, 60, 24 );
     if ( m_star ) m_star->setBounds( 460, 8, 14, 24 );
     if ( m_undoButton ) m_undoButton->setBounds( 1156, 8, 28, 24 );
     if ( m_redoButton ) m_redoButton->setBounds( 1186, 8, 28, 24 );
@@ -2336,6 +2350,11 @@ void NoctuaryEditor::randomiseSection( const juce::String &name, bool subtle )
 
 bool NoctuaryEditor::keyPressed( const juce::KeyPress &k )
 {
+    if ( k == juce::KeyPress( juce::KeyPress::escapeKey, juce::ModifierKeys::shiftModifier, 0 ) )
+    {   // the panic (in a host too: no host takes Shift+Esc)
+        m_proc.panic();
+        return true;
+    }
     if ( k == juce::KeyPress::F1Key )
     {
         setPage( m_help && m_help->isVisible() ? 0 : 3 );
@@ -3453,6 +3472,7 @@ void NoctuaryEditor::showSettings()
 
 void NoctuaryEditor::timerCallback()
 {
+    if ( m_panicButton ) m_panicButton->setToggleState( m_proc.halted(), juce::dontSendNotification );
     // The first steps on the first start (not in an automated run).
     if ( m_tourTicks >= 0 && ++m_tourTicks > 20 )
     {
@@ -4491,6 +4511,8 @@ std::vector<frame::CommandPalette::Command> NoctuaryEditor::paletteCommands()
         action( "Save the sound as a preset file", "the disk", [this] { m_saveButton->triggerClick(); } );
     if ( m_loadButton ) action( "Load a preset file", "the folder", [this] { m_loadButton->triggerClick(); } );
     if ( m_recButton ) action( "Record the output", "a WAV", [this] { m_recButton->triggerClick(); } );
+    action( "Panic", "everything silent at once, and it stays silent (Shift+Esc)", [this] { m_proc.panic(); } );
+    action( "Play again", "after a panic", [this] { m_proc.resume(); } );
     action( "Night mode", "the window dim and warm", [this] { setNight( !m_night ); } );
     action( "Journeys over time", "the timeline",
             [this]
