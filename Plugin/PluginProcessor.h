@@ -788,7 +788,7 @@ private:
      */
     std::unique_ptr<ambient::Engine> m_engines[2];
     double                           m_lastSampleRate =
-        48000.0;   ///< what prepareToPlay last saw; an engine built later is prepared at this rate
+        ambient::DefaultSampleRate;   ///< what prepareToPlay last saw; an engine built later is prepared at this rate
     int              m_lastBlockSize = 512;   ///< and this block size
     ambient::NoteTap m_noteTap;   ///< MIDI out (02.10.2026): what both engines' conductors played in this block
     // The planes as outputs of their own (02.10.2026): a stereo bus each for near, far, cosmos and room besides the main
@@ -1008,7 +1008,7 @@ private:
     /** @brief Every note off, in m_heldVel and in the live engine. */
     void allNotesOff();
     double m_sampleRate =
-        48000.0;   ///< from prepareToPlay; the fade cannot trust getSampleRate() before the host sets it
+        ambient::DefaultSampleRate;   ///< from prepareToPlay; the fade cannot trust getSampleRate() before the host sets it
     juce::AudioBuffer<float> m_fadeBuf;   ///< the leaving engine renders into this while a crossfade runs
     /**
      * @brief Output muted at the device: set by AMBIENT_MUTE=1, and implied by AMBIENT_MANUAL (the

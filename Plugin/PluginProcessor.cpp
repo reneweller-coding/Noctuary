@@ -421,7 +421,7 @@ juce::String NoctuaryProcessor::gestureMappings() const
 
 void NoctuaryProcessor::prepareToPlay( double sampleRate, int samplesPerBlock )
 {
-    m_lastSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_lastSampleRate = sampleRate > 0.0 ? sampleRate : ambient::DefaultSampleRate;
     m_lastBlockSize = samplesPerBlock;
     for ( auto &e : m_engines )
     {
@@ -439,7 +439,7 @@ void NoctuaryProcessor::prepareToPlay( double sampleRate, int samplesPerBlock )
     for ( auto &e : m_engines )
         if ( e != nullptr ) e->setStemBuffers( nullptr );
     m_planesOn = false;
-    m_sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_sampleRate = sampleRate > 0.0 ? sampleRate : ambient::DefaultSampleRate;
     // Both engines have just had their buffers cleared, so a transition that was in flight has
     // nothing left to fade out of: it ends here rather than crossfading from silence.
     m_fading.store( -1, std::memory_order_relaxed );

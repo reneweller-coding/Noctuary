@@ -112,7 +112,7 @@ private:
     /** @brief A block's end: the gate, the averages, the aims and a step of the trims towards them. */
     void block();
 
-    double                       m_rate = 48000.0;    ///< the sample rate
+    double                       m_rate = DefaultSampleRate;    ///< the sample rate
     float                        m_amount = 0.0f;     ///< how much of the way (0 .. 1)
     std::array<float, Bands>     m_lo{};              ///< the range's lower edges, dB
     std::array<float, Bands>     m_hi{};              ///< its upper edges

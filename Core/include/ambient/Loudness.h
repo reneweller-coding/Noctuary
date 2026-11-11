@@ -22,6 +22,7 @@
  * @author Rene Weller
  */
 #pragma once
+#include "Rate.h"
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -302,7 +303,7 @@ private:
     /** @brief One analysis frame: window and transform the ring, sum the bins of each band into a level in dB SPL, and turn the levels into sones (audio thread, every Hop samples). */
     void frame();
 
-    double m_sr = 48000.0;   ///< the sample rate prepare() was given
+    double m_sr = DefaultSampleRate;   ///< the sample rate prepare() was given
     /** @var static constexpr int N
      *  @brief the FFT length: 8192 samples, 5.9 Hz per bin at 48 kHz */
     static constexpr int N = 8192, Hop = 2048;   ///< Hop: samples between frames
@@ -369,7 +370,7 @@ private:
     /** @brief Closes one hop: its mean squares join the ring, and the last four hops make a 400 ms block for the log, the last thirty a 3 s short-term value. */
     void pushBlock();
 
-    double m_sr = 48000.0;   ///< the sample rate prepare() was given
+    double m_sr = DefaultSampleRate;   ///< the sample rate prepare() was given
     /** @var KFilter m_kL
      *  @brief the left channel's K-weighting */
     KFilter         m_kL, m_kR;   ///< m_kR: the right channel's

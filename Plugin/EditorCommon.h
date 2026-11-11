@@ -232,7 +232,7 @@ struct FilterCurve
     ambient::ZBiquad m_biquad[ambient::ZSections];   ///< the Z cascade as capture() built it (Series and Replace)
     ambient::ZModal  m_modal;                        ///< the modal bank as capture() built it (Modal)
     /** @brief The sample rate the response is computed at, in Hz. */
-    float m_sr = 48000.0f, m_cutoff = 1000.0f, m_res = 0.0f, m_zMix = 0.0f,
+    float m_sr = static_cast<float>( ambient::DefaultSampleRate ), m_cutoff = 1000.0f, m_res = 0.0f, m_zMix = 0.0f,
           m_zNorm = 1.0f;   ///< zNorm: the cascade's normalisation from zBuildCascade
     float m_morph = 0.0f;   ///< the Morph knob, the SEM's response
     /** @var float edt::FilterCurve::m_cutoff

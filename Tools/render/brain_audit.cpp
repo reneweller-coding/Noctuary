@@ -78,7 +78,7 @@ int main( int argc, char **argv )
     }
     loadDefaultPresetPacks();                   // $AMBIENT_PACKS, as the render tool
     auto engine = std::make_unique<Engine>();   // an Engine is large; the heap, not the stack
-    engine->prepare( 48000.0, 256 );
+    engine->prepare( ambient::DefaultSampleRate, 256 );
     int presetIndex = -1;
     if ( !presetName.empty() )
     {

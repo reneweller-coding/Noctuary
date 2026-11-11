@@ -2298,7 +2298,7 @@ private:
      * @return the MIDI channel, 0 for a key
      */
     static int tapChannel( int owner ) { return owner == 1 ? 1 : owner == 2 ? 2 : owner == 3 ? 3 : 0; }
-    double   m_sr = 48000.0;         ///< the sample rate
+    double   m_sr = DefaultSampleRate;         ///< the sample rate
     int      m_maxBlock = 512;       ///< the chunk size renderChunk() is given at most; the buffers' length
     uint64_t m_order = 0;            ///< a running count of note starts, so allocate() can find the oldest voice
     Rng      m_rng;                  ///< the engine's main stream, seeded from Seed: voices, conductor, depth draws

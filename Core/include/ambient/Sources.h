@@ -293,7 +293,7 @@ struct Texture
     std::vector<float> m_lr;   ///< the interleaved stereo pair, or empty
     /** @return whether the clip has a stereo pair the grains can read */
     bool stereo() const { return m_lr.size() == 2 * m_mono.size() && !m_mono.empty(); }
-    double m_sampleRate = 48000.0;   ///< the clip's own rate in Hz; the readers resample to the engine's
+    double m_sampleRate = DefaultSampleRate;   ///< the clip's own rate in Hz; the readers resample to the engine's
     double m_baseHz = 261.6256;      ///< assumed pitch of the sample for Follow = Note
     /// Reading gain, from the clip's own RMS: the wavetable and FM slots normalise themselves to
     /// unity, so without this a quiet recording enters the mix 20 dB below them at the same Level.
@@ -983,7 +983,7 @@ private:
         m_pitchDrift;                            ///< the slot's slow pitch drift
     float  m_dispPos = -1.0f;                    ///< the position last read, for the picture (see displayPosition)
     Rng    m_rng;                                ///< the slot's own random stream
-    double m_sr = 48000.0;                       ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;                       ///< sample rate in Hz
     float  m_gL = 0.0f,                          ///< @brief the left gain at the end of the last block (level and pan)
         m_gR = 0.0f;                             ///< the right gain
     float       m_scratch[64] = {};              ///< a block of mono output, or the right channel of a two-channel type

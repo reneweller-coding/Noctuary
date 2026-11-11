@@ -713,7 +713,7 @@ static int runOnce( int argc, char **argv )
     std::string out = "ambient.wav";
     double      seconds = 60.0;
     double      skipSeconds = 0.0;   // played and thrown away before the measured window begins
-    int         sr = 48000, block = 256;
+    int         sr = static_cast<int>( ambient::DefaultSampleRate ), block = 256;
     bool        stats = false, dump = false, useMap = false, measure = false, loudness = false;
     // --near-log: one line per near event -- when, what near layer was in effect, and how loud the
     // mix was around it. Rene waited twenty minutes in a journey and heard none (13.09.2026), and

@@ -16,6 +16,7 @@
  * @author Rene Weller
  */
 #pragma once
+#include "ambient/Rate.h"
 #include <algorithm>
 #include <cmath>
 
@@ -215,7 +216,7 @@ private:
         float m_m2 = 0.0f;    ///< the low pass's share
         bool  m_on = false;   ///< the band is away from 0 dB
     };
-    double   m_rate = 48000.0;    ///< the sample rate
+    double   m_rate = DefaultSampleRate;    ///< the sample rate
     int      m_count = 0;         ///< how many bands
     ToneBand m_bands[MaxBands];   ///< the bands
     Coef     m_coef[MaxBands];    ///< their coefficients

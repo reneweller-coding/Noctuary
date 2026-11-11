@@ -40,7 +40,7 @@ namespace
 using ambient::Engine;
 using ambient::ParamIdE;
 
-constexpr double Rate = 48000.0;      ///< the files' rate
+constexpr double Rate = ambient::DefaultSampleRate;      ///< the files' rate
 constexpr int    EngineBlock = 256;   ///< the engine's block (ambient_render's)
 
 /**

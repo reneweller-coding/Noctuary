@@ -617,7 +617,7 @@ void Engine::setTexture( int slot, const float *L, const float *R, int n, double
         t.m_lr[static_cast<size_t>( 2 * i + 1 )] = R[i];
     }
     removeOffset( t );
-    t.m_sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
+    t.m_sampleRate = sampleRate > 0.0 ? sampleRate : DefaultSampleRate;
     t.m_baseHz = baseHz > 0.0 ? baseHz : 261.6256;
     t.m_seamless = seamless;
     t.measure();
@@ -645,7 +645,7 @@ void Engine::setTexture( int slot, const float *mono, int n, double sampleRate, 
     t.m_mono.assign( mono, mono + std::max( n, 0 ) );
     t.m_lr.clear();   // this buffer may have held a stereo clip: a mono one is mono again
     removeOffset( t );
-    t.m_sampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
+    t.m_sampleRate = sampleRate > 0.0 ? sampleRate : DefaultSampleRate;
     t.m_baseHz = baseHz > 0.0 ? baseHz : 261.6256;
     t.m_seamless = seamless;
     t.measure();
@@ -673,7 +673,7 @@ Texture Engine::makeTexture( const float *L, const float *R, int n, double sampl
 {
     Texture t;
     if ( L == nullptr || n <= 0 ) return t;
-    const double sr = sampleRate > 0.0 ? sampleRate : 48000.0;
+    const double sr = sampleRate > 0.0 ? sampleRate : DefaultSampleRate;
     const int    len = std::min( n, static_cast<int>( std::max( 1.0, maxSeconds ) * sr ) );
     t.m_mono.assign( static_cast<size_t>( len ), 0.0f );
     for ( int i = 0; i < len; ++i ) t.m_mono[static_cast<size_t>( i )] = R != nullptr ? 0.5f * ( L[i] + R[i] ) : L[i];

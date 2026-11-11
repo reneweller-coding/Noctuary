@@ -51,7 +51,7 @@ void NoctuaryEditor::SpectrumView::timerCallback()
     m_peakDb = 20.0f * std::log10( peak + 1.0e-6f );
     m_fft->transform( m_re.data(), m_im.data(), false );
 
-    const float sr = static_cast<float>( m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : 48000.0 );
+    const float sr = static_cast<float>( m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : ambient::DefaultSampleRate );
     const float span = std::log( HiHz / LoHz );
     // Scaled so a full-scale sine reads 0 dB on the axis: the transform is unscaled and the Hann
     // window halves a bin's amplitude. Without this the numbers beside the grid mean nothing, and
@@ -172,7 +172,7 @@ void NoctuaryEditor::SpectrumView::paint( juce::Graphics &g )
     // across the upper part of the picture and a resonance rises towards 0 rather than off it.
     FilterCurve fc;
     fc.capture( m_proc, static_cast<float>(
-                            juce::jmax( 8000.0, m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : 48000.0 ) ) );
+                            juce::jmax( 8000.0, m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : ambient::DefaultSampleRate ) ) );
     if ( fc.m_fOn || fc.m_zOn )
     {
         juce::Path curve;

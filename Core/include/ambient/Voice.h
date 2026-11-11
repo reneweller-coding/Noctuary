@@ -604,7 +604,7 @@ private:
         m_zDry = 1.0f;           ///< the unfiltered share
     int    m_zModeCur = 0;       ///< the z-plane mode this block: 0 off, 1 Series, 2 Replace, 3 Modal
     Rng    m_rng;                ///< the voice's own random stream (phases, noise, strike)
-    double m_sr = 48000.0;       ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;       ///< sample rate in Hz
     double m_freq = 220.0,       ///< @brief the bank's frequency now, glides included
         m_freqTarget = 220.0;    ///< where a retune or portamento is heading
     double m_portaFrom = 0.0;    ///< @brief where the portamento started

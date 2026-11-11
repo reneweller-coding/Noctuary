@@ -273,7 +273,7 @@ private:
     int       m_live = 0;            ///< how many grains are sounding
     long long m_started = 0;         ///< grains started since prepare(), for the self test
     Rng       m_rng;                 ///< the cloud's own generator
-    double    m_sr = 48000.0;        ///< sample rate in Hz
+    double    m_sr = DefaultSampleRate;        ///< sample rate in Hz
     float     m_density = 12.0f,     ///< mean grains per second
         m_size = 250.0f,             ///< mean grain length in ms
         m_pitch = 0.3f,              ///< chance of a fixed transposition

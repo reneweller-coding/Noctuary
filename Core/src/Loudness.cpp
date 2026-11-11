@@ -215,7 +215,7 @@ float ZwickerLoudness::fromBandLevels( const float *levelsDb )
 
 void ZwickerLoudness::prepare( double sampleRate )
 {
-    m_sr = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_sr = sampleRate > 0.0 ? sampleRate : DefaultSampleRate;
     m_ring.assign( static_cast<size_t>( N ), 0.0f );
     m_re.assign( static_cast<size_t>( N ), 0.0f );
     m_im.assign( static_cast<size_t>( N ), 0.0f );
@@ -305,7 +305,7 @@ float ZwickerLoudness::sonesN5() const
 
 void LoudnessMeter::prepare( double sampleRate )
 {
-    m_sr = sampleRate > 0.0 ? sampleRate : 48000.0;
+    m_sr = sampleRate > 0.0 ? sampleRate : DefaultSampleRate;
     m_hopLen = std::max( 1, static_cast<int>( m_sr * 0.1 ) );
     m_blockLen = m_hopLen * HopsPerBlock;
     m_kL.prepare( m_sr );
