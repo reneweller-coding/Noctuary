@@ -1188,8 +1188,10 @@ int main()
         // Emptied as a new prepareToPlay empties them: the halls' tails are gone. What a prepare leaves is left here
         // too -- the chord's fundamentals through the two reverbs, 40 dB under what rang (-56 dBFS here), fading over
         // seconds; where it is kept is not found yet (11.11.2026), so the check is a fiftieth, not nothing.
-        check( awake && rest < 0.02f * ringing, "woken, the halls that rang are empty (a fiftieth of them at the most)" );
-        check( again && !p->halted() && note > 1.0e-3f, "a note played into the silence wakes the instrument and sounds" );
+        check( awake && rest < 0.02f * ringing,
+               "woken, the halls that rang are empty (a fiftieth of them at the most)" );
+        check( again && !p->halted() && note > 1.0e-3f,
+               "a note played into the silence wakes the instrument and sounds" );
         p->releaseResources();
     }
 

@@ -107,7 +107,7 @@ private:
     float     m_gainL[BodyModes] = {},   ///< each mode's gain into the left channel, cos of its pan angle
         m_gainR[BodyModes] = {};         ///< each mode's gain into the right channel, sin of its pan angle
     float m_modePan[BodyModes] = {};     ///< how far out each mode sits: drawn once, in prepare()
-    float m_sr = static_cast<float>( DefaultSampleRate );               ///< sample rate the coefficients were computed for
+    float m_sr = static_cast<float>( DefaultSampleRate );   ///< sample rate the coefficients were computed for
     float m_norm =
         1.0f;    ///< output gain from the modes' expected power (0.05 over its root, capped at 60), rebuilt by set()
     Rng m_rng;   ///< the body's own generator, seeded in prepare(); it draws the pan magnitudes

@@ -983,7 +983,7 @@ private:
         m_pitchDrift;                            ///< the slot's slow pitch drift
     float  m_dispPos = -1.0f;                    ///< the position last read, for the picture (see displayPosition)
     Rng    m_rng;                                ///< the slot's own random stream
-    double m_sr = DefaultSampleRate;                       ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;             ///< sample rate in Hz
     float  m_gL = 0.0f,                          ///< @brief the left gain at the end of the last block (level and pan)
         m_gR = 0.0f;                             ///< the right gain
     float       m_scratch[64] = {};              ///< a block of mono output, or the right channel of a two-channel type

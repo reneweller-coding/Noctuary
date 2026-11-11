@@ -276,7 +276,7 @@ private:
      *  @brief m_apSize - 1 */
     int    m_apSize = 0, m_apMask = 0, m_apW = 0;   ///< m_apW: the all-passes' shared write position
     int    m_apLen[MaxLines] = {};                  ///< each all-pass's delay in cells (ApMs in Memory.cpp)
-    double m_sr = DefaultSampleRate;                          ///< the sample rate prepare() was given
+    double m_sr = DefaultSampleRate;                ///< the sample rate prepare() was given
     Rng    m_rng;                                   ///< the memory's own stream: grain places, lengths and pans
     /**
      * @name settings

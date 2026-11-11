@@ -186,7 +186,7 @@ private:
      */
     void aims( float *aim ) const;
 
-    double                    m_rate = DefaultSampleRate;       ///< the sample rate
+    double                       m_rate = DefaultSampleRate;   ///< the sample rate
     float                     m_amount = 0.0f;        ///< how much of the way (0 .. 1)
     std::array<float, Bands>  m_lo{};                 ///< the range's lower edges, dB of the whole
     std::array<float, Bands>  m_hi{};                 ///< its upper edges
@@ -286,7 +286,7 @@ private:
      */
     void solve( double &x, double &y ) const;
 
-    double                       m_rate = DefaultSampleRate;       ///< the sample rate
+    double                       m_rate = DefaultSampleRate;   ///< the sample rate
     double                       m_bassAim = 0.35;       ///< the bass band's share aimed at (power ratio)
     double                       m_subAim = 0.002;       ///< the sub's
     BandMeter                    m_restMeter[2][2];      ///< the rest's meters: [sub, bass][left, right]

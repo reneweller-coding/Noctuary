@@ -133,7 +133,7 @@ private:
         m_bufR;                  ///< the right delay line
     int m_mask = 0,              ///< ring size - 1
         m_w = 0;                 ///< the write index, shared by both lines
-    double m_sr = DefaultSampleRate;       ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
     float  m_dL = 100.0f,        ///< target delay of the left line in samples, sr / freq
         m_dR = 100.0f,           ///< target delay of the right line, 0.3 % longer
         m_dLcur = 0.0f,          ///< the left delay as it glides towards m_dL (0 before the first set())
@@ -222,7 +222,7 @@ private:
     std::vector<float> m_buf;        ///< the delay line, a power-of-two ring
     int                m_mask = 0,   ///< ring size - 1
         m_w = 0;                     ///< the write index
-    double m_sr = DefaultSampleRate;           ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
     float  m_window = 3840.0f,       ///< the heads' travel in samples, 80 ms
         m_rate = 1.0f,               ///< the read rate, 2^(semitones / 12)
         m_pos = 0.0f;   ///< the first head's position in its window, 0 .. 1; the second is half a window on

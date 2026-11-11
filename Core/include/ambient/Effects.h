@@ -130,7 +130,7 @@ private:
         m_bufR;                                              ///< the right delay line
     int m_mask = 0,                                          ///< ring size - 1
         m_w = 0;                                             ///< the write index, shared by both lines
-    double m_sr = DefaultSampleRate;                                   ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;                         ///< sample rate in Hz
     double m_ph[3] = { 0.0, 0.33, 0.66 };   ///< the chorus LFOs' phases in cycles, one per tap, staggered
     float  m_mix = 0.4f,                    ///< wet against dry
         m_depth = 0.4f,                     ///< the Depth knob
@@ -256,7 +256,7 @@ private:
         m_bufR;                         ///< the right delay line
     int m_mask = 0,                     ///< ring size - 1
         m_w = 0;                        ///< the write index, shared by both lines
-    double m_sr = DefaultSampleRate;              ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;    ///< sample rate in Hz
     float  m_tL = 0,                    ///< the left delay asked for, in samples
         m_tR = 0,                       ///< the right delay asked for
         m_tLcur = 0,                    ///< the left delay as it glides (0 before the first set())
@@ -393,7 +393,7 @@ private:
     int m_mask = 0,                         ///< ring size - 1 for the lines, diffusers and pre-delays
         m_w = 0,                            ///< the write index, shared
         m_outMask = 0;                      ///< m_outR size - 1
-    double m_sr = DefaultSampleRate;                  ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;        ///< sample rate in Hz
     /**
      * A one-pole DC blocker on the input, 5 Hz. A network whose loop gain is a hair under one
      * -- a forty-second tail -- passes an offset with a gain of hundreds: measured, a texture
@@ -507,7 +507,7 @@ private:
     float m_amount = 0.0f,    ///< the Unmask knob, 0 .. 1
         m_spread = 0.0f,      ///< the Spread knob, 0 .. 1
         m_returnSec = 0.5f;   ///< the return time in seconds
-    double m_sr = DefaultSampleRate;    ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
 };
 
 /**
@@ -554,7 +554,7 @@ private:
         m_bufR;                  ///< the right wow delay ring
     int m_mask = 0,              ///< ring size - 1
         m_w = 0;                 ///< the write index, kept inside the ring
-    double m_sr = DefaultSampleRate;       ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
     float  m_amount = 0.0f,      ///< the Amount knob
         m_wow = 0.3f,            ///< the Wow knob
         m_hiss = 0.2f,           ///< the Hiss knob
@@ -639,7 +639,7 @@ private:
         m_tiltC = 0.1f,        ///< the pivot one-pole's coefficient
         m_tiltState[2] = {};   ///< the pivot one-pole's state per channel
     bool   m_tiltOn = false;   ///< whether the tilt is more than 0.05 dB from flat
-    double m_sr = DefaultSampleRate;     ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
 };
 
 /**
@@ -683,7 +683,7 @@ private:
         0.0, 0.3, 0.6, 0.85
     };   ///< the phase of each stage's read-point modulation, in cycles (the right channel takes the opposite side)
     float  m_amount = 0.0f;   ///< the Diffusion knob
-    double m_sr = DefaultSampleRate;    ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
 };
 
 /**
@@ -790,7 +790,7 @@ private:
     std::vector<float> m_bufL;       ///< one band, one line: it goes to the sides
     int                m_mask = 0,   ///< ring size - 1
         m_w = 0;                     ///< the write index
-    double m_sr = DefaultSampleRate;           ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;   ///< sample rate in Hz
     Svf    m_hp[1],                  ///< the band's high pass at 1.2 kHz
         m_lp[1];                     ///< the band's low pass at 4 kHz
     float m_amount = 0.0f,           ///< the Haas knob
@@ -1098,7 +1098,7 @@ private:
     std::vector<float> m_pair[Walls][Walls];   ///< what wall k sends towards wall m, a ring per pair
     int                m_mask = 0,             ///< ring size - 1
         m_w = 0;                               ///< the write index, shared by every ring
-    double m_sr = DefaultSampleRate;                     ///< sample rate in Hz
+    double m_sr = DefaultSampleRate;           ///< sample rate in Hz
     float  m_node[Walls][3] = {},              ///< each wall's node in metres, the listener at the origin
         m_half[Walls] = {};                    ///< half the room's extent along each wall's axis, in metres
     float m_src[3] = { 0.0f, 2.0f, 0.0f };     ///< the source's position in metres

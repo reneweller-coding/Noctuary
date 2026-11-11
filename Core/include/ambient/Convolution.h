@@ -380,7 +380,7 @@ private:
     Stage m_stage[Stages];                               ///< the stages, m_stages of them in use
     int   m_stages = 0,                                  ///< stages the cap needs, up to Stages
         m_head = 256;                                    ///< the latency and the step, in samples: 256 x the rate scale
-    double             m_sr = DefaultSampleRate;                   ///< sample rate in Hz
+    double             m_sr = DefaultSampleRate;         ///< sample rate in Hz
     long               m_capSamples = 0;                 ///< the longest impulse kept, in samples at the engine rate
     float              m_morph = 0.0f;   ///< the morph as last set; each stage reads it when a block begins
     long long          m_t = 0;          ///< samples taken in since reset()

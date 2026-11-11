@@ -154,7 +154,7 @@ public:
 
 private:
     FilterModelE m_model = FilterModelE::LP12;   ///< the model tick() runs; set() resets the state when it changes
-    float        m_sr = static_cast<float>( DefaultSampleRate );                ///< sample rate the coefficients were computed for
+    float        m_sr = static_cast<float>( DefaultSampleRate );   ///< sample rate the coefficients were computed for
     Svf          m_svfL,   ///< first state-variable pair, left: every SVF model's (only) stage, the first formant
         m_svfR,            ///< first pair, right
         m_svf2L,           ///< second pair, left: Lp24's second stage, the second formant

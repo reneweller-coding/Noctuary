@@ -566,7 +566,8 @@ void NoctuaryEditor::CosmosView::timerCallback()
     }
     m_silent = sq < 1.0e-9f;
     m_fft->transform( m_re.data(), m_im.data(), false );
-    const float sr = static_cast<float>( m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : ambient::DefaultSampleRate );
+    const float sr =
+        static_cast<float>( m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : ambient::DefaultSampleRate );
     // Log-spaced bins 30 Hz .. 16 kHz, each the peak of the FFT bins it covers, in dB; fast up,
     // slow down, like a meter.
     for ( int b = 0; b < Bins; ++b )
@@ -705,8 +706,8 @@ void NoctuaryEditor::FilterView::paint( juce::Graphics &g )
     const auto plot = r.toFloat().reduced( 10.0f, 8.0f ).withTrimmedTop( 12.0f );
     drawAxes( g, plot );
 
-    const float sr =
-        static_cast<float>( juce::jmax( 8000.0, m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : ambient::DefaultSampleRate ) );
+    const float sr = static_cast<float>(
+        juce::jmax( 8000.0, m_proc.getSampleRate() > 0 ? m_proc.getSampleRate() : ambient::DefaultSampleRate ) );
     FilterCurve fc;
     fc.capture( m_proc, sr );
 

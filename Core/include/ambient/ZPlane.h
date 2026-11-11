@@ -223,7 +223,7 @@ private:
     Mode  m_modes[ZSections];   ///< the bank
     int   m_used = 0;           ///< how many of m_modes ring
     float m_norm = 1.0f;        ///< 1 / sqrt of the summed squared weights: keeps the level even
-    float m_sr = static_cast<float>( DefaultSampleRate );      ///< the sample rate the modes were computed for (prepare)
+    float m_sr = static_cast<float>( DefaultSampleRate );   ///< the sample rate the modes were computed for (prepare)
 };
 
 /** @brief A cascaded two-pole/two-zero section, transposed direct form II. */

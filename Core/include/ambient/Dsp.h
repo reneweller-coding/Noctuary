@@ -403,7 +403,7 @@ private:
         const float tau = std::max( seconds, 0.0005f ) / k;
         return 1.0f - std::exp( -1.0f / ( tau * static_cast<float>( m_sr ) ) );
     }
-    double m_sr = DefaultSampleRate;           ///< sample rate the coefficients were computed for
+    double m_sr = DefaultSampleRate;   ///< sample rate the coefficients were computed for
     float  m_aCoef = 0.01f,          ///< attack one-pole coefficient
         m_dCoef = 0.001f,            ///< decay one-pole coefficient
         m_rCoef = 0.0005f,           ///< release one-pole coefficient

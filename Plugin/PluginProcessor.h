@@ -933,13 +933,13 @@ private:
      * here it touches no engine) -> Purged (the message thread, after it emptied them) -> None (the audio thread,
      * when a resume was asked for). The engines belong to the message thread exactly while it reads Held.
      * @{ */
-    static constexpr int HaltNone = 0;      ///< playing
-    static constexpr int HaltAsked = 1;     ///< a panic asked for: the next block fades out
-    static constexpr int HaltHeld = 2;      ///< silent; the engines wait to be emptied
-    static constexpr int HaltPurged = 3;    ///< silent and empty: a resume wakes it
-    std::atomic<int>     m_halt{ HaltNone };          ///< where the handshake stands
-    std::atomic<bool>    m_resumeAsked{ false };      ///< resume() was asked for (or a note played into the silence)
-    float                m_haltGain = 1.0f;           ///< audio thread: the output's gain at the last block's end
+    static constexpr int HaltNone = 0;             ///< playing
+    static constexpr int HaltAsked = 1;            ///< a panic asked for: the next block fades out
+    static constexpr int HaltHeld = 2;             ///< silent; the engines wait to be emptied
+    static constexpr int HaltPurged = 3;           ///< silent and empty: a resume wakes it
+    std::atomic<int>     m_halt{ HaltNone };       ///< where the handshake stands
+    std::atomic<bool>    m_resumeAsked{ false };   ///< resume() was asked for (or a note played into the silence)
+    float                m_haltGain = 1.0f;        ///< audio thread: the output's gain at the last block's end
     /**
      * @brief A block as the instrument plays it (what processBlock was before the panic stood in front of it).
      * @param[in,out] buffer  the output buses
@@ -1007,8 +1007,8 @@ private:
     void noteOff( int note );
     /** @brief Every note off, in m_heldVel and in the live engine. */
     void allNotesOff();
-    double m_sampleRate =
-        ambient::DefaultSampleRate;   ///< from prepareToPlay; the fade cannot trust getSampleRate() before the host sets it
+    double m_sampleRate = ambient::
+        DefaultSampleRate;   ///< from prepareToPlay; the fade cannot trust getSampleRate() before the host sets it
     juce::AudioBuffer<float> m_fadeBuf;   ///< the leaving engine renders into this while a crossfade runs
     /**
      * @brief Output muted at the device: set by AMBIENT_MUTE=1, and implied by AMBIENT_MANUAL (the
