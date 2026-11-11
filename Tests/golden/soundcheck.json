@@ -5,29 +5,29 @@
  "quiet": -40.0,
  "cases": {
   "consonant_expanse": {
-   "mix": -25.56,
+   "mix": -25.44,
    "stems": {
     "cosmos": null,
-    "far": -12.25,
-    "near": -7.99,
+    "far": -12.37,
+    "near": -8.11,
     "room": null
    }
   },
   "harmonic_hours": {
-   "mix": -24.69,
+   "mix": -24.81,
    "stems": {
-    "cosmos": -5.79,
-    "far": -11.85,
-    "near": 0.62,
+    "cosmos": -5.67,
+    "far": -11.73,
+    "near": 0.74,
     "room": null
    }
   },
   "somnus_field": {
-   "mix": -18.8,
+   "mix": -22.03,
    "stems": {
-    "cosmos": -31.89,
-    "far": -8.82,
-    "near": -5.52,
+    "cosmos": -28.66,
+    "far": -5.59,
+    "near": -2.29,
     "room": null
    }
   }

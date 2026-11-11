@@ -19,6 +19,18 @@ bits, Ogg Vorbis or MP3 at 320 kbit/s (MP3 through Windows' own encoder). The fa
 the same in all six instruments); `--list`, `--render`, and a self-test of every format and the queue (ctest
 `renderapp`).
 
+**The tonal balance, corrected** (11.11.2026). The master's Balance had aimed at ranges worked out from the reference
+recordings' third-octave curves read two thirds of an octave too high: a sub far under the recordings' (-34 to -20 dB of
+the whole where 383 ambient recordings keep -11 to -5), the presence and the air 2 to 4 dB over them. The table now
+comes from the tool that measures the recordings (Family/tools/mix_audit.py --balance-ranges). The Floor followed the
+same reading: it held the sub 27 dB under the whole, and where a preset carried more sub than that of its own, the
+floor's voice in the bass swelled to drown it -- up to 10 dB of bass over everything else. Its aims are the recordings'
+now: the bass at about a third of the whole, the sub 6 dB under the bass. As the instrument plays, a preset's sub stands
+at a median of -10 dB of the whole (-31 dB before, measured on 40 presets), and the presets the floor had swollen are 2
+to 8 dB quieter and no longer boom. The library was measured again with it: 4113 of the 14336 presets in the packs and
+53 of the 255 built in got a new gain (0.4 dB more at the median, 22 of them more than 3 dB either way), and the map was
+laid out again.
+
 ## 2.5.0 (15.10.2026): the ways around the panel
 
 **The ways around the panel** (15.10.2026, the family's Frame.h, from Empyrean): the search (Ctrl+K or the magnifier in

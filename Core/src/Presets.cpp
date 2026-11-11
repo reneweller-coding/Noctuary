@@ -297,7 +297,7 @@ const Preset Presets[] = {
       "brain_utonal=0.04536;brain_series=0.2031;filter_morph=0;filter_model=SEM",
       nullptr, nullptr, nullptr, "lfo1>presence:-0.198", "~~~~~~~0:0/2.13:1:-0.45" },
     { "Somnus Expanse",
-      "master_gain=-5.62;partials=25;tilt=1.547;brightness=0.5028;odd_even=0.1421;inharmonic=0.191;"
+      "master_gain=-5.24;partials=25;tilt=1.547;brightness=0.5028;odd_even=0.1421;inharmonic=0.191;"
       "shimmer=0.4338;shimmer_rate=0.06277;strands=4;detune=4;drift=3.424;drift_rate=0.05498;spread=0.7121;"
       "bloom=0.357;bloom_time=38.29;rate_wander=0.329;attack=11.43;decay=2.617;sustain=0.8407;release=31.1;"
       "cutoff=2735;resonance=0;filter_env=0.191;filter_drift=0.3181;keytrack=0.5991;depth=0.9228;"
@@ -1005,7 +1005,7 @@ const Preset Presets[] = {
       "0:0:0.12/2.83:-0.433:0.14/5.77:0.016:-0/8.24:-0.01:-0.59/9.74:-0.637:0.46/11.3:0.112:-0.09/13.1:0:-0.26!l0-5~"
       "0:0:0.31/1.63:0.986:-0.13/2.67:0:-0.54" },
     { "Glass Descent",
-      "master_gain=5.539;partials=23;tilt=1.071;brightness=0.8213;odd_even=-0.02745;inharmonic=0.1094;"
+      "master_gain=6.009;partials=23;tilt=1.071;brightness=0.8213;odd_even=-0.02745;inharmonic=0.1094;"
       "shimmer=0.32;shimmer_rate=0.08287;strands=4;detune=4;drift=2.48;drift_rate=0.03046;spread=0.5666;"
       "bloom=0.1137;bloom_time=168.3;rate_wander=0.4444;attack=13.06;decay=2.09;sustain=0.9093;"
       "release=14.57;cutoff=3045;resonance=0.1756;filter_env=0.03431;filter_drift=0.2901;keytrack=0.5854;"
@@ -1056,7 +1056,7 @@ const Preset Presets[] = {
       "env1>shimmer:-0.320;slide>odd_even:0.370:u",
       "0:0:-0.27/1.9:-0.958:0.41/3.02:0.914:0.41/4.49:-0.208:-0.1/6.37:0:0.2!l0-3" },
     { "Icicle Rim",
-      "master_gain=-1.95;partials=22;tilt=0.9922;brightness=0.6613;odd_even=0.2445;inharmonic=0.3351;"
+      "master_gain=-1.53;partials=22;tilt=0.9922;brightness=0.6613;odd_even=0.2445;inharmonic=0.3351;"
       "shimmer=0.2875;shimmer_rate=0.3612;detune=3.406;drift=3.682;drift_rate=0.02899;spread=0.658;"
       "bloom=0.3571;bloom_time=58.53;rate_wander=0.2368;attack=10.38;decay=8.861;sustain=0.9034;"
       "release=18.89;cutoff=3584;resonance=0.2261;filter_env=0.1652;filter_drift=0.1961;keytrack=0.3017;"
@@ -1258,7 +1258,7 @@ const Preset Presets[] = {
       "0:0:0.45/0.707:0.545:0.23/1.67:0.641:0.38/2.59:-0.812:0.38/3.29:0.852:0.45/5.57:0:-0.55~"
       "0:0:-0.1/0.877:0.701:0.3/2.23:-0.786:-0.46/5.05:-0.448:-0.51/7.57:0.74:-0.39/9.03:-0.899:0.02/10.5:0:-0.12" },
     { "Porcelain Vigil",
-      "master_gain=-8.53;partials=19;tilt=1.619;brightness=0.8029;odd_even=-0.3317;inharmonic=0.06564;"
+      "master_gain=-7.65;partials=19;tilt=1.619;brightness=0.8029;odd_even=-0.3317;inharmonic=0.06564;"
       "shimmer=0.2156;shimmer_rate=0.02791;strands=4;detune=4;drift=6.343;drift_rate=0.05549;spread=0.8223;"
       "bloom=0.3245;bloom_time=42.42;rate_wander=0.3924;attack=12.16;decay=4.68;sustain=0.8916;"
       "release=22.88;cutoff=4343;resonance=0;filter_env=0.2385;filter_drift=0.09702;keytrack=0.4667;"
@@ -1359,7 +1359,7 @@ const Preset Presets[] = {
       "0:0:0.47/0.927:-0.356:-0.15/1.9:-0.295:0.21/3.06:-0.346:0.49/5.63:-0.871:0/6.25:0:0.48!l0-4~"
       "0:0:-0.29/0.846:0.662:0.54/3.19:0.559:0.05/4.59:0.1:-0.09/6.45:0.714:-0.22/7.5:0.812:-0.29/10.4:-0.655:0.07/11.2:-0.228:0.26/13.6:-0.967:0.23/14.4:-0.921:0.37/16.4:-0.539:0.46/19.4:-0.548:0.5/22.2:0:0.38!l0-11" },
     { "Porcelain Reach",
-      "master_gain=-0.5;partials=10;tilt=1.419;brightness=0.8921;odd_even=0.1149;inharmonic=0.1973;"
+      "master_gain=-0.14;partials=10;tilt=1.419;brightness=0.8921;odd_even=0.1149;inharmonic=0.1973;"
       "shimmer=0.338;shimmer_rate=0.09738;strands=5;detune=4;drift=3.354;drift_rate=0.03703;spread=0.8936;"
       "bloom=0.1769;bloom_time=131.2;rate_wander=0.2534;attack=6.963;decay=5.698;sustain=0.7988;"
       "release=22.58;cutoff=3941;resonance=0.09475;filter_env=0.2412;filter_drift=0.2447;keytrack=0.4802;"
@@ -1456,7 +1456,7 @@ const Preset Presets[] = {
       "0:0:-0.52/2.48:0.206:0.21/3.62:-0.958:0/6.18:0.342:-0.2/8.91:0.409:-0.4/11.1:0:0.5!l0-4~"
       "0:0:0.05/1.91:0.958:-0.43/3.69:0.149:-0.09/6.54:-0.366:-0.07/7.4:-0.759:-0.13/10.2:0.31:0.36/11.1:0:-0.17!s2" },
     { "Silver Hollow",
-      "master_gain=-1.62;partials=9;tilt=1.663;brightness=0.7329;odd_even=0.2524;inharmonic=0.2795;"
+      "master_gain=-1.26;partials=9;tilt=1.663;brightness=0.7329;odd_even=0.2524;inharmonic=0.2795;"
       "shimmer=0.5082;shimmer_rate=0.1604;strands=4;detune=4;drift=8.923;drift_rate=0.1044;spread=0.8845;"
       "bloom=0.03305;bloom_time=54.87;rate_wander=0.1456;attack=14.27;decay=5.237;sustain=0.8383;"
       "release=27.91;cutoff=74.59;resonance=0;filter_env=0.2485;filter_drift=0.3409;keytrack=0.3065;"
@@ -1753,7 +1753,7 @@ const Preset Presets[] = {
       "0:0:0.59/2.73:-0.688:-0.48/4.94:-0.736:0.51/6.39:0.882:-0.54/9.13:0.233:-0.15/11.9:0:0.05!l0-4~"
       "0:0:-0.11/0.971:0.433:0.25/2.62:0.175:0.4/3.9:0:-0.56" },
     { "Chant Bloom",
-      "master_gain=6.02;partials=5;tilt=1.298;brightness=0.646;odd_even=0.2415;inharmonic=0.1738;"
+      "master_gain=6.23;partials=5;tilt=1.298;brightness=0.646;odd_even=0.2415;inharmonic=0.1738;"
       "shimmer=0.3363;shimmer_rate=0.07061;detune=4;drift=6.714;drift_rate=0.02767;spread=0.8742;"
       "bloom=0.04367;bloom_time=35.29;rate_wander=0.1712;attack=22.4;decay=2.962;sustain=0.885;"
       "release=57.05;cutoff=160.5;resonance=0.4296;filter_env=0.1483;filter_drift=0.4488;keytrack=0.3102;"
@@ -1798,7 +1798,7 @@ const Preset Presets[] = {
       "brain_series=0.07135;arc_harmony=0.304",
       nullptr, nullptr, nullptr, "lfo1>brain_bias:-0.082;lfo2>far_highcut:0.050;velocity>brain_spread:-0.160:none:u" },
     { "Choir Veil",
-      "master_gain=11.69;partials=24;tilt=1.654;brightness=0.6085;odd_even=-0.1629;inharmonic=0.04066;"
+      "master_gain=12;partials=24;tilt=1.654;brightness=0.6085;odd_even=-0.1629;inharmonic=0.04066;"
       "shimmer=0.4544;shimmer_rate=0.1366;detune=4;drift=2.249;drift_rate=0.05748;spread=0.8777;"
       "bloom=0.4197;bloom_time=138.6;rate_wander=0.3818;attack=24.08;decay=3.477;sustain=0.912;"
       "release=25.37;cutoff=980.5;resonance=0.1203;filter_env=0.05135;filter_drift=0.413;keytrack=0.6464;"
@@ -1941,7 +1941,7 @@ const Preset Presets[] = {
       "0:0:-0.11/2.01:-0.36:-0.59/3.67:-0.53:-0.22/6.12:0.986:-0.27/7.99:0.801:0.37/10.8:-0.412:0.01/13.2:0:-0.35!l0-5~"
       "0:0:-0.09/2.98:0.393:0.26/5.57:-0.594:0.57/7.44:0.048:-0.35/9.06:0.574:-0.31/11:-0.5:-0.58/13:0:0.38!l0-5" },
     { "Alto Psalm",
-      "master_gain=0.29;partials=22;tilt=1.847;brightness=0.2644;odd_even=0.3855;inharmonic=0.1496;"
+      "master_gain=0.52;partials=22;tilt=1.847;brightness=0.2644;odd_even=0.3855;inharmonic=0.1496;"
       "shimmer=0.3634;shimmer_rate=0.3826;strands=4;detune=4;drift=6.961;drift_rate=0.02272;spread=0.7931;"
       "bloom=0.1108;bloom_time=57.51;rate_wander=0.1979;attack=15.9;decay=3.783;sustain=0.9493;"
       "release=28.43;cutoff=1448;resonance=0.252;filter_env=0.2105;filter_drift=0.2089;keytrack=0.6921;"
@@ -2138,7 +2138,7 @@ const Preset Presets[] = {
       "0:0:-0.4/1.58:0.72:0.29/2.68:0.286:0.07/4.08:0.619:-0.49/6.94:0:-0.45!s2~"
       "0:0:-0.29/2.32:-0.175:0.16/3.51:0.755:-0.53/6.15:-0.923:-0.03/6.95:0.47:-0.42/7.99:-0.054:-0.35/9.73:0:0.05!l0-5" },
     { "Sung Span",
-      "master_gain=-0.84;tilt=1.718;brightness=0.6415;odd_even=-0.3497;inharmonic=0.04645;shimmer=0.2636;"
+      "master_gain=-1.71;tilt=1.718;brightness=0.6415;odd_even=-0.3497;inharmonic=0.04645;shimmer=0.2636;"
       "shimmer_rate=0.09026;strands=5;detune=4;drift=8.002;drift_rate=0.1385;spread=0.5012;bloom=0.3123;"
       "bloom_time=152.5;rate_wander=0.4071;attack=14.01;decay=3.191;sustain=0.8453;release=50.35;"
       "cutoff=2910;resonance=0.149;filter_env=0.04493;filter_drift=0.4997;keytrack=0.642;depth=0.9472;"
@@ -2792,7 +2792,7 @@ const Preset Presets[] = {
       "0:0:0.5/1.31:0.887:-0.21/3.17:-0.695:0.41/4.84:0:-0.24~"
       "0:0:-0.05/2.03:-0.188:0.27/4.7:-0.204:-0.05/5.52:0.476:-0.13/8.06:-0.588:0.39/9.23:0.607:-0.53/10.4:0:0.25!s4" },
     { "Abyss Floor",
-      "master_gain=-1.31;partials=23;tilt=2.606;brightness=0.1977;odd_even=0.1829;inharmonic=0.07124;"
+      "master_gain=-1.09;partials=23;tilt=2.606;brightness=0.1977;odd_even=0.1829;inharmonic=0.07124;"
       "shimmer=0.4737;shimmer_rate=0.04448;strands=5;detune=4;drift=4.603;drift_rate=0.01047;spread=0.8364;"
       "bloom=0.1833;bloom_time=31.98;rate_wander=0.4743;attack=25.78;decay=12.76;sustain=0.8632;"
       "release=41.03;cutoff=545.5;resonance=0.0536;filter_env=0.05358;filter_drift=0.1517;keytrack=0.5185;"
@@ -2835,7 +2835,7 @@ const Preset Presets[] = {
       nullptr, nullptr, nullptr, "lfo1>patina:-0.218;lfo2>pan_drift:-0.163;env1>detune:0.061",
       "0:0:-0.19/2.26:0.35:0.46/3.77:-0.032:-0.59/6.38:-0.025:0.15/7.04:0:-0.31!l0-3" },
     { "Seafloor Signal",
-      "master_gain=10.39;partials=23;tilt=2.244;brightness=0.1756;odd_even=-0.06725;inharmonic=0.03513;"
+      "master_gain=10.92;partials=23;tilt=2.244;brightness=0.1756;odd_even=-0.06725;inharmonic=0.03513;"
       "shimmer=0.2448;shimmer_rate=0.292;strands=5;detune=4;drift=5.5;drift_rate=0.1197;spread=0.7171;"
       "bloom=0.2876;bloom_time=30.71;rate_wander=0.3997;attack=0.802;decay=3.73;sustain=0.7053;"
       "release=11.36;cutoff=426.7;resonance=0.628;filter_env=0.3795;filter_drift=0.9145;keytrack=0.3776;"
@@ -2886,7 +2886,7 @@ const Preset Presets[] = {
       "0:0:-0.39/2.94:0.678:-0.45/3.82:-0.612:-0.56/5.36:0.668:-0.41/7.3:0:0.1!s1~"
       "0:0:0.31/2.09:-0.914:0.39/4.69:0.214:-0.16/7.02:0:0.18" },
     { "Trench Pressure",
-      "master_gain=0.83;partials=3;tilt=2.533;brightness=0.1704;odd_even=-0.3057;inharmonic=0.02712;"
+      "master_gain=1.12;partials=3;tilt=2.533;brightness=0.1704;odd_even=-0.3057;inharmonic=0.02712;"
       "shimmer=0.4388;shimmer_rate=0.1471;strands=4;detune=4;drift=7.382;drift_rate=0.113;spread=0.5823;"
       "bloom=0.4067;bloom_time=31.15;rate_wander=0.1322;attack=13.05;decay=2.526;sustain=0.8567;"
       "release=62.42;cutoff=284;resonance=0.2603;filter_env=0.2609;filter_drift=0.2676;keytrack=0.5568;"
@@ -2932,7 +2932,7 @@ const Preset Presets[] = {
       "0:0:0.29/2.69:-0.223:0.29/3.58:0.41:-0.07/4.62:-0.1:0.17/7.16:-0.237:0.59/10:0:-0.17!s3~"
       "0:0:-0.43/2.39:-0.684:-0.1/4.14:-0.678:0.04/6.08:0.902:0.39/8.07:0:0.46" },
     { "Gravity Bed",
-      "master_gain=-2.679;partials=19;tilt=2.267;brightness=0.1664;odd_even=0.1359;inharmonic=0.05348;"
+      "master_gain=-3.239;partials=19;tilt=2.267;brightness=0.1664;odd_even=0.1359;inharmonic=0.05348;"
       "shimmer=0.3854;shimmer_rate=0.05817;strands=5;detune=4;drift=4.892;drift_rate=0.02427;spread=0.5452;"
       "bloom=0.4761;bloom_time=97.58;rate_wander=0.3004;attack=24.86;decay=3.828;sustain=0.7874;"
       "release=21.23;cutoff=306.2;resonance=0.188;filter_env=0.01826;filter_drift=0.3264;keytrack=0.3636;"
@@ -3076,7 +3076,7 @@ const Preset Presets[] = {
 
     // ---------------------------------------------------------------- 64..79 Bowed Strings
     { "Soundpost Bed",
-      "master_gain=0.63;partials=8;tilt=1.762;brightness=0.2464;odd_even=0.3186;inharmonic=0.04173;"
+      "master_gain=0.84;partials=8;tilt=1.762;brightness=0.2464;odd_even=0.3186;inharmonic=0.04173;"
       "shimmer=0.2867;shimmer_rate=0.1936;strands=4;detune=4;drift=3.556;drift_rate=0.03187;spread=0.8607;"
       "bloom=0.251;bloom_time=75.52;rate_wander=0.2661;attack=15.19;decay=12.29;sustain=0.7465;"
       "release=28.45;cutoff=1058;resonance=0.1277;filter_env=0.3682;filter_drift=0.2729;keytrack=0.3242;"
@@ -3248,7 +3248,7 @@ const Preset Presets[] = {
       "slide>inharmonic:0.398:u;wheel>dly_mix:0.215:u",
       "0:0:-0.24/1.23:-0.512:-0.33/3.41:0.339:0.36/5.63:0.217:-0.42/7.4:0:0.13!s1" },
     { "Viol Threshold",
-      "master_gain=1.94;partials=11;tilt=0.9118;brightness=0.8272;odd_even=0.3645;inharmonic=0.1297;"
+      "master_gain=2.18;partials=11;tilt=0.9118;brightness=0.8272;odd_even=0.3645;inharmonic=0.1297;"
       "shimmer=0.2461;shimmer_rate=0.3418;strands=2;detune=4;drift=4.637;drift_rate=0.04215;spread=0.8728;"
       "bloom=0.05608;bloom_time=128.2;rate_wander=0.4936;attack=10.41;decay=3.075;sustain=0.7254;"
       "release=21.43;cutoff=1069;resonance=0.1094;filter_env=0.1456;filter_drift=0.2941;keytrack=0.5461;"
@@ -3430,7 +3430,7 @@ const Preset Presets[] = {
       "0:0:0.55/2.04:0.781:0.38/4.57:0.812:-0.16/5.69:0.326:0.02/7.89:0.427:-0.51/8.63:0.789:0.53/10.2:0:0.43!l0-5~"
       "0:0:0.58/2.69:0.922:0.34/4.75:-0.919:0.27/7.37:0.102:0.56/8.48:0.352:0.59/9.6:-0.264:-0.34/12.2:0.551:-0.28/14:-0.833:0.47/15.9:-0.332:0.13/17:-0.607:-0.18/19.9:0.203:0.36/22.1:0:-0.26!l0-10" },
     { "Viol Vigil",
-      "master_gain=-2.139;partials=8;tilt=1.902;brightness=0.3189;odd_even=0.08706;inharmonic=0.008918;"
+      "master_gain=-1.849;partials=8;tilt=1.902;brightness=0.3189;odd_even=0.08706;inharmonic=0.008918;"
       "shimmer=0.446;shimmer_rate=0.2163;strands=4;detune=4;drift=2.414;drift_rate=0.1142;spread=0.5002;"
       "bloom=0.2339;bloom_time=111.7;rate_wander=0.2506;attack=21.09;decay=2.064;sustain=0.8068;"
       "release=19.01;cutoff=1433;resonance=0.1594;filter_env=0.2696;filter_drift=0.2837;keytrack=0.3054;"
@@ -4119,7 +4119,7 @@ const Preset Presets[] = {
       "0:0:-0.24/1.86:-0.729:-0.34/2.58:-0.091:0.38/3.22:0:-0.48~~~~~~~"
       "0:0/3.54:1:-0.05/7:0.557:0.05/12.6:0:-0.14!s2" },
     { "Organ Passage",
-      "master_gain=-0.206;partials=14;tilt=0.8666;brightness=0.5146;odd_even=-0.08884;shimmer=0.5053;"
+      "master_gain=0.114;partials=14;tilt=0.8666;brightness=0.5146;odd_even=-0.08884;shimmer=0.5053;"
       "shimmer_rate=0.1117;strands=2;detune=2.779;drift=3.989;drift_rate=0.144;spread=0.8617;bloom=0.1383;"
       "bloom_time=59.51;rate_wander=0.4138;attack=14.8;decay=6.665;sustain=0.8652;release=22.81;"
       "cutoff=2711;resonance=0.6498;filter_env=0.3558;filter_drift=0.4169;keytrack=0.3181;depth=0.8826;"
@@ -4494,7 +4494,7 @@ const Preset Presets[] = {
       "brain_series=0.0852;arc_harmony=0.3119",
       nullptr, nullptr, nullptr, "lfo1>src2_transport:-0.285;beat>dly_mix:0.150;lenia3>width:0.133" },
     { "Pipe Threshold",
-      "master_gain=-1.47;partials=11;tilt=1.722;brightness=0.5473;odd_even=-0.2424;shimmer=0.285;"
+      "master_gain=-1.17;partials=11;tilt=1.722;brightness=0.5473;odd_even=-0.2424;shimmer=0.285;"
       "shimmer_rate=0.2777;detune=2.203;drift=8.452;drift_rate=0.11;spread=0.8596;bloom=0.3224;"
       "bloom_time=62.31;rate_wander=0.1686;attack=8.819;decay=10.31;sustain=0.8864;release=12.36;"
       "cutoff=3529;resonance=0.2444;filter_env=0.236;filter_drift=0.2619;keytrack=0.5563;depth=0.9563;"
@@ -5456,7 +5456,7 @@ const Preset Presets[] = {
       "0:0:-0.36/2.59:-0.661:-0.34/4.85:0:-0.1~0:0:-0.03/2.79:-0.325:-0.18/5.54:0:-0.1~~~~~~~~"
       "0:0/4.37:1:-0.56/9.35:0.571:0.1" },
     { "Circle Field",
-      "master_gain=6.09;partials=10;tilt=1.234;brightness=0.39;odd_even=0.04044;inharmonic=0.06865;"
+      "master_gain=6.39;partials=10;tilt=1.234;brightness=0.39;odd_even=0.04044;inharmonic=0.06865;"
       "shimmer=0.4941;shimmer_rate=0.06711;strands=6;detune=4;drift=5.259;drift_rate=0.02244;spread=0.5096;"
       "bloom=0.291;bloom_time=36.31;rate_wander=0.6736;attack=3.01;decay=6.022;sustain=0.7133;"
       "release=9.933;cutoff=541.4;resonance=0.5474;filter_env=0.2237;filter_drift=0.8639;keytrack=0.4828;"
@@ -5551,7 +5551,7 @@ const Preset Presets[] = {
       "0:0:0.35/1.49:-0.734:0.57/4.32:0.699:-0.49/6.47:0:0.21~"
       "0:0:-0.17/1.84:-0.296:-0.29/4.39:0.538:0.42/5.79:-0.647:-0.54/7.09:0.921:0.41/8.57:0:0.28!s3" },
     { "Exchange Drift",
-      "master_gain=11.81;partials=21;tilt=1.567;brightness=0.6548;odd_even=0.3407;inharmonic=0.0757;"
+      "master_gain=12;partials=21;tilt=1.567;brightness=0.6548;odd_even=0.3407;inharmonic=0.0757;"
       "shimmer=0.4909;shimmer_rate=0.322;strands=6;detune=4;drift=6.695;drift_rate=0.03489;spread=0.573;"
       "bloom=0.3233;bloom_time=159.6;rate_wander=0.4564;attack=0.5859;decay=6.769;sustain=0.947;"
       "release=8.374;cutoff=4138;resonance=0.2062;filter_env=0.04972;filter_drift=0.4595;keytrack=0.3349;"
@@ -5596,7 +5596,7 @@ const Preset Presets[] = {
       "lenia1>purity_drift:0.197;lfo2>depth:0.063;distance>cosmos_smear:0.286;env1>detune:0.237",
       "0:0:-0.38/1.12:-0.717:-0.21/3.62:0.412:-0.53/5.95:-0.193:-0.47/7.63:0.03:0.12/8.68:0:-0.09!l0-4" },
     { "Voicing Harmony",
-      "master_gain=-4.2;partials=15;tilt=1.349;brightness=0.6912;odd_even=-0.351;inharmonic=0.3439;"
+      "master_gain=-3.99;partials=15;tilt=1.349;brightness=0.6912;odd_even=-0.351;inharmonic=0.3439;"
       "shimmer=0.4886;shimmer_rate=0.05824;strands=5;detune=4;drift=7.418;drift_rate=0.05995;spread=0.5;"
       "bloom=0.3814;bloom_time=56.48;rate_wander=0.1293;attack=19.71;decay=9.022;sustain=0.8252;"
       "release=22.12;cutoff=1571;resonance=0.3435;filter_env=0.1966;filter_drift=0.453;keytrack=0.6772;"
@@ -5728,7 +5728,7 @@ const Preset Presets[] = {
       "0:0:-0.09/2.12:0.302:-0.41/3.22:-0.753:-0.55/6.14:-0.912:-0.08/8.98:0.106:-0/10.1:0:0.05~"
       "0:0:0.29/2.5:-0.368:0.37/5.4:0.752:-0.09/7.78:0.354:0.22/10.2:-0.886:0.31/12.4:-0.4:0.3/14:0.301:-0.44/16.9:-0.891:-0.23/18.9:-0.094:0.27/20.8:0.234:0.57/23:0.342:0.5/25.4:0:-0.26!s5" },
     { "Cadence Passage",
-      "master_gain=1.35;partials=17;tilt=0.5701;brightness=0.8204;odd_even=-0.2995;inharmonic=0.0655;"
+      "master_gain=1.65;partials=17;tilt=0.5701;brightness=0.8204;odd_even=-0.2995;inharmonic=0.0655;"
       "shimmer=0.3674;shimmer_rate=0.08836;strands=6;detune=4;drift=3.682;drift_rate=0.1356;spread=0.846;"
       "bloom=0.1944;bloom_time=46.91;rate_wander=0.3558;attack=8.901;decay=4.313;sustain=0.7566;"
       "release=30.79;cutoff=488.4;resonance=0.5093;filter_env=0.2174;filter_drift=0.3127;keytrack=0.5752;"
@@ -5821,7 +5821,7 @@ const Preset Presets[] = {
       "0:0:-0.27/2.62:0.998:0.43/3.46:0.625:0.55/6.45:-0.024:0.12/7.59:-0.728:0.14/8.31:0:0.56!l0-4~"
       "0:0:0.24/1.84:0.914:-0.41/4.59:0.955:-0.51/6.34:0.103:-0/9.21:0:0.36" },
     { "Modal Bed",
-      "master_gain=6.24;partials=17;tilt=1.507;brightness=0.4483;odd_even=0.3546;inharmonic=0.1815;"
+      "master_gain=6.45;partials=17;tilt=1.507;brightness=0.4483;odd_even=0.3546;inharmonic=0.1815;"
       "shimmer=0.2704;shimmer_rate=0.7262;strands=4;detune=4;drift=5.83;drift_rate=0.05668;spread=0.7094;"
       "bloom=0.2907;bloom_time=133.4;rate_wander=0.5432;attack=20.04;decay=7.826;sustain=0.8836;"
       "release=15.16;cutoff=4922;resonance=0.1396;filter_env=0.04394;filter_drift=0.4434;keytrack=0.6048;"
@@ -5967,7 +5967,7 @@ const Preset Presets[] = {
       "pressure>cutoff:0.206:u;slide>tilt:0.195:u",
       "0:0:0.53/0.782:-0.883:-0.44/2.17:0:0.58" },
     { "Pivot Descent",
-      "master_gain=-1.549;partials=20;tilt=1.558;brightness=0.7778;odd_even=-0.2302;inharmonic=0.3983;"
+      "master_gain=-1.299;partials=20;tilt=1.558;brightness=0.7778;odd_even=-0.2302;inharmonic=0.3983;"
       "shimmer=0.3171;shimmer_rate=0.05047;strands=5;detune=4;drift=6.533;drift_rate=0.1424;spread=0.5006;"
       "bloom=0.4806;bloom_time=149;rate_wander=0.465;attack=23.8;decay=13.76;sustain=0.7107;release=37.85;"
       "cutoff=3621;resonance=0.3291;filter_env=0.02906;filter_drift=0.2427;keytrack=0.5055;depth=0.8826;"
@@ -6017,7 +6017,7 @@ const Preset Presets[] = {
       "0:0:0.31/1.98:0.598:-0.34/3.33:0.354:-0.46/4.62:0.35:0.39/6.82:-0.525:0.42/8.41:0.815:-0.28/9.62:0.51:-0.32/11.5:0:-0.31!l0-6~"
       "0:0:0.53/1.9:-0.738:-0.32/4.35:0.984:-0.2/7.23:0.746:0.02/8.02:0.106:-0.32/9.56:0.867:0.37/12.3:-0.283:0.08/14:0.01:0.22/14.8:-0.24:0.5/17.5:-0.748:-0.29/19:0.432:-0.45/21.9:0.986:0.5/24.5:-0.95:0.57/25.8:0:-0.24!s9" },
     { "Ladder Motion",
-      "master_gain=4.36;partials=10;tilt=1.483;brightness=0.692;odd_even=-0.09322;shimmer=0.4713;"
+      "master_gain=4.58;partials=10;tilt=1.483;brightness=0.692;odd_even=-0.09322;shimmer=0.4713;"
       "shimmer_rate=0.03119;strands=2;detune=3.381;drift=7.523;drift_rate=0.03244;spread=0.7097;"
       "bloom=0.0009907;bloom_time=44.48;rate_wander=0.4286;attack=13.89;decay=8.009;sustain=0.8533;"
       "release=33.58;cutoff=2662;resonance=0.5735;filter_env=0.3089;filter_drift=0.6249;keytrack=0.6049;"
@@ -6065,7 +6065,7 @@ const Preset Presets[] = {
 
     // ---------------------------------------------------------------- 128..143 Cosmos
     { "Corona Horizon",
-      "master_gain=0.24;partials=17;tilt=1.772;brightness=0.3403;odd_even=0.2209;inharmonic=0.05837;"
+      "master_gain=0.47;partials=17;tilt=1.772;brightness=0.3403;odd_even=0.2209;inharmonic=0.05837;"
       "shimmer=0.4498;shimmer_rate=0.03532;strands=2;detune=4;drift=3.559;drift_rate=0.07286;spread=0.5115;"
       "bloom=0.2367;bloom_time=47.57;rate_wander=0.3119;attack=14.13;decay=4.558;sustain=0.7512;"
       "release=47.17;cutoff=2262;resonance=0.5015;filter_env=0.1954;filter_drift=0.5237;keytrack=0.357;"
@@ -6423,7 +6423,7 @@ const Preset Presets[] = {
       "0:0:-0.45/2.29:0.341:0.08/5.25:0.229:0.07/6.16:-0.391:-0.44/7.87:-0.082:-0.39/9.92:-0.421:0.15/11.1:-0.642:0.25/12.3:0.698:0.39/14.6:0.163:-0.06/17.5:-0.606:-0.28/19.7:0.192:-0.34/21.2:-0.338:0.03/23.1:0.66:0.42/25.1:-0.441:-0.13/26.3:0:-0.02!l0-13~"
       "~~~0:0/4.38:0.892:0.11/9.09:0.574:-0.03/13:0.753:0.19/15.7:0.641:0.36/21.5:0.636:0.08/23.8:0.995:-0.34!l1-6" },
     { "Stellar Bed",
-      "master_gain=1.568;tilt=1.505;brightness=0.7439;odd_even=-0.007428;inharmonic=0.03908;shimmer=0.537;"
+      "master_gain=1.938;tilt=1.505;brightness=0.7439;odd_even=-0.007428;inharmonic=0.03908;shimmer=0.537;"
       "shimmer_rate=0.2833;strands=4;detune=4;drift=7.227;drift_rate=0.03892;spread=0.6002;bloom=0.07423;"
       "bloom_time=32.75;rate_wander=0.2694;attack=13.5;decay=4.981;sustain=0.7711;release=40.93;"
       "cutoff=3111;resonance=0.07198;filter_env=0.3926;filter_drift=0.2985;keytrack=0.5276;depth=0.9074;"
@@ -6518,7 +6518,7 @@ const Preset Presets[] = {
       "0:0:0.47/1.58:0.197:-0.29/2.24:0.166:-0.08/3.81:0:-0.06!l0-2~"
       "0:0:0.58/2.82:-0.329:-0.07/5.6:-0.199:0.48/8.47:0.092:0.18/10.8:-0.737:-0.4/13.2:0:-0.1" },
     { "Comet Threshold",
-      "master_gain=-4.93;partials=22;tilt=1.027;brightness=0.8603;odd_even=-0.3058;inharmonic=0.0821;"
+      "master_gain=-4.66;partials=22;tilt=1.027;brightness=0.8603;odd_even=-0.3058;inharmonic=0.0821;"
       "shimmer=0.5107;shimmer_rate=0.1058;strands=5;detune=4;drift=8.36;drift_rate=0.04663;spread=0.5615;"
       "bloom=0.213;bloom_time=165.3;rate_wander=0.3406;attack=15.16;decay=5.172;sustain=0.8479;"
       "release=30.03;cutoff=7518;resonance=0.2044;filter_env=0.313;filter_drift=0.4435;keytrack=0.3509;"
@@ -6758,7 +6758,7 @@ const Preset Presets[] = {
       "0:0:-0.03/2.97:0.052:0.29/4.87:0:-0.1~"
       "0:0:0.33/1.27:0.379:-0.3/2.7:0.659:-0.14/5.42:0.508:-0.14/6.52:0:-0.28" },
     { "Event Passage",
-      "master_gain=5.708;partials=23;tilt=1.274;brightness=0.6612;odd_even=-0.3245;inharmonic=0.2734;"
+      "master_gain=6.168;partials=23;tilt=1.274;brightness=0.6612;odd_even=-0.3245;inharmonic=0.2734;"
       "shimmer=0.3456;shimmer_rate=0.09653;detune=3.425;drift=4.092;drift_rate=0.08444;spread=0.8537;"
       "bloom=0.1239;bloom_time=60.45;rate_wander=0.2596;attack=12.9;decay=9.697;sustain=0.9403;"
       "release=24.46;cutoff=2829;resonance=0.6899;filter_env=0.03322;filter_drift=0.6292;keytrack=0.4306;"
@@ -7295,7 +7295,7 @@ const Preset Presets[] = {
       "0:0:-0.36/0.682:-0.562:0.25/2.47:0.297:-0.21/5.16:-0.245:-0.13/7.23:-0.112:0.02/8.54:0:-0.33~~~~~~~~"
       "0:0/7.09:1:-0.41" },
     { "Flock Interval",
-      "master_gain=-7.02;partials=14;tilt=0.5188;brightness=0.7044;odd_even=-0.2454;inharmonic=0.161;"
+      "master_gain=-6.75;partials=14;tilt=0.5188;brightness=0.7044;odd_even=-0.2454;inharmonic=0.161;"
       "shimmer=0.5778;shimmer_rate=0.03695;strands=5;detune=4;drift=2.602;drift_rate=0.03587;spread=0.5151;"
       "bloom=0.1622;bloom_time=71.28;rate_wander=0.2703;attack=14.7;decay=9.484;sustain=0.705;"
       "release=30.62;cutoff=6051;resonance=0.1842;filter_env=0.2826;filter_drift=0.42;keytrack=0.6334;"
@@ -7396,7 +7396,7 @@ const Preset Presets[] = {
       "0:0:-0.18/1.21:-0.413:-0.53/3.45:0.559:0.46/6.03:0.813:-0.59/8.73:0.308:-0.47/9.48:0.397:-0.53/11.1:0:0.32~"
       "0:0:-0.09/2.67:0.306:-0.48/3.81:-0.424:-0.45/6.27:0.711:0.38/6.9:0:-0.27" },
     { "Memory Span",
-      "master_gain=-8.86;partials=8;tilt=0.9353;brightness=0.6654;odd_even=0.05843;inharmonic=0.1708;"
+      "master_gain=-8.04;partials=8;tilt=0.9353;brightness=0.6654;odd_even=0.05843;inharmonic=0.1708;"
       "shimmer=0.2848;shimmer_rate=0.2632;strands=5;detune=4;drift=7.189;drift_rate=0.0489;spread=0.5848;"
       "bloom=0.244;bloom_time=43.93;rate_wander=0.4528;attack=14.49;decay=8.401;sustain=0.9292;"
       "release=37.81;cutoff=947;resonance=0;filter_env=0.3671;filter_drift=0.6701;keytrack=0.4839;"
@@ -7449,7 +7449,7 @@ const Preset Presets[] = {
       "0:0:-0.25/1.09:-0.728:-0.14/3.7:0.222:-0.51/4.52:0.502:-0.35/5.98:-0.717:-0.06/6.67:-0.014:-0.3/9.4:0.749:0.11/12.2:-0.591:-0.07/15:0:-0.58~"
       "0:0:0.35/2.63:-0.418:0.47/5.37:0.487:0.35/8.2:0.149:0.32/8.99:-0.96:-0.34/10.7:0.002:0.32/12.2:-0.405:-0.33/13.7:0.475:-0.1/14.8:0.21:0.28/17:0:0.42!l0-8" },
     { "Remembered Memory",
-      "master_gain=-3.183;partials=2;tilt=1.029;brightness=0.5834;odd_even=0.1053;inharmonic=0.1999;"
+      "master_gain=-2.903;partials=2;tilt=1.029;brightness=0.5834;odd_even=0.1053;inharmonic=0.1999;"
       "shimmer=0.5398;shimmer_rate=0.1926;strands=4;detune=4;drift=6.012;drift_rate=0.02606;spread=0.5567;"
       "bloom=0.3384;bloom_time=123.6;rate_wander=0.4001;attack=6.034;decay=4.485;sustain=0.7769;"
       "release=24.27;cutoff=1312;resonance=0.2371;filter_env=0.3359;filter_drift=0.179;keytrack=0.3135;"
@@ -7647,7 +7647,7 @@ const Preset Presets[] = {
 
     // ---------------------------------------------------------------- 160..175 Weather and Noise
     { "Gale Passage",
-      "master_gain=-1.029;partials=20;tilt=1.821;brightness=0.315;odd_even=-0.3936;inharmonic=0.1195;"
+      "master_gain=-0.149;partials=20;tilt=1.821;brightness=0.315;odd_even=-0.3936;inharmonic=0.1195;"
       "shimmer=0.5707;shimmer_rate=0.2532;strands=2;detune=4;drift=6.747;drift_rate=0.02292;spread=0.5075;"
       "bloom=0.2212;bloom_time=91.22;rate_wander=0.3319;attack=17.39;decay=4.247;sustain=0.7297;"
       "release=20.33;cutoff=826.2;resonance=0.1714;filter_env=0.3883;filter_drift=0.3984;keytrack=0.4413;"
@@ -7927,7 +7927,7 @@ const Preset Presets[] = {
       "lfo1>doppler:0.181;lfo2>brain_cascade:-0.193;lfo3>near_mix:0.066;lfo4>cosmos_smear:0.126;"
       "lfo5>src2_shimmer:-0.104:macro_h;lfo8>strike_type:0.180" },
     { "Wind Signal",
-      "master_gain=-0.313;partials=17;tilt=1.495;brightness=0.4776;odd_even=0.126;inharmonic=0.2578;"
+      "master_gain=0.187;partials=17;tilt=1.495;brightness=0.4776;odd_even=0.126;inharmonic=0.2578;"
       "shimmer=0.5825;shimmer_rate=0.3312;strands=5;detune=4;drift=7.235;drift_rate=0.1053;spread=0.6755;"
       "bloom=0.3512;bloom_time=36.12;rate_wander=0.461;attack=13.56;decay=9.144;sustain=0.7322;"
       "release=49.46;cutoff=4232;resonance=0.6971;filter_env=0.3803;filter_drift=0.2237;keytrack=0.5586;"
@@ -8226,7 +8226,7 @@ const Preset Presets[] = {
       "0:0:0.47/2.74:-0.279:-0.6/4.92:-0.737:0.04/6.97:-0.643:0.53/9.37:0.939:0.47/11.6:-0.6:0.02/13.3:0:0.45!l0-5~"
       "~0:0/4.12:1:0.06/7.32:0.51:0.13" },
     { "Breath Bed",
-      "master_gain=3.785;partials=15;tilt=0.9839;brightness=0.7865;odd_even=0.03361;inharmonic=0.1483;"
+      "master_gain=4.275;partials=15;tilt=0.9839;brightness=0.7865;odd_even=0.03361;inharmonic=0.1483;"
       "shimmer=0.5015;shimmer_rate=0.3557;strands=2;detune=3.112;drift=5.765;drift_rate=0.0489;"
       "spread=0.6203;bloom=0.232;bloom_time=48.37;rate_wander=0.1168;attack=9.956;decay=6.666;"
       "sustain=0.9055;release=21.13;cutoff=1344;resonance=0.1825;filter_env=0.2018;filter_drift=0.2379;"
@@ -8309,7 +8309,7 @@ const Preset Presets[] = {
       "pressure>cutoff:0.313:u;wheel>dly_mix:0.161:u",
       "0:0:0.14/1.09:0.148:-0.13/2.46:-0.648:0.01/5.26:0.745:-0.24/7.03:0.13:0.02/9.58:0.937:-0.56/12.1:0:-0.11!l0-5" },
     { "Weather Field",
-      "master_gain=6.75;partials=21;tilt=1.706;brightness=0.5202;odd_even=0.01868;inharmonic=0.3611;"
+      "master_gain=7.54;partials=21;tilt=1.706;brightness=0.5202;odd_even=0.01868;inharmonic=0.3611;"
       "shimmer=0.2385;shimmer_rate=0.1935;strands=5;detune=3.428;drift=2.106;drift_rate=0.1206;"
       "spread=0.8609;bloom=0.03929;bloom_time=98.39;rate_wander=0.435;attack=12.83;decay=2.046;"
       "sustain=0.8864;release=22.02;cutoff=2629;resonance=0.7004;filter_env=0.1192;filter_drift=0.7258;"
@@ -8455,7 +8455,7 @@ const Preset Presets[] = {
       "0:0:-0.44/2.59:0.637:0.17/4.66:-0.022:-0.24/7.47:0.783:0.27/9.63:-0.434:-0.43/12.1:-0.251:0.18/13.4:0:0.37~~"
       "~~~~~0:0/5.22:1:-0.52" },
     { "Girder Span",
-      "master_gain=-1.45;tilt=1.394;brightness=0.7055;odd_even=-0.3747;inharmonic=0.4438;shimmer=0.6116;"
+      "master_gain=-1.11;tilt=1.394;brightness=0.7055;odd_even=-0.3747;inharmonic=0.4438;shimmer=0.6116;"
       "shimmer_rate=0.1204;strands=5;detune=4;drift=6.357;drift_rate=0.02699;spread=0.5258;bloom=0.1208;"
       "bloom_time=110.1;rate_wander=0.4326;attack=7.565;decay=4.292;sustain=0.8503;release=16.91;"
       "cutoff=5364;resonance=0.2256;filter_env=0.248;filter_drift=0.3905;keytrack=0.3422;depth=0.8506;"
@@ -8607,7 +8607,7 @@ const Preset Presets[] = {
       "0:0:0.43/0.936:0.549:-0.34/2.83:0.926:-0.44/5.02:-0.699:0.48/7.38:-0.461:-0.53/9.1:0.875:0.21/9.75:-0.815:-0.07/11.3:-0.721:0.48/14.2:-0.848:0.48/15:0.348:-0.37/16.4:0:0.01!l0-9~"
       "~~0:0/1.81:1:-0.45/5.69:0.571:0" },
     { "Iron Signal",
-      "master_gain=-2.23;partials=12;tilt=0.8451;brightness=0.4503;odd_even=0.2067;inharmonic=0.3484;"
+      "master_gain=-1.96;partials=12;tilt=0.8451;brightness=0.4503;odd_even=0.2067;inharmonic=0.3484;"
       "shimmer=0.3877;shimmer_rate=0.08674;strands=4;detune=4;drift=6.233;drift_rate=0.1078;spread=0.8266;"
       "bloom=0.3531;bloom_time=120.7;rate_wander=0.4782;attack=11.59;decay=4.022;sustain=0.7325;"
       "release=33.48;cutoff=177.5;resonance=0.5487;filter_env=0.3945;filter_drift=0.4976;keytrack=0.5254;"
@@ -9229,7 +9229,7 @@ const Preset Presets[] = {
       "0:0:0.1/2.64:-0.425:-0.32/4.58:0.651:-0.35/7.28:0.009:0/9.63:0.462:0.49/11.5:0.468:-0.29/13:0:-0.51!l0-5~"
       "0:0:-0.46/1.11:-0.484:-0.51/2.32:0:-0.37" },
     { "Spiral Bed",
-      "master_gain=-1.76;partials=11;tilt=0.8692;brightness=0.5998;odd_even=0.2094;inharmonic=0.1113;"
+      "master_gain=-0.8;partials=11;tilt=0.8692;brightness=0.5998;odd_even=0.2094;inharmonic=0.1113;"
       "shimmer=0.5464;shimmer_rate=0.05121;strands=4;detune=4;drift=5.021;drift_rate=0.0441;spread=0.5318;"
       "bloom=0.1672;bloom_time=42.1;rate_wander=0.2594;attack=15.14;decay=6.1;sustain=0.8614;release=16.91;"
       "cutoff=3392;resonance=0;filter_env=0.1482;filter_drift=0.4914;keytrack=0.3796;depth=0.9429;"
@@ -9275,7 +9275,7 @@ const Preset Presets[] = {
       "env2>far_comod:0.222;slide>tilt:0.150:u",
       "0:0:-0.48/2.43:-0.258:-0.54/4.32:-0.016:0.36/6.47:0:0.08!l0-2~0:0:-0.28/2.99:0.705:0.03/5.41:0:0.56" },
     { "Spiral Passage",
-      "master_gain=1.08;tilt=1.451;brightness=0.5513;odd_even=0.1926;inharmonic=0.06872;shimmer=0.4047;"
+      "master_gain=1.68;tilt=1.451;brightness=0.5513;odd_even=0.1926;inharmonic=0.06872;shimmer=0.4047;"
       "shimmer_rate=0.05176;strands=4;detune=4;drift=2.867;drift_rate=0.01;spread=0.8312;bloom=0.2231;"
       "bloom_time=30.14;rate_wander=0.3337;attack=4.412;decay=2.759;sustain=0.7796;release=5.429;"
       "cutoff=267.3;resonance=0;filter_env=0.02846;filter_drift=0.1602;keytrack=0.6457;depth=0.9409;"
@@ -9369,7 +9369,7 @@ const Preset Presets[] = {
       "distance>src1_transport:0.367",
       "~~~~~~~0:0/2.58:1:-0.09/6.3:0.674:-0.59/10.5:0:-0.07!s2" },
     { "Above Descent",
-      "master_gain=1.463;partials=17;tilt=1.746;brightness=0.5097;odd_even=-0.1235;inharmonic=0.1111;"
+      "master_gain=1.693;partials=17;tilt=1.746;brightness=0.5097;odd_even=-0.1235;inharmonic=0.1111;"
       "shimmer=0.2331;shimmer_rate=0.2162;detune=4;drift=6.863;drift_rate=0.02691;spread=0.5025;"
       "bloom=0.2579;bloom_time=46.42;rate_wander=0.3243;attack=21.96;decay=2.549;sustain=0.8436;"
       "release=18.83;cutoff=997;resonance=0.05144;filter_env=0.08447;filter_drift=0.4353;keytrack=0.6617;"
@@ -9412,7 +9412,7 @@ const Preset Presets[] = {
       nullptr, nullptr, nullptr, "lfo1>patina:0.233",
       "~~~~~~~0:0/2.03:0.726:0.05/5.52:0.479:0.38/9.09:0.847:-0.36/12.1:0.846:0.09/16:0.973:-0.14!l1-5" },
     { "Near Reach",
-      "master_gain=6.78;partials=19;tilt=1.518;brightness=0.5204;odd_even=-0.009312;inharmonic=0.0619;"
+      "master_gain=7.12;partials=19;tilt=1.518;brightness=0.5204;odd_even=-0.009312;inharmonic=0.0619;"
       "shimmer=0.3434;shimmer_rate=0.08047;detune=4;drift=4.812;drift_rate=0.06517;spread=0.8101;"
       "bloom=0.1805;bloom_time=127.9;rate_wander=0.3049;attack=8.215;decay=3.889;sustain=0.7166;"
       "release=29.39;cutoff=1108;resonance=0.2543;filter_env=0.3971;filter_drift=0.4197;keytrack=0.4947;"
@@ -9858,7 +9858,7 @@ const Preset Presets[] = {
       "0:0:-0.01/2.35:0.815:-0.41/5.35:0.073:0.13/6.29:-0.452:0.4/9.22:-0.297:0.23/11.8:0.992:0.59/13.4:0:0.13!l0-5~"
       "0:0:0.57/2.4:-0.987:0.17/4.49:-0.471:-0.14/5.76:0.104:0.2/8.68:-0.107:0.43/9.59:-0.464:-0.07/11.4:0.567:-0.19/13.1:0.836:-0.28/15.4:0.533:0.17/18.2:-0.834:0.37/19.4:-0.524:0.43/21.3:-0.855:-0.36/22.8:0.16:0.02/23.4:-0.983:-0.07/24.8:0:0.13!l0-13" },
     { "Orbit Hollow",
-      "master_gain=-8.41;partials=12;tilt=1.321;brightness=0.5222;odd_even=0.1619;inharmonic=0.3443;"
+      "master_gain=-7.63;partials=12;tilt=1.321;brightness=0.5222;odd_even=0.1619;inharmonic=0.3443;"
       "shimmer=0.4548;shimmer_rate=0.3932;strands=4;detune=4;drift=4.304;drift_rate=0.09134;spread=0.7971;"
       "bloom=0.4896;bloom_time=79.76;rate_wander=0.4504;attack=12.08;decay=2.704;sustain=0.893;"
       "release=20.19;cutoff=4447;resonance=0.1953;filter_env=0.3501;filter_drift=0.3157;keytrack=0.5217;"
@@ -10209,7 +10209,7 @@ const Preset Presets[] = {
       nullptr, nullptr, nullptr, "lfo1>cosmos_swell:0.340;env1>src4_noise_q:-0.206;wheel>dly_mix:0.378:u",
       "0:0:-0.28/0.738:-0.214:0.11/2.13:0:0.29~~~~~~~~0:0/3.53:1:-0.1" },
     { "Epoch Arc",
-      "master_gain=0.209;partials=26;tilt=1.047;brightness=0.4673;odd_even=-0.02216;inharmonic=0.02087;"
+      "master_gain=1.149;partials=26;tilt=1.047;brightness=0.4673;odd_even=-0.02216;inharmonic=0.02087;"
       "shimmer=0.3168;shimmer_rate=0.2219;detune=4;drift=4.916;drift_rate=0.1424;spread=0.6154;"
       "bloom=0.0496;bloom_time=40.33;rate_wander=0.329;attack=16.59;decay=4.167;sustain=0.8011;"
       "release=63.9;cutoff=3880;resonance=0.08719;filter_env=0.1324;filter_drift=0.2738;keytrack=0.3471;"
@@ -10392,7 +10392,7 @@ const Preset Presets[] = {
       "0:0:-0.2/1.23:0.968:-0.37/2.11:-0.549:-0.37/3.14:-0.817:0.37/5.78:-0.689:-0.31/7.56:-0.578:0.12/10.5:0.689:0.52/13:0:-0!l0-6~"
       "0:0:-0.52/2.99:0.238:0.25/4.92:0.402:-0.2/6.11:-0.747:-0.29/8.33:0:0.4!l0-3" },
     { "Hour Reach",
-      "master_gain=0.7;partials=13;tilt=1.217;brightness=0.7678;odd_even=0.01255;inharmonic=0.1971;"
+      "master_gain=1.43;partials=13;tilt=1.217;brightness=0.7678;odd_even=0.01255;inharmonic=0.1971;"
       "shimmer=0.5653;shimmer_rate=0.2371;strands=5;detune=4;drift=3.563;drift_rate=0.04265;spread=0.5645;"
       "bloom=0.4758;bloom_time=52.91;rate_wander=0.3836;attack=34.46;decay=3.758;sustain=0.8719;"
       "release=50.88;cutoff=1557;resonance=0.732;filter_env=0.3712;filter_drift=0.3456;keytrack=0.6898;"
@@ -10536,7 +10536,7 @@ const Preset Presets[] = {
       "lfo1>z_x:0.397:macro_a;lfo2>brain_consonance:-0.087;lfo3>src1_pos:0.107;lfo4>src4_shimmer:-0.172;"
       "lorenz_z>elev_far:0.285;kura1>blur_smear:-0.223;cascade>purity_adapt:-0.132;pressure>far_level:0.105:u" },
     { "Season Hours",
-      "master_gain=2.115;tilt=0.8796;brightness=0.5323;odd_even=0.3376;inharmonic=0.04995;shimmer=0.4399;"
+      "master_gain=2.385;tilt=0.8796;brightness=0.5323;odd_even=0.3376;inharmonic=0.04995;shimmer=0.4399;"
       "shimmer_rate=0.06004;strands=2;detune=4;drift=3.789;drift_rate=0.05319;spread=0.732;bloom=0.05626;"
       "bloom_time=46.09;rate_wander=0.2791;attack=32.94;decay=5.074;sustain=0.7895;release=38.54;"
       "cutoff=840.7;resonance=0.4252;filter_env=0.1592;filter_drift=0.866;keytrack=0.6904;depth=0.9177;"
@@ -10676,7 +10676,7 @@ const Preset Presets[] = {
       "env1>fb_drive:0.186;env2>depth:0.117",
       "0:0:-0.41/2.71:0.325:-0.53/4.13:-0.983:0.5/6.23:0:0.26~0:0:-0.58/2.16:-0.047:0.07/3.72:0:-0.12" },
     { "Season Expanse",
-      "master_gain=-1.75;partials=10;tilt=1.283;brightness=0.7282;odd_even=-0.06746;shimmer=0.4424;"
+      "master_gain=-1.32;partials=10;tilt=1.283;brightness=0.7282;odd_even=-0.06746;shimmer=0.4424;"
       "shimmer_rate=0.3881;detune=4;drift=7.646;drift_rate=0.04181;spread=0.7545;bloom=0.05371;"
       "bloom_time=45.52;rate_wander=0.2283;attack=18.23;decay=7.03;sustain=0.8721;release=68.69;"
       "cutoff=3416;resonance=0.1125;filter_env=0.05282;filter_drift=0.2719;keytrack=0.3572;depth=0.9448;"
@@ -11016,7 +11016,7 @@ const Preset Presets[] = {
       nullptr, nullptr, nullptr,
       "lfo1>resonance:0.190;lenia4>near_mix:0.193;kura3>cutoff:0.086;lfo4>early_size:-0.208;wheel>dly_mix:0.232:u" },
     { "Nineteenth Vigil",
-      "master_gain=0.868;partials=9;tilt=1.391;brightness=0.6554;odd_even=0.03446;inharmonic=0.3486;"
+      "master_gain=1.318;partials=9;tilt=1.391;brightness=0.6554;odd_even=0.03446;inharmonic=0.3486;"
       "shimmer=0.2898;shimmer_rate=0.3633;strands=4;detune=4;drift=5.223;drift_rate=0.07668;spread=0.5954;"
       "bloom=0.4073;bloom_time=147.4;rate_wander=0.2541;attack=25.52;decay=2.766;sustain=0.8123;"
       "release=59.35;cutoff=3229;resonance=0.3325;filter_env=0.03872;filter_drift=0.2288;keytrack=0.6651;"
@@ -11311,7 +11311,7 @@ const Preset Presets[] = {
       "0:0:-0.53/2.04:0.314:0.35/4.61:-0.789:0.38/6.04:-0.115:0.56/7.41:-0.451:-0.56/8.46:-0.939:-0.33/11.3:-0.859:0.55/13.2:-0.852:-0.04/16:0:0.29~"
       "0:0:0.6/1.67:-0.682:0.05/3.73:0.299:-0.53/5.02:-0.591:-0.1/6.59:-0.904:0.08/7.64:0.343:-0.11/8.83:-0.673:-0.07/9.77:-0.54:0.28/11.7:-0.366:-0.39/14.6:-0.416:-0.17/15.8:0.906:0.01/17.2:0.872:-0.46/19.8:0:-0.49!s5" },
     { "Schisma Veil",
-      "master_gain=6.524;partials=7;tilt=1.244;brightness=0.6769;odd_even=0.07;inharmonic=0.07095;"
+      "master_gain=7.394;partials=7;tilt=1.244;brightness=0.6769;odd_even=0.07;inharmonic=0.07095;"
       "shimmer=0.3341;shimmer_rate=0.08198;detune=4;drift=5.231;drift_rate=0.05059;spread=0.6303;"
       "bloom=0.2819;bloom_time=56.36;rate_wander=0.426;attack=29.77;decay=3.745;sustain=0.7226;"
       "release=30.31;cutoff=2533;resonance=0.6384;filter_env=0.1136;filter_drift=0.6743;keytrack=0.3161;"
@@ -11408,7 +11408,7 @@ const Preset Presets[] = {
       "0:0:-0.14/2.42:0.913:0.44/3.2:0.217:0.46/5.17:-0.595:-0.07/6.1:-0.589:0.44/8.5:0.562:0.28/10.2:0.809:-0.35/13:-0.587:0.14/14.1:0:-0.42!l0-7~"
       "~~~~~0:0/3.99:1:-0.38/6.29:0.704:-0.29/16.3:0:-0.2!s2~~0:0/2.73:1:0.1/9.94:0.457:-0.19" },
     { "Comma Interval",
-      "master_gain=-3.64;partials=22;tilt=1.167;brightness=0.4192;odd_even=0.2815;inharmonic=0.3763;"
+      "master_gain=-3.42;partials=22;tilt=1.167;brightness=0.4192;odd_even=0.2815;inharmonic=0.3763;"
       "shimmer=0.5966;shimmer_rate=0.05646;strands=2;detune=4;drift=8.856;drift_rate=0.02458;spread=0.6579;"
       "bloom=0.2351;bloom_time=162.7;rate_wander=0.4536;attack=18.23;decay=4.168;sustain=0.9124;"
       "release=26.68;cutoff=1212;resonance=0.2645;filter_env=0.06867;filter_drift=0.3064;keytrack=0.6641;"
@@ -11893,7 +11893,7 @@ const Preset Presets[] = {
       "0:0:0.02/1.35:-0.214:-0.41/4.18:0.543:0.03/5.27:-0.932:-0.4/6.37:-0.583:0.54/8.63:-0.751:0.38/9.35:-0.381:0.02/11:-0.829:0.13/11.6:-0.007:-0.46/14.3:0.901:-0.37/15.6:-0.186:-0.16/16.2:-0.475:-0.34/17:0.713:-0.55/18.6:0:-0.22~"
       "~~~~~~0:0/1.82:1:0.02~0:0/2.44:1:-0.54/7.08:0.487:-0.39" },
     { "Struck Span",
-      "master_gain=9.391;partials=12;tilt=1.658;brightness=0.6245;odd_even=-0.2395;inharmonic=0.04926;"
+      "master_gain=10.04;partials=12;tilt=1.658;brightness=0.6245;odd_even=-0.2395;inharmonic=0.04926;"
       "shimmer=0.4346;shimmer_rate=0.05942;detune=4;drift=8.313;drift_rate=0.05114;spread=0.8249;"
       "bloom=0.4281;bloom_time=99.38;rate_wander=0.4337;attack=3.427;decay=4.96;sustain=0.8165;"
       "release=11.05;cutoff=1443;resonance=0.1799;filter_env=0.1745;filter_drift=0.4061;keytrack=0.3358;"
@@ -12141,7 +12141,7 @@ const Preset Presets[] = {
       "0:0:0.19/1.44:-0.664:0.39/2.05:0:-0.15~"
       "0:0:0.53/1.52:0.288:-0.5/3.06:-0.496:-0/3.84:0.964:0.07/5.99:-0.981:0.14/6.82:0:-0.08" },
     { "Plate Signal",
-      "master_gain=10.7;partials=21;tilt=0.8065;brightness=0.7717;odd_even=-0.1863;inharmonic=0.1366;"
+      "master_gain=11.2;partials=21;tilt=0.8065;brightness=0.7717;odd_even=-0.1863;inharmonic=0.1366;"
       "shimmer=0.4475;shimmer_rate=0.2203;strands=4;detune=4;drift=7.919;drift_rate=0.03411;spread=0.551;"
       "bloom=0.1435;bloom_time=38.97;rate_wander=0.3979;attack=3.096;decay=12.31;sustain=0.9208;"
       "release=22.75;cutoff=3242;resonance=0.7599;filter_env=0.3812;filter_drift=0.6507;keytrack=0.4189;"

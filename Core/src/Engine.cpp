@@ -189,14 +189,19 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
     m_image.prepare( m_sr );
     m_image.setRanges( ImageLo, ImageHi );
     // The tonal balance's range (21.10.2026): each band's share of the whole in dB, the first and third quartile of
-    // 308 Ultimae and 75 Polymorph recordings (Family/tools/mix_audit.py, their third-octave curves folded).
-    static const float BalanceLo[BalanceMatch::Bands] = { -33.6f, -4.5f, -8.1f, -11.9f, -18.0f, -25.9f };
-    static const float BalanceHi[BalanceMatch::Bands] = { -19.6f, -1.7f, -4.6f, -7.6f, -12.5f, -17.5f };
+    // 308 Ultimae and 75 Polymorph recordings (Family/tools/mix_audit.py --balance-ranges ultimae+polymorph).
+    // Corrected 11.11.2026: the first table (-33.6 .. -19.6, -4.5 .. -1.7, -8.1 .. -4.6, -11.9 .. -7.6,
+    // -18.0 .. -12.5, -25.9 .. -17.5) was worked out with the recordings' third-octave curve read as if it began at
+    // 40 Hz; it begins at 24.8 Hz, so every band stood two thirds of an octave too low -- a sub aimed 15 to 20 dB
+    // under the recordings', presence and air 2 to 4 dB over them.
+    static const float BalanceLo[BalanceMatch::Bands] = { -11.2f, -5.2f, -10.0f, -14.0f, -21.2f, -30.2f };
+    static const float BalanceHi[BalanceMatch::Bands] = { -4.6f, -2.4f, -5.6f, -9.3f, -14.9f, -19.5f };
     m_balance.prepare( m_sr );
-    // The floor's aims (21.10.2026): the bass band at the first quartile of 308 Ultimae and 75 Polymorph masters
-    // (-4.5 dB of the whole), the sub at their median (-27.1 dB).
+    // The floor's aims (21.10.2026, corrected with the table 11.11.2026): the bass band and the sub both at the
+    // first quartile of 308 Ultimae and 75 Polymorph masters (-5.2 and -11.2 dB of the whole) -- the quiet edge of
+    // what those masters keep. (They were -4.5 and -27.1: the shifted reading's bass quartile and sub median.)
     m_floorMatch.prepare( m_sr );
-    m_floorMatch.setAims( -4.5f, -27.1f );
+    m_floorMatch.setAims( -5.2f, -11.2f );
     for ( std::vector<float> *b : { &m_floorAL, &m_floorAR, &m_floorBL, &m_floorBR, &m_floorOL, &m_floorOR } )
         b->assign( static_cast<size_t>( m_maxBlock ), 0.0f );
     m_balance.setRanges( BalanceLo, BalanceHi );
