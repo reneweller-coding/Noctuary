@@ -13,7 +13,9 @@ two to four moves (texture.py). The rest of the stillness is the pack's own soun
 and the Cloud bringing back what was played), which this pass leaves as it is.
 
 So, for every preset of the pack: 3 - 5 notes, an event every 8 - 20 s (log), the Autoplay's chords every 12 - 30 s,
-holds of 1.5 - 2.5 and 4 - 7 times the event gap. Nothing else changes; conductor_ranges.json (Rene's document) is not
+holds of 1.5 - 2.5 and 4 - 7 times the event gap. And, asked for after the measure (the harmony still stood half a
+minute: the root stood for R6.1's four minutes at least), more movement: Root Every 40 - 80 s, Wander 0.5 - 0.8, Root
+Move 0.3 - 0.5 -- a root change every minute and a half or so. Nothing else changes; conductor_ranges.json (Rene's document) is not
 touched -- the measured row is in conductor_measured.json beside it. The pack's loudness is measured on a held chord
 (measure_packs.py: --notes 45,52,59), so the gains stand as they were.
 
@@ -49,6 +51,12 @@ def retrofit(settings, name):
         "brain_hold_min": "%.4g" % (rate * r.uniform(1.5, 2.5)),
         "brain_hold_max": "%.4g" % (rate * r.uniform(4.0, 7.0)),
     }
+    # More movement (the user, 13.11.2026: "Yes, more movement"): the root may move after 40 - 80 s instead of R6.1's
+    # four minutes, and does so more readily -- about every minute and a half (the conductor audit: 45 root changes an
+    # hour against 17). Its own dice, after the clock's, so the values above stay as they were.
+    m = random.Random(int(hashlib.sha1(("rich-roots/" + name).encode("utf-8")).hexdigest()[:12], 16))
+    new.update({"brain_root_every": "%.4g" % m.uniform(40.0, 80.0), "brain_wander": "%.3g" % m.uniform(0.5, 0.8),
+                "auto_root_move": "%.3g" % m.uniform(0.3, 0.5)})
     parts, seen = [], set()
     for p in settings.split(";"):
         if "=" not in p:

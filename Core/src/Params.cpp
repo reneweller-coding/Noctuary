@@ -954,6 +954,8 @@ const std::array<ParamDesc, NumParams> Table = { {
     C( ParamIdE::SCENE, "scene", "Scene", "Space", SceneNames, NumScenes, 0 ),   // 20.10.2026 (Scene.h)
     F( ParamIdE::BALANCE, "balance", "Balance", "Master", 0.f, 1.f, 1.f, 1.f, "" ),   // 21.10.2026 (Balance.h)
     F( ParamIdE::FLOOR, "floor", "Floor", "Foundation", 0.f, 1.f, 1.f, 1.f, "" ),     // 21.10.2026 (FloorMatch)
+    F( ParamIdE::BRAIN_ROOT_EVERY, "brain_root_every", "Root Every", "Cluster Brain", 20.f, 720.f, 240.f, 0.5f,
+       "s" ),   // 13.11.2026 (R6.1's floor, Robert Rich measured)
 } };
 }   // namespace
 

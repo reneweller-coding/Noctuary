@@ -933,6 +933,7 @@ enum class ParamIdE : int
     SCENE,         ///< SceneNames (Scene.h, 20.10.2026): the space set as a place, once when chosen
     BALANCE,       ///< 0 .. 1: the tonal balance in six bands toward Ultimae's and Polymorph's masters (Balance.h)
     FLOOR,         ///< 0 .. 1: the Foundation set where Ultimae's floor lies, a voice in the bass over the sub (Balance.h)
+    BRAIN_ROOT_EVERY,   ///< seconds a root stands at least (R6.1: 240); it must move after three times it (13.11.2026)
     COUNT           ///< one past the last: NumParams
 };
 

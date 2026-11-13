@@ -903,6 +903,13 @@ struct BrainParams
     float m_homeTime = 60.0f;    ///< minutes after which that pull is at its strongest
     float m_memory = 0.0f;       ///< minutes in which a chord already heard may not return
     float m_degreeSwap = 0.0f;   ///< chance a root change also exchanges one degree of the supply
+    /**
+     * @brief Root Every (13.11.2026): the shortest time a root stands, seconds -- R6.1's four minutes by default; the
+     *        root must move after three times it (R6.1's twelve). Robert Rich's recordings, measured, change their
+     *        harmony every four seconds or so; a sleep concert built on them wants its root to move within a minute
+     *        or two, not a quarter of an hour.
+     */
+    float m_rootEvery = 240.0f;
     /** @} */
     // ---- the review against ambient harmony (25.09.2026)
     /**
@@ -1894,7 +1901,7 @@ public:
             // last bit of its random stream.
             const float chance = moveChanceOf( p );
             const float u = m_rng.uniform();
-            if ( anchorNote < 0 && chance > 0.0f && ( u < chance || m_rootAge > 720.0 ) )
+            if ( anchorNote < 0 && chance > 0.0f && ( u < chance || m_rootAge > 3.0 * p.m_rootEvery ) )
             {
                 const int was = m_root;
                 if ( !m_rootHold ) wanderRoot( low, high, freqOf, p );
@@ -2194,7 +2201,7 @@ private:
         {   // as in Free mode: the dice, or twelve minutes (R6.1), and the draw made either way
             const float chance = moveChanceOf( p );
             const float u = m_rng.uniform();
-            if ( m_settled && !m_rootHold && chance > 0.0f && ( u < chance || m_rootAge > 720.0 ) )
+            if ( m_settled && !m_rootHold && chance > 0.0f && ( u < chance || m_rootAge > 3.0 * p.m_rootEvery ) )
                 wanderRoot( low, high, freqOf, p );
         }
 
@@ -3095,7 +3102,7 @@ private:
                     ? clampv( m_age / std::max( 60.0, static_cast<double>( p.m_homeTime ) * 60.0 ), 0.0, 1.0 )
                     : 0.0;
             const bool goingHome = p.m_home > 0.0f && m_root != m_homeRoot && ripeNow > 0.55;
-            if ( m_rootAge < 240.0 && !goingHome ) return;
+            if ( m_rootAge < p.m_rootEvery && !goingHome ) return;
         }
         const float  keyAmount = p.m_key;
         const double target = drawRootTarget( p.m_rootTargets );
@@ -3206,7 +3213,8 @@ private:
                     ? clampv( m_age / std::max( 60.0, static_cast<double>( p.m_homeTime ) * 60.0 ), 0.0, 1.0 )
                     : 0.0;
             const bool restingAtHome = p.m_home > 0.0f && m_root == m_homeRoot && ripeNow > 0.55;
-            if ( ( bestScore >= 3.5 && ( m_rootAge < 720.0 || restingAtHome ) ) || best == m_root ) return;
+            if ( ( bestScore >= 3.5 && ( m_rootAge < 3.0 * p.m_rootEvery || restingAtHome ) ) || best == m_root )
+                return;
         }
         ++m_rootMoves;
         // The changeover (R6.3). Without Pivot the root simply moves, as it always did. With it the

@@ -1158,6 +1158,7 @@ void Engine::readParams()
     m_bp.m_homeTime = g( ParamIdE::BRAIN_HOME_TIME );
     m_bp2.m_homeTime = m_bp.m_homeTime;
     m_bp.m_memory = g( ParamIdE::BRAIN_MEMORY );
+    m_bp.m_rootEvery = g( ParamIdE::BRAIN_ROOT_EVERY );   // 13.11.2026: R6.1's four minutes, per preset
     m_bp2.m_memory = m_bp.m_memory;
     m_bp.m_degreeSwap = g( ParamIdE::BRAIN_DEGREE_SWAP );
     m_bp2.m_degreeSwap = m_bp.m_degreeSwap;

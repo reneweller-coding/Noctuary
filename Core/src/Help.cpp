@@ -860,6 +860,8 @@ const HelpEntry Help[] = {
       "How long a change of Density takes. A change -- by hand, by a macro, by the Arc -- is then carried out one voice at a time over these minutes instead of at once: five voices appearing together is an edit, not a piece of music. 0 changes immediately, as it always did." },
     { "brain_silence",
       "The chance that a root change is also a pause: every voice is let go and the room stays empty for a while. Complete silence belongs at a section's border and nowhere else -- once or twice an hour is the rule, and the guard is that this can only happen where the root moves." },
+    { "brain_root_every",
+      "The shortest time a root stands, and a third of the longest: R6.1's four to twelve minutes at 240 s, the default. Lower, the harmony travels -- Robert Rich's recordings, measured, change their harmony every few seconds, and the Sleep Concert pack lets its root move after half a minute to a minute and a half. Wander and Root Move still decide how likely a move is once the root may go." },
     { "brain_silence_len",
       "How long that pause lasts, give or take a third. When it ends the cluster walks back in at the entrance pace rather than waiting out a draw made before it." },
     { "brain_root_steps",
