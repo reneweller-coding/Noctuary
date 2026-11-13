@@ -951,7 +951,7 @@ const std::array<ParamDesc, NumParams> Table = { {
     F( ParamIdE::LOOP_TONE, "loop_tone", "Tone", "Loop", 300.f, 12000.f, 3500.f, 0.3f, "Hz" ),
     F( ParamIdE::LOOP_DRIVE, "loop_drive", "Drive", "Loop", 0.f, 1.f, 0.3f, 1.f, "" ),
     F( ParamIdE::LOOP_TO_FAR, "loop_to_far", "To Far", "Loop", 0.f, 1.f, 0.3f, 1.f, "" ),
-    C( ParamIdE::SCENE, "scene", "Scene", "Space", SceneNames, NumScenes, 0 ),   // 20.10.2026 (Scene.h)
+    C( ParamIdE::SCENE, "scene", "Scene", "Space", SceneNames, NumScenes, 0 ),        // 20.10.2026 (Scene.h)
     F( ParamIdE::BALANCE, "balance", "Balance", "Master", 0.f, 1.f, 1.f, 1.f, "" ),   // 21.10.2026 (Balance.h)
     F( ParamIdE::FLOOR, "floor", "Floor", "Foundation", 0.f, 1.f, 1.f, 1.f, "" ),     // 21.10.2026 (FloorMatch)
     F( ParamIdE::BRAIN_ROOT_EVERY, "brain_root_every", "Root Every", "Cluster Brain", 20.f, 720.f, 240.f, 0.5f,
