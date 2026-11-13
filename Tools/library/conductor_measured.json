@@ -1,0 +1,65 @@
+{
+ "Robert Rich": {
+  "source": "GranularSynth/Tools/presets/rich_measure.py, 13.11.2026: his 285 recordings on the NAS, the 162 with rhythm <= 0.15 (1,630 minutes); quartiles",
+  "measured": {
+   "harmony_stands_s": [
+    3.17,
+    3.91,
+    5.93
+   ],
+   "moves_per_min": [
+    7.48,
+    11.36,
+    15.07
+   ],
+   "notes_sounding": [
+    5,
+    7,
+    8
+   ],
+   "lowest_note": [
+    29.0,
+    31.3,
+    35.0
+   ],
+   "highest_note": [
+    79.0,
+    86.7,
+    91.0
+   ],
+   "thirds": 0.36,
+   "minor_sevenths": 0.2,
+   "fifths": 0.22
+  },
+  "ranges": {
+   "brain_density": {
+    "type": "choice",
+    "options": {
+     "3": 0.25,
+     "4": 0.5,
+     "5": 0.25
+    }
+   },
+   "brain_rate": {
+    "type": "log-uniform",
+    "min": 8,
+    "max": 20
+   },
+   "auto_rate": {
+    "type": "log-uniform",
+    "min": 12,
+    "max": 30
+   },
+   "brain_hold_min": {
+    "type": "times brain_rate",
+    "min": 1.5,
+    "max": 2.5
+   },
+   "brain_hold_max": {
+    "type": "times brain_rate",
+    "min": 4.0,
+    "max": 7.0
+   }
+  }
+ }
+}
