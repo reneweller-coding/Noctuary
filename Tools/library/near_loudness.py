@@ -67,8 +67,10 @@ def lufs(power_sum):
     return -0.691 + 10.0 * np.log10(power_sum + 1e-24)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RENDER = os.path.join(ROOT, "bin", "msvc", "ambient_render.exe")
-WORK = os.path.join(ROOT, "work", "library", "near-loudness")
+# AMBIENT_RENDER: a frozen copy of the renderer, so a long run measures one build while the tree is rebuilt;
+# NEAR_LOUDNESS_WORK: where the renders go (the work folder of the repository otherwise).
+RENDER = os.environ.get("AMBIENT_RENDER", os.path.join(ROOT, "bin", "msvc", "ambient_render.exe"))
+WORK = os.environ.get("NEAR_LOUDNESS_WORK", os.path.join(ROOT, "work", "library", "near-loudness"))
 # Candidates, in order: dense, dark, bright, then sparse ones. The first four that fall silent when their
 # own sources are switched off are used. Warp Vigil did not -- something in it went on sounding at -24 LU
 # of its own level with every source off, and every quiet event measured over it read as that floor.
@@ -146,9 +148,13 @@ def measure(near, background, off_path, length_hint):
     momentary = [lufs(float(np.sum(np.mean(ev[k:k + win] ** 2, axis=0)))) for k in range(0, len(ev) - win + 1, hop)]
     event = max(momentary)
     background_lufs = lufs(float(np.sum(np.mean(bg ** 2, axis=0))))
+    # How long the event is heard (19.11.2026): the seconds of momentary loudness within 10 and within 20 LU of
+    # its loudest -- a short burst has a fraction of a second there, a held tone or a line most of its length.
+    heard10 = 0.1 * sum(1 for m in momentary if m >= event - 10.0)
+    heard20 = 0.1 * sum(1 for m in momentary if m >= event - 20.0)
     return dict(near=near, background=background, at=at, length=length,
                 event_lufs=round(event, 2), background_lufs=round(background_lufs, 2),
-                ratio_db=round(event - background_lufs, 2))
+                ratio_db=round(event - background_lufs, 2), heard10_s=round(heard10, 1), heard20_s=round(heard20, 1))
 
 
 GAIN_RANGE = (-24.0, 36.0)   # fore_gain range in the parameter table
@@ -246,7 +252,10 @@ def main():
         ratios = [r["ratio_db"] for r in mine]
         med = statistics.median(ratios)
         result["presets"][n] = {"ratio_db": round(med, 2), "spread_db": round(max(ratios) - min(ratios), 2),
-                                "trim_db": round(a.target - med, 1), "per_background": {r["background"]: r["ratio_db"] for r in mine}}
+                                "trim_db": round(a.target - med, 1), "per_background": {r["background"]: r["ratio_db"] for r in mine},
+                                "heard10_s": statistics.median(r["heard10_s"] for r in mine),
+                                "heard20_s": statistics.median(r["heard20_s"] for r in mine),
+                                "length_s": statistics.median(r["length"] for r in mine)}
     for b in offs.values():
         os.remove(b)
     os.makedirs(os.path.dirname(a.out), exist_ok=True)

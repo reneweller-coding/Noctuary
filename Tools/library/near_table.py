@@ -32,7 +32,9 @@ def bank():
     for _, ps in m.near_bank():
         for nm, kw in ps:
             names[nm] = kw
-    return names, m.NEAR_VARIANTS
+    # the new bases (19.11.2026) first, into their liked relative's group, then every variant after its parent
+    relatives = [(parent, name, {}) for name, parent in m.GROUP_PARENT.items()]
+    return names, relatives + m.NEAR_VARIANTS
 
 
 def rebuild(d):
@@ -82,6 +84,8 @@ def main():
         if parent in d["presets"] and name not in d["presets"]:
             info = dict(d["presets"][parent])
             info["variant_of"] = parent
+            if "rate" in info and "fore_rate" in names[name]:
+                info["rate"] = names[name]["fore_rate"]   # its own Every, which a new base need not share
             d["presets"][name] = info
     for g in empty:
         d["groups"].pop(g)

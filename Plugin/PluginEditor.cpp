@@ -3334,7 +3334,7 @@ void NoctuaryEditor::HelpView::FlowDiagram::paint( juce::Graphics &g )
     g.setColour( F );
     g.setFont( ui::title( 10.0f ) );
     // The label is as long as the box is wide: "presets" spelled out past this runs off the edge.
-    g.drawText( "NEAR LAYER  --  its own 132 presets", 156, 347, 300, 13, juce::Justification::centredLeft, false );
+    g.drawText( "NEAR LAYER  --  its own 512 presets", 156, 347, 300, 13, juce::Justification::centredLeft, false );
     auto ne = node( 156, 362, 144, 30, "Near Events\na second conductor, waiting", F, 8.5f );
     auto ns = node( 308, 362, 142, 30, "Near Source\nany slot may hold one", F, 8.5f );
     // What it may be set to is the legend at the top right; what is its own is the kind of event.

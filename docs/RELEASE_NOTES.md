@@ -22,6 +22,35 @@ fell from 3.6 % (semitones) and 1.3 % (tritones) to 0.8 % and 0.1 %, the presets
 the time from 28 to none, with as many notes as before and no conductor left silent. A preset without the second
 conductor plays exactly as before. `ambient_brain_audit` prints each note's frequency as an eighth field.
 
+**A conductor hears its own notes** (19.11.2026). Free mode, which nearly every preset uses, weighed a candidate against
+the root alone; a conductor set strictly consonant still put a note a semitone beside one of its own, and one leading a
+single voice by step let the old note sound half a minute beside a successor a semitone away (Leaf Depth, Consonance
+1.0: every change of the hour). Now a conductor whose Consonance is at least a half takes no note a minor second or a
+minor ninth from a voice that stays -- in Free mode's draw, in Chords mode's choice, against the deja vu ring and for
+the pivot tone of a changeover. A major seventh and a tritone stay colours, weighed as before. A step of a minor second
+from the voice that leaves is a step of a line and stays allowed, but the old voice no longer waits the whole Overlap
+beside it: two seconds at most (from Consonance 0.3, since the night's arc lowers it towards its climax). Over 150
+presets without and 200 with a second conductor, an hour each, the time with a minor second or ninth inside a conductor
+fell from 3.9 % to 0.3 % and from 3.3 % to 1.2 %, the presets where it stood more than a twentieth of the time from 52
+to 4, with as many changes as before (46 to 48 an hour) and no conductor left silent; across the two conductors the
+semitones fell further, from 0.8 % to 0.5 %, the tritones from 0.15 % to 0.06 %.
+
+**The near bank: 512 presets.** Built on what Rene heard and liked -- Bowed Line, Bunker Tube, Krell Circuit, Deep
+Space Beacon, Number Station, Shortwave Dial, Whistler, Tuned Noise, Drop Sequence, Heartbeat, Machine Pulse, Wind
+Chimes, Radio Cut-Up -- and longer rather than shorter. Thirty-four new ideas cross them: the signal sources as lines
+(a new family, Signal Lines: Tube, Krell, Beacon, Morse, Dial and Whistler Line, Krell and Tube Pulse), long swelling
+notes on the tube, the Krell circuit, the beacon, the dial and the bow, relatives of the heartbeat and the machine
+pulse, chime lines and phrases, and cut-ups like Radio Cut-Up from the NASA and Library of Congress folders. Then
+variants of all of them, each moving two things the ear tells apart -- register, tempo, place between the planes,
+colour, onset, length, density -- and named by them ("Krell Line Slow Cosmic"); Quick only for lines, no single note
+under six seconds. Every new preset joins the Near Auto group of the liked preset it comes from, so the auto foreground
+draws them where it drew their relative, as often as before in all. Each was measured against four backgrounds
+(near_loudness.py, which now also reports how long an event is heard) and set as loud as its liked relative stands
+today -- a variant on its parent's gain had lain anywhere from 15 dB under it to 15 dB over; the 26 earlier variants
+were measured the same way. Four whistler variants that stayed loud for under two seconds were left out for four more
+lines.
+
+
 **The near bank: two out, twenty-six in.** Seed Pod (the shaker, heard as a noise burst in the foreground) and Geiger
 Counter left the bank. Two variants of each of thirteen presets joined it -- Bowed Line, Bunker Tube, Krell Circuit,
 Deep Space Beacon, Number Station, Shortwave Dial, Whistler, Tuned Noise, Drop Sequence, Heartbeat, Machine Pulse, Wind

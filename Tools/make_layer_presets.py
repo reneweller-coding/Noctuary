@@ -694,6 +694,315 @@ NEAR_VARIANTS = [
 VARIANT_PARENT = {name: parent for parent, name, _ in NEAR_VARIANTS}
 
 
+# ============================================================ The bank to 512 (19.11.2026)
+# Rene: "Koennten wir die Anzahl an Nah-Events eventuell auf 256 erhoehen, besser noch 512? ... Aber bitte
+# eher an den bisher als gut bewerteten Ideen ausrichten, als eher etwas laenger, keine kurzen Noise-Bursts."
+# Two steps, both from the thirteen presets he heard and liked (LIKED). First new ideas that cross what he
+# liked: the signal sources (Tube, Krell, Beacon, Morse, Dial, Whistler) as lines the way Bowed Line is one,
+# long swelling notes on them and on the bow, relatives of Heartbeat and Machine Pulse, cut-ups like Radio
+# Cut-Up from the other folders of the archive. Each names the liked preset whose group it joins in Near Auto.
+# Then variants of all of them, generated: each moves two things the ear tells apart -- register, tempo, the
+# place between the planes, colour, onset, length, density -- and is named by them. They lean long: Quick
+# only for lines, never for a single note, and no single note is shorter than six seconds.
+LIKED = ["Bowed Line", "Bunker Tube", "Krell Circuit", "Deep Space Beacon", "Number Station", "Shortwave Dial",
+         "Whistler", "Tuned Noise", "Drop Sequence", "Heartbeat", "Machine Pulse", "Wind Chimes", "Radio Cut-Up"]
+
+
+def _cut_up(folder, steps=5, step=0.7, **kw):
+    kw.setdefault("cutoff", 8000)
+    return seq(type="Clip", follow="Free", pos=0.0, resonance=0.1, filt="LP 12", steps=steps, step=step,
+               mutation=0.1, scatter=0.4, bloom=0.2, attack=0.01, decay=0.3, sustain=0.3, release=0.1, length=90,
+               rate=600, approach=0.0, level=0.4, clip="Archive/" + folder + "/", **kw)
+
+
+# (family, name, settings, the liked preset whose Near Auto group it joins)
+NEW_BASES = [
+    # Long notes on the signal sources: the thing itself, held, arriving or leaving.
+    ("Signals", "Tube Choir", near(type="Tube", pos=0.35, bright=0.35, pitch="Root", kind="Note", rate=360, length=40,
+                                   attack=2.5, decay=1.0, sustain=1.0, release=5.0, cutoff=7000, spread=0.5,
+                                   distance=0.4, approach=0.3, proximity=0.4, hold="off", level=0.45), "Bunker Tube"),
+    ("Signals", "Krell Drone", near(type="Krell", speed=0.15, pos=0.6, fm_ratio=1.5, fm_index=0.7, octave=-1,
+                                    kind="Note", rate=360, length=45, attack=3.0, decay=1.0, sustain=1.0, release=6.0,
+                                    cutoff=5000, resonance=0.1, spread=0.7, distance=0.4, approach=0.25,
+                                    proximity=0.3, hold="off", level=0.45, to_cosmos=0.6), "Krell Circuit"),
+    ("Signals", "Beacon Swell", near(type="Beacon", density=0.3, octave=1, pitch="Root", kind="Note", rate=360,
+                                     length=40, attack=4.0, decay=1.0, sustain=1.0, release=6.0, cutoff=10000,
+                                     spread=0.3, distance=0.5, approach=0.5, proximity=0.4, hold="off", level=0.45,
+                                     to_cosmos=0.6, to_delay2=0.3), "Deep Space Beacon"),
+    ("Signals", "Dial Drift", near(type="Dial", pos=0.55, bright=0.4, pitch="Root", octave=1, kind="Note", rate=360,
+                                   length=45, attack=3.0, decay=1.0, sustain=1.0, release=5.0, cutoff=4000,
+                                   spread=0.5, distance=0.45, approach=-0.4, proximity=0.4, hold="off", level=0.4),
+     "Shortwave Dial"),
+    ("Signals", "Morse Relay", near(type="Morse", speed=0.25, pos=0.3, bright=0.4, octave=1, pitch="Root", kind="Note",
+                                    rate=420, length=50, attack=0.05, decay=0.5, sustain=1.0, release=1.0, cutoff=4500,
+                                    spread=0.4, distance=0.45, dry=0.0, proximity=0.4, hold="on", level=0.4,
+                                    to_delay2=0.6), "Number Station"),
+    ("Signals", "Whistler Rain", near(type="Whistler", bright=0.5, speed=0.25, pitch="Consonant", octave=1, kind="Note",
+                                      rate=300, length=8, attack=0.02, decay=0.6, sustain=0.6, release=3.0,
+                                      cutoff=14000, spread=0.7, distance=0.3, approach=-0.5, proximity=0.4,
+                                      hold="off", level=0.45, cluster=0.7), "Whistler"),
+    # The signal sources as lines: the shift register of the sequences driving them.
+    ("Signal Lines", "Tube Line", seq(type="Tube", pos=0.25, bright=0.45, octave=0, cutoff=7000, resonance=0.1,
+                                      filt="LP 12", steps=7, step=0.55, mutation=0.1, scatter=0.25, bloom=0.4,
+                                      attack=0.02, decay=0.4, sustain=0.5, release=0.5, length=220, rate=520,
+                                      level=0.45), "Bunker Tube"),
+    ("Signal Lines", "Krell Line", seq(type="Krell", speed=0.3, pos=0.7, fm_ratio=1.5, fm_index=0.9, octave=0,
+                                       cutoff=8000, resonance=0.1, filt="LP 12", steps=9, step=0.48, mutation=0.12,
+                                       scatter=0.3, bloom=0.5, attack=0.02, decay=0.4, sustain=0.4, release=0.5,
+                                       length=220, rate=520, level=0.45, to_cosmos=0.4), "Krell Circuit"),
+    ("Signal Lines", "Beacon Line", seq(type="Beacon", density=0.5, octave=1, cutoff=12000, resonance=0.0,
+                                        filt="LP 12", steps=5, step=0.75, mutation=0.08, scatter=0.2, bloom=0.3,
+                                        attack=0.005, decay=0.5, sustain=0.6, release=0.6, length=200, rate=540,
+                                        level=0.45, to_cosmos=0.5, to_delay2=0.3), "Deep Space Beacon"),
+    ("Signal Lines", "Morse Line", seq(type="Morse", speed=0.35, pos=0.25, bright=0.45, octave=1, cutoff=6000,
+                                       resonance=0.0, filt="LP 12", steps=7, step=0.6, mutation=0.1, scatter=0.3,
+                                       bloom=0.3, attack=0.01, decay=0.4, sustain=0.6, release=0.4, length=200,
+                                       rate=520, level=0.4, to_delay2=0.35), "Number Station"),
+    ("Signal Lines", "Dial Line", seq(type="Dial", pos=0.65, bright=0.45, octave=1, cutoff=5000, resonance=0.0,
+                                      filt="LP 12", steps=7, step=0.7, mutation=0.12, scatter=0.35, bloom=0.5,
+                                      attack=0.2, decay=0.6, sustain=0.6, release=0.8, length=220, rate=540,
+                                      level=0.4), "Shortwave Dial"),
+    ("Signal Lines", "Whistler Line", seq(type="Whistler", bright=0.55, speed=0.3, octave=1, cutoff=14000,
+                                          resonance=0.0, filt="LP 12", steps=7, step=0.8, mutation=0.1, scatter=0.4,
+                                          bloom=0.3, attack=0.01, decay=0.6, sustain=0.5, release=1.5, length=200,
+                                          rate=520, level=0.45), "Whistler"),
+    ("Signal Lines", "Krell Pulse", seq(type="Krell", speed=0.2, pos=0.5, fm_ratio=1.0, fm_index=0.6, octave=-1,
+                                        cutoff=900, resonance=0.3, filt="LP 24", steps=5, step=0.9, mutation=0.04,
+                                        scatter=0.05, bloom=0.15, decay=0.4, release=0.5, pitch="Root", length=300,
+                                        rate=640, level=0.55), "Machine Pulse"),
+    ("Signal Lines", "Tube Pulse", seq(type="Tube", pos=0.15, bright=0.3, octave=-1, cutoff=600, resonance=0.25,
+                                       filt="LP 24", steps=3, step=0.5, mutation=0.0, scatter=0.0, bloom=0.0,
+                                       attack=0.005, decay=0.2, release=0.3, pitch="Root", length=60, rate=380,
+                                       approach=0.0, proximity=0.8, level=0.55), "Heartbeat"),
+    # More lines and pulses beside the liked ones.
+    ("Sequences", "Chime Line", seq(type="Chime", force=0.45, pos_drift=0.2, tilt=0.3, bright=0.35, octave=1,
+                                    cutoff=14000, resonance=0.0, filt="LP 12", steps=7, step=0.7, mutation=0.1,
+                                    scatter=0.3, bloom=0.2, attack=0.001, decay=0.4, sustain=1.0, release=5,
+                                    length=180, rate=520, level=0.4), "Wind Chimes"),
+    ("Sequences", "Bowl Bells", seq(type="Chime", force=0.6, pos_drift=0.15, tilt=0.6, bright=0.2, octave=0,
+                                    cutoff=9000, resonance=0.0, filt="LP 12", steps=5, step=1.4, mutation=0.05,
+                                    scatter=0.5, bloom=0.0, attack=0.001, decay=0.6, sustain=1.0, release=9,
+                                    length=150, rate=600, distance=0.4, level=0.45), "Wind Chimes"),
+    ("Sequences", "Breath Line", seq(type="Noise", noise="Wind", noise_q=0.9, pos=0.5, octave=0, cutoff=8000,
+                                     resonance=0.1, filt="LP 12", steps=5, step=0.9, mutation=0.1, scatter=0.3,
+                                     bloom=0.6, attack=0.2, decay=0.6, sustain=0.6, release=1.2, length=200,
+                                     rate=480, level=0.45), "Tuned Noise"),
+    ("Sequences", "Tuned Rain", seq(type="Noise", noise="Pink", noise_q=0.95, pos=0.5, octave=1, cutoff=10000,
+                                    resonance=0.1, filt="LP 12", steps=11, step=0.4, mutation=0.15, scatter=0.5,
+                                    bloom=0.4, attack=0.05, decay=0.5, sustain=0.4, release=1.0, length=200,
+                                    rate=500, level=0.4), "Tuned Noise"),
+    ("Sequences", "Drop Rain", seq(type="Drops", density=5.0, pos=0.5, bright=0.5, follow="Note", octave=1,
+                                   cutoff=12000, resonance=0.05, filt="LP 12", steps=11, step=0.38, mutation=0.15,
+                                   scatter=0.5, bloom=0.3, decay=0.5, release=0.8, length=240, rate=500, level=0.45),
+     "Drop Sequence"),
+    ("Sequences", "Deep Drops", seq(type="Drops", density=2.0, pos=0.4, bright=0.35, follow="Note", octave=0,
+                                    cutoff=6000, resonance=0.05, filt="LP 12", steps=5, step=0.9, mutation=0.06,
+                                    scatter=0.2, bloom=0.4, decay=0.8, release=1.2, length=240, rate=520,
+                                    distance=0.35, level=0.5), "Drop Sequence"),
+    ("Sequences", "Slow Pulse", seq(type="FM", fm_ratio=1.0, fm_index=0.4, octave=-2, cutoff=160, resonance=0.25,
+                                    filt="LP 24", steps=3, step=0.6, mutation=0.0, scatter=0.0, bloom=0.0,
+                                    attack=0.006, decay=0.2, release=0.3, pitch="Root", length=60, rate=380,
+                                    approach=0.0, proximity=0.8, level=0.55), "Heartbeat"),
+    ("Sequences", "Tide Pulse", seq(type="Additive", partials=3, tilt=1.6, octave=-2, cutoff=180, resonance=0.2,
+                                    filt="LP 24", steps=3, step=0.8, mutation=0.0, scatter=0.05, bloom=0.2,
+                                    attack=0.02, decay=0.3, release=0.4, pitch="Root", length=90, rate=420,
+                                    approach=0.2, proximity=0.7, level=0.55), "Heartbeat"),
+    ("Sequences", "Engine Room", seq(type="Additive", partials=4, tilt=2.2, octave=-2, cutoff=300, resonance=0.3,
+                                     filt="LP 24", strike=0.3, strike_type="Metal", strike_decay=0.3,
+                                     strike_damp=0.6, steps=7, step=0.7, mutation=0.05, scatter=0.05, bloom=0.2,
+                                     decay=0.35, release=0.5, pitch="Root", length=300, rate=660, level=0.6),
+     "Machine Pulse"),
+    ("Sequences", "Pump Station", seq(type="Additive", partials=2, tilt=2.8, octave=-2, cutoff=180, resonance=0.35,
+                                      filt="LP 24", strike=0.4, strike_type="Wood", strike_decay=0.12,
+                                      strike_damp=0.85, steps=4, step=1.6, mutation=0.02, scatter=0.03, bloom=0.1,
+                                      decay=0.5, release=0.6, pitch="Root", length=300, rate=680, level=0.6),
+     "Machine Pulse"),
+    ("Sequences", "Bowed Pulse", seq(type="Bow", force=0.5, speed=0.4, pos=0.15, octave=-1, cutoff=1800,
+                                     resonance=0.25, filt="LP 24", steps=3, step=1.1, mutation=0.03, scatter=0.05,
+                                     bloom=0.4, attack=0.15, decay=0.6, sustain=0.5, release=0.8, pitch="Root",
+                                     length=200, rate=560, level=0.5), "Bowed Line"),
+    ("Sequences", "Cello Line", seq(type="Bow", force=0.65, speed=0.35, pos=0.12, octave=-1, cutoff=3500,
+                                    resonance=0.2, filt="LP 24", steps=5, step=0.9, mutation=0.1, scatter=0.2,
+                                    bloom=0.6, attack=0.08, decay=0.5, sustain=0.6, release=0.8, length=240,
+                                    rate=520, level=0.45), "Bowed Line"),
+    # The bow and the tube held, and as phrases (a figure of a few notes, Empyrean's way, glided).
+    ("Strings", "Bowed Swell", near(type="Bow", force=0.55, speed=0.4, pos=0.18, octave=0, pitch="Consonant",
+                                    kind="Note", rate=300, length=30, attack=4.0, decay=2.0, sustain=0.8,
+                                    release=6.0, cutoff=5000, resonance=0.15, filt="LP 24", spread=0.4,
+                                    distance=0.3, approach=0.3, proximity=0.5, hold="on", level=0.45), "Bowed Line"),
+    ("Strings", "Bowed Phrase", near(type="Bow", force=0.6, speed=0.45, pos=0.2, octave=0, kind="Phrase", glide=6,
+                                     rate=320, length=36, attack=1.0, release=6, cutoff=5000, resonance=0.15,
+                                     filt="LP 24", approach=0.2, level=0.5), "Bowed Line"),
+    ("Signals", "Tube Phrase", near(type="Tube", pos=0.3, bright=0.4, octave=0, kind="Phrase", glide=8, rate=340,
+                                    length=36, attack=1.5, release=8, cutoff=7000, approach=0.2, distance=0.3,
+                                    level=0.45), "Bunker Tube"),
+    ("Bells", "Chime Phrase", near(type="Chime", force=0.5, pos_drift=0.2, tilt=0.3, bright=0.3, octave=1,
+                                   kind="Phrase", glide=0, rate=320, length=30, attack=0.001, decay=0.5, sustain=1.0,
+                                   release=10, cutoff=14000, distance=0.25, level=0.45), "Wind Chimes"),
+    # Cut-ups like Radio Cut-Up, from the other folders of the archive.
+    ("Radio", "Mission Cut-Up", _cut_up("NASA/Historical/Missions"), "Radio Cut-Up"),
+    ("Radio", "Apollo Cut-Up", _cut_up("NASA/Historical/Apollo-Mercury", steps=7, step=0.6), "Radio Cut-Up"),
+    ("Radio", "Webb Cut-Up", _cut_up("NASA/Sonification/Webb", steps=4, step=1.2, cutoff=12000), "Radio Cut-Up"),
+    ("Library", "Street Cut-Up", _cut_up("LoC/Tony-Schwartz", steps=7, step=0.55), "Radio Cut-Up"),
+    ("Library", "Interview Cut-Up", _cut_up("LoC/Joe-Smith", steps=5, step=0.8, cutoff=6000), "Radio Cut-Up"),
+    ("Library", "Screening Cut-Up", _cut_up("LoC/Screening-Room", steps=5, step=0.75), "Radio Cut-Up"),
+]
+for _fam, _name, _kw, _parent in NEW_BASES:
+    assert _parent in LIKED, _name
+    _hit = [ps for f, ps in NEAR if f == _fam]
+    if _hit:
+        _hit[0].append((_name, _kw))
+    else:   # a family of its own, after the sequences
+        _at = [f for f, _ in NEAR].index("Sequences") + 1
+        NEAR.insert(_at, (_fam, [(_name, _kw)]))
+GROUP_PARENT = {name: parent for _, name, _, parent in NEW_BASES}
+
+
+def _cl(v, lo, hi):
+    return max(lo, min(hi, v))
+
+
+def _descriptors():
+    """(name, applies(kw), overrides(kw)) -- each moves what the ear hears, from the parent's final fore_* values."""
+    def g(kw, k, d):
+        return float(kw.get("fore_" + k, d))
+
+    def is_seq(kw):
+        return kw.get("fore_kind") == "Sequence"
+
+    def bass(kw):
+        return g(kw, "cutoff", 6000) < 400
+
+    def has(kw, k):
+        return ("fore_" + k) in kw
+
+    return [
+        ("Low", lambda kw: g(kw, "octave", 0) > -2,
+         lambda kw: dict(fore_octave=int(g(kw, "octave", 0)) - 1, fore_cutoff=round(_cl(g(kw, "cutoff", 6000) * 0.75, 100, 18000)))),
+        ("High", lambda kw: g(kw, "octave", 0) < 2 and not bass(kw),
+         lambda kw: dict(fore_octave=int(g(kw, "octave", 0)) + 1, fore_cutoff=round(_cl(g(kw, "cutoff", 6000) * 1.3, 100, 18000)))),
+        ("Slow", lambda kw: True,
+         lambda kw: dict(fore_step=round(_cl(g(kw, "step", 0.4) * 1.45, 0.1, 4.0), 2), fore_length=round(_cl(g(kw, "length", 6) * 1.2, 0.5, 360)))
+         if is_seq(kw) else dict(fore_length=round(_cl(g(kw, "length", 6) * 1.6, 6, 600)), fore_attack=round(_cl(g(kw, "attack", 0.3) * 2, 0.001, 10), 3),
+                                 **({"fore_speed": round(_cl(g(kw, "speed", 0.4) * 0.6, 0, 1), 2)} if has(kw, "speed") else {}))),
+        ("Quick", lambda kw: is_seq(kw) and g(kw, "step", 0.4) > 0.3,
+         lambda kw: dict(fore_step=round(_cl(g(kw, "step", 0.4) * 0.72, 0.1, 4.0), 2))),
+        ("Far", lambda kw: g(kw, "distance", 0) < 0.5,
+         lambda kw: dict(fore_distance=0.65, fore_dry=0.0, fore_proximity=round(min(g(kw, "proximity", 0.6), 0.3), 2),
+                         fore_cutoff=round(_cl(g(kw, "cutoff", 6000) * 0.65, 100, 18000)), fore_delay2=round(max(g(kw, "delay2", 0), 0.3), 2))),
+        ("Close", lambda kw: g(kw, "distance", 0) > 0.1 or g(kw, "proximity", 0.6) < 0.7,
+         lambda kw: dict(fore_distance=0.05, fore_dry=round(max(g(kw, "dry", 0), 0.25), 2), fore_proximity=0.8)),
+        ("Rising", lambda kw: g(kw, "approach", 0) <= 0.2,
+         lambda kw: dict(fore_approach=0.5, **({} if is_seq(kw) else {"fore_length": round(_cl(max(g(kw, "length", 6), 40), 6, 600))}))),
+        ("Fading", lambda kw: g(kw, "approach", 0) >= -0.2,
+         lambda kw: dict(fore_approach=-0.5, **({} if is_seq(kw) else {"fore_length": round(_cl(max(g(kw, "length", 6), 30), 6, 600))}))),
+        ("Cosmic", lambda kw: g(kw, "cosmos", 0) < 0.5,
+         lambda kw: dict(fore_cosmos=0.7)),
+        ("Echo", lambda kw: g(kw, "delay2", 0) < 0.4,
+         lambda kw: dict(fore_delay2=0.6)),
+        ("Dark", lambda kw: g(kw, "cutoff", 6000) > 600,
+         lambda kw: dict(fore_cutoff=round(_cl(g(kw, "cutoff", 6000) * 0.45, 120, 18000)),
+                         **({"fore_bright": round(_cl(g(kw, "bright", 0.6) - 0.25, 0, 1), 2)} if has(kw, "bright") else {}))),
+        ("Bright", lambda kw: not bass(kw) and g(kw, "cutoff", 6000) < 12000,
+         lambda kw: dict(fore_cutoff=round(_cl(g(kw, "cutoff", 6000) * 1.7, 100, 18000)),
+                         **({"fore_bright": round(_cl(g(kw, "bright", 0.6) + 0.2, 0, 1), 2)} if has(kw, "bright") else {}))),
+        ("Soft", lambda kw: g(kw, "attack", 0.3) < 2.0,
+         lambda kw: dict(fore_attack=round(_cl(max(g(kw, "attack", 0.3) * 4, 0.3 if not is_seq(kw) else 0.05), 0.001, 10), 3),
+                         fore_release=round(_cl(g(kw, "release", 2) * 2, 0.03, 30), 2))),
+        ("Long", lambda kw: True,
+         lambda kw: dict(fore_length=round(_cl(g(kw, "length", 6) * (1.5 if is_seq(kw) else 2.2), 6, 360 if is_seq(kw) else 600)))),
+        ("Sparse", lambda kw: is_seq(kw) and g(kw, "steps", 7) >= 5,
+         lambda kw: dict(fore_steps=int(g(kw, "steps", 7)) - 2, fore_scatter=round(_cl(g(kw, "scatter", 0.3) + 0.2, 0, 1), 2))),
+        ("Dense", lambda kw: is_seq(kw) and 4 <= g(kw, "steps", 7) <= 12,   # a pulse of two or three stays one
+         lambda kw: dict(fore_steps=int(g(kw, "steps", 7)) + 3, fore_step=round(_cl(g(kw, "step", 0.4) * 0.85, 0.1, 4.0), 2))),
+        ("Drift", lambda kw: True,
+         lambda kw: dict(fore_drift=8.0, fore_pos_drift=round(_cl(g(kw, "pos_drift", 0.3) + 0.3, 0, 1), 2),
+                         **({"fore_mutation": round(_cl(g(kw, "mutation", 0.12) + 0.12, 0, 1), 2)}
+                            if is_seq(kw) and g(kw, "steps", 7) >= 4 else {}))),
+        ("Wide", lambda kw: g(kw, "spread", 0.5) < 0.7,
+         lambda kw: dict(fore_spread=0.9)),
+    ]
+
+
+_OPPOSITE = {frozenset(p) for p in (("Low", "High"), ("Slow", "Quick"), ("Far", "Close"), ("Rising", "Fading"),
+                                    ("Dark", "Bright"), ("Sparse", "Dense"), ("Long", "Quick"), ("Dense", "Quick"))}
+# The order the pairs are tried in leans long and soft (Rene: "eher etwas laenger").
+_LEAN = ["Slow", "Long", "Soft", "Far", "Rising", "Low", "Cosmic", "Echo", "Dark", "Fading", "Drift", "Wide", "Sparse",
+         "High", "Bright", "Close", "Dense", "Quick"]
+
+
+# Measured (near_loudness.py, heard10_s): these four were loud for under two seconds -- the whistler's sweep is short
+# whatever its length -- and Rene asked for longer rather than shorter; their places go to the lines in _INSTEAD.
+# Leaving them out after the draw, and adding to those parents at the end of theirs, keeps every other name as it was.
+_SHORT = {"Whistler Cosmic Echo", "Whistler Low Cosmic", "Whistler Slow Close", "Whistler Rain High Close"}
+_INSTEAD = ["Bowed Line", "Drop Sequence", "Tuned Noise", "Machine Pulse"]
+
+
+def generated_variants(target_total):
+    """Variants of LIKED and NEW_BASES until the bank (with Near Off) holds target_total presets: the liked ones
+    get more, every parent's variants differ from each other in their pair of moves, and a single note never ends
+    up under six seconds."""
+    import zlib
+    settings = {nm: kw for _, ps in NEAR for nm, kw in ps}
+    taken = set(settings) | {name for _, name, _ in NEAR_VARIANTS}
+    parents = LIKED + [name for _, name, _, _ in NEW_BASES]
+    free = target_total - 1 - len(settings) - len(NEAR_VARIANTS)
+    if free <= 0:
+        return []
+    per = {p: 0 for p in parents}
+    k = 0
+    while sum(per.values()) < free:   # round robin, the liked ones twice per round
+        for p in parents:
+            per[p] += 1
+            if p in LIKED and sum(per.values()) < free:
+                per[p] += 1
+            if sum(per.values()) >= free:
+                break
+        k += 1
+    for q in _INSTEAD:   # the slots of the short ones go to lines
+        per[q] += 1
+    desc = _descriptors()
+    out = []
+    for p in parents:
+        kw = settings[p]
+        ok = [d for d in desc if d[1](kw)]
+        order = sorted(ok, key=lambda d: _LEAN.index(d[0]))
+        pairs = [(a, b) for i, a in enumerate(order) for b in order[i + 1:]
+                 if frozenset((a[0], b[0])) not in _OPPOSITE]
+        rnd = zlib.crc32(p.encode("utf-8"))
+        # spread the pairs: every move used about as often, the leaning ones first
+        used = {}
+        chosen = []
+        while len(chosen) < per[p] and pairs:
+            pairs.sort(key=lambda ab: (used.get(ab[0][0], 0) + used.get(ab[1][0], 0),
+                                       _LEAN.index(ab[0][0]) + _LEAN.index(ab[1][0]),
+                                       zlib.crc32((ab[0][0] + ab[1][0]).encode()) ^ rnd))
+            a, b = pairs.pop(0)
+            name = "%s %s %s" % (p, a[0], b[0])
+            if name in taken:
+                continue
+            over = dict(a[2](kw))
+            for key, v in b[2](dict(kw, **over)).items():
+                over[key] = v
+            if kw.get("fore_kind") != "Sequence" and float(over.get("fore_length", kw.get("fore_length", 6))) < 6:
+                over["fore_length"] = 6.0
+            used[a[0]] = used.get(a[0], 0) + 1
+            used[b[0]] = used.get(b[0], 0) + 1
+            taken.add(name)
+            chosen.append((p, name, over))
+        out += [v for v in chosen if v[1] not in _SHORT]
+    return out
+
+
+NEAR_VARIANTS = NEAR_VARIANTS + generated_variants(512)
+VARIANT_PARENT = {name: parent for parent, name, _ in NEAR_VARIANTS}
+# A new base joins its liked relative's group in Near Auto, and plays at that one's gain until it is measured.
+GROUP_OF = dict(VARIANT_PARENT)
+GROUP_OF.update(GROUP_PARENT)
+for _name, _parent in GROUP_PARENT.items():
+    VARIANT_PARENT.setdefault(_name, _parent)
+
+
 def near_bank():
     """NEAR with every variant right after its parent."""
     known = {nm for _, ps in NEAR for nm, _ in ps}
@@ -797,13 +1106,20 @@ def main():
     def fmt_clip(nm, kw):
         kw = dict(kw)
         clip = kw.pop("__clip__", None)
-        g = gains.get(nm, gains.get(VARIANT_PARENT.get(nm, "")))   # a variant carries its parent's until measured
+        g, up = gains.get(nm), nm
+        while g is None and up in VARIANT_PARENT:   # a variant carries its parent's (or grandparent's) until measured
+            up = VARIANT_PARENT[up]
+            g = gains.get(up)
         if g is not None:
             kw["fore_gain"] = round(float(g), 1)
         circuit.apply(kw, None, nm, circuit.NEAR)
         return fmt(**kw) + ("|" + clip if clip else "")
     fams = [(f, [(nm, fmt_clip(nm, kw)) for nm, kw in ps]) for f, ps in bank]
-    unmeasured = [nm for _, ps in bank for nm, _ in ps if nm not in gains and VARIANT_PARENT.get(nm) not in gains]
+    def root(nm):
+        while nm not in gains and nm in VARIANT_PARENT:
+            nm = VARIANT_PARENT[nm]
+        return nm
+    unmeasured = [nm for _, ps in bank for nm, _ in ps if root(nm) not in gains]
     if gains and unmeasured:
         print("near bank: %d preset(s) without a measured gain, left at 0 dB: %s" % (len(unmeasured), ", ".join(unmeasured[:8])))
     n = write_bank(NEAR_OUT, "NearPresets", "NearPresetCategory", "Near Off",
