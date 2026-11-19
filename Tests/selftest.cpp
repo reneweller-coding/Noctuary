@@ -5045,34 +5045,41 @@ void testVoicingRules()
 
     // R5.4 -- Overlap in Chords mode: the voice that is exchanged keeps sounding until its
     // replacement has been in the air for Overlap seconds. Its note-off used to fall on the very
-    // tick of the note-on, whatever Overlap said -- the rule lived in Free mode only.
+    // tick of the note-on, whatever Overlap said -- the rule lived in Free mode only. Since 19.11.2026 a
+    // step of a minor second or ninth is the exception (ClusterBrain::stepRubs): the old voice goes two
+    // seconds after a successor that close, and at no other time early.
     {
         BrainParams q = p;
         q.m_mode = BrainModeE::CHORDS;
         q.m_density = 4;
         q.m_rateSeconds = 3.0f;
         q.m_overlap = 10.0f;
-        const auto          evs = run( q, 600.0, 0x0E4A );
-        std::vector<double> ons;
-        int                 offs = 0, early = 0, peak = 0, sounding = 0;
+        const auto                          evs = run( q, 600.0, 0x0E4A );
+        std::vector<std::pair<double, int>> ons;   // when, which note
+        int                                 offs = 0, early = 0, steps = 0, peak = 0, sounding = 0;
         for ( const Ev &e : evs )
         {
             if ( e.m_on )
             {
-                ons.push_back( e.m_t );
+                ons.emplace_back( e.m_t, e.m_note );
                 if ( ++sounding > peak ) peak = sounding;
                 continue;
             }
             --sounding;
             ++offs;
-            bool tenAfterAnOn = false;   // the note-on it was exchanged for
-            for ( double on : ons )
-                if ( std::fabs( e.m_t - on - 10.0 ) < 0.06 ) tenAfterAnOn = true;
-            if ( !tenAfterAnOn ) ++early;
+            bool tenAfterAnOn = false, twoAfterAStep = false;   // the note-on it was exchanged for
+            for ( const auto &on : ons )
+            {
+                if ( std::fabs( e.m_t - on.first - 10.0 ) < 0.06 ) tenAfterAnOn = true;
+                const int d = std::abs( on.second - e.m_note );
+                if ( std::fabs( e.m_t - on.first - 2.0 ) < 0.06 && ( d == 1 || d == 13 ) ) twoAfterAStep = true;
+            }
+            if ( twoAfterAStep && !tenAfterAnOn ) ++steps;
+            if ( !tenAfterAnOn && !twoAfterAStep ) ++early;
         }
-        std::printf(
-            "  [probe] Chords with Overlap 10: %d note-offs, %d not ten seconds after a note-on, at most %d voices sounding\n",
-            offs, early, peak );
+        std::printf( "  [probe] Chords with Overlap 10: %d note-offs, %d after a step of a minor second (two "
+                     "seconds), %d at any other time early, at most %d voices sounding\n",
+                     offs, steps, early, peak );
         CHECK( offs > 10 && early == 0,
                "Overlap: an exchanged voice goes only after its replacement has sounded ten seconds" );
         CHECK( peak > q.m_density, "so the chord is one voice larger while it does" );
@@ -12948,6 +12955,117 @@ void testConductorsListen()
 }
 
 /**
+ * @brief A conductor hears its own notes (19.11.2026).
+ *
+ * Free mode weighed a candidate against the root alone, so a conductor set strictly consonant (0.95, three notes) still
+ * put notes a semitone beside its own; and one that leads a single voice by step (Chords, Smooth, Overlap thirty
+ * seconds) let the old note sound half a minute beside a successor a semitone away. Each an hour without audio, three
+ * seeds: the share of the time with a minor second or ninth among the first conductor's notes, and the longest time a
+ * voice stays beside a successor a minor second or ninth from it.
+ */
+void testConductorOwnVoices()
+{
+    std::printf( "\n--- a conductor hears its own notes ---\n" );
+    auto run = [&]( bool chords, float seed, double &rubbing, double &sounding, double &longestStep )
+    {
+        Engine e;
+        neutralMaster( e );
+        e.prepare( ambient::DefaultSampleRate, 256 );
+        for ( int i = 0; i < NumParams; ++i )
+            e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
+        e.setParam( ParamIdE::SEED, seed );
+        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+        e.setParam( ParamIdE::BRAIN_CONSONANCE, 0.95f );
+        e.setParam( ParamIdE::ARC_HARMONY, 0.0f );
+        if ( chords )
+        {
+            e.setParam( ParamIdE::AUTO_MODE, 1.0f );
+            e.setParam( ParamIdE::AUTO_RATE, 60.0f );
+            e.setParam( ParamIdE::BRAIN_DENSITY, 1.0f );
+            e.setParam( ParamIdE::BRAIN_SMOOTH, 1.0f );
+            e.setParam( ParamIdE::BRAIN_OVERLAP, 30.0f );
+        }
+        else
+        {
+            e.setParam( ParamIdE::BRAIN_RATE, 12.0f );
+            e.setParam( ParamIdE::BRAIN_DENSITY, 3.0f );
+        }
+        e.reset();
+        std::map<int, double> held;    // note -> Hz
+        std::map<int, double> since;   // note -> when it began
+        double                last = 0.0;
+        auto                  tally = [&]( double now )
+        {
+            if ( now > 60.0 && held.size() >= 2 )
+            {
+                const double dt = now - std::max( last, 60.0 );
+                bool         rub = false;
+                for ( auto a = held.begin(); a != held.end(); ++a )
+                    for ( auto b = std::next( a ); b != held.end(); ++b )
+                    {
+                        const double d = std::fabs( 1200.0 * std::log2( a->second / b->second ) );
+                        rub = rub || ( d > 25.0 && d < 150.0 ) || ( d > 1225.0 && d < 1350.0 );
+                    }
+                sounding += dt;
+                if ( rub ) rubbing += dt;
+            }
+            last = now;
+        };
+        e.auditConductor(
+            3600.0, 0.005,
+            [&]( double t, int which, const BrainEvent &ev )
+            {
+                if ( which != 1 ) return;
+                tally( t );
+                if ( ev.m_type == BrainEvent::TypeE::NOTE_ON )
+                {
+                    held[ev.m_note] = e.frequencyOf( ev.m_note );
+                    since[ev.m_note] = t;
+                }
+                else
+                {
+                    // a voice let go: how long it stood beside the newest note, if that is a minor second or ninth away
+                    double newest = -1.0;
+                    int    newNote = -1;
+                    for ( const auto &s : since )
+                        if ( s.first != ev.m_note && s.second > newest )
+                        {
+                            newest = s.second;
+                            newNote = s.first;
+                        }
+                    if ( newNote >= 0 && held.count( ev.m_note ) && held.count( newNote ) )
+                    {
+                        const double d = std::fabs( 1200.0 * std::log2( held[ev.m_note] / held[newNote] ) );
+                        if ( ( d > 25.0 && d < 150.0 ) || ( d > 1225.0 && d < 1350.0 ) )
+                            longestStep = std::max( longestStep, t - newest );
+                    }
+                    held.erase( ev.m_note );
+                    since.erase( ev.m_note );
+                }
+            },
+            nullptr );
+        tally( 3600.0 );
+    };
+    double freeRub = 0.0, freeAll = 0.0, freeStep = 0.0, chordRub = 0.0, chordAll = 0.0, chordStep = 0.0;
+    for ( float seed : { 1171.0f, 1172.0f, 1173.0f } )
+    {
+        run( false, seed, freeRub, freeAll, freeStep );
+        run( true, seed, chordRub, chordAll, chordStep );
+    }
+    const double freeShare = 100.0 * freeRub / std::max( freeAll, 1.0 );
+    std::printf( "  [probe] Free, three notes at Consonance 0.95: %.1f %% of %.0f s with a minor second or ninth among "
+                 "them\n",
+                 freeShare, freeAll );
+    std::printf( "  [probe] Chords by step with Overlap 30 s: a voice stayed at most %.1f s beside a successor a minor "
+                 "second or ninth away\n",
+                 chordStep );
+    CHECK( freeAll > 3.0 * 3000.0, "conductor: three notes sound most of the time" );
+    CHECK( freeShare < 2.0, "conductor: set consonant, it puts no minor second beside its own notes" );
+    CHECK( chordStep < 3.0, "conductor: a step of a minor second lets the old voice go within two seconds" );
+}
+
+/**
  * @brief Runs every test function in turn and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -13023,6 +13141,7 @@ int main()
     testBrainTimbre();
     testResearchBatch();
     testConductorsListen();
+    testConductorOwnVoices();
     if ( failures == 0 )
         std::printf( "selftest: all checks passed\n" );
     else

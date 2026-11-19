@@ -1263,6 +1263,64 @@ public:
     }
 
     /**
+     * @brief Whether a candidate rubs against this conductor's own notes: a minor second or a minor ninth from one of
+     *        the voices that stay, for a conductor whose Consonance is at least a half (19.11.2026). A step from the
+     *        voice that leaves is allowed; stepRubs() cuts their overlap instead.
+     *
+     * Free mode weighs a candidate against the root alone, and Smooth makes the nearest step the likeliest: a
+     * conductor of one note walked by semitones, each new note beginning while the old one still held, a minor second
+     * standing for half a minute at every change (Leaf Depth, Consonance at 1, every overlap of the hour). Chords
+     * mode heard its voices but in a mean of harmonic entropy, where a semitone (0.10) is hardly worse than a third
+     * (0.17). Only the closest rub is vetoed, the minor second and the minor ninth: a major seventh and a tritone are
+     * colours a chord of this music is made of, and stay to the weights. Asked in Free mode's draw, in chooseNote()
+     * and against the deja vu ring; a conductor set for clusters (Consonance under a half) keeps them.
+     * @param[in] fc      the candidate, Hz
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return true when it is out
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    bool rubsOwn( double fc, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        if ( p.m_consonance < 0.5f ) return false;
+        auto close = [fc]( double f )
+        {
+            const double d = std::fabs( 1200.0 * std::log2( fc / f ) );
+            return ( d > 25.0 && d < 150.0 ) || ( d > 1225.0 && d < 1350.0 );
+        };
+        for ( const auto &s : m_slots )
+            if ( s.m_note >= 0 && s.m_remaining >= 0.0 && close( freqOf( s.m_note ) ) ) return true;
+        return false;
+    }
+
+    /**
+     * @brief Whether a new note is a minor second or a minor ninth from the voice it replaces, for a conductor whose
+     *        Consonance is at least 0.3: then the step is a step of a line, not a chord, and the old voice does not
+     *        stay for the whole Overlap beside it but at most two seconds (19.11.2026). The threshold is lower than
+     *        the vetoes' half: the night's arc (Arc Harmony) lowers Consonance towards its climax, and the tension it
+     *        means is in the chords, not in a step's leftover -- Grit Passage, set at 0.58, walked by semitones under
+     *        the arc with each old note nineteen seconds beside its successor.
+     *
+     * rubsOwn() at first vetoed the step itself, and a conductor that leads its voices by step (Smooth, a single
+     * voice) all but stopped moving -- Leaf Depth from seven changes an hour to one. The step was never the rub; the
+     * thirty-five seconds the two notes sounded together were.
+     * @param[in] arriving  MIDI
+     * @param[in] leaving   MIDI
+     * @param[in] p         the knobs
+     * @param[in] freqOf    frequency of a MIDI note in the engine's current scale
+     * @return true when the overlap is to be cut
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    bool stepRubs( int arriving, int leaving, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        if ( p.m_consonance < 0.3f || arriving < 0 || leaving < 0 ) return false;
+        const double d = std::fabs( 1200.0 * std::log2( freqOf( arriving ) / freqOf( leaving ) ) );
+        return ( d > 25.0 && d < 150.0 ) || ( d > 1225.0 && d < 1350.0 );
+    }
+
+    /**
      * @brief Whether a candidate rubs against the other conductor: a semitone, a major seventh or a tritone from one of
      *        its notes (listenTo()), within two octaves, for a conductor whose Consonance is at least a half.
      *
@@ -1571,7 +1629,10 @@ public:
                         // Admissible like any other note -- in range, rested, not a constellation
                         // heard lately, and by the rules -- except that a pivot tone may be the
                         // leading note, which is the one place R4.4 allows it.
-                        if ( fits && admissible( c, lo, hi, p, freqOf, true ) )
+                        // And it stands beside the other voices as any chosen note must (19.11.2026): Grit Passage's
+                        // pivot was a B flat under a sounding B for nineteen seconds.
+                        if ( fits && admissible( c, lo, hi, p, freqOf, true ) && !rubsOwn( freqOf( c ), p, freqOf ) &&
+                             !againstOther( freqOf( c ), p ) )
                         {
                             found = c;
                             break;
@@ -1669,7 +1730,10 @@ public:
                     lastVoiceDue = true;
                     continue;
                 }
-                if ( m_sinceOn < static_cast<double>( p.m_overlap ) ) continue;
+                const double wait = stepRubs( m_lastNote, s.m_note, p, freqOf )
+                                        ? std::min( static_cast<double>( p.m_overlap ), 2.0 )
+                                        : static_cast<double>( p.m_overlap );
+                if ( m_sinceOn < wait ) continue;
             }
             if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) ) continue;
             if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the constellation that ends here
@@ -1852,8 +1916,9 @@ public:
                  m_now - m_pitchOffAt[static_cast<size_t>( c )] < static_cast<double>( p.m_retrigger ) )
                 continue;
             const double fc = freqOf( c );
-            if ( againstOther( fc, p ) ) continue;   // the other conductor's notes (listenTo())
-            bool duplicate = false;                  // with snapped keys two keys can share one pitch
+            if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
+            if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
+            bool duplicate = false;                     // with snapped keys two keys can share one pitch
             for ( auto &s : m_slots )
                 if ( s.m_note >= 0 && std::fabs( std::log2( freqOf( s.m_note ) / fc ) ) * 1200.0 < 1.0 )
                     duplicate = true;
@@ -2341,7 +2406,9 @@ private:
                 if ( l.m_note < 0 )
                 {
                     l.m_note = leaving;
-                    l.m_in = static_cast<double>( p.m_overlap );
+                    l.m_in = stepRubs( arriving, leaving, p, freqOf )
+                                 ? std::min( static_cast<double>( p.m_overlap ), 2.0 )
+                                 : static_cast<double>( p.m_overlap );
                     parked = true;
                     break;
                 }
@@ -2977,7 +3044,8 @@ private:
             const float rule = ruleWeight( c, low, high, rootSounding, p, freqOf );
             if ( rule <= 0.0f ) continue;
             const double fc = freqOf( c );
-            if ( againstOther( fc, p ) ) continue;   // the other conductor's notes (listenTo())
+            if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
+            if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
             bool duplicate = false;
             for ( const auto &s : m_slots )
                 if ( s.m_note >= 0 && std::fabs( std::log2( freqOf( s.m_note ) / fc ) ) * 1200.0 < 1.0 )
@@ -3616,7 +3684,7 @@ private:
         {
             const int old = m_ring[m_ringPos];
             if ( old != avoid && !sounding( old ) && admissible( old, low, high, p, freqOf ) &&
-                 !againstOther( freqOf( old ), p ) )
+                 !againstOther( freqOf( old ), p ) && !rubsOwn( freqOf( old ), p, freqOf ) )
                 out = old;
         }
         m_ring[m_ringPos] = out;
