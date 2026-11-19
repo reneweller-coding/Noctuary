@@ -35,6 +35,15 @@ fell from 3.9 % to 0.3 % and from 3.3 % to 1.2 %, the presets where it stood mor
 to 4, with as many changes as before (46 to 48 an hour) and no conductor left silent; across the two conductors the
 semitones fell further, from 0.8 % to 0.5 %, the tritones from 0.15 % to 0.06 %.
 
+**The long loop in the library** (19.11.2026). Robert Rich's sleep-concert loop (Loop, on the Foreground page since
+20.10.2026) was in no preset. 3014 of the library's have it now (Tools/library/retrofit_loop.py): three in five in the
+sleep concert and the loop and tape packs and the slow unfolding ones, two in five in the slow chords, strings, hymns
+and night pieces, one in four in the dark and far packs, none in the processions, drums, machines, rituals, signals,
+weather, glass or field recordings; not where the conductor hurries (a chord sooner than every twenty seconds, an
+event sooner than every six) or the delays already carry much. Each was played for a minute with its loop and
+without: the loop adds 0.12 dB at the median (2.9 at the most, none over the 3 dB at which its Mix would have come
+down) and sits 5 to 14 dB under the whole in the probes; master_gain came down by exactly what it adds.
+
 **The near bank: 512 presets.** Built on what Rene heard and liked -- Bowed Line, Bunker Tube, Krell Circuit, Deep
 Space Beacon, Number Station, Shortwave Dial, Whistler, Tuned Noise, Drop Sequence, Heartbeat, Machine Pulse, Wind
 Chimes, Radio Cut-Up -- and longer rather than shorter. Thirty-four new ideas cross them: the signal sources as lines
