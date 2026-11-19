@@ -1263,6 +1263,35 @@ public:
     }
 
     /**
+     * @brief Whether a candidate rubs against the other conductor: a semitone, a major seventh or a tritone from one of
+     *        its notes (listenTo()), within two octaves, for a conductor whose Consonance is at least a half.
+     *
+     * The weight alone was not enough. Harmonic entropy, which consonanceOf() reads, lies close together below the
+     * fourth -- a semitone 0.10, a whole tone 0.13, a major third 0.17 -- so even to the power 2.4 a semitone to the
+     * other was only three and a half times less likely than a third, and where the rules left one candidate (one note
+     * each, keys snapping in a just scale) it won however poorly it scored: Pedal Line held C# against the second's D
+     * for twenty minutes. A veto here, in the draw of Free mode, in chooseNote() and against the deja vu ring; when it
+     * empties the field Chords mode widens its allowance as it always did, and Free mode waits for its next decision.
+     * A conductor set for clusters (Consonance under a half) keeps the weight only.
+     * @param[in] fc  the candidate, Hz
+     * @param[in] p   the knobs
+     * @return true when it is out
+     */
+    bool againstOther( double fc, const BrainParams &p ) const
+    {
+        if ( m_otherCount == 0 || p.m_consonance < 0.5f ) return false;
+        for ( int k = 0; k < m_otherCount; ++k )
+        {
+            const double d = std::fabs( 1200.0 * std::log2( fc / m_otherHz[k] ) );
+            if ( d >= 2400.0 ) continue;
+            double c = std::fmod( d, 1200.0 );
+            c = std::min( c, 1200.0 - c );
+            if ( ( c > 25.0 && c < 150.0 ) || ( c > 550.0 && c < 650.0 ) ) return true;
+        }
+        return false;
+    }
+
+    /**
      * @brief What the conductor is holding, so another one can take it over.
      *
      * Writes at most
@@ -1823,7 +1852,8 @@ public:
                  m_now - m_pitchOffAt[static_cast<size_t>( c )] < static_cast<double>( p.m_retrigger ) )
                 continue;
             const double fc = freqOf( c );
-            bool         duplicate = false;   // with snapped keys two keys can share one pitch
+            if ( againstOther( fc, p ) ) continue;   // the other conductor's notes (listenTo())
+            bool duplicate = false;                  // with snapped keys two keys can share one pitch
             for ( auto &s : m_slots )
                 if ( s.m_note >= 0 && std::fabs( std::log2( freqOf( s.m_note ) / fc ) ) * 1200.0 < 1.0 )
                     duplicate = true;
@@ -2947,7 +2977,8 @@ private:
             const float rule = ruleWeight( c, low, high, rootSounding, p, freqOf );
             if ( rule <= 0.0f ) continue;
             const double fc = freqOf( c );
-            bool         duplicate = false;
+            if ( againstOther( fc, p ) ) continue;   // the other conductor's notes (listenTo())
+            bool duplicate = false;
             for ( const auto &s : m_slots )
                 if ( s.m_note >= 0 && std::fabs( std::log2( freqOf( s.m_note ) / fc ) ) * 1200.0 < 1.0 )
                     duplicate = true;
@@ -3584,7 +3615,9 @@ private:
         if ( m_ring[m_ringPos] >= 0 && m_rng.uniform() < p.m_dejavu )
         {
             const int old = m_ring[m_ringPos];
-            if ( old != avoid && !sounding( old ) && admissible( old, low, high, p, freqOf ) ) out = old;
+            if ( old != avoid && !sounding( old ) && admissible( old, low, high, p, freqOf ) &&
+                 !againstOther( freqOf( old ), p ) )
+                out = old;
         }
         m_ring[m_ringPos] = out;
         return out;

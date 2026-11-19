@@ -12881,7 +12881,7 @@ void testNoteTap()
  * The second on the fifth, both in Free mode with chords of their own, three seeds of an hour without audio
  * (auditConductor). The share of the time a note of one stands a semitone, a major seventh or a tritone from a note
  * of the other -- as the tuning sounds them, within two octaves -- is small. Before, they shared the root and nothing
- * else: 41 % of the time; now 7 %.
+ * else: 41 % of the time; hearing each other, 7 %; with the veto against the other's notes (againstOther), none.
  */
 void testConductorsListen()
 {
@@ -12944,7 +12944,7 @@ void testConductorsListen()
         "  [probe] %.1f %% of %.0f s with both sounding: a semitone, a major seventh or a tritone across them\n", share,
         both );
     CHECK( both > 3.0 * 3000.0, "conductors: both sound most of the three hours" );
-    CHECK( share < 15.0, "conductors: the two hear each other and seldom rub" );
+    CHECK( share < 3.0, "conductors: the two hear each other and seldom rub" );
 }
 
 /**

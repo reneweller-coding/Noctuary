@@ -13,10 +13,13 @@ are chord tones. The lines keep their sound: ghosts, accents, gates and tempo ar
 **The two conductors hear each other** (19.11.2026). They shared a root and nothing else: each chose its notes against
 the root and its own voices, and the second's could stand a semitone or a tritone from the first's -- in Gannet Colony
 each was clean by itself while 32 % of their pairs were a semitone apart and 30 % a tritone. Each now weighs a
-candidate against the other's sounding notes as it weighs the root, to the power its Consonance asks, so a conductor set
-for clusters still allows them. Over 200 presets of the library, an hour each, the time with a semitone, a major seventh
-or a tritone across the two (within two octaves) fell from 3.6 % and 1.3 % to 2.5 % and 0.8 %, and the presets where it
-stood more than a tenth of the time from 28 to 18; Gannet Colony from 62 % to none. A preset without the second
+candidate against the other's sounding notes as it weighs the root, to the power its Consonance asks, and a conductor
+whose Consonance is at least a half does not take a note a semitone, a major seventh or a tritone (within two octaves)
+from one of the other's -- the weight alone was too gentle, since harmonic entropy puts a semitone at 0.10 and a major
+third at 0.17, and where the rules left a single candidate it won however it scored (Pedal Line held C# against the
+second's D for twenty minutes). Over 200 presets of the library, an hour each, the time with such a pair across the two
+fell from 3.6 % (semitones) and 1.3 % (tritones) to 0.8 % and 0.1 %, the presets where it stood more than a tenth of
+the time from 28 to none, with as many notes as before and no conductor left silent. A preset without the second
 conductor plays exactly as before. `ambient_brain_audit` prints each note's frequency as an eighth field.
 
 **The near bank: two out, twenty-six in.** Seed Pod (the shaker, heard as a noise burst in the foreground) and Geiger
