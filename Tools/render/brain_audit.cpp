@@ -6,8 +6,8 @@
  *   ambient_brain_audit [--preset "name"] [--set key=value]... [--hours 1] [--dt 0.005] [--seed N]
  * @endcode
  *
- * Prints one line per event, E,\<seconds\>,\<conductor 1|2\>,\<on 1|0\>,\<note\>,\<velocity\>, and one per
- * root change, R,\<seconds\>,\<root\>. Tools/library/brain_audit.py turns that into the table of
+ * Prints one line per event, E,\<seconds\>,\<conductor 1|2\>,\<on 1|0\>,\<note\>,\<velocity\>,\<pitch
+ * class\>,\<Hz\> (the last two as the instrument's tuning sounds the note), and one per root change, R,\<seconds\>,\<root\>. Tools/library/brain_audit.py turns that into the table of
  * section 11, the anti-rules of section 12 and the roles of table 2. No audio is rendered: the
  * engine's conductors are stepped at the control rate with the parameters exactly as a render
  * would read them, which is why this is an engine method and not a copy of its wiring.
@@ -119,9 +119,10 @@ int main( int argc, char **argv )
         [eng]( double t, int which, const BrainEvent &e )
         {
             now = t;
-            const int pc = pitchClassOf( eng->frequencyOf( e.m_note ) );
-            std::printf( "E,%.4f,%d,%d,%d,%.3f,%d\n", t, which, e.m_type == BrainEvent::TypeE::NOTE_ON ? 1 : 0,
-                         e.m_note, static_cast<double>( e.m_velocity ), pc );
+            const double hz = eng->frequencyOf( e.m_note );
+            const int    pc = pitchClassOf( hz );
+            std::printf( "E,%.4f,%d,%d,%d,%.3f,%d,%.3f\n", t, which, e.m_type == BrainEvent::TypeE::NOTE_ON ? 1 : 0,
+                         e.m_note, static_cast<double>( e.m_velocity ), pc, hz );
         },
         []( double t, int root )
         {
