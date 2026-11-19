@@ -507,6 +507,8 @@ void Engine::renderChunk( float *L, float *R, int n )
                 bpSlow.m_rateSeconds *= 2.0f;
                 bpNow = &bpSlow;
             }
+            // the two conductors hear each other (19.11.2026): each weighs its choices against the other's notes too
+            m_brain.listenTo( m_brain2On ? &m_brain2 : nullptr, freqOf );
             if ( syncOn( m_brainQuant ) && m_running )
             {
                 m_quantAcc += dt;
@@ -528,6 +530,7 @@ void Engine::renderChunk( float *L, float *R, int n )
             if ( m_brain2On )
             {
                 m_brain2.setRoot( clampv( m_brain.root() + m_brain2Interval, 0, 127 ) );
+                m_brain2.listenTo( &m_brain, freqOf );
                 m_brain2.update( dt, m_bp2, -1, freqOf, emit2 );
             }
             stepNear( dt, [this]( const NearNote &e ) { nearEmit( e ); } );
@@ -1566,10 +1569,12 @@ void Engine::auditConductor( double seconds, double dt,
                 bpSlow.m_rateSeconds *= 2.0f;
                 bpNow = &bpSlow;
             }
+            m_brain.listenTo( m_brain2On ? &m_brain2 : nullptr, freqOf );
             m_brain.update( dt, *bpNow, -1, freqOf, [&]( const BrainEvent &e ) { sink( t, 1, e ); } );
             if ( m_brain2On )
             {
                 m_brain2.setRoot( clampv( m_brain.root() + m_brain2Interval, 0, 127 ) );
+                m_brain2.listenTo( &m_brain, freqOf );
                 m_brain2.update( dt, m_bp2, -1, freqOf, [&]( const BrainEvent &e ) { sink( t, 2, e ); } );
             }
         }

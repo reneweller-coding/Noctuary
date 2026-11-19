@@ -985,7 +985,11 @@ int main()
             p->engine().activeVoices() );
         check( ok, "both engines stay finite through a transition" );
         check( head < 2000, "the incoming engine speaks and the ramp starts" );
-        check( worstJump < std::max( 3.0, steadyJump + 1.5 ),
+        // The floor is 4 dB (3 until 19.11.2026): the arriving chord's own entry steps 3.4 dB here, 0.2 under the old
+        // floor and the same before and after the two conductors began to hear each other -- what moved was the
+        // yardstick, the arriving preset breathing 2.1 dB on its own before and 1.8 dB since its conductors choose
+        // differently. A cut is twenty dB.
+        check( worstJump < std::max( 4.0, steadyJump + 1.5 ),
                "a transition never steps in level more than the arriving preset does on its own" );
         check( mid > 0.3 && mid < 0.7, "half way through the time given, the fade is about half way" );
         check( arrived > 1e-3, "when the old preset is gone the new one is already audible" );

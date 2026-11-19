@@ -1064,6 +1064,7 @@ public:
         m_stepRequested = false;
         for ( int &r : m_recent ) r = -1;
         m_recentHead = 0;
+        m_otherCount = 0;
         for ( auto &s : m_slots )
         {
             s.m_note = -1;
@@ -1236,6 +1237,30 @@ public:
      * @return true between requestStep() and the tick that acts on it
      */
     bool stepPending() const { return m_stepRequested; }
+
+    /**
+     * @brief The other conductor's notes, as they sound now, for this one's choices to be weighed against too
+     *        (19.11.2026).
+     *
+     * Two conductors shared a root and nothing else: each chose its notes against the root and its own voices, and
+     * the second's could stand a semitone or a tritone from the first's -- each clean by itself, the two together
+     * not (Gannet Colony: 32 % of their pairs a semitone, 30 % a tritone). Each note the other sounds weighs on a
+     * candidate now as the root does in Free mode, in both modes: its consonance with the candidate to the power the
+     * conductor's Consonance asks, so one set for clusters still allows them. Called before update() every block;
+     * nullptr (or a silent other) and the conductor draws exactly what it drew alone.
+     * @param[in] other   the other conductor, or nullptr
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void listenTo( const ClusterBrain *other, FreqFnT &&freqOf )
+    {
+        m_otherCount = 0;
+        if ( !other ) return;
+        for ( const auto &s : other->m_slots )
+            if ( s.m_note >= 0 && m_otherCount < Slots )   // one chosen and about to begin counts: it will sound
+                m_otherHz[m_otherCount++] = freqOf( s.m_note );
+    }
 
     /**
      * @brief What the conductor is holding, so another one can take it over.
@@ -1805,6 +1830,9 @@ public:
             if ( duplicate ) continue;
             const double cons = p.consonanceOf( fc, rootFreq );
             float        w = static_cast<float>( std::pow( cons, p.m_consonance * 3.0f ) );
+            // the other conductor's notes, weighed as the root is (listenTo())
+            for ( int k = 0; k < m_otherCount; ++k )
+                w *= static_cast<float>( std::pow( p.consonanceOf( fc, m_otherHz[k] ), p.m_consonance * 3.0f ) );
             w *= 0.6f + 0.4f * static_cast<float>( 1.0 - std::fabs( c - mid ) / half );
             // Octave doubling is rare -- but the two rules disagree here, and the disagreement is
             // real rather than a wrinkle to be smoothed over. "A doubling is not a new colour" is a
@@ -2935,6 +2963,10 @@ private:
                 }
             fit /= n;
             double score = std::pow( fit, 1.0 + 2.5 * ( 1.0 - clampv( p.m_chordTension, 0.0f, 1.0f ) ) );
+            // the other conductor's notes, weighed as Free mode weighs the root (listenTo()): each by itself, not in the
+            // mean, where a semitone to one of them counted half against a consonance to the root
+            for ( int k = 0; k < m_otherCount; ++k )
+                score *= std::pow( p.consonanceOf( fc, m_otherHz[k] ), static_cast<double>( p.m_consonance ) * 3.0 );
             // Voice leading: the further this voice has to travel, the worse, and beyond the
             // allowance it is not considered at all.
             if ( from >= 0 )
@@ -3558,7 +3590,9 @@ private:
         return out;
     }
 
-    Slot m_slots[Slots];   ///< the cluster: one voice per slot, note -1 when empty
+    Slot   m_slots[Slots];          ///< the cluster: one voice per slot, note -1 when empty
+    double m_otherHz[Slots] = {};   ///< the other conductor's notes as they sound, Hz (listenTo())
+    int    m_otherCount = 0;        ///< how many of them (0: it hears no other)
     mutable Rng
         m_rng;   ///< the conductor's own random stream, seeded by reset(); mutable so that chooseNote() can add its little life while const
     static constexpr int Ring = 16;   ///< places in the deja-vu ring; Loop may use fewer

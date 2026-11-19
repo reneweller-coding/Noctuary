@@ -79,6 +79,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <map>
 #include <set>
 #include <array>
 
@@ -12875,6 +12876,78 @@ void testNoteTap()
 }
 
 /**
+ * @brief The two conductors hear each other (19.11.2026).
+ *
+ * The second on the fifth, both in Free mode with chords of their own, three seeds of an hour without audio
+ * (auditConductor). The share of the time a note of one stands a semitone, a major seventh or a tritone from a note
+ * of the other -- as the tuning sounds them, within two octaves -- is small. Before, they shared the root and nothing
+ * else: 41 % of the time; now 7 %.
+ */
+void testConductorsListen()
+{
+    std::printf( "\n--- the two conductors hear each other ---\n" );
+    double rubbing = 0.0, both = 0.0;
+    for ( float seed : { 1151.0f, 1152.0f, 1153.0f } )
+    {
+        Engine e;
+        neutralMaster( e );
+        e.prepare( ambient::DefaultSampleRate, 256 );
+        for ( int i = 0; i < NumParams; ++i )
+            e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
+        e.setParam( ParamIdE::SEED, seed );
+        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+        e.setParam( ParamIdE::BRAIN_RATE, 20.0f );
+        e.setParam( ParamIdE::BRAIN_DENSITY, 3.0f );
+        e.setParam( ParamIdE::BRAIN2_ON, 1.0f );
+        e.setParam( ParamIdE::BRAIN2_INTERVAL, 7.0f );
+        e.setParam( ParamIdE::BRAIN2_DENSITY, 2.0f );
+        e.setParam( ParamIdE::BRAIN2_RATE, 15.0f );
+        e.reset();
+        std::map<int, double> held[3];   // per conductor: note -> Hz
+        double                last = 0.0;
+        auto                  tally = [&]( double now )
+        {
+            if ( now > 60.0 && !held[1].empty() && !held[2].empty() )
+            {
+                const double dt = now - std::max( last, 60.0 );
+                bool         rub = false;
+                for ( const auto &a : held[1] )
+                    for ( const auto &b : held[2] )
+                    {
+                        const double d = std::fabs( 1200.0 * std::log2( a.second / b.second ) );
+                        double       c = std::fmod( d, 1200.0 );
+                        c = std::min( c, 1200.0 - c );
+                        rub = rub || ( d < 2400.0 && ( ( c > 25.0 && c < 150.0 ) || c > 550.0 ) );
+                    }
+                both += dt;
+                if ( rub ) rubbing += dt;
+            }
+            last = now;
+        };
+        e.auditConductor(
+            3600.0, 0.005,
+            [&]( double t, int which, const BrainEvent &ev )
+            {
+                if ( which != 1 && which != 2 ) return;
+                tally( t );
+                if ( ev.m_type == BrainEvent::TypeE::NOTE_ON )
+                    held[which][ev.m_note] = e.frequencyOf( ev.m_note );
+                else
+                    held[which].erase( ev.m_note );
+            },
+            nullptr );
+        tally( 3600.0 );
+    }
+    const double share = 100.0 * rubbing / std::max( both, 1.0 );
+    std::printf(
+        "  [probe] %.1f %% of %.0f s with both sounding: a semitone, a major seventh or a tritone across them\n", share,
+        both );
+    CHECK( both > 3.0 * 3000.0, "conductors: both sound most of the three hours" );
+    CHECK( share < 15.0, "conductors: the two hear each other and seldom rub" );
+}
+
+/**
  * @brief Runs every test function in turn and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -12949,6 +13022,7 @@ int main()
     testAfterTheClassics();
     testBrainTimbre();
     testResearchBatch();
+    testConductorsListen();
     if ( failures == 0 )
         std::printf( "selftest: all checks passed\n" );
     else

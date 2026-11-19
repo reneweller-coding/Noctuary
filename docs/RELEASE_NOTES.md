@@ -10,6 +10,15 @@ against a sounding one; when the chord moves under a running line, a step that n
 that does. The second conductor's notes are part of the chord the near layer listens to. Under Steel Span: 0 % rub, 97 %
 are chord tones. The lines keep their sound: ghosts, accents, gates and tempo are as they were.
 
+**The two conductors hear each other** (19.11.2026). They shared a root and nothing else: each chose its notes against
+the root and its own voices, and the second's could stand a semitone or a tritone from the first's -- in Gannet Colony
+each was clean by itself while 32 % of their pairs were a semitone apart and 30 % a tritone. Each now weighs a
+candidate against the other's sounding notes as it weighs the root, to the power its Consonance asks, so a conductor set
+for clusters still allows them. Over 200 presets of the library, an hour each, the time with a semitone, a major seventh
+or a tritone across the two (within two octaves) fell from 3.6 % and 1.3 % to 2.5 % and 0.8 %, and the presets where it
+stood more than a tenth of the time from 28 to 18; Gannet Colony from 62 % to none. A preset without the second
+conductor plays exactly as before. `ambient_brain_audit` prints each note's frequency as an eighth field.
+
 **The near bank: two out, twenty-six in.** Seed Pod (the shaker, heard as a noise burst in the foreground) and Geiger
 Counter left the bank. Two variants of each of thirteen presets joined it -- Bowed Line, Bunker Tube, Krell Circuit,
 Deep Space Beacon, Number Station, Shortwave Dial, Whistler, Tuned Noise, Drop Sequence, Heartbeat, Machine Pulse, Wind
