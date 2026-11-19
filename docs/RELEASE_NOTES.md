@@ -44,6 +44,13 @@ now 8 of 17130; on one root and one register, a third of the onsets did, now non
 recorded again: its second conductor's first note is the E an octave under the first's instead of the F a major seventh
 under it (its draw lost the first's own E), which moves its far plane 5 LU against the mix.
 
+**A pitch rests, not a key** (20.11.2026). Retrigger kept the rest after a release per key. In a just scale whose keys
+snap -- JI Pentatonic plays three neighbouring keys as one pitch -- the neighbour of the key just let go is the same
+note, and it was free at once (in Empyrean, H-Beta Bell let 66 go and struck 68, both 392 Hz, seven seconds later). The
+rest now holds for every key the tuning plays within 25 cents of the one let go, in Free mode, Chords mode and for the
+deja vu ring and the pivot. Over 300 presets of the library: a conductor striking a pitch it let go less than thirty
+seconds before, 35 times in 16902 onsets before the two changes of today, 13 now, with as many onsets (17068).
+
 **The long loop in the library** (19.11.2026). Robert Rich's sleep-concert loop (Loop, on the Foreground page since
 20.10.2026) was in no preset. 3014 of the library's have it now (Tools/library/retrofit_loop.py): three in five in the
 sleep concert and the loop and tape packs and the slow unfolding ones, two in five in the slow chords, strings, hymns

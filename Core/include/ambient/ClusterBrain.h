@@ -1321,6 +1321,31 @@ public:
     }
 
     /**
+     * @brief Whether a pitch is resting after its release (Retrigger): the key's own rest, and that of every key the
+     *        tuning plays as the same pitch (20.11.2026).
+     *
+     * The rest was kept per key. In a just scale whose keys snap -- JI Pentatonic plays 66, 67 and 68 all as 392 Hz --
+     * a neighbour of the key just let go is the same note, and it was free at once: H-Beta Bell let 66 go and struck 68
+     * seven seconds later, the same 392 Hz under a bell's attack again. Within six keys either way, within 25 cents.
+     * @param[in] c       the candidate, MIDI
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return true when it is to rest still
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    bool resting( int c, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        if ( p.m_retrigger <= 0.0f || c < 0 || c > 127 ) return false;
+        const double rest = static_cast<double>( p.m_retrigger ), fc = freqOf( c );
+        for ( int k = std::max( 0, c - 6 ); k <= std::min( 127, c + 6 ); ++k )
+            if ( m_now - m_pitchOffAt[static_cast<size_t>( k )] < rest &&
+                 ( k == c || std::fabs( 1200.0 * std::log2( freqOf( k ) / fc ) ) < 25.0 ) )
+                return true;
+        return false;
+    }
+
+    /**
      * @brief Whether a candidate rubs against the other conductor: a semitone, a major seventh or a tritone from one of
      *        its notes (listenTo()), within two octaves, for a conductor whose Consonance is at least a half.
      *
@@ -1920,9 +1945,7 @@ public:
             if ( sounding( c ) ) continue;
             // A pitch that has only just been let go is not a new note, it is the same note again --
             // which is the one repetition this music notices. It rests for its seconds first.
-            if ( p.m_retrigger > 0.0f &&
-                 m_now - m_pitchOffAt[static_cast<size_t>( c )] < static_cast<double>( p.m_retrigger ) )
-                continue;
+            if ( resting( c, p, freqOf ) ) continue;
             const double fc = freqOf( c );
             if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
             if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
@@ -3045,9 +3068,7 @@ private:
             // What Free mode asks of every candidate, asked here too: a pitch is resting after its
             // release (R7.4), a constellation was heard lately (R6.6), and the register and interval
             // rules as one weight -- a veto ends the candidate.
-            if ( p.m_retrigger > 0.0f &&
-                 m_now - m_pitchOffAt[static_cast<size_t>( c )] < static_cast<double>( p.m_retrigger ) )
-                continue;
+            if ( resting( c, p, freqOf ) ) continue;
             if ( constellationHeard( c, p, freqOf ) ) continue;
             const float rule = ruleWeight( c, low, high, rootSounding, p, freqOf );
             if ( rule <= 0.0f ) continue;
@@ -3652,9 +3673,7 @@ private:
     bool admissible( int c, int low, int high, const BrainParams &p, FreqFnT &&freqOf, bool pivotal = false ) const
     {
         if ( c < std::min( low, high ) || c > std::max( low, high ) || c < 0 || c > 127 ) return false;
-        if ( p.m_retrigger > 0.0f &&
-             m_now - m_pitchOffAt[static_cast<size_t>( c )] < static_cast<double>( p.m_retrigger ) )
-            return false;
+        if ( resting( c, p, freqOf ) ) return false;
         if ( constellationHeard( c, p, freqOf ) ) return false;
         bool rootSounding = false;
         for ( const auto &s : m_slots )
