@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Sleep Concert: Night
 cyclic on
-Lattice Chorus | 8:00-15:00 | 1:00-2:00
-Firefly Bloom | 8:00-15:00 | 1:00-2:00
-Night Expanse | 8:00-15:00 | 1:00-2:00
-Otonal Field | 8:00-15:00 | 1:00-2:00
-Night Concert | 8:00-15:00 | 1:00-2:00
-Ratio Hours | 8:00-15:00 | 1:00-2:00
-Ratio Cycle | 8:00-15:00 | 1:00-2:00
-Otonal Current | 8:00-15:00 | 1:00-2:00
-Lattice Veil | 8:00-15:00 | 1:00-2:00
-Lattice Vapour | 8:00-15:00 | 1:00-2:00
-Hypnagogic Passage | 8:00-15:00 | 1:00-2:00
-Moss Descent | 8:00-15:00 | 1:00-2:00
+Lattice Chorus | 3:00-6:00 | 0:45-1:30
+Firefly Bloom | 10:00-15:00 | 1:30-2:30
+Night Expanse | 6:00-10:00 | 1:00-2:00
+Otonal Field | 3:00-6:00 | 0:45-1:30
+Night Concert | 6:00-10:00 | 1:00-2:00
+Ratio Hours | 10:00-15:00 | 1:30-2:30
+Ratio Cycle | 6:00-10:00 | 1:00-2:00
+Otonal Current | 6:00-10:00 | 1:00-2:00
+Lattice Veil | 3:00-6:00 | 0:45-1:30
+Lattice Vapour | 10:00-15:00 | 1:30-2:30
+Hypnagogic Passage | 6:00-10:00 | 1:00-2:00
+Moss Descent | 6:00-10:00 | 1:00-2:00

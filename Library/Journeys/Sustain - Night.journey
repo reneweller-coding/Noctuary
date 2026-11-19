@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Sustain: Night
 cyclic on
-Solitary Interval | 8:00-15:00 | 1:00-2:00
-Standing Veil | 8:00-15:00 | 1:00-2:00
-Pedal Line | 8:00-15:00 | 1:00-2:00
-Solitary Bed | 8:00-15:00 | 1:00-2:00
-Held Hum | 8:00-15:00 | 1:00-2:00
-Single Drift | 8:00-15:00 | 1:00-2:00
-Level Drift | 8:00-15:00 | 1:00-2:00
-Unbroken Expanse | 8:00-15:00 | 1:00-2:00
-Long Note | 8:00-15:00 | 1:00-2:00
-Plain Bed | 8:00-15:00 | 1:00-2:00
-Even Descent | 8:00-15:00 | 1:00-2:00
-Held Expanse | 8:00-15:00 | 1:00-2:00
+Solitary Interval | 10:00-15:00 | 1:30-2:30
+Standing Veil | 3:00-6:00 | 0:45-1:30
+Pedal Line | 10:00-15:00 | 1:30-2:30
+Solitary Bed | 6:00-10:00 | 1:00-2:00
+Held Hum | 3:00-6:00 | 0:45-1:30
+Single Drift | 6:00-10:00 | 1:00-2:00
+Level Drift | 6:00-10:00 | 1:00-2:00
+Unbroken Expanse | 6:00-10:00 | 1:00-2:00
+Long Note | 6:00-10:00 | 1:00-2:00
+Plain Bed | 10:00-15:00 | 1:30-2:30
+Even Descent | 3:00-6:00 | 0:45-1:30
+Held Expanse | 6:00-10:00 | 1:00-2:00

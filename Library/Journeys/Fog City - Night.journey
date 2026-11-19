@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Fog City: Night
 cyclic on
-Wharfside Signal | 8:00-15:00 | 1:00-2:00
-Gasworks Waterfront | 8:00-15:00 | 1:00-2:00
-Smokestack Waterfront | 8:00-15:00 | 1:00-2:00
-Fog Basin | 8:00-15:00 | 1:00-2:00
-Foghorn Passage | 8:00-15:00 | 1:00-2:00
-Seawall Expanse | 8:00-15:00 | 1:00-2:00
-Refinery Basin | 8:00-15:00 | 1:00-2:00
-Fog Hollow | 8:00-15:00 | 1:00-2:00
-Warehouse District | 8:00-15:00 | 1:00-2:00
-Breakwater Dusk | 8:00-15:00 | 1:00-2:00
-Wharfside Bloom | 8:00-15:00 | 1:00-2:00
-Foghorn Dusk | 8:00-15:00 | 1:00-2:00
+Wharfside Signal | 6:00-10:00 | 1:00-2:00
+Gasworks Waterfront | 10:00-15:00 | 1:30-2:30
+Smokestack Waterfront | 3:00-6:00 | 0:45-1:30
+Fog Basin | 6:00-10:00 | 1:00-2:00
+Foghorn Passage | 6:00-10:00 | 1:00-2:00
+Seawall Expanse | 3:00-6:00 | 0:45-1:30
+Refinery Basin | 6:00-10:00 | 1:00-2:00
+Fog Hollow | 6:00-10:00 | 1:00-2:00
+Warehouse District | 10:00-15:00 | 1:30-2:30
+Breakwater Dusk | 3:00-6:00 | 0:45-1:30
+Wharfside Bloom | 10:00-15:00 | 1:30-2:30
+Foghorn Dusk | 6:00-10:00 | 1:00-2:00

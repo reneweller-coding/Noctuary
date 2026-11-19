@@ -995,7 +995,7 @@ SIGNAL FLOW
         -> Envelope, x (1 - distance/2)
         -> interaural time difference from the pan (the far ear hears later)
         -> NEAR bus by cos(distance), FAR bus by sin(distance)
-  Near layer (its own bank of 108 presets, beside the sound presets)
+  Near layer (its own bank of 132 presets, beside the sound presets)
         Near Events: a second, small conductor -- it waits, picks a degree consonant with
               what sounds, plays ONE thing close to the ear, and waits again
         Near Source: 25 types (flute, bowl, ice, drops, voice, the nine signals, a

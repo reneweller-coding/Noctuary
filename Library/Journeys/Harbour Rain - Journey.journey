@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Harbour Rain: Journey
 cyclic on
-Pier Veil | 5:00-10:00 | 0:30-1:30
-Squall Hollow | 5:00-10:00 | 0:30-1:30
-Drizzle Bay | 5:00-10:00 | 0:30-1:30
-Rainline Vigil | 5:00-10:00 | 0:30-1:30
-Ferry Field | 5:00-10:00 | 0:30-1:30
-Dockside Hollow | 5:00-10:00 | 0:30-1:30
-Squall Signal | 5:00-10:00 | 0:30-1:30
-Undertow Bay | 5:00-10:00 | 0:30-1:30
-Ferry Swell | 5:00-10:00 | 0:30-1:30
-Estuary Reach | 5:00-10:00 | 0:30-1:30
-Tide Drift | 5:00-10:00 | 0:30-1:30
-Breakwater Pulse | 5:00-10:00 | 0:30-1:30
+Pier Veil | 3:00-6:00 | 0:30-1:15
+Squall Hollow | 6:00-10:00 | 0:45-1:30
+Drizzle Bay | 1:30-3:00 | 0:20-0:45
+Rainline Vigil | 3:00-6:00 | 0:30-1:15
+Ferry Field | 1:30-3:00 | 0:20-0:45
+Dockside Hollow | 3:00-6:00 | 0:30-1:15
+Squall Signal | 6:00-10:00 | 0:45-1:30
+Undertow Bay | 3:00-6:00 | 0:30-1:15
+Ferry Swell | 6:00-10:00 | 0:45-1:30
+Estuary Reach | 3:00-6:00 | 0:30-1:15
+Tide Drift | 3:00-6:00 | 0:30-1:15
+Breakwater Pulse | 1:30-3:00 | 0:20-0:45

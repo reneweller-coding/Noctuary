@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Harbour Rain: Night
 cyclic on
-Rainline Swell | 8:00-15:00 | 1:00-2:00
-Drizzle Threshold | 8:00-15:00 | 1:00-2:00
-Buoy Field | 8:00-15:00 | 1:00-2:00
-Breakwater Threshold | 8:00-15:00 | 1:00-2:00
-Drizzle Span | 8:00-15:00 | 1:00-2:00
-Harbour Threshold | 8:00-15:00 | 1:00-2:00
-Buoy Bloom | 8:00-15:00 | 1:00-2:00
-Squall Bloom | 8:00-15:00 | 1:00-2:00
-Dockside Hollow | 8:00-15:00 | 1:00-2:00
-Ferry Hull | 8:00-15:00 | 1:00-2:00
-Ferry Passage | 8:00-15:00 | 1:00-2:00
-Downpour Descent | 8:00-15:00 | 1:00-2:00
+Rainline Swell | 3:00-6:00 | 0:45-1:30
+Drizzle Threshold | 6:00-10:00 | 1:00-2:00
+Buoy Field | 3:00-6:00 | 0:45-1:30
+Breakwater Threshold | 6:00-10:00 | 1:00-2:00
+Drizzle Span | 3:00-6:00 | 0:45-1:30
+Harbour Threshold | 6:00-10:00 | 1:00-2:00
+Buoy Bloom | 6:00-10:00 | 1:00-2:00
+Squall Bloom | 10:00-15:00 | 1:30-2:30
+Dockside Hollow | 6:00-10:00 | 1:00-2:00
+Ferry Hull | 10:00-15:00 | 1:30-2:30
+Ferry Passage | 6:00-10:00 | 1:00-2:00
+Downpour Descent | 10:00-15:00 | 1:30-2:30

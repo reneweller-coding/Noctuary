@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Drum Procession: Journey
 cyclic on
-Ashes Signal | 5:00-10:00 | 0:30-1:30
-Hood Veil | 5:00-10:00 | 0:30-1:30
-Belfry Drift | 5:00-10:00 | 0:30-1:30
-Penitent Basin | 5:00-10:00 | 0:30-1:30
-Hood Drums | 5:00-10:00 | 0:30-1:30
-Hood Basin | 5:00-10:00 | 0:30-1:30
-Cortege Reach | 5:00-10:00 | 0:30-1:30
-Plaza Signal | 5:00-10:00 | 0:30-1:30
-Mourner Vigil | 5:00-10:00 | 0:30-1:30
-Bellrope Drift | 5:00-10:00 | 0:30-1:30
-Lent Procession | 5:00-10:00 | 0:30-1:30
-Penitent Signal | 5:00-10:00 | 0:30-1:30
+Ashes Signal | 1:30-3:00 | 0:20-0:45
+Hood Veil | 3:00-6:00 | 0:30-1:15
+Belfry Drift | 3:00-6:00 | 0:30-1:15
+Penitent Basin | 1:30-3:00 | 0:20-0:45
+Hood Drums | 6:00-10:00 | 0:45-1:30
+Hood Basin | 3:00-6:00 | 0:30-1:15
+Cortege Reach | 1:30-3:00 | 0:20-0:45
+Plaza Signal | 3:00-6:00 | 0:30-1:15
+Mourner Vigil | 3:00-6:00 | 0:30-1:15
+Bellrope Drift | 6:00-10:00 | 0:45-1:30
+Lent Procession | 3:00-6:00 | 0:30-1:15
+Penitent Signal | 3:00-6:00 | 0:30-1:15

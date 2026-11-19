@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Desert Ember: Night
 cyclic on
-Sage Drift | 8:00-15:00 | 1:00-2:00
-Dune Expanse | 8:00-15:00 | 1:00-2:00
-Arroyo Bed | 8:00-15:00 | 1:00-2:00
-Dune Glow | 8:00-15:00 | 1:00-2:00
-Basin Descent | 8:00-15:00 | 1:00-2:00
-Saguaro Plain | 8:00-15:00 | 1:00-2:00
-Songline Expanse | 8:00-15:00 | 1:00-2:00
-Dune Reach | 8:00-15:00 | 1:00-2:00
-Heat Vigil | 8:00-15:00 | 1:00-2:00
-Sage Field | 8:00-15:00 | 1:00-2:00
-Coyote Fire | 8:00-15:00 | 1:00-2:00
-Heat Walk | 8:00-15:00 | 1:00-2:00
+Sage Drift | 6:00-10:00 | 1:00-2:00
+Dune Expanse | 6:00-10:00 | 1:00-2:00
+Arroyo Bed | 3:00-6:00 | 0:45-1:30
+Dune Glow | 6:00-10:00 | 1:00-2:00
+Basin Descent | 3:00-6:00 | 0:45-1:30
+Saguaro Plain | 6:00-10:00 | 1:00-2:00
+Songline Expanse | 3:00-6:00 | 0:45-1:30
+Dune Reach | 6:00-10:00 | 1:00-2:00
+Heat Vigil | 10:00-15:00 | 1:30-2:30
+Sage Field | 6:00-10:00 | 1:00-2:00
+Coyote Fire | 10:00-15:00 | 1:30-2:30
+Heat Walk | 6:00-10:00 | 1:00-2:00

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Vast Chord: Night
 cyclic on
-Ashram Pillar | 8:00-15:00 | 1:00-2:00
-Ashram Field | 8:00-15:00 | 1:00-2:00
-Tamboura Field | 8:00-15:00 | 1:00-2:00
-Kailash Dawn | 8:00-15:00 | 1:00-2:00
-Incense Descent | 8:00-15:00 | 1:00-2:00
-Bodhi Veil | 8:00-15:00 | 1:00-2:00
-Lotus Expanse | 8:00-15:00 | 1:00-2:00
-Mantra Field | 8:00-15:00 | 1:00-2:00
-Pilgrim Descent | 8:00-15:00 | 1:00-2:00
-Lotus Bloom | 8:00-15:00 | 1:00-2:00
-Radiance Threshold | 8:00-15:00 | 1:00-2:00
-Pilgrim Veil | 8:00-15:00 | 1:00-2:00
+Ashram Pillar | 6:00-10:00 | 1:00-2:00
+Ashram Field | 3:00-6:00 | 0:45-1:30
+Tamboura Field | 6:00-10:00 | 1:00-2:00
+Kailash Dawn | 3:00-6:00 | 0:45-1:30
+Incense Descent | 10:00-15:00 | 1:30-2:30
+Bodhi Veil | 6:00-10:00 | 1:00-2:00
+Lotus Expanse | 6:00-10:00 | 1:00-2:00
+Mantra Field | 6:00-10:00 | 1:00-2:00
+Pilgrim Descent | 6:00-10:00 | 1:00-2:00
+Lotus Bloom | 10:00-15:00 | 1:30-2:30
+Radiance Threshold | 6:00-10:00 | 1:00-2:00
+Pilgrim Veil | 3:00-6:00 | 0:45-1:30

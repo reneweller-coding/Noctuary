@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Signal Algorithm: Journey
 cyclic on
-Integer Grid | 5:00-10:00 | 0:30-1:30
-Genome Span | 5:00-10:00 | 0:30-1:30
-Photon Vigil | 5:00-10:00 | 0:30-1:30
-Photon Code | 5:00-10:00 | 0:30-1:30
-Sputnik Code | 5:00-10:00 | 0:30-1:30
-Parity Wave | 5:00-10:00 | 0:30-1:30
-Cipher Expanse | 5:00-10:00 | 0:30-1:30
-Photon Bed | 5:00-10:00 | 0:30-1:30
-Quantum Reach | 5:00-10:00 | 0:30-1:30
-Algorithm Expanse | 5:00-10:00 | 0:30-1:30
-Parity Field | 5:00-10:00 | 0:30-1:30
-Vector Threshold | 5:00-10:00 | 0:30-1:30
+Integer Grid | 1:30-3:00 | 0:20-0:45
+Genome Span | 6:00-10:00 | 0:45-1:30
+Photon Vigil | 3:00-6:00 | 0:30-1:15
+Photon Code | 6:00-10:00 | 0:45-1:30
+Sputnik Code | 3:00-6:00 | 0:30-1:15
+Parity Wave | 3:00-6:00 | 0:30-1:15
+Cipher Expanse | 1:30-3:00 | 0:20-0:45
+Photon Bed | 3:00-6:00 | 0:30-1:15
+Quantum Reach | 3:00-6:00 | 0:30-1:15
+Algorithm Expanse | 6:00-10:00 | 0:45-1:30
+Parity Field | 1:30-3:00 | 0:20-0:45
+Vector Threshold | 3:00-6:00 | 0:30-1:15

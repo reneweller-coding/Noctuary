@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Slow Carousel: Night
 cyclic on
-Circus Float | 8:00-15:00 | 1:00-2:00
-Calliope Organ | 8:00-15:00 | 1:00-2:00
-Zoetrope Bloom | 8:00-15:00 | 1:00-2:00
-Circus Descent | 8:00-15:00 | 1:00-2:00
-Gramophone Interval | 8:00-15:00 | 1:00-2:00
-Tinsel Signal | 8:00-15:00 | 1:00-2:00
-Calliope Bloom | 8:00-15:00 | 1:00-2:00
-Spool Loop | 8:00-15:00 | 1:00-2:00
-Gyre Span | 8:00-15:00 | 1:00-2:00
-Pinwheel Hollow | 8:00-15:00 | 1:00-2:00
-Gyre Vigil | 8:00-15:00 | 1:00-2:00
-Calliope Float | 8:00-15:00 | 1:00-2:00
+Circus Float | 3:00-6:00 | 0:45-1:30
+Calliope Organ | 10:00-15:00 | 1:30-2:30
+Zoetrope Bloom | 6:00-10:00 | 1:00-2:00
+Circus Descent | 3:00-6:00 | 0:45-1:30
+Gramophone Interval | 6:00-10:00 | 1:00-2:00
+Tinsel Signal | 3:00-6:00 | 0:45-1:30
+Calliope Bloom | 6:00-10:00 | 1:00-2:00
+Spool Loop | 6:00-10:00 | 1:00-2:00
+Gyre Span | 6:00-10:00 | 1:00-2:00
+Pinwheel Hollow | 10:00-15:00 | 1:30-2:30
+Gyre Vigil | 6:00-10:00 | 1:00-2:00
+Calliope Float | 10:00-15:00 | 1:30-2:30

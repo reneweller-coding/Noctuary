@@ -1382,6 +1382,20 @@ private:
         in.m_root = m_brain.root();
         float vels[ClusterBrain::Slots];
         in.m_count = m_brain.soundingNotes( in.m_cluster, vels );
+        {
+            // The second conductor's notes are part of the chord too (19.11.2026). Only the first's were
+            // handed over, and under Steel Span, whose second conductor holds the low fifth, 42 % of a
+            // sequence's notes rubbed against it: a B chosen as the fourth over F# was a whole tone from
+            // the C# below it, which the scheduler never saw.
+            int       more[ClusterBrain::Slots];
+            const int n2 = m_brain2.soundingNotes( more, vels );
+            for ( int i = 0; i < n2 && in.m_count < ClusterBrain::Slots; ++i )
+            {
+                bool have = false;
+                for ( int k = 0; k < in.m_count; ++k ) have = have || in.m_cluster[k] == more[i];
+                if ( !have ) in.m_cluster[in.m_count++] = more[i];
+            }
+        }
         in.m_excitation = m_brain.excitation();
         in.m_silence = m_brain.inSilence();
         in.m_rootAge = m_brain.rootAgeSeconds();

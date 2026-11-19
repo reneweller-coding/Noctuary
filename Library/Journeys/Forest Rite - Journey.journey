@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Forest Rite: Journey
 cyclic on
-Wolfden Threshold | 5:00-10:00 | 0:30-1:30
-Resin Bloom | 5:00-10:00 | 0:30-1:30
-Spruce Bed | 5:00-10:00 | 0:30-1:30
-Spruce Dusk | 5:00-10:00 | 0:30-1:30
-Wolfden Fire | 5:00-10:00 | 0:30-1:30
-Fen Interval | 5:00-10:00 | 0:30-1:30
-Spruce Hollow | 5:00-10:00 | 0:30-1:30
-Cairn Basin | 5:00-10:00 | 0:30-1:30
-Lichen Field | 5:00-10:00 | 0:30-1:30
-Root Interval | 5:00-10:00 | 0:30-1:30
-Deadfall Basin | 5:00-10:00 | 0:30-1:30
-Cairn Vigil | 5:00-10:00 | 0:30-1:30
+Wolfden Threshold | 3:00-6:00 | 0:30-1:15
+Resin Bloom | 1:30-3:00 | 0:20-0:45
+Spruce Bed | 3:00-6:00 | 0:30-1:15
+Spruce Dusk | 6:00-10:00 | 0:45-1:30
+Wolfden Fire | 1:30-3:00 | 0:20-0:45
+Fen Interval | 3:00-6:00 | 0:30-1:15
+Spruce Hollow | 3:00-6:00 | 0:30-1:15
+Cairn Basin | 6:00-10:00 | 0:45-1:30
+Lichen Field | 3:00-6:00 | 0:30-1:15
+Root Interval | 6:00-10:00 | 0:45-1:30
+Deadfall Basin | 3:00-6:00 | 0:30-1:15
+Cairn Vigil | 6:00-10:00 | 0:45-1:30

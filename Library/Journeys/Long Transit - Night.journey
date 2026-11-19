@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Long Transit: Night
 cyclic on
-Payload Transit | 8:00-15:00 | 1:00-2:00
-Tether Bed | 8:00-15:00 | 1:00-2:00
-Tether Silence | 8:00-15:00 | 1:00-2:00
-Perihelion Descent | 8:00-15:00 | 1:00-2:00
-Probe Field | 8:00-15:00 | 1:00-2:00
-Module Interval | 8:00-15:00 | 1:00-2:00
-Voyager Log | 8:00-15:00 | 1:00-2:00
-Perihelion Span | 8:00-15:00 | 1:00-2:00
-Relay Silence | 8:00-15:00 | 1:00-2:00
-Payload Passage | 8:00-15:00 | 1:00-2:00
-Telemetry Descent | 8:00-15:00 | 1:00-2:00
-Payload Field | 8:00-15:00 | 1:00-2:00
+Payload Transit | 10:00-15:00 | 1:30-2:30
+Tether Bed | 6:00-10:00 | 1:00-2:00
+Tether Silence | 6:00-10:00 | 1:00-2:00
+Perihelion Descent | 6:00-10:00 | 1:00-2:00
+Probe Field | 3:00-6:00 | 0:45-1:30
+Module Interval | 6:00-10:00 | 1:00-2:00
+Voyager Log | 3:00-6:00 | 0:45-1:30
+Perihelion Span | 10:00-15:00 | 1:30-2:30
+Relay Silence | 6:00-10:00 | 1:00-2:00
+Payload Passage | 6:00-10:00 | 1:00-2:00
+Telemetry Descent | 3:00-6:00 | 0:45-1:30
+Payload Field | 6:00-10:00 | 1:00-2:00

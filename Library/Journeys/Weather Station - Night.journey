@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Weather Station: Night
 cyclic on
-Front Record | 8:00-15:00 | 1:00-2:00
-Pylon Veil | 8:00-15:00 | 1:00-2:00
-Barometer Threshold | 8:00-15:00 | 1:00-2:00
-Barometer Span | 8:00-15:00 | 1:00-2:00
-Cyclone Veil | 8:00-15:00 | 1:00-2:00
-Downdraft Passage | 8:00-15:00 | 1:00-2:00
-Anemometer Report | 8:00-15:00 | 1:00-2:00
-Front Report | 8:00-15:00 | 1:00-2:00
-Transformer Basin | 8:00-15:00 | 1:00-2:00
-Mast Span | 8:00-15:00 | 1:00-2:00
-Lightning Signal | 8:00-15:00 | 1:00-2:00
-Static Reading | 8:00-15:00 | 1:00-2:00
+Front Record | 6:00-10:00 | 1:00-2:00
+Pylon Veil | 10:00-15:00 | 1:30-2:30
+Barometer Threshold | 3:00-6:00 | 0:45-1:30
+Barometer Span | 6:00-10:00 | 1:00-2:00
+Cyclone Veil | 6:00-10:00 | 1:00-2:00
+Downdraft Passage | 10:00-15:00 | 1:30-2:30
+Anemometer Report | 6:00-10:00 | 1:00-2:00
+Front Report | 6:00-10:00 | 1:00-2:00
+Transformer Basin | 3:00-6:00 | 0:45-1:30
+Mast Span | 10:00-15:00 | 1:30-2:30
+Lightning Signal | 6:00-10:00 | 1:00-2:00
+Static Reading | 3:00-6:00 | 0:45-1:30

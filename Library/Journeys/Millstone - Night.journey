@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Millstone: Night
 cyclic on
-Sparkler Ring | 8:00-15:00 | 1:00-2:00
-Brass Hollow | 8:00-15:00 | 1:00-2:00
-Sheepbell Descent | 8:00-15:00 | 1:00-2:00
-Glasspane Drop | 8:00-15:00 | 1:00-2:00
-Bellwether Descent | 8:00-15:00 | 1:00-2:00
-Pebble Vigil | 8:00-15:00 | 1:00-2:00
-Copper Drift | 8:00-15:00 | 1:00-2:00
-Tin Threshold | 8:00-15:00 | 1:00-2:00
-Millstone Grain | 8:00-15:00 | 1:00-2:00
-Copper Descent | 8:00-15:00 | 1:00-2:00
-Thimble Reach | 8:00-15:00 | 1:00-2:00
-Wick Ring | 8:00-15:00 | 1:00-2:00
+Sparkler Ring | 3:00-6:00 | 0:45-1:30
+Brass Hollow | 10:00-15:00 | 1:30-2:30
+Sheepbell Descent | 6:00-10:00 | 1:00-2:00
+Glasspane Drop | 3:00-6:00 | 0:45-1:30
+Bellwether Descent | 6:00-10:00 | 1:00-2:00
+Pebble Vigil | 10:00-15:00 | 1:30-2:30
+Copper Drift | 6:00-10:00 | 1:00-2:00
+Tin Threshold | 6:00-10:00 | 1:00-2:00
+Millstone Grain | 6:00-10:00 | 1:00-2:00
+Copper Descent | 10:00-15:00 | 1:30-2:30
+Thimble Reach | 3:00-6:00 | 0:45-1:30
+Wick Ring | 6:00-10:00 | 1:00-2:00

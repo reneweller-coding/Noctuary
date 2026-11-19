@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Strings at Rest: Night
 cyclic on
-Largo Signal | 8:00-15:00 | 1:00-2:00
-Hush Drift | 8:00-15:00 | 1:00-2:00
-Largo Hollow | 8:00-15:00 | 1:00-2:00
-Adagio Descent | 8:00-15:00 | 1:00-2:00
-Cello Expanse | 8:00-15:00 | 1:00-2:00
-Dimmer Field | 8:00-15:00 | 1:00-2:00
-Hush Movement | 8:00-15:00 | 1:00-2:00
-Horn Drift | 8:00-15:00 | 1:00-2:00
-Evening Decrescendo | 8:00-15:00 | 1:00-2:00
-Curtain Hall | 8:00-15:00 | 1:00-2:00
-Drowsy Strings | 8:00-15:00 | 1:00-2:00
-Largo Decrescendo | 8:00-15:00 | 1:00-2:00
+Largo Signal | 6:00-10:00 | 1:00-2:00
+Hush Drift | 6:00-10:00 | 1:00-2:00
+Largo Hollow | 6:00-10:00 | 1:00-2:00
+Adagio Descent | 3:00-6:00 | 0:45-1:30
+Cello Expanse | 6:00-10:00 | 1:00-2:00
+Dimmer Field | 6:00-10:00 | 1:00-2:00
+Hush Movement | 6:00-10:00 | 1:00-2:00
+Horn Drift | 3:00-6:00 | 0:45-1:30
+Evening Decrescendo | 6:00-10:00 | 1:00-2:00
+Curtain Hall | 10:00-15:00 | 1:30-2:30
+Drowsy Strings | 6:00-10:00 | 1:00-2:00
+Largo Decrescendo | 10:00-15:00 | 1:30-2:30

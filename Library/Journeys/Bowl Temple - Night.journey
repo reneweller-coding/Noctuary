@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Bowl Temple: Night
 cyclic on
-Rose Interval | 8:00-15:00 | 1:00-2:00
-Turquoise Passage | 8:00-15:00 | 1:00-2:00
-Rosewater Descent | 8:00-15:00 | 1:00-2:00
-Rose Descent | 8:00-15:00 | 1:00-2:00
-Rosewater Expanse | 8:00-15:00 | 1:00-2:00
-Saffron Field | 8:00-15:00 | 1:00-2:00
-Mandala Vigil | 8:00-15:00 | 1:00-2:00
-Pomegranate Bed | 8:00-15:00 | 1:00-2:00
-Caravan Basin | 8:00-15:00 | 1:00-2:00
-Cypress Interval | 8:00-15:00 | 1:00-2:00
-Rosewater Threshold | 8:00-15:00 | 1:00-2:00
-Dervish Circle | 8:00-15:00 | 1:00-2:00
+Rose Interval | 3:00-6:00 | 0:45-1:30
+Turquoise Passage | 6:00-10:00 | 1:00-2:00
+Rosewater Descent | 3:00-6:00 | 0:45-1:30
+Rose Descent | 6:00-10:00 | 1:00-2:00
+Rosewater Expanse | 6:00-10:00 | 1:00-2:00
+Saffron Field | 10:00-15:00 | 1:30-2:30
+Mandala Vigil | 6:00-10:00 | 1:00-2:00
+Pomegranate Bed | 10:00-15:00 | 1:30-2:30
+Caravan Basin | 6:00-10:00 | 1:00-2:00
+Cypress Interval | 6:00-10:00 | 1:00-2:00
+Rosewater Threshold | 3:00-6:00 | 0:45-1:30
+Dervish Circle | 10:00-15:00 | 1:30-2:30

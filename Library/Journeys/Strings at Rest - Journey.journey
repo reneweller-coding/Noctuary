@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Strings at Rest: Journey
 cyclic on
-Curtain Bloom | 5:00-10:00 | 0:30-1:30
-Cello Hall | 5:00-10:00 | 0:30-1:30
-Bassoon Hollow | 5:00-10:00 | 0:30-1:30
-Dimmer Strings | 5:00-10:00 | 0:30-1:30
-Lament Movement | 5:00-10:00 | 0:30-1:30
-Evening Veil | 5:00-10:00 | 0:30-1:30
-Cello Descent | 5:00-10:00 | 0:30-1:30
-Lull Passage | 5:00-10:00 | 0:30-1:30
-Largo Decrescendo | 5:00-10:00 | 0:30-1:30
-Bassoon Afternoon | 5:00-10:00 | 0:30-1:30
-Dimmer Horns | 5:00-10:00 | 0:30-1:30
-Horn Passage | 5:00-10:00 | 0:30-1:30
+Curtain Bloom | 1:30-3:00 | 0:20-0:45
+Cello Hall | 6:00-10:00 | 0:45-1:30
+Bassoon Hollow | 1:30-3:00 | 0:20-0:45
+Dimmer Strings | 6:00-10:00 | 0:45-1:30
+Lament Movement | 3:00-6:00 | 0:30-1:15
+Evening Veil | 1:30-3:00 | 0:20-0:45
+Cello Descent | 3:00-6:00 | 0:30-1:15
+Lull Passage | 3:00-6:00 | 0:30-1:15
+Largo Decrescendo | 6:00-10:00 | 0:45-1:30
+Bassoon Afternoon | 3:00-6:00 | 0:30-1:15
+Dimmer Horns | 1:30-3:00 | 0:20-0:45
+Horn Passage | 3:00-6:00 | 0:30-1:15

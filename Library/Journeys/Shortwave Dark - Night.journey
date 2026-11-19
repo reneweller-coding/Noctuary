@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Shortwave Dark: Night
 cyclic on
-Wavetrap Interval | 8:00-15:00 | 1:00-2:00
-Squelch Call | 8:00-15:00 | 1:00-2:00
-Heterodyne Signal | 8:00-15:00 | 1:00-2:00
-Numbers Burst | 8:00-15:00 | 1:00-2:00
-Heterodyne Descent | 8:00-15:00 | 1:00-2:00
-Skip Basin | 8:00-15:00 | 1:00-2:00
-Morse Fade | 8:00-15:00 | 1:00-2:00
-Morse Station | 8:00-15:00 | 1:00-2:00
-Morse Expanse | 8:00-15:00 | 1:00-2:00
-Shortwave Interval | 8:00-15:00 | 1:00-2:00
-Shortwave Bed | 8:00-15:00 | 1:00-2:00
-Dial Expanse | 8:00-15:00 | 1:00-2:00
+Wavetrap Interval | 6:00-10:00 | 1:00-2:00
+Squelch Call | 6:00-10:00 | 1:00-2:00
+Heterodyne Signal | 3:00-6:00 | 0:45-1:30
+Numbers Burst | 6:00-10:00 | 1:00-2:00
+Heterodyne Descent | 6:00-10:00 | 1:00-2:00
+Skip Basin | 3:00-6:00 | 0:45-1:30
+Morse Fade | 6:00-10:00 | 1:00-2:00
+Morse Station | 6:00-10:00 | 1:00-2:00
+Morse Expanse | 6:00-10:00 | 1:00-2:00
+Shortwave Interval | 10:00-15:00 | 1:30-2:30
+Shortwave Bed | 3:00-6:00 | 0:45-1:30
+Dial Expanse | 10:00-15:00 | 1:30-2:30

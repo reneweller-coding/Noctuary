@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Void Station: Journey
 cyclic on
-Relay Stars | 5:00-10:00 | 0:30-1:30
-Arcology Interval | 5:00-10:00 | 0:30-1:30
-Sodium Station | 5:00-10:00 | 0:30-1:30
-Skyline Hollow | 5:00-10:00 | 0:30-1:30
-Fibreoptic Vigil | 5:00-10:00 | 0:30-1:30
-Fibreoptic Reach | 5:00-10:00 | 0:30-1:30
-Grid Interval | 5:00-10:00 | 0:30-1:30
-Pneumatic Drift | 5:00-10:00 | 0:30-1:30
-Pneumatic City | 5:00-10:00 | 0:30-1:30
-Grid Expanse | 5:00-10:00 | 0:30-1:30
-Skyline Bloom | 5:00-10:00 | 0:30-1:30
-Skyline Reach | 5:00-10:00 | 0:30-1:30
+Relay Stars | 1:30-3:00 | 0:20-0:45
+Arcology Interval | 6:00-10:00 | 0:45-1:30
+Sodium Station | 3:00-6:00 | 0:30-1:15
+Skyline Hollow | 6:00-10:00 | 0:45-1:30
+Fibreoptic Vigil | 1:30-3:00 | 0:20-0:45
+Fibreoptic Reach | 3:00-6:00 | 0:30-1:15
+Grid Interval | 1:30-3:00 | 0:20-0:45
+Pneumatic Drift | 3:00-6:00 | 0:30-1:15
+Pneumatic City | 3:00-6:00 | 0:30-1:15
+Grid Expanse | 6:00-10:00 | 0:45-1:30
+Skyline Bloom | 1:30-3:00 | 0:20-0:45
+Skyline Reach | 6:00-10:00 | 0:45-1:30

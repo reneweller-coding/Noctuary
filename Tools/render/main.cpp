@@ -718,7 +718,12 @@ static int runOnce( int argc, char **argv )
     // --near-log: one line per near event -- when, what near layer was in effect, and how loud the
     // mix was around it. Rene waited twenty minutes in a journey and heard none (13.09.2026), and
     // "the level is above zero" was never an answer to whether one plays or can be heard.
-    bool                            nearLog = false;
+    bool nearLog = false;
+    // --note-log: every note the conductors and the near layer start or release, with its time and MIDI
+    // channel (1 the Cluster Brain, 2 the second conductor, 3 the near events), from the engine's MIDI-out
+    // tap. For asking what the near layer played against what was sounding (19.11.2026).
+    bool                            noteLog = false;
+    NoteTap                         noteTap;
     bool                            tonal = false;
     double                          tonalSeconds = 14.0;
     std::string                     tapPath, tapDir;
@@ -785,6 +790,8 @@ static int runOnce( int argc, char **argv )
             stats = true;
         else if ( a == "--near-log" )
             nearLog = true;
+        else if ( a == "--note-log" )
+            noteLog = true;
         else if ( a == "--measure" )
             measure = true;   // print descriptors instead of writing a file
         else if ( a == "--bands" )
@@ -1663,7 +1670,32 @@ static int runOnce( int argc, char **argv )
                                   st.m_preset.c_str() );
             }
         }
+        if ( noteLog )
+        {
+            noteTap.clear();
+            live().setNoteTap( &noteTap );
+        }
         live().process( L.data(), R.data(), n );
+        if ( noteLog )
+        {
+            live().setNoteTap( nullptr );
+            for ( int k = 0; k < noteTap.m_count; ++k )
+            {
+                const NoteTap::Note &nt = noteTap.m_notes[k];
+                std::printf( "note %.3f ch%d %s %d %d", static_cast<double>( done + nt.m_offset ) / sr,
+                             static_cast<int>( nt.m_channel ), nt.m_velocity > 0 ? "on" : "off",
+                             static_cast<int>( nt.m_pitch ), static_cast<int>( nt.m_velocity ) );
+                if ( nt.m_velocity > 0 )
+                {   // and what was sounding when it began (the end of this block)
+                    bool sounding[128];
+                    live().soundingNotes( sounding );
+                    std::printf( " | sounding" );
+                    for ( int k2 = 0; k2 < 128; ++k2 )
+                        if ( sounding[k2] ) std::printf( " %d", k2 );
+                }
+                std::printf( "\n" );
+            }
+        }
         if ( fadingEngine != nullptr )
         {
             // The ramp waits for the arriving preset to be audible, up to eight seconds, exactly as

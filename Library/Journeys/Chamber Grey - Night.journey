@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Chamber Grey: Night
 cyclic on
-Ashen Reach | 8:00-15:00 | 1:00-2:00
-Hushed Bed | 8:00-15:00 | 1:00-2:00
-Chamber Field | 8:00-15:00 | 1:00-2:00
-Curtain Hollow | 8:00-15:00 | 1:00-2:00
-Ashen Bloom | 8:00-15:00 | 1:00-2:00
-Cellar Drift | 8:00-15:00 | 1:00-2:00
-Drawer Draft | 8:00-15:00 | 1:00-2:00
-Drawer Field | 8:00-15:00 | 1:00-2:00
-Closet Span | 8:00-15:00 | 1:00-2:00
-Ashen Interior | 8:00-15:00 | 1:00-2:00
-Grey Threshold | 8:00-15:00 | 1:00-2:00
-Cellar Span | 8:00-15:00 | 1:00-2:00
+Ashen Reach | 6:00-10:00 | 1:00-2:00
+Hushed Bed | 3:00-6:00 | 0:45-1:30
+Chamber Field | 6:00-10:00 | 1:00-2:00
+Curtain Hollow | 6:00-10:00 | 1:00-2:00
+Ashen Bloom | 3:00-6:00 | 0:45-1:30
+Cellar Drift | 10:00-15:00 | 1:30-2:30
+Drawer Draft | 6:00-10:00 | 1:00-2:00
+Drawer Field | 10:00-15:00 | 1:30-2:30
+Closet Span | 6:00-10:00 | 1:00-2:00
+Ashen Interior | 3:00-6:00 | 0:45-1:30
+Grey Threshold | 6:00-10:00 | 1:00-2:00
+Cellar Span | 10:00-15:00 | 1:30-2:30

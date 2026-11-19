@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Sleep: Crossing
 cyclic on
-Kingfisher Interval | 5:00-10:00 | 0:45-1:30
-Ochre Expanse | 5:00-10:00 | 0:45-1:30
-Mist Vigil | 5:00-10:00 | 0:45-1:30
-Silo Chorus | 5:00-10:00 | 0:45-1:30
-Silk Wind | 5:00-10:00 | 0:45-1:30
-Gloaming Span | 5:00-10:00 | 0:45-1:30
-Rawhide Basin | 5:00-10:00 | 0:45-1:30
-Groundswell Drone | 5:00-10:00 | 0:45-1:30
-Rose Veil | 5:00-10:00 | 0:45-1:30
-Bodhi Passage | 5:00-10:00 | 0:45-1:30
-Stone Bloom | 5:00-10:00 | 0:45-1:30
-Hymnal Bed | 5:00-10:00 | 0:45-1:30
+Kingfisher Interval | 3:00-6:00 | 0:30-1:15
+Ochre Expanse | 1:30-3:00 | 0:20-0:45
+Mist Vigil | 6:00-10:00 | 0:45-1:30
+Silo Chorus | 3:00-6:00 | 0:30-1:15
+Silk Wind | 6:00-10:00 | 0:45-1:30
+Gloaming Span | 3:00-6:00 | 0:30-1:15
+Rawhide Basin | 6:00-10:00 | 0:45-1:30
+Groundswell Drone | 3:00-6:00 | 0:30-1:15
+Rose Veil | 1:30-3:00 | 0:20-0:45
+Bodhi Passage | 3:00-6:00 | 0:30-1:15
+Stone Bloom | 6:00-10:00 | 0:45-1:30
+Hymnal Bed | 1:30-3:00 | 0:20-0:45

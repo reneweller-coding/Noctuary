@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Deep Earth: Night
 cyclic on
-Mineshaft Pressure | 8:00-15:00 | 1:00-2:00
-Tectonic Expanse | 8:00-15:00 | 1:00-2:00
-Mantle Descent | 8:00-15:00 | 1:00-2:00
-Seismic Rift | 8:00-15:00 | 1:00-2:00
-Tectonic Weight | 8:00-15:00 | 1:00-2:00
-Tectonic Vigil | 8:00-15:00 | 1:00-2:00
-Chthonic Signal | 8:00-15:00 | 1:00-2:00
-Nadir Basin | 8:00-15:00 | 1:00-2:00
-Nadir Vigil | 8:00-15:00 | 1:00-2:00
-Crypt Span | 8:00-15:00 | 1:00-2:00
-Nadir Descent | 8:00-15:00 | 1:00-2:00
-Sulphur Rift | 8:00-15:00 | 1:00-2:00
+Mineshaft Pressure | 6:00-10:00 | 1:00-2:00
+Tectonic Expanse | 6:00-10:00 | 1:00-2:00
+Mantle Descent | 6:00-10:00 | 1:00-2:00
+Seismic Rift | 3:00-6:00 | 0:45-1:30
+Tectonic Weight | 6:00-10:00 | 1:00-2:00
+Tectonic Vigil | 10:00-15:00 | 1:30-2:30
+Chthonic Signal | 3:00-6:00 | 0:45-1:30
+Nadir Basin | 6:00-10:00 | 1:00-2:00
+Nadir Vigil | 10:00-15:00 | 1:30-2:30
+Crypt Span | 6:00-10:00 | 1:00-2:00
+Nadir Descent | 6:00-10:00 | 1:00-2:00
+Sulphur Rift | 10:00-15:00 | 1:30-2:30

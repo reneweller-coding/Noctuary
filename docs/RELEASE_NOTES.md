@@ -2,6 +2,29 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**The foreground's lines keep to the chord** (19.11.2026). A near Sequence drew each of its steps on its own, over two
+and a half octaves, against the first conductor's notes only. Under Steel Span with Bowed Line, 62 % of the line's notes
+stood a second, a seventh or a tritone from a note the conductors were holding. A Sequence and a Phrase are now figures,
+after Empyrean's: they begin and end on a chord tone, move by step more often than by leap, and take no note that rubs
+against a sounding one; when the chord moves under a running line, a step that no longer fits goes to the nearest note
+that does. The second conductor's notes are part of the chord the near layer listens to. Under Steel Span: 0 % rub, 97 %
+are chord tones. The lines keep their sound: ghosts, accents, gates and tempo are as they were.
+
+**The near bank: two out, twenty-six in.** Seed Pod (the shaker, heard as a noise burst in the foreground) and Geiger
+Counter left the bank. Two variants of each of thirteen presets joined it -- Bowed Line, Bunker Tube, Krell Circuit,
+Deep Space Beacon, Number Station, Shortwave Dial, Whistler, Tuned Noise, Drop Sequence, Heartbeat, Machine Pulse, Wind
+Chimes, Radio Cut-Up -- each with its register, tempo, ring, place or colour moved, and each in its parent's group in
+Near Auto, so the packs that drew the parent now draw among three. 132 presets. The variants carry their parent's
+measured Gain until they are measured themselves.
+
+**Journeys with stays of their own.** Every step of a journey had the same range, five to ten minutes (eight to fifteen
+at night). Now a step stays as long as its preset carries: the four of the twelve that move least by themselves a
+minute and a half to three minutes, the four that move most six to ten, the others three to six, never two long or two
+short in a row, the fade growing with the stay (at night three to fifteen minutes). A step lasts 4.8 minutes on average
+instead of 7.5, 8.3 instead of 11.5 at night. The presets and their order are unchanged.
+
+**MIDI out**: the near events' channel now gets every note's start as well as its end.
+
 **Panic** (11.11.2026). A button in the header (Shift+Esc, and in the search): everything is silent at once -- every
 voice, echo, grain, room and hall, a frozen one too -- and stays silent; a journey or a set's playback stops. The
 same button, a key played or a preset chosen wakes the instrument: the conductor's chord at once, the piece from its

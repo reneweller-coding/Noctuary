@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Shortwave Dark: Journey
 cyclic on
-Ionospheric Threshold | 5:00-10:00 | 0:30-1:30
-Antenna Fade | 5:00-10:00 | 0:30-1:30
-Antenna Station | 5:00-10:00 | 0:30-1:30
-Morse Band | 5:00-10:00 | 0:30-1:30
-Callsign Veil | 5:00-10:00 | 0:30-1:30
-Squelch Span | 5:00-10:00 | 0:30-1:30
-Crystal Band | 5:00-10:00 | 0:30-1:30
-Crystal Signal | 5:00-10:00 | 0:30-1:30
-Skip Vigil | 5:00-10:00 | 0:30-1:30
-Squelch Station | 5:00-10:00 | 0:30-1:30
-Shortwave Bed | 5:00-10:00 | 0:30-1:30
-Jammer Reach | 5:00-10:00 | 0:30-1:30
+Ionospheric Threshold | 3:00-6:00 | 0:30-1:15
+Antenna Fade | 1:30-3:00 | 0:20-0:45
+Antenna Station | 6:00-10:00 | 0:45-1:30
+Morse Band | 1:30-3:00 | 0:20-0:45
+Callsign Veil | 6:00-10:00 | 0:45-1:30
+Squelch Span | 3:00-6:00 | 0:30-1:15
+Crystal Band | 1:30-3:00 | 0:20-0:45
+Crystal Signal | 6:00-10:00 | 0:45-1:30
+Skip Vigil | 3:00-6:00 | 0:30-1:15
+Squelch Station | 3:00-6:00 | 0:30-1:15
+Shortwave Bed | 1:30-3:00 | 0:20-0:45
+Jammer Reach | 6:00-10:00 | 0:45-1:30

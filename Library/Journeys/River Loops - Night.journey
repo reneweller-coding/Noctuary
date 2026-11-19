@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey River Loops: Night
 cyclic on
-Meander Passage | 8:00-15:00 | 1:00-2:00
-Cove Calm | 8:00-15:00 | 1:00-2:00
-Delta Expanse | 8:00-15:00 | 1:00-2:00
-Pebble Morning | 8:00-15:00 | 1:00-2:00
-Rushwater Span | 8:00-15:00 | 1:00-2:00
-Heron Pool | 8:00-15:00 | 1:00-2:00
-Riverbed Signal | 8:00-15:00 | 1:00-2:00
-Ocarina Breath | 8:00-15:00 | 1:00-2:00
-Pebble Interval | 8:00-15:00 | 1:00-2:00
-Riverbed Bloom | 8:00-15:00 | 1:00-2:00
-Ocarina Signal | 8:00-15:00 | 1:00-2:00
-Riverbed Span | 8:00-15:00 | 1:00-2:00
+Meander Passage | 6:00-10:00 | 1:00-2:00
+Cove Calm | 6:00-10:00 | 1:00-2:00
+Delta Expanse | 6:00-10:00 | 1:00-2:00
+Pebble Morning | 3:00-6:00 | 0:45-1:30
+Rushwater Span | 6:00-10:00 | 1:00-2:00
+Heron Pool | 3:00-6:00 | 0:45-1:30
+Riverbed Signal | 6:00-10:00 | 1:00-2:00
+Ocarina Breath | 3:00-6:00 | 0:45-1:30
+Pebble Interval | 10:00-15:00 | 1:30-2:30
+Riverbed Bloom | 6:00-10:00 | 1:00-2:00
+Ocarina Signal | 6:00-10:00 | 1:00-2:00
+Riverbed Span | 10:00-15:00 | 1:30-2:30

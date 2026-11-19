@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Frozen Gong: Night
 cyclic on
-Whiteout Hollow | 8:00-15:00 | 1:00-2:00
-Katabatic Veil | 8:00-15:00 | 1:00-2:00
-Iceberg Bed | 8:00-15:00 | 1:00-2:00
-Serac Interval | 8:00-15:00 | 1:00-2:00
-Whiteout Span | 8:00-15:00 | 1:00-2:00
-Hoarfrost Well | 8:00-15:00 | 1:00-2:00
-Blizzard Descent | 8:00-15:00 | 1:00-2:00
-Frozen Descent | 8:00-15:00 | 1:00-2:00
-Floe Well | 8:00-15:00 | 1:00-2:00
-Gong Basin | 8:00-15:00 | 1:00-2:00
-Crevasse Span | 8:00-15:00 | 1:00-2:00
-Iceberg Field | 8:00-15:00 | 1:00-2:00
+Whiteout Hollow | 10:00-15:00 | 1:30-2:30
+Katabatic Veil | 6:00-10:00 | 1:00-2:00
+Iceberg Bed | 6:00-10:00 | 1:00-2:00
+Serac Interval | 10:00-15:00 | 1:30-2:30
+Whiteout Span | 6:00-10:00 | 1:00-2:00
+Hoarfrost Well | 3:00-6:00 | 0:45-1:30
+Blizzard Descent | 10:00-15:00 | 1:30-2:30
+Frozen Descent | 6:00-10:00 | 1:00-2:00
+Floe Well | 3:00-6:00 | 0:45-1:30
+Gong Basin | 6:00-10:00 | 1:00-2:00
+Crevasse Span | 3:00-6:00 | 0:45-1:30
+Iceberg Field | 6:00-10:00 | 1:00-2:00

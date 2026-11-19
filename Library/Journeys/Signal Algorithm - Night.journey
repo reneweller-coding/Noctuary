@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Signal Algorithm: Night
 cyclic on
-Quantum Cell | 8:00-15:00 | 1:00-2:00
-Integer Matrix | 8:00-15:00 | 1:00-2:00
-Microbe Matrix | 8:00-15:00 | 1:00-2:00
-Photon Sequence | 8:00-15:00 | 1:00-2:00
-Neuron Sequence | 8:00-15:00 | 1:00-2:00
-Photon Reach | 8:00-15:00 | 1:00-2:00
-Vector Threshold | 8:00-15:00 | 1:00-2:00
-Protein Basin | 8:00-15:00 | 1:00-2:00
-Integer Sequence | 8:00-15:00 | 1:00-2:00
-Photon Code | 8:00-15:00 | 1:00-2:00
-Photon Veil | 8:00-15:00 | 1:00-2:00
-Photon Vigil | 8:00-15:00 | 1:00-2:00
+Quantum Cell | 6:00-10:00 | 1:00-2:00
+Integer Matrix | 6:00-10:00 | 1:00-2:00
+Microbe Matrix | 6:00-10:00 | 1:00-2:00
+Photon Sequence | 3:00-6:00 | 0:45-1:30
+Neuron Sequence | 6:00-10:00 | 1:00-2:00
+Photon Reach | 3:00-6:00 | 0:45-1:30
+Vector Threshold | 6:00-10:00 | 1:00-2:00
+Protein Basin | 10:00-15:00 | 1:30-2:30
+Integer Sequence | 6:00-10:00 | 1:00-2:00
+Photon Code | 10:00-15:00 | 1:30-2:30
+Photon Veil | 3:00-6:00 | 0:45-1:30
+Photon Vigil | 10:00-15:00 | 1:30-2:30

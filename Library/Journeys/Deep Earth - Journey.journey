@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Deep Earth: Journey
 cyclic on
-Basalt Span | 5:00-10:00 | 0:30-1:30
-Crypt Span | 5:00-10:00 | 0:30-1:30
-Tectonic Vigil | 5:00-10:00 | 0:30-1:30
-Obsidian Fault | 5:00-10:00 | 0:30-1:30
-Basalt Passage | 5:00-10:00 | 0:30-1:30
-Catacomb Pressure | 5:00-10:00 | 0:30-1:30
-Subterranean Span | 5:00-10:00 | 0:30-1:30
-Fumarole Bed | 5:00-10:00 | 0:30-1:30
-Mineshaft Bed | 5:00-10:00 | 0:30-1:30
-Bedrock Vigil | 5:00-10:00 | 0:30-1:30
-Seismic Bloom | 5:00-10:00 | 0:30-1:30
-Chthonic Basin | 5:00-10:00 | 0:30-1:30
+Basalt Span | 1:30-3:00 | 0:20-0:45
+Crypt Span | 6:00-10:00 | 0:45-1:30
+Tectonic Vigil | 3:00-6:00 | 0:30-1:15
+Obsidian Fault | 6:00-10:00 | 0:45-1:30
+Basalt Passage | 3:00-6:00 | 0:30-1:15
+Catacomb Pressure | 3:00-6:00 | 0:30-1:15
+Subterranean Span | 1:30-3:00 | 0:20-0:45
+Fumarole Bed | 3:00-6:00 | 0:30-1:15
+Mineshaft Bed | 1:30-3:00 | 0:20-0:45
+Bedrock Vigil | 3:00-6:00 | 0:30-1:15
+Seismic Bloom | 3:00-6:00 | 0:30-1:15
+Chthonic Basin | 6:00-10:00 | 0:45-1:30

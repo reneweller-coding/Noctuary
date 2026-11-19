@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey River Loops: Journey
 cyclic on
-Rainstick Bloom | 5:00-10:00 | 0:30-1:30
-Meander Pool | 5:00-10:00 | 0:30-1:30
-Ford Pool | 5:00-10:00 | 0:30-1:30
-Delta Threshold | 5:00-10:00 | 0:30-1:30
-Kingfisher Reflection | 5:00-10:00 | 0:30-1:30
-Fernbank Signal | 5:00-10:00 | 0:30-1:30
-Ocarina Bed | 5:00-10:00 | 0:30-1:30
-Riverbed Span | 5:00-10:00 | 0:30-1:30
-Ocarina Signal | 5:00-10:00 | 0:30-1:30
-Kingfisher Bloom | 5:00-10:00 | 0:30-1:30
-Ripple Veil | 5:00-10:00 | 0:30-1:30
-Ford Loops | 5:00-10:00 | 0:30-1:30
+Rainstick Bloom | 1:30-3:00 | 0:20-0:45
+Meander Pool | 3:00-6:00 | 0:30-1:15
+Ford Pool | 6:00-10:00 | 0:45-1:30
+Delta Threshold | 3:00-6:00 | 0:30-1:15
+Kingfisher Reflection | 1:30-3:00 | 0:20-0:45
+Fernbank Signal | 3:00-6:00 | 0:30-1:15
+Ocarina Bed | 1:30-3:00 | 0:20-0:45
+Riverbed Span | 6:00-10:00 | 0:45-1:30
+Ocarina Signal | 3:00-6:00 | 0:30-1:15
+Kingfisher Bloom | 6:00-10:00 | 0:45-1:30
+Ripple Veil | 3:00-6:00 | 0:30-1:15
+Ford Loops | 3:00-6:00 | 0:30-1:15

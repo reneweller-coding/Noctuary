@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Frozen Gong: Journey
 cyclic on
-Nightfall Vigil | 5:00-10:00 | 0:30-1:30
-Blizzard Bed | 5:00-10:00 | 0:30-1:30
-Rime Sheet | 5:00-10:00 | 0:30-1:30
-Whiteout Descent | 5:00-10:00 | 0:30-1:30
-Sealskin Sheet | 5:00-10:00 | 0:30-1:30
-Sealskin Expanse | 5:00-10:00 | 0:30-1:30
-Firn Reach | 5:00-10:00 | 0:30-1:30
-Icefall Threshold | 5:00-10:00 | 0:30-1:30
-Hoarfrost Signal | 5:00-10:00 | 0:30-1:30
-Crevasse Interval | 5:00-10:00 | 0:30-1:30
-Gong Basin | 5:00-10:00 | 0:30-1:30
-Crevasse Span | 5:00-10:00 | 0:30-1:30
+Nightfall Vigil | 1:30-3:00 | 0:20-0:45
+Blizzard Bed | 3:00-6:00 | 0:30-1:15
+Rime Sheet | 1:30-3:00 | 0:20-0:45
+Whiteout Descent | 3:00-6:00 | 0:30-1:15
+Sealskin Sheet | 3:00-6:00 | 0:30-1:15
+Sealskin Expanse | 6:00-10:00 | 0:45-1:30
+Firn Reach | 3:00-6:00 | 0:30-1:15
+Icefall Threshold | 6:00-10:00 | 0:45-1:30
+Hoarfrost Signal | 3:00-6:00 | 0:30-1:15
+Crevasse Interval | 6:00-10:00 | 0:45-1:30
+Gong Basin | 1:30-3:00 | 0:20-0:45
+Crevasse Span | 3:00-6:00 | 0:30-1:15

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Atom Space: Night
 cyclic on
-Fission Bed | 8:00-15:00 | 1:00-2:00
-Gamma Flux | 8:00-15:00 | 1:00-2:00
-Electron Bloom | 8:00-15:00 | 1:00-2:00
-Cathode Descent | 8:00-15:00 | 1:00-2:00
-Quark Signal | 8:00-15:00 | 1:00-2:00
-Tritium Core | 8:00-15:00 | 1:00-2:00
-Muon Hollow | 8:00-15:00 | 1:00-2:00
-Fission Signal | 8:00-15:00 | 1:00-2:00
-Plasma Descent | 8:00-15:00 | 1:00-2:00
-Quark Vigil | 8:00-15:00 | 1:00-2:00
-Isotope Drift | 8:00-15:00 | 1:00-2:00
-Quark Field | 8:00-15:00 | 1:00-2:00
+Fission Bed | 10:00-15:00 | 1:30-2:30
+Gamma Flux | 6:00-10:00 | 1:00-2:00
+Electron Bloom | 3:00-6:00 | 0:45-1:30
+Cathode Descent | 6:00-10:00 | 1:00-2:00
+Quark Signal | 10:00-15:00 | 1:30-2:30
+Tritium Core | 6:00-10:00 | 1:00-2:00
+Muon Hollow | 6:00-10:00 | 1:00-2:00
+Fission Signal | 6:00-10:00 | 1:00-2:00
+Plasma Descent | 6:00-10:00 | 1:00-2:00
+Quark Vigil | 6:00-10:00 | 1:00-2:00
+Isotope Drift | 3:00-6:00 | 0:45-1:30
+Quark Field | 6:00-10:00 | 1:00-2:00

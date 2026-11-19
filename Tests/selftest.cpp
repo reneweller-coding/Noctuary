@@ -11121,15 +11121,51 @@ static void testNearLayer()
         s.m_rate = 30.0f;
         s.m_scatter = 0.3f;
         s.m_approach = 0.25f;
+        // 19.11.2026, after Empyrean's figures: Rene heard the sequences' melodies go wrong. A step is a
+        // note of a figure drawn to the chord -- the ring begins and ends on a chord tone, and no step
+        // stands a semitone, a whole tone, a tritone, a seventh or a ninth from a sounding note (measured
+        // in the tuning, not in keys) -- and when the chord moves under the line, a step that no longer
+        // fits moves to the nearest note that does. Ghosts, accents and gates are the line's own and stay.
+        auto chordTone = [&]( int note, const NearInputs &now )
+        {
+            for ( int k = 0; k < now.m_count; ++k )
+            {
+                double c = std::fmod( 1200.0 * std::log2( freqOf( note ) / freqOf( now.m_cluster[k] ) ), 1200.0 );
+                if ( c < 0.0 ) c += 1200.0;
+                if ( std::min( c, 1200.0 - c ) < 25.0 ) return true;
+            }
+            return false;
+        };
+        auto fits = [&]( int note, const NearInputs &now )
+        {
+            if ( chordTone( note, now ) ) return true;
+            for ( int k = 0; k < now.m_count; ++k )
+            {
+                double c = std::fmod( 1200.0 * std::log2( freqOf( note ) / freqOf( now.m_cluster[k] ) ), 1200.0 );
+                if ( c < 0.0 ) c += 1200.0;
+                const double ic = std::min( c, 1200.0 - c );   // the interval class, 0 .. 600 cents
+                if ( ic > 25.0 && ic < 290.0 ) return false;   // semitone, whole tone (and 7/6), their inversions
+                if ( ic > 525.0 ) return false;                // the tritone
+            }
+            return true;
+        };
         NearEvents seq;
         seq.reset( 3 );
-        int    onCount = 0, offCount = 0, farAccents = 0, ghosts = 0;
-        double first = -1.0, last = 0.0, firstDist = -1.0;
+        int    onCount = 0, offCount = 0, farAccents = 0, ghosts = 0, clashes = 0, firstOn = -1;
+        double first = -1.0, last = 0.0, firstDist = -1.0, held = 0.0;
+        int    heldN = 0;
+        double onAt[128];
+        for ( double &x : onAt ) x = -1.0;
         t = 0.0;
         in.m_silence = false;
         in.m_rootAge = 1.0e9;
+        const NearInputs before = in;
+        NearInputs       moved = in;   // the chord moves under the line half way: D A D -> D G B
+        moved.m_cluster[1] = 55;
+        moved.m_cluster[2] = 59;
         for ( long i = 0; i < static_cast<long>( 200.0 / dt ); ++i )
         {
+            in = ( first >= 0.0 && t > first + 30.0 ) ? moved : before;
             seq.update( dt, s, in, freqOf, cons,
                         [&]( const NearNote &e )
                         {
@@ -11140,27 +11176,46 @@ static void testNearLayer()
                                 {
                                     first = t;
                                     firstDist = e.m_distance;
+                                    firstOn = e.m_note;
                                 }
                                 last = t;
-                                if ( e.m_distance > 0.5f && e.m_velocity > 0.5f ) ++farAccents;
+                                const double q = ( t - first ) / s.m_length;
+                                if ( q > 0.3 && q < 0.7 && e.m_distance > 0.5f ) ++farAccents;
                                 if ( e.m_velocity <= 0.31f ) ++ghosts;
+                                if ( !fits( e.m_note, in ) ) ++clashes;
+                                onAt[e.m_note] = t;
                                 CHECK( e.m_note >= in.m_root - 12 && e.m_note <= in.m_root + 48,
                                        "a step stays within the soloist's register over the cluster" );
                             }
                             else if ( e.m_type == NearNote::TypeE::OFF )
+                            {
                                 ++offCount;
+                                if ( onAt[e.m_note] >= 0.0 )
+                                {
+                                    held += t - onAt[e.m_note];
+                                    ++heldN;
+                                    onAt[e.m_note] = -1.0;
+                                }
+                            }
                         } );
             t += dt;
         }
+        in = before;
+        const double meanHeld = held / std::max( 1, heldN );
         std::printf(
-            "  [probe] near sequence: %d notes on, %d off, %d ghosts, %d far accents, %d mutations, first at %.1f s from distance %.2f, last at %.1f s\n",
-            onCount, offCount, ghosts, farAccents, seq.mutations(), first, firstDist, last );
+            "  [probe] near sequence: %d notes on, %d off, %d ghosts, %d far accents, %d off the chord, held %.2f s of a %.2f s step, %d mutations, first at %.1f s from distance %.2f, last at %.1f s\n",
+            onCount, offCount, ghosts, farAccents, clashes, meanHeld, s.m_stepSeconds, seq.mutations(), first,
+            firstDist, last );
         CHECK( onCount > 100, "a sequence plays many notes" );
         CHECK( offCount >= onCount - 1,
                "and every one of them is let go (but the one still sounding when the clock stops)" );
         CHECK( seq.mutations() >= 3, "the ring mutates over the run" );
         CHECK( ghosts > 0, "ghost notes fall between the steps" );
+        CHECK( clashes == 0, "no step rubs against the chord, before or after it moves" );
+        CHECK( firstOn >= 0 && chordTone( firstOn, before ), "the line begins on a chord tone" );
         CHECK( firstDist > 0.9f, "with Approach the line arrives out of the far plane" );
+        (void)farAccents;
+        (void)meanHeld;
     }
 
     // ---- inside the engine, without audio: the conductor begins no note while a near note speaks

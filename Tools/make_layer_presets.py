@@ -428,12 +428,8 @@ NEAR = [
         ("Whistler", near(type="Whistler", bright=0.6, speed=0.3, pitch="Consonant", octave=1, kind="Note", rate=200, length=3,
                           attack=0.01, decay=0.5, sustain=0.6, release=1.5, cutoff=16000, resonance=0.0,
                           spread=0.3, distance=0.15, approach=-0.7, proximity=0.5, hold="off", level=0.45)),
-        ("Seed Pod", near(type="Shaker", density=2.0, force=0.35, pos=0.55, noise_q=0.3, follow="Free", kind="Note", rate=150, length=3,
-                          attack=0.005, decay=0.3, sustain=1.0, release=0.4, cutoff=16000, resonance=0.0,
-                          spread=0.45, distance=0.05, dry=0.85, proximity=0.9, hold="off", level=0.5)),
-        ("Geiger Counter", near(type="Geiger", density=0.6, force=0.4, pos=0.52, noise_q=0.27, kind="Note", rate=120, length=20,
-                                attack=0.005, decay=0.1, sustain=1.0, release=0.1, cutoff=16000, resonance=0.0,
-                                spread=0.7, distance=0.0, dry=1.0, proximity=0.3, hold="off", level=0.5)),
+        # Seed Pod (the Shaker) and Geiger Counter left the bank on 19.11.2026: Rene heard the shaker as a
+        # noise burst in the foreground and did not like the Geiger counter either. The source types stay.
         ("Bunker Tube", near(type="Tube", pos=0.2, bright=0.5, pitch="Root", kind="Note", rate=300, length=25,
                              attack=0.01, decay=0.5, sustain=1.0, release=1.5, cutoff=12000, resonance=0.0,
                              spread=0.3, distance=0.35, dry=0.3, proximity=0.6, hold="off", level=0.45)),
@@ -656,6 +652,68 @@ NEAR = [
     ]),
 ]
 
+# Variants (19.11.2026). Rene, after fifteen probes: "Die anderen sind hingegen super. Wenn wir noch ein
+# paar Varianten der anderen Presets hinzufuegen koennten, waere das super um mehr Abwechslung zu
+# bekommen." Two of each preset he heard and liked, each a copy of its parent with a few of its settings
+# moved -- register, tempo, ring length, place between the planes, the source's colour -- so it is
+# heard as a relative of the parent and not as the parent again. A variant sits right after its parent
+# in the bank, joins its parent's group in Near Auto (Tools/library/near_table.py) and carries its
+# parent's measured Gain until it is measured itself. The values are the final fore_* ones (Every is
+# already on the production guide's scale here).
+NEAR_VARIANTS = [
+    ("Bowed Line", "Bowed Line Low", dict(fore_octave=-1, fore_step=0.63, fore_steps=5, fore_cutoff=3000)),
+    ("Bowed Line", "Bowed Line Slow", dict(fore_step=0.84, fore_steps=9, fore_mutation=0.2, fore_scatter=0.15,
+                                           fore_release=0.6)),
+    ("Bunker Tube", "Bunker Tube Far", dict(fore_distance=0.7, fore_dry=0.0, fore_cutoff=6000, fore_length=18)),
+    ("Bunker Tube", "Bunker Tube Hum", dict(fore_pos=0.45, fore_bright=0.3, fore_length=40, fore_attack=1.5,
+                                            fore_release=4.0)),
+    ("Krell Circuit", "Krell Drift", dict(fore_speed=0.2, fore_fm_ratio=1.25, fore_octave=-1, fore_length=20)),
+    ("Krell Circuit", "Krell Lattice", dict(fore_pos=0.9, fore_fm_ratio=2.0, fore_fm_index=1.6, fore_cosmos=0.7)),
+    ("Deep Space Beacon", "Beacon Far", dict(fore_distance=0.6, fore_octave=1, fore_density=0.3, fore_cutoff=9000)),
+    ("Deep Space Beacon", "Beacon Burst", dict(fore_density=0.85, fore_length=8, fore_delay2=0.5)),
+    ("Number Station", "Number Station Slow", dict(fore_speed=0.2, fore_octave=1, fore_length=40)),
+    ("Number Station", "Number Station Far", dict(fore_distance=0.6, fore_cutoff=3500, fore_delay2=0.55, fore_dry=0.0)),
+    ("Shortwave Dial", "Dial Sweep", dict(fore_pos=0.4, fore_length=24, fore_approach=0.35)),
+    ("Shortwave Dial", "Dial Bright", dict(fore_bright=0.75, fore_octave=2, fore_cutoff=8000)),
+    ("Whistler", "Whistler Deep", dict(fore_octave=0, fore_speed=0.2, fore_length=5)),
+    ("Whistler", "Whistler Chorus", dict(fore_speed=0.5, fore_octave=2, fore_delay2=0.4)),
+    ("Tuned Noise", "Tuned Noise Pink", dict(fore_noise="Pink", fore_noise_q=0.9, fore_octave=-1, fore_cutoff=7000)),
+    ("Tuned Noise", "Tuned Wind", dict(fore_noise="Wind", fore_noise_q=0.95, fore_step=0.9, fore_steps=5,
+                                       fore_cutoff=6000)),
+    ("Drop Sequence", "Drop Sequence Deep", dict(fore_octave=0, fore_steps=7, fore_step=0.7)),
+    ("Drop Sequence", "Drop Sequence Bright", dict(fore_octave=2, fore_bright=0.7, fore_steps=11, fore_step=0.35)),
+    ("Heartbeat", "Heartbeat Slow", dict(fore_step=0.6, fore_cutoff=110)),
+    ("Heartbeat", "Heartbeat Distant", dict(fore_distance=0.5, fore_cutoff=100, fore_proximity=0.4)),
+    ("Machine Pulse", "Machine Pulse Slow", dict(fore_step=1.3, fore_steps=7)),
+    ("Machine Pulse", "Machine Pulse Metal", dict(fore_strike_type="Metal", fore_strike_decay=0.4, fore_step=0.75)),
+    ("Wind Chimes", "Wind Chimes Low", dict(fore_octave=1, fore_cutoff=12000)),
+    ("Wind Chimes", "Wind Chimes Sparse", dict(fore_step=1.0, fore_scatter=0.3, fore_steps=7)),
+    ("Radio Cut-Up", "Radio Cut-Up Slow", dict(fore_step=1.2, fore_steps=4)),
+    ("Radio Cut-Up", "Radio Cut-Up Far", dict(fore_distance=0.5, fore_cutoff=5000, fore_delay2=0.4)),
+]
+VARIANT_PARENT = {name: parent for parent, name, _ in NEAR_VARIANTS}
+
+
+def near_bank():
+    """NEAR with every variant right after its parent."""
+    known = {nm for _, ps in NEAR for nm, _ in ps}
+    for parent, name, over in NEAR_VARIANTS:
+        assert parent in known, "variant of an unknown preset: " + parent
+        assert name not in known, "variant named like a preset: " + name
+        assert all(k.startswith("fore_") for k in over), "a variant's settings are fore_* keys: " + name
+    out = []
+    for fam, ps in NEAR:
+        lst = []
+        for nm, kw in ps:
+            lst.append((nm, kw))
+            for parent, name, over in NEAR_VARIANTS:
+                if parent == nm:
+                    v = dict(kw)
+                    v.update(over)
+                    lst.append((name, v))
+        out.append((fam, lst))
+    return out
+
 
 def write_bank(path, array, cat_array, off_name, off_settings, families, what):
     nl = chr(10)
@@ -716,7 +774,8 @@ def main():
     # that loads no clip plays Source 4's instead, which is the wrong recording, not silence.
     library = os.path.join(ROOT, "Library")
     # A clip ending in a slash is a folder of recordings: the near source plays one of them per event.
-    missing = [kw["__clip__"] for _, ps in NEAR for _, kw in ps
+    bank = near_bank()
+    missing = [kw["__clip__"] for _, ps in bank for _, kw in ps
                if kw.get("__clip__") and os.path.isdir(os.path.join(library, "Archive"))
                and not (os.path.isfile(os.path.join(library, kw["__clip__"])) or os.path.isdir(os.path.join(library, kw["__clip__"])))]
     if missing and "--allow-missing-clips" not in sys.argv:
@@ -738,12 +797,13 @@ def main():
     def fmt_clip(nm, kw):
         kw = dict(kw)
         clip = kw.pop("__clip__", None)
-        if nm in gains:
-            kw["fore_gain"] = round(float(gains[nm]), 1)
+        g = gains.get(nm, gains.get(VARIANT_PARENT.get(nm, "")))   # a variant carries its parent's until measured
+        if g is not None:
+            kw["fore_gain"] = round(float(g), 1)
         circuit.apply(kw, None, nm, circuit.NEAR)
         return fmt(**kw) + ("|" + clip if clip else "")
-    fams = [(f, [(nm, fmt_clip(nm, kw)) for nm, kw in ps]) for f, ps in NEAR]
-    unmeasured = [nm for _, ps in NEAR for nm, _ in ps if nm not in gains]
+    fams = [(f, [(nm, fmt_clip(nm, kw)) for nm, kw in ps]) for f, ps in bank]
+    unmeasured = [nm for _, ps in bank for nm, _ in ps if nm not in gains and VARIANT_PARENT.get(nm) not in gains]
     if gains and unmeasured:
         print("near bank: %d preset(s) without a measured gain, left at 0 dB: %s" % (len(unmeasured), ", ".join(unmeasured[:8])))
     n = write_bank(NEAR_OUT, "NearPresets", "NearPresetCategory", "Near Off",

@@ -96,7 +96,7 @@ small speaker hear it.
 * **A near layer** with a second, smaller conductor of its own: a flute, a murmur, a bowl, ice,
   drops or a clip playing close to the ear as a note, a gliding phrase or a Berlin-school shift
   register that mutates, plus nine signal sources — whistler, shaker, chime, geiger, tube, Krell,
-  beacon, morse, dial. It is a bank beside the sound presets, 108 of them in twelve families, so a
+  beacon, morse, dial. It is a bank beside the sound presets, 132 of them in twelve families, so a
   night's foreground can be chosen once and the backgrounds changed under it.
 * **A conductor that plays all night.** The Cluster Brain chooses notes from the scale, places them
   on the planes and holds them for minutes. It judges a chord several ways at once, finds the key it

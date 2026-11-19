@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey British: Crossing
 cyclic on
-Zoetrope Expanse | 5:00-10:00 | 0:45-1:30
-Pin Ring | 5:00-10:00 | 0:45-1:30
-Watercolour Hollow | 5:00-10:00 | 0:45-1:30
-Mulch Span | 5:00-10:00 | 0:45-1:30
-Dust Interior | 5:00-10:00 | 0:45-1:30
-Culvert Scrape | 5:00-10:00 | 0:45-1:30
-Patchbay Span | 5:00-10:00 | 0:45-1:30
-Dew Hollow | 5:00-10:00 | 0:45-1:30
-Glaze Expanse | 5:00-10:00 | 0:45-1:30
-Waterside Expanse | 5:00-10:00 | 0:45-1:30
-Curtain Span | 5:00-10:00 | 0:45-1:30
-Headstock Delay | 5:00-10:00 | 0:45-1:30
+Zoetrope Expanse | 6:00-10:00 | 0:45-1:30
+Pin Ring | 3:00-6:00 | 0:30-1:15
+Watercolour Hollow | 6:00-10:00 | 0:45-1:30
+Mulch Span | 3:00-6:00 | 0:30-1:15
+Dust Interior | 1:30-3:00 | 0:20-0:45
+Culvert Scrape | 3:00-6:00 | 0:30-1:15
+Patchbay Span | 1:30-3:00 | 0:20-0:45
+Dew Hollow | 3:00-6:00 | 0:30-1:15
+Glaze Expanse | 1:30-3:00 | 0:20-0:45
+Waterside Expanse | 3:00-6:00 | 0:30-1:15
+Curtain Span | 6:00-10:00 | 0:45-1:30
+Headstock Delay | 1:30-3:00 | 0:20-0:45

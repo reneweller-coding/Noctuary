@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Field Absence: Night
 cyclic on
-Canopy Environment | 8:00-15:00 | 1:00-2:00
-Bromeliad Place | 8:00-15:00 | 1:00-2:00
-Termite Basin | 8:00-15:00 | 1:00-2:00
-Bromeliad Blind | 8:00-15:00 | 1:00-2:00
-Cicada Reach | 8:00-15:00 | 1:00-2:00
-Mangrove Place | 8:00-15:00 | 1:00-2:00
-Bromeliad Recording | 8:00-15:00 | 1:00-2:00
-Burrow Signal | 8:00-15:00 | 1:00-2:00
-Understory Descent | 8:00-15:00 | 1:00-2:00
-Cicada Vigil | 8:00-15:00 | 1:00-2:00
-Epiphyte Interval | 8:00-15:00 | 1:00-2:00
-Burrow Blind | 8:00-15:00 | 1:00-2:00
+Canopy Environment | 6:00-10:00 | 1:00-2:00
+Bromeliad Place | 10:00-15:00 | 1:30-2:30
+Termite Basin | 6:00-10:00 | 1:00-2:00
+Bromeliad Blind | 3:00-6:00 | 0:45-1:30
+Cicada Reach | 6:00-10:00 | 1:00-2:00
+Mangrove Place | 6:00-10:00 | 1:00-2:00
+Bromeliad Recording | 10:00-15:00 | 1:30-2:30
+Burrow Signal | 6:00-10:00 | 1:00-2:00
+Understory Descent | 3:00-6:00 | 0:45-1:30
+Cicada Vigil | 6:00-10:00 | 1:00-2:00
+Epiphyte Interval | 6:00-10:00 | 1:00-2:00
+Burrow Blind | 10:00-15:00 | 1:30-2:30

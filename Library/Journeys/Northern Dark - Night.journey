@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Northern Dark: Night
 cyclic on
-Albedo Span | 8:00-15:00 | 1:00-2:00
-Syzygy Reach | 8:00-15:00 | 1:00-2:00
-Halo Signal | 8:00-15:00 | 1:00-2:00
-Syzygy Drift | 8:00-15:00 | 1:00-2:00
-Solar Silence | 8:00-15:00 | 1:00-2:00
-Albedo Descent | 8:00-15:00 | 1:00-2:00
-Kuiper Passage | 8:00-15:00 | 1:00-2:00
-Nova Reach | 8:00-15:00 | 1:00-2:00
-Perigee Silence | 8:00-15:00 | 1:00-2:00
-Boreal Expanse | 8:00-15:00 | 1:00-2:00
-Albedo Veil | 8:00-15:00 | 1:00-2:00
-Perigee Vigil | 8:00-15:00 | 1:00-2:00
+Albedo Span | 6:00-10:00 | 1:00-2:00
+Syzygy Reach | 6:00-10:00 | 1:00-2:00
+Halo Signal | 3:00-6:00 | 0:45-1:30
+Syzygy Drift | 10:00-15:00 | 1:30-2:30
+Solar Silence | 6:00-10:00 | 1:00-2:00
+Albedo Descent | 10:00-15:00 | 1:30-2:30
+Kuiper Passage | 6:00-10:00 | 1:00-2:00
+Nova Reach | 3:00-6:00 | 0:45-1:30
+Perigee Silence | 6:00-10:00 | 1:00-2:00
+Boreal Expanse | 6:00-10:00 | 1:00-2:00
+Albedo Veil | 3:00-6:00 | 0:45-1:30
+Perigee Vigil | 6:00-10:00 | 1:00-2:00

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Corridor: Journey
 cyclic on
-Archway Signal | 5:00-10:00 | 0:30-1:30
-Hallway Veil | 5:00-10:00 | 0:30-1:30
-Hallway Descent | 5:00-10:00 | 0:30-1:30
-Archway Refuge | 5:00-10:00 | 0:30-1:30
-Crevice Hour | 5:00-10:00 | 0:30-1:30
-Undercroft Sleep | 5:00-10:00 | 0:30-1:30
-Recess Hour | 5:00-10:00 | 0:30-1:30
-Landing Vigil | 5:00-10:00 | 0:30-1:30
-Archway Stillness | 5:00-10:00 | 0:30-1:30
-Tunnel Stillness | 5:00-10:00 | 0:30-1:30
-Undercroft Basin | 5:00-10:00 | 0:30-1:30
-Gallery Veil | 5:00-10:00 | 0:30-1:30
+Archway Signal | 3:00-6:00 | 0:30-1:15
+Hallway Veil | 6:00-10:00 | 0:45-1:30
+Hallway Descent | 3:00-6:00 | 0:30-1:15
+Archway Refuge | 6:00-10:00 | 0:45-1:30
+Crevice Hour | 1:30-3:00 | 0:20-0:45
+Undercroft Sleep | 3:00-6:00 | 0:30-1:15
+Recess Hour | 6:00-10:00 | 0:45-1:30
+Landing Vigil | 3:00-6:00 | 0:30-1:15
+Archway Stillness | 3:00-6:00 | 0:30-1:15
+Tunnel Stillness | 3:00-6:00 | 0:30-1:15
+Undercroft Basin | 1:30-3:00 | 0:20-0:45
+Gallery Veil | 3:00-6:00 | 0:30-1:15

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Glass Vitrine: Journey
 cyclic on
-Mirrored Interval | 5:00-10:00 | 0:30-1:30
-Lacquer Hours | 5:00-10:00 | 0:30-1:30
-Faded Tone | 5:00-10:00 | 0:30-1:30
-Lens Vigil | 5:00-10:00 | 0:30-1:30
-Faded Case | 5:00-10:00 | 0:30-1:30
-Frost Field | 5:00-10:00 | 0:30-1:30
-Pearl Field | 5:00-10:00 | 0:30-1:30
-Hush Expanse | 5:00-10:00 | 0:30-1:30
-Quartz Expanse | 5:00-10:00 | 0:30-1:30
-Hush Case | 5:00-10:00 | 0:30-1:30
-Opal Passage | 5:00-10:00 | 0:30-1:30
-Faded Hollow | 5:00-10:00 | 0:30-1:30
+Mirrored Interval | 3:00-6:00 | 0:30-1:15
+Lacquer Hours | 3:00-6:00 | 0:30-1:15
+Faded Tone | 1:30-3:00 | 0:20-0:45
+Lens Vigil | 6:00-10:00 | 0:45-1:30
+Faded Case | 1:30-3:00 | 0:20-0:45
+Frost Field | 6:00-10:00 | 0:45-1:30
+Pearl Field | 3:00-6:00 | 0:30-1:15
+Hush Expanse | 1:30-3:00 | 0:20-0:45
+Quartz Expanse | 3:00-6:00 | 0:30-1:15
+Hush Case | 1:30-3:00 | 0:20-0:45
+Opal Passage | 6:00-10:00 | 0:45-1:30
+Faded Hollow | 3:00-6:00 | 0:30-1:15

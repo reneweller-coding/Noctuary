@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Vegetal Drone: Night
 cyclic on
-Burdock Span | 8:00-15:00 | 1:00-2:00
-Vegetal Chord | 8:00-15:00 | 1:00-2:00
-Frond Interval | 8:00-15:00 | 1:00-2:00
-Frond Span | 8:00-15:00 | 1:00-2:00
-Lichen Chord | 8:00-15:00 | 1:00-2:00
-Spore Morning | 8:00-15:00 | 1:00-2:00
-Sap Bed | 8:00-15:00 | 1:00-2:00
-Leafmould Bed | 8:00-15:00 | 1:00-2:00
-Seedpod Morning | 8:00-15:00 | 1:00-2:00
-Leafmould Span | 8:00-15:00 | 1:00-2:00
-Tuber Vigil | 8:00-15:00 | 1:00-2:00
-Leafmould Reach | 8:00-15:00 | 1:00-2:00
+Burdock Span | 3:00-6:00 | 0:45-1:30
+Vegetal Chord | 6:00-10:00 | 1:00-2:00
+Frond Interval | 6:00-10:00 | 1:00-2:00
+Frond Span | 10:00-15:00 | 1:30-2:30
+Lichen Chord | 6:00-10:00 | 1:00-2:00
+Spore Morning | 6:00-10:00 | 1:00-2:00
+Sap Bed | 10:00-15:00 | 1:30-2:30
+Leafmould Bed | 6:00-10:00 | 1:00-2:00
+Seedpod Morning | 6:00-10:00 | 1:00-2:00
+Leafmould Span | 3:00-6:00 | 0:45-1:30
+Tuber Vigil | 6:00-10:00 | 1:00-2:00
+Leafmould Reach | 10:00-15:00 | 1:30-2:30

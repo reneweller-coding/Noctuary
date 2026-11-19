@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Water Tower Voices: Night
 cyclic on
-Throat Echo | 8:00-15:00 | 1:00-2:00
-Throat Span | 8:00-15:00 | 1:00-2:00
-Echoing Span | 8:00-15:00 | 1:00-2:00
-Reservoir Field | 8:00-15:00 | 1:00-2:00
-Undertone Tones | 8:00-15:00 | 1:00-2:00
-Reservoir Chorus | 8:00-15:00 | 1:00-2:00
-Standpipe Voices | 8:00-15:00 | 1:00-2:00
-Echoing Threshold | 8:00-15:00 | 1:00-2:00
-Standpipe Passage | 8:00-15:00 | 1:00-2:00
-Tower Tones | 8:00-15:00 | 1:00-2:00
-Choral Drift | 8:00-15:00 | 1:00-2:00
-Monk Descent | 8:00-15:00 | 1:00-2:00
+Throat Echo | 10:00-15:00 | 1:30-2:30
+Throat Span | 6:00-10:00 | 1:00-2:00
+Echoing Span | 10:00-15:00 | 1:30-2:30
+Reservoir Field | 6:00-10:00 | 1:00-2:00
+Undertone Tones | 3:00-6:00 | 0:45-1:30
+Reservoir Chorus | 6:00-10:00 | 1:00-2:00
+Standpipe Voices | 3:00-6:00 | 0:45-1:30
+Echoing Threshold | 6:00-10:00 | 1:00-2:00
+Standpipe Passage | 3:00-6:00 | 0:45-1:30
+Tower Tones | 6:00-10:00 | 1:00-2:00
+Choral Drift | 10:00-15:00 | 1:30-2:30
+Monk Descent | 6:00-10:00 | 1:00-2:00

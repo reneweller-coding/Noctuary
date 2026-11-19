@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Machine Depths: Journey
 cyclic on
-Flue Depth | 5:00-10:00 | 0:30-1:30
-Sump Signal | 5:00-10:00 | 0:30-1:30
-Valve Depth | 5:00-10:00 | 0:30-1:30
-Cistern Hum | 5:00-10:00 | 0:30-1:30
-Sluicegate Hollow | 5:00-10:00 | 0:30-1:30
-Sluicegate Drift | 5:00-10:00 | 0:30-1:30
-Manifold Underside | 5:00-10:00 | 0:30-1:30
-Conduit Span | 5:00-10:00 | 0:30-1:30
-Hopper Bloom | 5:00-10:00 | 0:30-1:30
-Foundry Flow | 5:00-10:00 | 0:30-1:30
-Valve Bloom | 5:00-10:00 | 0:30-1:30
-Catwalk Flow | 5:00-10:00 | 0:30-1:30
+Flue Depth | 3:00-6:00 | 0:30-1:15
+Sump Signal | 3:00-6:00 | 0:30-1:15
+Valve Depth | 6:00-10:00 | 0:45-1:30
+Cistern Hum | 3:00-6:00 | 0:30-1:15
+Sluicegate Hollow | 3:00-6:00 | 0:30-1:15
+Sluicegate Drift | 3:00-6:00 | 0:30-1:15
+Manifold Underside | 1:30-3:00 | 0:20-0:45
+Conduit Span | 3:00-6:00 | 0:30-1:15
+Hopper Bloom | 3:00-6:00 | 0:30-1:15
+Foundry Flow | 1:30-3:00 | 0:20-0:45
+Valve Bloom | 3:00-6:00 | 0:30-1:15
+Catwalk Flow | 6:00-10:00 | 0:45-1:30

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Modular Nocturne: Night
 cyclic on
-Sequencer Field | 8:00-15:00 | 1:00-2:00
-Knob Scan | 8:00-15:00 | 1:00-2:00
-Phase Drift | 8:00-15:00 | 1:00-2:00
-Clock Interval | 8:00-15:00 | 1:00-2:00
-Ramp Pulse | 8:00-15:00 | 1:00-2:00
-Cable Threshold | 8:00-15:00 | 1:00-2:00
-Envelope Veil | 8:00-15:00 | 1:00-2:00
-Jack Threshold | 8:00-15:00 | 1:00-2:00
-Filter Hollow | 8:00-15:00 | 1:00-2:00
-Jack Nocturne | 8:00-15:00 | 1:00-2:00
-Voltage Span | 8:00-15:00 | 1:00-2:00
-Phase Veil | 8:00-15:00 | 1:00-2:00
+Sequencer Field | 6:00-10:00 | 1:00-2:00
+Knob Scan | 3:00-6:00 | 0:45-1:30
+Phase Drift | 6:00-10:00 | 1:00-2:00
+Clock Interval | 3:00-6:00 | 0:45-1:30
+Ramp Pulse | 6:00-10:00 | 1:00-2:00
+Cable Threshold | 10:00-15:00 | 1:30-2:30
+Envelope Veil | 6:00-10:00 | 1:00-2:00
+Jack Threshold | 10:00-15:00 | 1:30-2:30
+Filter Hollow | 6:00-10:00 | 1:00-2:00
+Jack Nocturne | 10:00-15:00 | 1:30-2:30
+Voltage Span | 6:00-10:00 | 1:00-2:00
+Phase Veil | 3:00-6:00 | 0:45-1:30

@@ -19,7 +19,10 @@
  *
  * What it plays is chosen against the harmony, never by a die alone: Consonant takes a degree of
  * the tuning that is consonant with the root AND with every note sounding -- the fifth, the ninth,
- * the pure third first -- and avoids what already sounds. The rules it keeps, all of them measured
+ * the pure third first -- and avoids what already sounds. A Sequence and a Phrase are figures
+ * (19.11.2026, after Empyrean's): they begin and end on a chord tone, move by step oftener than by
+ * leap, take no note a second, a seventh or a tritone from a sounding one, and when the chord moves
+ * under them a step that no longer fits moves to the nearest note that does. The rules it keeps, all of them measured
  * by the selftest and the audit: never during the conductor's planned silence, never within six
  * seconds of a root change, never two events at once, never into nothing at all; and while a Note
  * or a Phrase sounds the conductor may be asked to hold its decisions (Hold Brain), so the
@@ -305,6 +308,145 @@ private:
     }
 
     /**
+     * @brief How a note fits the conductor's chord, measured in the tuning (19.11.2026, after Empyrean's figures).
+     * @param[in] note    MIDI
+     * @param[in] in      the cluster
+     * @param[in] freqOf  the tuning
+     * @return 3 a chord tone (in any octave, within 25 cents); 1 a third, a fourth, a fifth or a sixth to every
+     *         sounding note; 0 a second, a seventh (the harmonic one too), a ninth or a tritone against one of them.
+     *         With nothing sounding, everything is 1.
+     * @tparam FreqFnT  the tuning (see update)
+     */
+    template <class FreqFnT>
+    static float fit( int note, const NearInputs &in, FreqFnT &&freqOf )
+    {
+        if ( in.m_count <= 0 ) return 1.0f;
+        const double f = freqOf( note );
+        float        w = 1.0f;
+        for ( int k = 0; k < in.m_count; ++k )
+        {
+            double c = std::fmod( 1200.0 * std::log2( f / freqOf( in.m_cluster[k] ) ), 1200.0 );
+            if ( c < 0.0 ) c += 1200.0;
+            const double ic = std::min( c, 1200.0 - c );   // the interval class, 0 .. 600 cents
+            if ( ic < 25.0 ) return 3.0f;
+            if ( ic < 290.0 || ic > 525.0 ) w = 0.0f;   // seconds, 7/6, sevenths, the tritone
+        }
+        return w;
+    }
+
+    /**
+     * @brief The centre a figure is drawn round: a fifth over the middle of the conductor's register, no higher than
+     *        G5 by itself (Empyrean's figureCentre).
+     * @param[in] in  the root and the cluster
+     * @return MIDI
+     */
+    static int figureCentre( const NearInputs &in )
+    {
+        if ( in.m_count <= 0 ) return clampv( in.m_root + 12, 40, 84 );
+        int lo = 127, hi = 0;
+        for ( int i = 0; i < in.m_count; ++i )
+        {
+            lo = std::min( lo, in.m_cluster[i] );
+            hi = std::max( hi, in.m_cluster[i] );
+        }
+        return clampv( std::min( ( lo + hi ) / 2 + 7, 79 ), 40, 84 );
+    }
+
+    /**
+     * @brief A note of a figure (Empyrean's drawFigureNote): within a fifth of the one before and a sixth of the centre,
+     *        weighted by how it fits the chord, a step likelier than a leap.
+     * @param[in] around     the note before it (the centre for the first)
+     * @param[in] avoid      a note it must not be, -1 none
+     * @param[in] chordTone  only a chord tone will do (a figure's first and last)
+     * @param[in] centre     the figure's centre
+     * @param[in] in         the cluster
+     * @param[in] freqOf     the tuning
+     * @return MIDI
+     * @tparam FreqFnT  the tuning (see update)
+     */
+    template <class FreqFnT>
+    int drawNote( int around, int avoid, bool chordTone, int centre, const NearInputs &in, FreqFnT &&freqOf )
+    {
+        // by the size of the step, 0 .. 7 keys: seconds and thirds, a fourth less, the tritone hardly, a fifth
+        static const float StepW[8] = { 0.6f, 1.0f, 1.0f, 0.8f, 0.8f, 0.5f, 0.15f, 0.35f };
+        float              weight[15];
+        float              total = 0.0f;
+        const double       fAround = freqOf( around );
+        for ( int d = -7; d <= 7; ++d )
+        {
+            const int c = around + d;
+            float     w = 0.0f;
+            // a tuning with fewer than twelve degrees maps two keys to one note: that is no step
+            const bool same = d != 0 && std::fabs( 1200.0 * std::log2( freqOf( c ) / fAround ) ) < 5.0;
+            if ( c != avoid && !same && std::abs( c - centre ) <= 9 && c >= 24 && c <= 108 )
+            {
+                const float f = fit( c, in, freqOf );
+                w = ( chordTone ? ( f >= 3.0f ? 1.0f : 0.0f ) : f ) * StepW[std::abs( d )];
+            }
+            weight[d + 7] = w;
+            total += w;
+        }
+        if ( total <= 0.0f ) return nearestFit( around, true, in, freqOf );
+        float u = m_rng.uniform() * total;
+        for ( int d = -7; d <= 7; ++d )
+        {
+            u -= weight[d + 7];
+            if ( u < 0.0f && weight[d + 7] > 0.0f ) return around + d;
+        }
+        return around;
+    }
+
+    /**
+     * @brief The note nearest to @p note that fits the chord: a chord tone within a whole tone first, then anything that
+     *        fits within one, then the nearest chord tone in any octave.
+     * @param[in] note       MIDI
+     * @param[in] chordTone  go straight to the nearest chord tone
+     * @param[in] in         the cluster
+     * @param[in] freqOf     the tuning
+     * @return MIDI
+     * @tparam FreqFnT  the tuning (see update)
+     */
+    template <class FreqFnT>
+    static int nearestFit( int note, bool chordTone, const NearInputs &in, FreqFnT &&freqOf )
+    {
+        if ( !chordTone )
+            for ( int pass = 0; pass < 2; ++pass )
+                for ( int d : { -1, 1, -2, 2 } )
+                    if ( note + d >= 24 && note + d <= 108 &&
+                         fit( note + d, in, freqOf ) >= ( pass == 0 ? 3.0f : 1.0f ) )
+                        return note + d;
+        if ( in.m_count <= 0 ) return note;
+        int best = note, bestDist = 999;
+        for ( int k = 0; k < in.m_count; ++k )
+        {
+            const int c = in.m_cluster[k] +
+                          12 * static_cast<int>( std::lround( static_cast<double>( note - in.m_cluster[k] ) / 12.0 ) );
+            if ( std::abs( c - note ) < bestDist )
+            {
+                bestDist = std::abs( c - note );
+                best = c;
+            }
+        }
+        return clampv( best, 24, 108 );
+    }
+
+    /**
+     * @brief When the harmony has moved under the line, a step that no longer fits goes to its nearest neighbour that
+     *        does, and stays there (Empyrean's figures).
+     * @param[in,out] st      the step
+     * @param[in]     in      the root and the cluster
+     * @param[in]     freqOf  the tuning
+     * @tparam FreqFnT  the tuning (see update)
+     */
+    template <class FreqFnT>
+    static void refit( Step &st, const NearInputs &in, FreqFnT &&freqOf )
+    {
+        const int note = clampv( in.m_root + st.m_offset + st.m_octave, 0, 127 );
+        if ( fit( note, in, freqOf ) <= 0.0f )
+            st.m_offset = nearestFit( note, false, in, freqOf ) - in.m_root - st.m_octave;
+    }
+
+    /**
      * @brief A degree for the foreground, against the root and everything sounding.
      *
      * The fixed rules (Highest, Lowest, Root, Cluster) answer at once. Consonant weighs every key in
@@ -428,13 +570,19 @@ private:
         ++m_events;
         if ( m_kind == 2 )
         {
-            // The ring: every step a degree chosen against the harmony, some an octave up, a
-            // few rests, most of them open, a handful accented.
+            // The ring: a figure drawn to the chord (19.11.2026, after Empyrean's figures) -- it begins and
+            // ends on a chord tone, moves by step oftener than by leap, and no step rubs against a
+            // sounding note; some steps an octave up, a few rests, most of them open, a handful accented.
+            // Each step was a degree drawn on its own before, over two and a half octaves, and a third of
+            // them stood a second or a seventh from the chord once it had moved.
             m_stepsUsed = clampv( p.m_steps, 3, MaxSteps );
+            const int centre = figureCentre( in );
+            int       prev = -1;
             for ( int s = 0; s < m_stepsUsed; ++s )
             {
                 Step &st = m_steps[s];
-                st.m_offset = choose( p, in, freqOf, consonance, -1 ) - in.m_root;
+                prev = drawNote( prev < 0 ? centre : prev, prev, s == 0 || s == m_stepsUsed - 1, centre, in, freqOf );
+                st.m_offset = prev - in.m_root;
                 st.m_octave = m_rng.uniform() < 0.2f ? 12 : 0;
                 st.m_velocity = 0.55f + 0.45f * m_rng.uniform();
                 st.m_open = m_rng.uniform() < 0.6f;
@@ -449,7 +597,9 @@ private:
             m_note = -1;
             return;
         }
-        m_note = choose( p, in, freqOf, consonance, m_lastNote );
+        // A Phrase is a figure too: it begins on a chord tone and slides by what fits (19.11.2026).
+        m_note = m_kind == 1 ? drawNote( figureCentre( in ), m_lastNote, true, figureCentre( in ), in, freqOf )
+                             : choose( p, in, freqOf, consonance, m_lastNote );
         m_lastNote = m_note;
         // A phrase is two to four notes over the length, each a slide to another degree, the last
         // of them back to the first -- and at the end the flute's meri: a quarter tone down and
@@ -521,7 +671,8 @@ private:
         if ( m_kind == 1 && m_phraseDone < m_phraseNotes && q >= static_cast<double>( m_phraseDone ) / m_phraseNotes )
         {
             const bool last = m_phraseDone == m_phraseNotes - 1;
-            const int  to = last ? m_firstNote : choose( p, in, freqOf, consonance, m_note );
+            int        to = last ? m_firstNote : drawNote( m_note, m_note, false, figureCentre( in ), in, freqOf );
+            if ( fit( to, in, freqOf ) <= 0.0f ) to = nearestFit( to, false, in, freqOf );   // the chord moved
             ++m_phraseDone;
             if ( to != m_note )
             {
@@ -614,6 +765,7 @@ private:
     void runSequence( double dt, double q, const NearParams &p, const NearInputs &in, FreqFnT &&freqOf,
                       ConsFnT &&consonance, EmitFnT &&emit )
     {
+        (void)consonance;   // the steps are drawn by fit() since 19.11.2026; kept for the callers' signature
         // The gate of the step that is sounding.
         if ( m_gateNote >= 0 )
         {
@@ -647,7 +799,8 @@ private:
         {
             m_ghostDue = false;
             m_stepLeft += 0.5 * stepSec + micro;
-            const Step &prev = m_steps[( m_stepPos + m_stepsUsed - 1 ) % m_stepsUsed];
+            Step &prev = m_steps[( m_stepPos + m_stepsUsed - 1 ) % m_stepsUsed];
+            refit( prev, in, freqOf );
             if ( !prev.m_rest && m_rng.uniform() < 0.5f * p.m_scatter * gate )
                 play( prev, in.m_root, q, p, 0.3f, 0.2f, emit );
             return;
@@ -660,10 +813,16 @@ private:
             // gate, the velocity, the accent, so the line's articulation drifts with its notes.
             if ( m_rng.uniform() < p.m_mutation )
             {
-                Step       &st = m_steps[m_rng.below( m_stepsUsed )];
+                const int   k = m_rng.below( m_stepsUsed );
+                Step       &st = m_steps[k];
                 const float what = m_rng.uniform();
                 if ( what < 0.45f )
-                    st.m_offset = choose( p, in, freqOf, consonance, -1 ) - in.m_root;
+                {   // drawn anew between its neighbours, the first and the last still on a chord tone
+                    const int around = in.m_root + m_steps[k > 0 ? k - 1 : ( m_stepsUsed > 1 ? 1 : 0 )].m_offset;
+                    st.m_offset = drawNote( around, in.m_root + st.m_offset, k == 0 || k == m_stepsUsed - 1,
+                                            figureCentre( in ), in, freqOf ) -
+                                  in.m_root;
+                }
                 else if ( what < 0.65f )
                     st.m_octave = st.m_octave == 0 ? 12 : 0;
                 else if ( what < 0.8f )
@@ -675,7 +834,8 @@ private:
                 ++m_mutations;
             }
         }
-        const Step &st = m_steps[m_stepPos];
+        Step &st = m_steps[m_stepPos];
+        refit( st, in, freqOf );
         if ( !st.m_rest && ( gate >= 0.999f || m_rng.uniform() < gate ) )
             play( st, in.m_root, q, p, st.m_velocity, st.m_open ? 0.5f : 0.15f, emit );
         m_stepPos = ( m_stepPos + 1 ) % m_stepsUsed;

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Deep: Crossing
 cyclic on
-Crevice Drift | 5:00-10:00 | 0:45-1:30
-Pleiades Reach | 5:00-10:00 | 0:45-1:30
-Oort Hollow | 5:00-10:00 | 0:45-1:30
-Gantry Field | 5:00-10:00 | 0:45-1:30
-Belfry Drums | 5:00-10:00 | 0:45-1:30
-Umbral Signal | 5:00-10:00 | 0:45-1:30
-Longwave Call | 5:00-10:00 | 0:45-1:30
-Tessera Dusk | 5:00-10:00 | 0:45-1:30
-Birch Path | 5:00-10:00 | 0:45-1:30
-Coldstore Hollow | 5:00-10:00 | 0:45-1:30
-Parabola Emission | 5:00-10:00 | 0:45-1:30
-Cathode Descent | 5:00-10:00 | 0:45-1:30
+Crevice Drift | 6:00-10:00 | 0:45-1:30
+Pleiades Reach | 3:00-6:00 | 0:30-1:15
+Oort Hollow | 3:00-6:00 | 0:30-1:15
+Gantry Field | 6:00-10:00 | 0:45-1:30
+Belfry Drums | 3:00-6:00 | 0:30-1:15
+Umbral Signal | 6:00-10:00 | 0:45-1:30
+Longwave Call | 3:00-6:00 | 0:30-1:15
+Tessera Dusk | 1:30-3:00 | 0:20-0:45
+Birch Path | 3:00-6:00 | 0:30-1:15
+Coldstore Hollow | 1:30-3:00 | 0:20-0:45
+Parabola Emission | 3:00-6:00 | 0:30-1:15
+Cathode Descent | 1:30-3:00 | 0:20-0:45

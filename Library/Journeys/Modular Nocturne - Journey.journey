@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Modular Nocturne: Journey
 cyclic on
-Patch Passage | 5:00-10:00 | 0:30-1:30
-Patch Signal | 5:00-10:00 | 0:30-1:30
-Envelope Signal | 5:00-10:00 | 0:30-1:30
-Multiple Signal | 5:00-10:00 | 0:30-1:30
-Patch Vigil | 5:00-10:00 | 0:30-1:30
-Gate Night | 5:00-10:00 | 0:30-1:30
-Filter Circuit | 5:00-10:00 | 0:30-1:30
-Jack Passage | 5:00-10:00 | 0:30-1:30
-Slew Basin | 5:00-10:00 | 0:30-1:30
-Gate Hollow | 5:00-10:00 | 0:30-1:30
-Filter Pattern | 5:00-10:00 | 0:30-1:30
-Voltage Span | 5:00-10:00 | 0:30-1:30
+Patch Passage | 6:00-10:00 | 0:45-1:30
+Patch Signal | 1:30-3:00 | 0:20-0:45
+Envelope Signal | 3:00-6:00 | 0:30-1:15
+Multiple Signal | 6:00-10:00 | 0:45-1:30
+Patch Vigil | 3:00-6:00 | 0:30-1:15
+Gate Night | 6:00-10:00 | 0:45-1:30
+Filter Circuit | 3:00-6:00 | 0:30-1:15
+Jack Passage | 3:00-6:00 | 0:30-1:15
+Slew Basin | 1:30-3:00 | 0:20-0:45
+Gate Hollow | 3:00-6:00 | 0:30-1:15
+Filter Pattern | 1:30-3:00 | 0:20-0:45
+Voltage Span | 3:00-6:00 | 0:30-1:15

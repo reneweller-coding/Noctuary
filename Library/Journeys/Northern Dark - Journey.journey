@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Northern Dark: Journey
 cyclic on
-Solar Threshold | 5:00-10:00 | 0:30-1:30
-Boreal Machinery | 5:00-10:00 | 0:30-1:30
-Apogee Interval | 5:00-10:00 | 0:30-1:30
-Meridian Machinery | 5:00-10:00 | 0:30-1:30
-Terminator Threshold | 5:00-10:00 | 0:30-1:30
-Albedo Frontier | 5:00-10:00 | 0:30-1:30
-Boreal Expanse | 5:00-10:00 | 0:30-1:30
-Apogee Machinery | 5:00-10:00 | 0:30-1:30
-Oort Expanse | 5:00-10:00 | 0:30-1:30
-Perigee Vigil | 5:00-10:00 | 0:30-1:30
-Meridian Passage | 5:00-10:00 | 0:30-1:30
-Oort Wind | 5:00-10:00 | 0:30-1:30
+Solar Threshold | 3:00-6:00 | 0:30-1:15
+Boreal Machinery | 1:30-3:00 | 0:20-0:45
+Apogee Interval | 6:00-10:00 | 0:45-1:30
+Meridian Machinery | 3:00-6:00 | 0:30-1:15
+Terminator Threshold | 6:00-10:00 | 0:45-1:30
+Albedo Frontier | 1:30-3:00 | 0:20-0:45
+Boreal Expanse | 3:00-6:00 | 0:30-1:15
+Apogee Machinery | 3:00-6:00 | 0:30-1:15
+Oort Expanse | 6:00-10:00 | 0:45-1:30
+Perigee Vigil | 1:30-3:00 | 0:20-0:45
+Meridian Passage | 6:00-10:00 | 0:45-1:30
+Oort Wind | 3:00-6:00 | 0:30-1:15

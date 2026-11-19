@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Still Meadow: Night
 cyclic on
-Rookery Descent | 8:00-15:00 | 1:00-2:00
-Nettle Passage | 8:00-15:00 | 1:00-2:00
-Wold Bed | 8:00-15:00 | 1:00-2:00
-Thistle Passage | 8:00-15:00 | 1:00-2:00
-Nettle Weather | 8:00-15:00 | 1:00-2:00
-Wold Threshold | 8:00-15:00 | 1:00-2:00
-Bramble Descent | 8:00-15:00 | 1:00-2:00
-Dew Air | 8:00-15:00 | 1:00-2:00
-Hazel Signal | 8:00-15:00 | 1:00-2:00
-Nettle Drift | 8:00-15:00 | 1:00-2:00
-Rookery Reach | 8:00-15:00 | 1:00-2:00
-Dusk Air | 8:00-15:00 | 1:00-2:00
+Rookery Descent | 6:00-10:00 | 1:00-2:00
+Nettle Passage | 6:00-10:00 | 1:00-2:00
+Wold Bed | 10:00-15:00 | 1:30-2:30
+Thistle Passage | 6:00-10:00 | 1:00-2:00
+Nettle Weather | 3:00-6:00 | 0:45-1:30
+Wold Threshold | 10:00-15:00 | 1:30-2:30
+Bramble Descent | 6:00-10:00 | 1:00-2:00
+Dew Air | 6:00-10:00 | 1:00-2:00
+Hazel Signal | 10:00-15:00 | 1:30-2:30
+Nettle Drift | 3:00-6:00 | 0:45-1:30
+Rookery Reach | 6:00-10:00 | 1:00-2:00
+Dusk Air | 3:00-6:00 | 0:45-1:30

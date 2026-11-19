@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Desert Ember: Journey
 cyclic on
-Sunstone Circle | 5:00-10:00 | 0:30-1:30
-Redrock Bed | 5:00-10:00 | 0:30-1:30
-Spirit Plain | 5:00-10:00 | 0:30-1:30
-Spirit Walk | 5:00-10:00 | 0:30-1:30
-Redrock Drift | 5:00-10:00 | 0:30-1:30
-Desert Sky | 5:00-10:00 | 0:30-1:30
-Sunstone Veil | 5:00-10:00 | 0:30-1:30
-Desert Fire | 5:00-10:00 | 0:30-1:30
-Desert Vigil | 5:00-10:00 | 0:30-1:30
-Sage Fire | 5:00-10:00 | 0:30-1:30
-Saguaro Span | 5:00-10:00 | 0:30-1:30
-Coyote Field | 5:00-10:00 | 0:30-1:30
+Sunstone Circle | 1:30-3:00 | 0:20-0:45
+Redrock Bed | 6:00-10:00 | 0:45-1:30
+Spirit Plain | 3:00-6:00 | 0:30-1:15
+Spirit Walk | 3:00-6:00 | 0:30-1:15
+Redrock Drift | 1:30-3:00 | 0:20-0:45
+Desert Sky | 3:00-6:00 | 0:30-1:15
+Sunstone Veil | 6:00-10:00 | 0:45-1:30
+Desert Fire | 3:00-6:00 | 0:30-1:15
+Desert Vigil | 3:00-6:00 | 0:30-1:15
+Sage Fire | 1:30-3:00 | 0:20-0:45
+Saguaro Span | 3:00-6:00 | 0:30-1:15
+Coyote Field | 6:00-10:00 | 0:45-1:30

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Far Relay: Night
 cyclic on
-Starfield Descent | 8:00-15:00 | 1:00-2:00
-Andromeda Dock | 8:00-15:00 | 1:00-2:00
-Ion Veil | 8:00-15:00 | 1:00-2:00
-Hyades Transit | 8:00-15:00 | 1:00-2:00
-Ion Transit | 8:00-15:00 | 1:00-2:00
-Hyades Field | 8:00-15:00 | 1:00-2:00
-Parsec Descent | 8:00-15:00 | 1:00-2:00
-Vela Vigil | 8:00-15:00 | 1:00-2:00
-Quasar Threshold | 8:00-15:00 | 1:00-2:00
-Hyades Vigil | 8:00-15:00 | 1:00-2:00
-Zenith Passage | 8:00-15:00 | 1:00-2:00
-Zenith Band | 8:00-15:00 | 1:00-2:00
+Starfield Descent | 10:00-15:00 | 1:30-2:30
+Andromeda Dock | 3:00-6:00 | 0:45-1:30
+Ion Veil | 6:00-10:00 | 1:00-2:00
+Hyades Transit | 10:00-15:00 | 1:30-2:30
+Ion Transit | 6:00-10:00 | 1:00-2:00
+Hyades Field | 6:00-10:00 | 1:00-2:00
+Parsec Descent | 6:00-10:00 | 1:00-2:00
+Vela Vigil | 6:00-10:00 | 1:00-2:00
+Quasar Threshold | 10:00-15:00 | 1:30-2:30
+Hyades Vigil | 3:00-6:00 | 0:45-1:30
+Zenith Passage | 6:00-10:00 | 1:00-2:00
+Zenith Band | 3:00-6:00 | 0:45-1:30

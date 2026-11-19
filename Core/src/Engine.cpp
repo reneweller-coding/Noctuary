@@ -1135,6 +1135,10 @@ void Engine::startNearNote( const NearNote &e )
             m_vpNear.m_texture[Slots - 1] = &m_nearPools[a][static_cast<size_t>( pick )];
         }
     }
+    // MIDI out: the near events' channel got only the offs (stopNote writes them, the on bypasses
+    // startNote), so a sequencer behind the plugin saw every near note end without ever beginning.
+    if ( m_noteTap != nullptr && tapChannel( OWNER_NEAR ) > 0 )
+        m_noteTap->add( m_tapPos, tapChannel( OWNER_NEAR ), e.m_note, e.m_velocity, true );
     Voice *v = allocate( e.m_note, OWNER_NEAR );
     v->m_order = ++m_order;
     v->setPlace( true, true );

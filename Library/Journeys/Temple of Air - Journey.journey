@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Temple of Air: Journey
 cyclic on
-Labyrinth Expanse | 5:00-10:00 | 0:30-1:30
-Aether Circle | 5:00-10:00 | 0:30-1:30
-Myrrh Echo | 5:00-10:00 | 0:30-1:30
-Grotto Signal | 5:00-10:00 | 0:30-1:30
-Labyrinth Bloom | 5:00-10:00 | 0:30-1:30
-Stone Memory | 5:00-10:00 | 0:30-1:30
-Chime Basin | 5:00-10:00 | 0:30-1:30
-Amphora Hollow | 5:00-10:00 | 0:30-1:30
-Cedar Basin | 5:00-10:00 | 0:30-1:30
-Delphi Hours | 5:00-10:00 | 0:30-1:30
-Stone Bed | 5:00-10:00 | 0:30-1:30
-Aether Echo | 5:00-10:00 | 0:30-1:30
+Labyrinth Expanse | 6:00-10:00 | 0:45-1:30
+Aether Circle | 1:30-3:00 | 0:20-0:45
+Myrrh Echo | 6:00-10:00 | 0:45-1:30
+Grotto Signal | 1:30-3:00 | 0:20-0:45
+Labyrinth Bloom | 3:00-6:00 | 0:30-1:15
+Stone Memory | 3:00-6:00 | 0:30-1:15
+Chime Basin | 6:00-10:00 | 0:45-1:30
+Amphora Hollow | 3:00-6:00 | 0:30-1:15
+Cedar Basin | 6:00-10:00 | 0:45-1:30
+Delphi Hours | 3:00-6:00 | 0:30-1:15
+Stone Bed | 1:30-3:00 | 0:20-0:45
+Aether Echo | 3:00-6:00 | 0:30-1:15

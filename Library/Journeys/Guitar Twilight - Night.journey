@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Guitar Twilight: Night
 cyclic on
-Afterglow Field | 8:00-15:00 | 1:00-2:00
-Glow Veil | 8:00-15:00 | 1:00-2:00
-Violet Interval | 8:00-15:00 | 1:00-2:00
-Moonrise Sustain | 8:00-15:00 | 1:00-2:00
-Vesperal Basin | 8:00-15:00 | 1:00-2:00
-Gloaming Hollow | 8:00-15:00 | 1:00-2:00
-Moonrise Passage | 8:00-15:00 | 1:00-2:00
-Violet Passage | 8:00-15:00 | 1:00-2:00
-Owlcall Field | 8:00-15:00 | 1:00-2:00
-Vesperal Interval | 8:00-15:00 | 1:00-2:00
-Hearthside Span | 8:00-15:00 | 1:00-2:00
-Hearthside Hollow | 8:00-15:00 | 1:00-2:00
+Afterglow Field | 6:00-10:00 | 1:00-2:00
+Glow Veil | 6:00-10:00 | 1:00-2:00
+Violet Interval | 3:00-6:00 | 0:45-1:30
+Moonrise Sustain | 6:00-10:00 | 1:00-2:00
+Vesperal Basin | 10:00-15:00 | 1:30-2:30
+Gloaming Hollow | 3:00-6:00 | 0:45-1:30
+Moonrise Passage | 6:00-10:00 | 1:00-2:00
+Violet Passage | 10:00-15:00 | 1:30-2:30
+Owlcall Field | 6:00-10:00 | 1:00-2:00
+Vesperal Interval | 3:00-6:00 | 0:45-1:30
+Hearthside Span | 10:00-15:00 | 1:30-2:30
+Hearthside Hollow | 6:00-10:00 | 1:00-2:00

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Millstone: Journey
 cyclic on
-Pin Ring | 5:00-10:00 | 0:30-1:30
-Hillside Basin | 5:00-10:00 | 0:30-1:30
-Tin Basin | 5:00-10:00 | 0:30-1:30
-Wick Basin | 5:00-10:00 | 0:30-1:30
-Pin Descent | 5:00-10:00 | 0:30-1:30
-Millstone Weight | 5:00-10:00 | 0:30-1:30
-Sheepbell Dust | 5:00-10:00 | 0:30-1:30
-Kettle Grain | 5:00-10:00 | 0:30-1:30
-Glasspane Bed | 5:00-10:00 | 0:30-1:30
-Sparkler Bloom | 5:00-10:00 | 0:30-1:30
-Sheepbell Reach | 5:00-10:00 | 0:30-1:30
-Tin Descent | 5:00-10:00 | 0:30-1:30
+Pin Ring | 3:00-6:00 | 0:30-1:15
+Hillside Basin | 1:30-3:00 | 0:20-0:45
+Tin Basin | 3:00-6:00 | 0:30-1:15
+Wick Basin | 6:00-10:00 | 0:45-1:30
+Pin Descent | 1:30-3:00 | 0:20-0:45
+Millstone Weight | 6:00-10:00 | 0:45-1:30
+Sheepbell Dust | 3:00-6:00 | 0:30-1:15
+Kettle Grain | 3:00-6:00 | 0:30-1:15
+Glasspane Bed | 1:30-3:00 | 0:20-0:45
+Sparkler Bloom | 3:00-6:00 | 0:30-1:15
+Sheepbell Reach | 6:00-10:00 | 0:45-1:30
+Tin Descent | 3:00-6:00 | 0:30-1:15

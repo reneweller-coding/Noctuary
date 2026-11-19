@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Tape Saturation: Night
 cyclic on
-Fuse Organ | 8:00-15:00 | 1:00-2:00
-Rupture Hymn | 8:00-15:00 | 1:00-2:00
-Bleach Expanse | 8:00-15:00 | 1:00-2:00
-Smear Reach | 8:00-15:00 | 1:00-2:00
-Shatter Threshold | 8:00-15:00 | 1:00-2:00
-Burnt Field | 8:00-15:00 | 1:00-2:00
-Fracture Expanse | 8:00-15:00 | 1:00-2:00
-Rupture Decay | 8:00-15:00 | 1:00-2:00
-Rupture Vigil | 8:00-15:00 | 1:00-2:00
-Pixel Signal | 8:00-15:00 | 1:00-2:00
-Smear Decay | 8:00-15:00 | 1:00-2:00
-Smear Threshold | 8:00-15:00 | 1:00-2:00
+Fuse Organ | 6:00-10:00 | 1:00-2:00
+Rupture Hymn | 3:00-6:00 | 0:45-1:30
+Bleach Expanse | 6:00-10:00 | 1:00-2:00
+Smear Reach | 3:00-6:00 | 0:45-1:30
+Shatter Threshold | 6:00-10:00 | 1:00-2:00
+Burnt Field | 6:00-10:00 | 1:00-2:00
+Fracture Expanse | 10:00-15:00 | 1:30-2:30
+Rupture Decay | 6:00-10:00 | 1:00-2:00
+Rupture Vigil | 6:00-10:00 | 1:00-2:00
+Pixel Signal | 10:00-15:00 | 1:30-2:30
+Smear Decay | 3:00-6:00 | 0:45-1:30
+Smear Threshold | 10:00-15:00 | 1:30-2:30

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Field Absence: Journey
 cyclic on
-Termite Recording | 5:00-10:00 | 0:30-1:30
-Tapir Drift | 5:00-10:00 | 0:30-1:30
-Swamp Reach | 5:00-10:00 | 0:30-1:30
-Burrow Blind | 5:00-10:00 | 0:30-1:30
-Humidity Descent | 5:00-10:00 | 0:30-1:30
-Burrow Recording | 5:00-10:00 | 0:30-1:30
-Burrow Passage | 5:00-10:00 | 0:30-1:30
-Understory Bed | 5:00-10:00 | 0:30-1:30
-Leaf Basin | 5:00-10:00 | 0:30-1:30
-Mangrove Absence | 5:00-10:00 | 0:30-1:30
-Leaf Environment | 5:00-10:00 | 0:30-1:30
-Sloth Absence | 5:00-10:00 | 0:30-1:30
+Termite Recording | 1:30-3:00 | 0:20-0:45
+Tapir Drift | 3:00-6:00 | 0:30-1:15
+Swamp Reach | 1:30-3:00 | 0:20-0:45
+Burrow Blind | 6:00-10:00 | 0:45-1:30
+Humidity Descent | 3:00-6:00 | 0:30-1:15
+Burrow Recording | 6:00-10:00 | 0:45-1:30
+Burrow Passage | 3:00-6:00 | 0:30-1:15
+Understory Bed | 6:00-10:00 | 0:45-1:30
+Leaf Basin | 3:00-6:00 | 0:30-1:15
+Mangrove Absence | 3:00-6:00 | 0:30-1:15
+Leaf Environment | 1:30-3:00 | 0:20-0:45
+Sloth Absence | 3:00-6:00 | 0:30-1:15

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Space: Crossing
 cyclic on
-Foghorn Bed | 5:00-10:00 | 0:45-1:30
-Offset Veil | 5:00-10:00 | 0:45-1:30
-Firmament Field | 5:00-10:00 | 0:45-1:30
-Tramline Void | 5:00-10:00 | 0:45-1:30
-Capsule Bloom | 5:00-10:00 | 0:45-1:30
-Hyades Signal | 5:00-10:00 | 0:45-1:30
-Oceanid Expanse | 5:00-10:00 | 0:45-1:30
-Photon Bloom | 5:00-10:00 | 0:45-1:30
-Trigger Span | 5:00-10:00 | 0:45-1:30
-Sodium Hollow | 5:00-10:00 | 0:45-1:30
-Carina Hollow | 5:00-10:00 | 0:45-1:30
-Quayside Field | 5:00-10:00 | 0:45-1:30
+Foghorn Bed | 1:30-3:00 | 0:20-0:45
+Offset Veil | 6:00-10:00 | 0:45-1:30
+Firmament Field | 1:30-3:00 | 0:20-0:45
+Tramline Void | 3:00-6:00 | 0:30-1:15
+Capsule Bloom | 3:00-6:00 | 0:30-1:15
+Hyades Signal | 1:30-3:00 | 0:20-0:45
+Oceanid Expanse | 6:00-10:00 | 0:45-1:30
+Photon Bloom | 3:00-6:00 | 0:30-1:15
+Trigger Span | 3:00-6:00 | 0:30-1:15
+Sodium Hollow | 3:00-6:00 | 0:30-1:15
+Carina Hollow | 1:30-3:00 | 0:20-0:45
+Quayside Field | 6:00-10:00 | 0:45-1:30

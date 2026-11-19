@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Street Resonance: Night
 cyclic on
-Concourse Bed | 8:00-15:00 | 1:00-2:00
-Hoarding Resonance | 8:00-15:00 | 1:00-2:00
-Terminus Traffic | 8:00-15:00 | 1:00-2:00
-Hoarding Walk | 8:00-15:00 | 1:00-2:00
-Siding Descent | 8:00-15:00 | 1:00-2:00
-Underpass Bed | 8:00-15:00 | 1:00-2:00
-Scaffold Descent | 8:00-15:00 | 1:00-2:00
-Platform Reach | 8:00-15:00 | 1:00-2:00
-Concourse Bloom | 8:00-15:00 | 1:00-2:00
-Siding Hour | 8:00-15:00 | 1:00-2:00
-Kerb Walk | 8:00-15:00 | 1:00-2:00
-Turnstile Drift | 8:00-15:00 | 1:00-2:00
+Concourse Bed | 3:00-6:00 | 0:45-1:30
+Hoarding Resonance | 6:00-10:00 | 1:00-2:00
+Terminus Traffic | 6:00-10:00 | 1:00-2:00
+Hoarding Walk | 3:00-6:00 | 0:45-1:30
+Siding Descent | 6:00-10:00 | 1:00-2:00
+Underpass Bed | 6:00-10:00 | 1:00-2:00
+Scaffold Descent | 3:00-6:00 | 0:45-1:30
+Platform Reach | 10:00-15:00 | 1:30-2:30
+Concourse Bloom | 6:00-10:00 | 1:00-2:00
+Siding Hour | 10:00-15:00 | 1:30-2:30
+Kerb Walk | 6:00-10:00 | 1:00-2:00
+Turnstile Drift | 10:00-15:00 | 1:30-2:30

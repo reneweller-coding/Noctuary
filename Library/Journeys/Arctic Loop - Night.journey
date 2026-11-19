@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Arctic Loop: Night
 cyclic on
-Northern Reach | 8:00-15:00 | 1:00-2:00
-Sonar Beacon | 8:00-15:00 | 1:00-2:00
-Floe Drift | 8:00-15:00 | 1:00-2:00
-Midwinter Pole | 8:00-15:00 | 1:00-2:00
-Floe Field | 8:00-15:00 | 1:00-2:00
-Tundra Bloom | 8:00-15:00 | 1:00-2:00
-Radiosonde Season | 8:00-15:00 | 1:00-2:00
-Cirrus Descent | 8:00-15:00 | 1:00-2:00
-Arctic Drift | 8:00-15:00 | 1:00-2:00
-Cirrus Passage | 8:00-15:00 | 1:00-2:00
-Glacier Basin | 8:00-15:00 | 1:00-2:00
-Tundra Season | 8:00-15:00 | 1:00-2:00
+Northern Reach | 6:00-10:00 | 1:00-2:00
+Sonar Beacon | 6:00-10:00 | 1:00-2:00
+Floe Drift | 10:00-15:00 | 1:30-2:30
+Midwinter Pole | 3:00-6:00 | 0:45-1:30
+Floe Field | 6:00-10:00 | 1:00-2:00
+Tundra Bloom | 10:00-15:00 | 1:30-2:30
+Radiosonde Season | 3:00-6:00 | 0:45-1:30
+Cirrus Descent | 6:00-10:00 | 1:00-2:00
+Arctic Drift | 6:00-10:00 | 1:00-2:00
+Cirrus Passage | 10:00-15:00 | 1:30-2:30
+Glacier Basin | 6:00-10:00 | 1:00-2:00
+Tundra Season | 3:00-6:00 | 0:45-1:30

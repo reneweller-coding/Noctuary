@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Forest Rite: Night
 cyclic on
-Spruce Descent | 8:00-15:00 | 1:00-2:00
-Marrow Vigil | 8:00-15:00 | 1:00-2:00
-Wolfden Bed | 8:00-15:00 | 1:00-2:00
-Marrow Dusk | 8:00-15:00 | 1:00-2:00
-Forest Field | 8:00-15:00 | 1:00-2:00
-Hearth Interval | 8:00-15:00 | 1:00-2:00
-Resin Bloom | 8:00-15:00 | 1:00-2:00
-Birch Veil | 8:00-15:00 | 1:00-2:00
-Spruce Reach | 8:00-15:00 | 1:00-2:00
-Deadfall Bloom | 8:00-15:00 | 1:00-2:00
-Marrow Basin | 8:00-15:00 | 1:00-2:00
-Spruce Dusk | 8:00-15:00 | 1:00-2:00
+Spruce Descent | 3:00-6:00 | 0:45-1:30
+Marrow Vigil | 10:00-15:00 | 1:30-2:30
+Wolfden Bed | 3:00-6:00 | 0:45-1:30
+Marrow Dusk | 6:00-10:00 | 1:00-2:00
+Forest Field | 3:00-6:00 | 0:45-1:30
+Hearth Interval | 10:00-15:00 | 1:30-2:30
+Resin Bloom | 6:00-10:00 | 1:00-2:00
+Birch Veil | 6:00-10:00 | 1:00-2:00
+Spruce Reach | 3:00-6:00 | 0:45-1:30
+Deadfall Bloom | 6:00-10:00 | 1:00-2:00
+Marrow Basin | 10:00-15:00 | 1:30-2:30
+Spruce Dusk | 6:00-10:00 | 1:00-2:00

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Dream Depth: Night
 cyclic on
-Mirage Current | 8:00-15:00 | 1:00-2:00
-Reverie Expanse | 8:00-15:00 | 1:00-2:00
-Twilight Basin | 8:00-15:00 | 1:00-2:00
-Phantasm Night | 8:00-15:00 | 1:00-2:00
-Undertow Night | 8:00-15:00 | 1:00-2:00
-Balalaika Reach | 8:00-15:00 | 1:00-2:00
-Maelstrom Span | 8:00-15:00 | 1:00-2:00
-Somnolent Night | 8:00-15:00 | 1:00-2:00
-Balalaika Basin | 8:00-15:00 | 1:00-2:00
-Somnolent Threshold | 8:00-15:00 | 1:00-2:00
-Threnody Current | 8:00-15:00 | 1:00-2:00
-Oneiric Vigil | 8:00-15:00 | 1:00-2:00
+Mirage Current | 6:00-10:00 | 1:00-2:00
+Reverie Expanse | 10:00-15:00 | 1:30-2:30
+Twilight Basin | 3:00-6:00 | 0:45-1:30
+Phantasm Night | 6:00-10:00 | 1:00-2:00
+Undertow Night | 10:00-15:00 | 1:30-2:30
+Balalaika Reach | 3:00-6:00 | 0:45-1:30
+Maelstrom Span | 6:00-10:00 | 1:00-2:00
+Somnolent Night | 10:00-15:00 | 1:30-2:30
+Balalaika Basin | 3:00-6:00 | 0:45-1:30
+Somnolent Threshold | 6:00-10:00 | 1:00-2:00
+Threnody Current | 10:00-15:00 | 1:30-2:30
+Oneiric Vigil | 6:00-10:00 | 1:00-2:00

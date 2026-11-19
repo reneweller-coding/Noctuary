@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Ritual Machine: Journey
 cyclic on
-Boilerplate Yard | 5:00-10:00 | 0:30-1:30
-Rust Signal | 5:00-10:00 | 0:30-1:30
-Lever Hollow | 5:00-10:00 | 0:30-1:30
-Furnace Loop | 5:00-10:00 | 0:30-1:30
-Hammer Descent | 5:00-10:00 | 0:30-1:30
-Lever Bed | 5:00-10:00 | 0:30-1:30
-Cog Mass | 5:00-10:00 | 0:30-1:30
-Iron Litany | 5:00-10:00 | 0:30-1:30
-Furnace Signal | 5:00-10:00 | 0:30-1:30
-Lever Mass | 5:00-10:00 | 0:30-1:30
-Rust Drum | 5:00-10:00 | 0:30-1:30
-Lever Signal | 5:00-10:00 | 0:30-1:30
+Boilerplate Yard | 6:00-10:00 | 0:45-1:30
+Rust Signal | 3:00-6:00 | 0:30-1:15
+Lever Hollow | 6:00-10:00 | 0:45-1:30
+Furnace Loop | 3:00-6:00 | 0:30-1:15
+Hammer Descent | 3:00-6:00 | 0:30-1:15
+Lever Bed | 3:00-6:00 | 0:30-1:15
+Cog Mass | 1:30-3:00 | 0:20-0:45
+Iron Litany | 3:00-6:00 | 0:30-1:15
+Furnace Signal | 3:00-6:00 | 0:30-1:15
+Lever Mass | 1:30-3:00 | 0:20-0:45
+Rust Drum | 3:00-6:00 | 0:30-1:15
+Lever Signal | 1:30-3:00 | 0:20-0:45

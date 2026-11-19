@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Ritual Machine: Night
 cyclic on
-Cog Hollow | 8:00-15:00 | 1:00-2:00
-Siren Order | 8:00-15:00 | 1:00-2:00
-Piston Expanse | 8:00-15:00 | 1:00-2:00
-Siren Vigil | 8:00-15:00 | 1:00-2:00
-Engine Drift | 8:00-15:00 | 1:00-2:00
-Iron Bed | 8:00-15:00 | 1:00-2:00
-Furnace Bed | 8:00-15:00 | 1:00-2:00
-Soot Threshold | 8:00-15:00 | 1:00-2:00
-Cog Reach | 8:00-15:00 | 1:00-2:00
-Lever Bloom | 8:00-15:00 | 1:00-2:00
-Iron Basin | 8:00-15:00 | 1:00-2:00
-Cog Mass | 8:00-15:00 | 1:00-2:00
+Cog Hollow | 10:00-15:00 | 1:30-2:30
+Siren Order | 6:00-10:00 | 1:00-2:00
+Piston Expanse | 6:00-10:00 | 1:00-2:00
+Siren Vigil | 10:00-15:00 | 1:30-2:30
+Engine Drift | 6:00-10:00 | 1:00-2:00
+Iron Bed | 3:00-6:00 | 0:45-1:30
+Furnace Bed | 10:00-15:00 | 1:30-2:30
+Soot Threshold | 6:00-10:00 | 1:00-2:00
+Cog Reach | 3:00-6:00 | 0:45-1:30
+Lever Bloom | 6:00-10:00 | 1:00-2:00
+Iron Basin | 3:00-6:00 | 0:45-1:30
+Cog Mass | 6:00-10:00 | 1:00-2:00

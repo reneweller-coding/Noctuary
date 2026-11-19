@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Temple of Air: Night
 cyclic on
-Lagoon Echo | 8:00-15:00 | 1:00-2:00
-Sanctuary Descent | 8:00-15:00 | 1:00-2:00
-Cedar Bed | 8:00-15:00 | 1:00-2:00
-Chime Bed | 8:00-15:00 | 1:00-2:00
-Sanctuary Air | 8:00-15:00 | 1:00-2:00
-Amphora Hollow | 8:00-15:00 | 1:00-2:00
-Hermetic Dream | 8:00-15:00 | 1:00-2:00
-Delphi Hours | 8:00-15:00 | 1:00-2:00
-Delphi Echo | 8:00-15:00 | 1:00-2:00
-Stone Memory | 8:00-15:00 | 1:00-2:00
-Mist Echo | 8:00-15:00 | 1:00-2:00
-Oracle Circle | 8:00-15:00 | 1:00-2:00
+Lagoon Echo | 3:00-6:00 | 0:45-1:30
+Sanctuary Descent | 10:00-15:00 | 1:30-2:30
+Cedar Bed | 3:00-6:00 | 0:45-1:30
+Chime Bed | 6:00-10:00 | 1:00-2:00
+Sanctuary Air | 10:00-15:00 | 1:30-2:30
+Amphora Hollow | 6:00-10:00 | 1:00-2:00
+Hermetic Dream | 6:00-10:00 | 1:00-2:00
+Delphi Hours | 6:00-10:00 | 1:00-2:00
+Delphi Echo | 3:00-6:00 | 0:45-1:30
+Stone Memory | 6:00-10:00 | 1:00-2:00
+Mist Echo | 10:00-15:00 | 1:30-2:30
+Oracle Circle | 6:00-10:00 | 1:00-2:00

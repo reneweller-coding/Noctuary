@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Pulsar Field: Night
 cyclic on
-Radiant Signal | 8:00-15:00 | 1:00-2:00
-Neutron Message | 8:00-15:00 | 1:00-2:00
-Synchrotron Threshold | 8:00-15:00 | 1:00-2:00
-Pulsar Span | 8:00-15:00 | 1:00-2:00
-Neutron Veil | 8:00-15:00 | 1:00-2:00
-Sidereal Passage | 8:00-15:00 | 1:00-2:00
-Radiant Bed | 8:00-15:00 | 1:00-2:00
-Occultation Drift | 8:00-15:00 | 1:00-2:00
-Telescope Band | 8:00-15:00 | 1:00-2:00
-Quasar Source | 8:00-15:00 | 1:00-2:00
-Hydrogen Count | 8:00-15:00 | 1:00-2:00
-Cyclotron Vigil | 8:00-15:00 | 1:00-2:00
+Radiant Signal | 6:00-10:00 | 1:00-2:00
+Neutron Message | 6:00-10:00 | 1:00-2:00
+Synchrotron Threshold | 3:00-6:00 | 0:45-1:30
+Pulsar Span | 6:00-10:00 | 1:00-2:00
+Neutron Veil | 6:00-10:00 | 1:00-2:00
+Sidereal Passage | 10:00-15:00 | 1:30-2:30
+Radiant Bed | 6:00-10:00 | 1:00-2:00
+Occultation Drift | 10:00-15:00 | 1:30-2:30
+Telescope Band | 6:00-10:00 | 1:00-2:00
+Quasar Source | 10:00-15:00 | 1:30-2:30
+Hydrogen Count | 6:00-10:00 | 1:00-2:00
+Cyclotron Vigil | 3:00-6:00 | 0:45-1:30

@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Corridor: Night
 cyclic on
-Undercroft Passage | 8:00-15:00 | 1:00-2:00
-Crevice Refuge | 8:00-15:00 | 1:00-2:00
-Crevice Echo | 8:00-15:00 | 1:00-2:00
-Balustrade Hollow | 8:00-15:00 | 1:00-2:00
-Balustrade Reach | 8:00-15:00 | 1:00-2:00
-Doorway Basin | 8:00-15:00 | 1:00-2:00
-Cloakroom Sleep | 8:00-15:00 | 1:00-2:00
-Balustrade Echo | 8:00-15:00 | 1:00-2:00
-Lantern Echo | 8:00-15:00 | 1:00-2:00
-Landing Field | 8:00-15:00 | 1:00-2:00
-Crevice Hour | 8:00-15:00 | 1:00-2:00
-Archway Stillness | 8:00-15:00 | 1:00-2:00
+Undercroft Passage | 3:00-6:00 | 0:45-1:30
+Crevice Refuge | 6:00-10:00 | 1:00-2:00
+Crevice Echo | 3:00-6:00 | 0:45-1:30
+Balustrade Hollow | 6:00-10:00 | 1:00-2:00
+Balustrade Reach | 6:00-10:00 | 1:00-2:00
+Doorway Basin | 6:00-10:00 | 1:00-2:00
+Cloakroom Sleep | 10:00-15:00 | 1:30-2:30
+Balustrade Echo | 6:00-10:00 | 1:00-2:00
+Lantern Echo | 3:00-6:00 | 0:45-1:30
+Landing Field | 10:00-15:00 | 1:30-2:30
+Crevice Hour | 6:00-10:00 | 1:00-2:00
+Archway Stillness | 10:00-15:00 | 1:30-2:30

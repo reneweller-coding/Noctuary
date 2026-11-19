@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Star Rite: Journey
 cyclic on
-Obelisk Span | 5:00-10:00 | 0:30-1:30
-Astrolabe Descent | 5:00-10:00 | 0:30-1:30
-Astrolabe Reach | 5:00-10:00 | 0:30-1:30
-Hierophant Order | 5:00-10:00 | 0:30-1:30
-Hierophant Expanse | 5:00-10:00 | 0:30-1:30
-Ziggurat Reach | 5:00-10:00 | 0:30-1:30
-Sirius Drift | 5:00-10:00 | 0:30-1:30
-Orrery Descent | 5:00-10:00 | 0:30-1:30
-Pyramid Gate | 5:00-10:00 | 0:30-1:30
-Obelisk Signal | 5:00-10:00 | 0:30-1:30
-Pyramid Rite | 5:00-10:00 | 0:30-1:30
-Hierophant Vigil | 5:00-10:00 | 0:30-1:30
+Obelisk Span | 1:30-3:00 | 0:20-0:45
+Astrolabe Descent | 6:00-10:00 | 0:45-1:30
+Astrolabe Reach | 3:00-6:00 | 0:30-1:15
+Hierophant Order | 3:00-6:00 | 0:30-1:15
+Hierophant Expanse | 3:00-6:00 | 0:30-1:15
+Ziggurat Reach | 1:30-3:00 | 0:20-0:45
+Sirius Drift | 3:00-6:00 | 0:30-1:15
+Orrery Descent | 1:30-3:00 | 0:20-0:45
+Pyramid Gate | 3:00-6:00 | 0:30-1:15
+Obelisk Signal | 6:00-10:00 | 0:45-1:30
+Pyramid Rite | 3:00-6:00 | 0:30-1:15
+Hierophant Vigil | 3:00-6:00 | 0:30-1:15

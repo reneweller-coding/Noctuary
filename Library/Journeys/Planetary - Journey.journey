@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Planetary: Journey
 cyclic on
-Axis Field | 5:00-10:00 | 0:30-1:30
-Gaia Light | 5:00-10:00 | 0:30-1:30
-Stratos Threshold | 5:00-10:00 | 0:30-1:30
-Firmament Span | 5:00-10:00 | 0:30-1:30
-Prism Rise | 5:00-10:00 | 0:30-1:30
-Stratos Descent | 5:00-10:00 | 0:30-1:30
-Equinox Rise | 5:00-10:00 | 0:30-1:30
-Aeon Reach | 5:00-10:00 | 0:30-1:30
-Harmonic Bed | 5:00-10:00 | 0:30-1:30
-Equinox Interval | 5:00-10:00 | 0:30-1:30
-Zodiac Basin | 5:00-10:00 | 0:30-1:30
-Heliacal Reach | 5:00-10:00 | 0:30-1:30
+Axis Field | 3:00-6:00 | 0:30-1:15
+Gaia Light | 1:30-3:00 | 0:20-0:45
+Stratos Threshold | 3:00-6:00 | 0:30-1:15
+Firmament Span | 6:00-10:00 | 0:45-1:30
+Prism Rise | 3:00-6:00 | 0:30-1:15
+Stratos Descent | 6:00-10:00 | 0:45-1:30
+Equinox Rise | 3:00-6:00 | 0:30-1:15
+Aeon Reach | 1:30-3:00 | 0:20-0:45
+Harmonic Bed | 3:00-6:00 | 0:30-1:15
+Equinox Interval | 6:00-10:00 | 0:45-1:30
+Zodiac Basin | 3:00-6:00 | 0:30-1:15
+Heliacal Reach | 1:30-3:00 | 0:20-0:45

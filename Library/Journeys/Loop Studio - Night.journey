@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Loop Studio: Night
 cyclic on
-Splice Veil | 8:00-15:00 | 1:00-2:00
-Echo Signal | 8:00-15:00 | 1:00-2:00
-Oscillator Signal | 8:00-15:00 | 1:00-2:00
-Oscillator Room | 8:00-15:00 | 1:00-2:00
-Leader Basin | 8:00-15:00 | 1:00-2:00
-Signal Loop | 8:00-15:00 | 1:00-2:00
-Headstock Take | 8:00-15:00 | 1:00-2:00
-Leader Field | 8:00-15:00 | 1:00-2:00
-Patchbay Veil | 8:00-15:00 | 1:00-2:00
-Signal Vigil | 8:00-15:00 | 1:00-2:00
-Relay Bed | 8:00-15:00 | 1:00-2:00
-Echo Bloom | 8:00-15:00 | 1:00-2:00
+Splice Veil | 3:00-6:00 | 0:45-1:30
+Echo Signal | 6:00-10:00 | 1:00-2:00
+Oscillator Signal | 10:00-15:00 | 1:30-2:30
+Oscillator Room | 6:00-10:00 | 1:00-2:00
+Leader Basin | 3:00-6:00 | 0:45-1:30
+Signal Loop | 6:00-10:00 | 1:00-2:00
+Headstock Take | 10:00-15:00 | 1:30-2:30
+Leader Field | 3:00-6:00 | 0:45-1:30
+Patchbay Veil | 10:00-15:00 | 1:30-2:30
+Signal Vigil | 6:00-10:00 | 1:00-2:00
+Relay Bed | 3:00-6:00 | 0:45-1:30
+Echo Bloom | 6:00-10:00 | 1:00-2:00

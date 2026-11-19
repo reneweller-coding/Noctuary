@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Gentle Systems: Journey
 cyclic on
-Lucid Span | 5:00-10:00 | 0:30-1:30
-Quiet Loop | 5:00-10:00 | 0:30-1:30
-Warm Hollow | 5:00-10:00 | 0:30-1:30
-Soft Hollow | 5:00-10:00 | 0:30-1:30
-Paper Drift | 5:00-10:00 | 0:30-1:30
-Pale Bloom | 5:00-10:00 | 0:30-1:30
-Evening Passage | 5:00-10:00 | 0:30-1:30
-Weather Span | 5:00-10:00 | 0:30-1:30
-Soft Hour | 5:00-10:00 | 0:30-1:30
-Chalkline Veil | 5:00-10:00 | 0:30-1:30
-Tidal Veil | 5:00-10:00 | 0:30-1:30
-Tidal Vigil | 5:00-10:00 | 0:30-1:30
+Lucid Span | 1:30-3:00 | 0:20-0:45
+Quiet Loop | 6:00-10:00 | 0:45-1:30
+Warm Hollow | 3:00-6:00 | 0:30-1:15
+Soft Hollow | 6:00-10:00 | 0:45-1:30
+Paper Drift | 3:00-6:00 | 0:30-1:15
+Pale Bloom | 6:00-10:00 | 0:45-1:30
+Evening Passage | 1:30-3:00 | 0:20-0:45
+Weather Span | 3:00-6:00 | 0:30-1:15
+Soft Hour | 1:30-3:00 | 0:20-0:45
+Chalkline Veil | 3:00-6:00 | 0:30-1:15
+Tidal Veil | 3:00-6:00 | 0:30-1:15
+Tidal Vigil | 3:00-6:00 | 0:30-1:15

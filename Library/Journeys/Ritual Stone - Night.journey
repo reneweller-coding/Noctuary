@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Ritual Stone: Night
 cyclic on
-Candle Procession | 8:00-15:00 | 1:00-2:00
-Penance Bloom | 8:00-15:00 | 1:00-2:00
-Cloister Span | 8:00-15:00 | 1:00-2:00
-Abbey Descent | 8:00-15:00 | 1:00-2:00
-Transept Field | 8:00-15:00 | 1:00-2:00
-Sepulchre Field | 8:00-15:00 | 1:00-2:00
-Relic Threshold | 8:00-15:00 | 1:00-2:00
-Cloister Basin | 8:00-15:00 | 1:00-2:00
-Penance Rite | 8:00-15:00 | 1:00-2:00
-Reliquary Hollow | 8:00-15:00 | 1:00-2:00
-Penance Passage | 8:00-15:00 | 1:00-2:00
-Reliquary Threshold | 8:00-15:00 | 1:00-2:00
+Candle Procession | 6:00-10:00 | 1:00-2:00
+Penance Bloom | 3:00-6:00 | 0:45-1:30
+Cloister Span | 10:00-15:00 | 1:30-2:30
+Abbey Descent | 6:00-10:00 | 1:00-2:00
+Transept Field | 3:00-6:00 | 0:45-1:30
+Sepulchre Field | 6:00-10:00 | 1:00-2:00
+Relic Threshold | 10:00-15:00 | 1:30-2:30
+Cloister Basin | 6:00-10:00 | 1:00-2:00
+Penance Rite | 10:00-15:00 | 1:30-2:30
+Reliquary Hollow | 6:00-10:00 | 1:00-2:00
+Penance Passage | 6:00-10:00 | 1:00-2:00
+Reliquary Threshold | 3:00-6:00 | 0:45-1:30

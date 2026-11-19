@@ -2,15 +2,15 @@
 # Made by Tools/make_journeys.py from the library's measurement; edit freely, or write your own beside it.
 journey Far Relay: Journey
 cyclic on
-Altair Transit | 5:00-10:00 | 0:30-1:30
-Lyra Reach | 5:00-10:00 | 0:30-1:30
-Hyades Veil | 5:00-10:00 | 0:30-1:30
-Zenith Band | 5:00-10:00 | 0:30-1:30
-Quasar Threshold | 5:00-10:00 | 0:30-1:30
-Andromeda Beacon | 5:00-10:00 | 0:30-1:30
-Zenith Expanse | 5:00-10:00 | 0:30-1:30
-Zenith Descent | 5:00-10:00 | 0:30-1:30
-Andromeda Field | 5:00-10:00 | 0:30-1:30
-Altair Basin | 5:00-10:00 | 0:30-1:30
-Starfield Bloom | 5:00-10:00 | 0:30-1:30
-Vela Belt | 5:00-10:00 | 0:30-1:30
+Altair Transit | 1:30-3:00 | 0:20-0:45
+Lyra Reach | 3:00-6:00 | 0:30-1:15
+Hyades Veil | 1:30-3:00 | 0:20-0:45
+Zenith Band | 3:00-6:00 | 0:30-1:15
+Quasar Threshold | 6:00-10:00 | 0:45-1:30
+Andromeda Beacon | 1:30-3:00 | 0:20-0:45
+Zenith Expanse | 3:00-6:00 | 0:30-1:15
+Zenith Descent | 3:00-6:00 | 0:30-1:15
+Andromeda Field | 6:00-10:00 | 0:45-1:30
+Altair Basin | 3:00-6:00 | 0:30-1:15
+Starfield Bloom | 3:00-6:00 | 0:30-1:15
+Vela Belt | 6:00-10:00 | 0:45-1:30
