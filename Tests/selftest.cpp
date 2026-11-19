@@ -13066,6 +13066,64 @@ void testConductorOwnVoices()
 }
 
 /**
+ * @brief Neither conductor strikes a pitch the other is sounding (20.11.2026).
+ *
+ * The second conductor plays its own voices, so a pitch the first holds and the second takes too sounds twice: a second
+ * voice on the same note, its attack swelling over the first -- heard as the note struck again, which under a pad's
+ * attack says nothing. Hearing each other made it likelier (a unison is the most consonant choice there is): over 300
+ * presets of the library 3.8 % of the conductors' onsets were such a doubling. Both on one root, same register, an hour
+ * without audio, three seeds: no onset of one is within 25 cents of a note the other holds. An octave stays allowed.
+ */
+void testConductorsNoUnison()
+{
+    std::printf( "\n--- neither conductor doubles the other's pitch ---\n" );
+    int ons = 0, doubled = 0;
+    for ( float seed : { 1171.0f, 1172.0f, 1173.0f } )
+    {
+        Engine e;
+        neutralMaster( e );
+        e.prepare( ambient::DefaultSampleRate, 256 );
+        for ( int i = 0; i < NumParams; ++i )
+            e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
+        e.setParam( ParamIdE::SEED, seed );
+        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+        e.setParam( ParamIdE::BRAIN_RATE, 20.0f );
+        e.setParam( ParamIdE::BRAIN_DENSITY, 3.0f );
+        e.setParam( ParamIdE::BRAIN2_ON, 1.0f );
+        e.setParam( ParamIdE::BRAIN2_INTERVAL, 0.0f );   // one root: their registers meet
+        e.setParam( ParamIdE::BRAIN2_DENSITY, 3.0f );
+        e.setParam( ParamIdE::BRAIN2_RATE, 15.0f );
+        e.reset();
+        std::map<int, double> held[3];   // per conductor: note -> Hz
+        e.auditConductor(
+            3600.0, 0.005,
+            [&]( double, int which, const BrainEvent &ev )
+            {
+                if ( which != 1 && which != 2 ) return;
+                if ( ev.m_type == BrainEvent::TypeE::NOTE_ON )
+                {
+                    const double hz = e.frequencyOf( ev.m_note );
+                    ++ons;
+                    for ( const auto &o : held[3 - which] )
+                        if ( std::fabs( 1200.0 * std::log2( hz / o.second ) ) < 25.0 )
+                        {
+                            ++doubled;
+                            break;
+                        }
+                    held[which][ev.m_note] = hz;
+                }
+                else
+                    held[which].erase( ev.m_note );
+            },
+            nullptr );
+    }
+    std::printf( "  [probe] %d of %d onsets at a pitch the other conductor holds\n", doubled, ons );
+    CHECK( ons > 300, "conductors: both play through the three hours" );
+    CHECK( doubled == 0, "conductors: neither strikes a pitch the other is sounding" );
+}
+
+/**
  * @brief Runs every test function in turn and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -13142,6 +13200,7 @@ int main()
     testResearchBatch();
     testConductorsListen();
     testConductorOwnVoices();
+    testConductorsNoUnison();
     if ( failures == 0 )
         std::printf( "selftest: all checks passed\n" );
     else

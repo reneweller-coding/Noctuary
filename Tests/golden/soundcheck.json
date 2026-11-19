@@ -14,11 +14,11 @@
    }
   },
   "harmonic_hours": {
-   "mix": -24.81,
+   "mix": -25.66,
    "stems": {
-    "cosmos": -5.67,
-    "far": -11.73,
-    "near": 0.74,
+    "cosmos": -5.52,
+    "far": -6.65,
+    "near": 0.78,
     "room": null
    }
   },

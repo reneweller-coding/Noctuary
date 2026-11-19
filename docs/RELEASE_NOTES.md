@@ -35,6 +35,15 @@ fell from 3.9 % to 0.3 % and from 3.3 % to 1.2 %, the presets where it stood mor
 to 4, with as many changes as before (46 to 48 an hour) and no conductor left silent; across the two conductors the
 semitones fell further, from 0.8 % to 0.5 %, the tritones from 0.15 % to 0.06 %.
 
+**No conductor doubles the other's note** (20.11.2026). The second conductor plays its own voices, so a pitch the first
+holds and the second takes too was a second voice on the same note, its attack swelling over the first -- heard as the
+note struck again, which under a pad's attack says nothing. Hearing each other had made it likelier, a unison being the
+most consonant choice there is. Now neither takes a pitch the other sounds (within 25 cents, at any Consonance; an
+octave stays). Over 300 presets of the library, an hour each: 641 of 16902 onsets (3.8 %) doubled the other's note,
+now 8 of 17130; on one root and one register, a third of the onsets did, now none. The soundcheck's Harmonic Hours was
+recorded again: its second conductor's first note is the E an octave under the first's instead of the F a major seventh
+under it (its draw lost the first's own E), which moves its far plane 5 LU against the mix.
+
 **The long loop in the library** (19.11.2026). Robert Rich's sleep-concert loop (Loop, on the Foreground page since
 20.10.2026) was in no preset. 3014 of the library's have it now (Tools/library/retrofit_loop.py): three in five in the
 sleep concert and the loop and tape packs and the slow unfolding ones, two in five in the slow chords, strings, hymns

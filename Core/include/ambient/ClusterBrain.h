@@ -1331,12 +1331,20 @@ public:
      * for twenty minutes. A veto here, in the draw of Free mode, in chooseNote() and against the deja vu ring; when it
      * empties the field Chords mode widens its allowance as it always did, and Free mode waits for its next decision.
      * A conductor set for clusters (Consonance under a half) keeps the weight only.
+     *
+     * And at any Consonance, not the pitch the other sounds now (20.11.2026, within 25 cents; an octave stays): the
+     * other plays its own voices, so the same pitch taken by both is a second voice on one note, its attack swelling
+     * over the first -- the note struck again, which says nothing under a pad's attack. Hearing each other had made it
+     * likelier, a unison being the most consonant choice there is: over 300 presets of Noctuary's library 3.8 % of the
+     * conductors' onsets doubled the other; on one root, a third.
      * @param[in] fc  the candidate, Hz
      * @param[in] p   the knobs
      * @return true when it is out
      */
     bool againstOther( double fc, const BrainParams &p ) const
     {
+        for ( int k = 0; k < m_otherCount; ++k )
+            if ( std::fabs( 1200.0 * std::log2( fc / m_otherHz[k] ) ) < 25.0 ) return true;   // the other's pitch
         if ( m_otherCount == 0 || p.m_consonance < 0.5f ) return false;
         for ( int k = 0; k < m_otherCount; ++k )
         {
