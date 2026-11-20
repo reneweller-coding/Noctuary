@@ -1,0 +1,6 @@
+# Noctuary library stamp: when these packs last changed (UTC) and a hash of them. Written by the build
+# (cmake/LibraryStamp.cmake) whenever the packs change; copy it along with the packs. The program compares it
+# with the stamp it was built with and says so in its status line when this library is older.
+date=2026-11-19 20:40
+packs=56
+hash=6dcb9640181a0d1d40a4f886758fa6e6950f7a80

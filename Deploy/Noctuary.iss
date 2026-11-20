@@ -126,6 +126,9 @@ Source: "{#Stage}\Noctuary.vst3\*"; DestDir: "{autocf}\VST3\Noctuary.vst3"; \
 ; Documents\Noctuary\Packs (see Core/src/PresetPacks.cpp).
 Source: "{#Stage}\Packs\*.ambientpack"; DestDir: "{code:LibDir}\Packs"; \
     Components: packs; Flags: ignoreversion
+; The library's stamp (20.11.2026): the program compares it with the one it was built with.
+Source: "{#Stage}\Packs\library.stamp"; DestDir: "{code:LibDir}\Packs"; \
+    Components: packs; Flags: ignoreversion skipifsourcedoesntexist
 ; The journey templates (presets in a row, Core/include/ambient/Journey.h), beside the packs;
 ; the player's own go to Documents\Noctuary\Journeys and are never touched.
 Source: "{#Stage}\Journeys\*.journey"; DestDir: "{code:LibDir}\Journeys"; \

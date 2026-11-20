@@ -13129,6 +13129,102 @@ void testConductorsNoUnison()
 }
 
 /**
+ * @brief Sets or clears an environment variable for this process (the library tests point AMBIENT_PACKS around).
+ * @param[in] name   the variable
+ * @param[in] value  its value, or nullptr to clear it
+ */
+static void setEnvForTest( const char *name, const char *value )
+{
+#if defined( _WIN32 )
+    _putenv_s( name, value != nullptr ? value : "" );
+#else
+    if ( value != nullptr )
+        setenv( name, value, 1 );
+    else
+        unsetenv( name );
+#endif
+}
+
+/**
+ * @brief Self test: which library is loaded, and whether it is older than the program (20.11.2026, plan A8).
+ *
+ * Rene played the program built on 13.11. for weeks with the packs of 14.09. out of C:\\ProgramData, and nothing said
+ * so. Checked here, all in temporary folders and never in ProgramData: (a) a folder whose library.stamp is older than
+ * the program's, or that has none, is reported older and named in the notice, while one carrying the program's own
+ * hash or a later date is not; (b) a program lying in a source tree's bin folder finds that tree's Library/Packs, and
+ * one outside a tree finds nothing; (c) AMBIENT_PACKS wins, and its folder is the one the status names.
+ */
+void testLibraryStamp()
+{
+    std::printf( "\n--- the library against the one the program was built with ---\n" );
+    const LibraryStampS built = builtLibraryStamp();
+    std::printf( "  [probe] built with the library of %s (%s)\n", built.m_date.c_str(), built.m_hash.c_str() );
+    CHECK( !built.m_date.empty() && built.m_hash.size() == 40, "library stamp: the program carries the tree's stamp" );
+    CHECK( libraryIsOlder( { "", "" }, built ), "library stamp: a folder without a stamp is older" );
+    CHECK( libraryIsOlder( { "2026-09-14 10:00", "x" }, built ), "library stamp: an earlier date is older" );
+    CHECK( !libraryIsOlder( { "2026-09-14 10:00", built.m_hash }, built ), "library stamp: the same hash is never older" );
+    CHECK( !libraryIsOlder( { "2999-01-01 00:00", "x" }, built ), "library stamp: a later date is not older" );
+    CHECK( !libraryIsOlder( { "", "" }, { "", "" } ), "library stamp: a program without one never warns" );
+
+    const std::filesystem::path root = std::filesystem::temp_directory_path() / "noctuary_librarystamp";
+    std::error_code             ec;
+    std::filesystem::remove_all( root, ec );
+    const std::filesystem::path tree = root / "Tree";
+    std::filesystem::create_directories( tree / "Library" / "Packs", ec );
+    std::filesystem::create_directories( tree / "bin" / "msvc", ec );
+    std::filesystem::create_directories( root / "Elsewhere", ec );
+    {
+        std::ofstream f( tree / "Library" / "Packs" / "Stamp-Test.ambientpack" );
+        f << "pack Stamp Test\n";
+        f << "Stamp Test Alpha|brain_density=3\n";
+    }
+    {
+        std::ofstream f( tree / "Library" / "Packs" / "library.stamp" );
+        f << "# a stamp from before the program\n";
+        f << "date=2026-09-14 10:00\n";
+        f << "packs=1\n";
+        f << "hash=0000000000000000000000000000000000000000\n";
+    }
+    // (b) the source tree's library, found from the program's place
+    const std::string found = repoLibraryFor( ( tree / "bin" / "msvc" / "Noctuary.exe" ).string().c_str() );
+    std::printf( "  [probe] from %s: '%s'\n", ( tree / "bin" / "msvc" ).string().c_str(), found.c_str() );
+    CHECK( !found.empty() && std::filesystem::equivalent( found, tree / "Library" / "Packs", ec ),
+           "library stamp: a program in the tree's bin folder finds the tree's Library/Packs" );
+    CHECK( repoLibraryFor( ( root / "Elsewhere" / "Noctuary.exe" ).string().c_str() ).empty(),
+           "library stamp: a program outside a source tree finds none" );
+    CHECK( repoLibraryFor( ( tree / "Noctuary.exe" ).string().c_str() ).empty(),
+           "library stamp: beside Library but not in bin is not a source tree's program" );
+    const LibraryStampS read = readLibraryStamp( ( tree / "Library" / "Packs" ).string().c_str() );
+    CHECK( read.m_date == "2026-09-14 10:00" && read.m_hash.size() == 40, "library stamp: the stamp file reads back" );
+
+    // (a) and (c): AMBIENT_PACKS names the old folder; it is the one loaded and the one reported
+    const char       *before = std::getenv( "AMBIENT_PACKS" );
+    const std::string saved = before != nullptr ? before : "";
+    clearPresetPacks();
+    setEnvForTest( "AMBIENT_PACKS", ( tree / "Library" / "Packs" ).string().c_str() );
+    const int            loaded = loadDefaultPresetPacks();
+    const LibraryStatusS status = libraryStatus();
+    const std::string    notice = libraryNotice();
+    std::printf( "  [probe] loaded %d pack(s) from %s (%s): %s\n", loaded, status.m_folder.c_str(), status.m_how.c_str(),
+                 notice.c_str() );
+    CHECK( loaded == 1 && status.m_how == "AMBIENT_PACKS", "library stamp: AMBIENT_PACKS wins" );
+    CHECK( status.m_older && notice.find( "2026-09-14" ) != std::string::npos &&
+               notice.find( status.m_folder ) != std::string::npos && notice.find( built.m_date ) != std::string::npos,
+           "library stamp: an older library is reported with its folder and date" );
+    // The same folder carrying the program's own stamp says nothing.
+    {
+        std::ofstream f( tree / "Library" / "Packs" / "library.stamp" );
+        f << "date=" << built.m_date << "\nhash=" << built.m_hash << "\n";
+    }
+    clearPresetPacks();
+    loadDefaultPresetPacks();
+    CHECK( libraryNotice().empty(), "library stamp: the library the program was built with gives no notice" );
+    clearPresetPacks();
+    setEnvForTest( "AMBIENT_PACKS", before != nullptr ? saved.c_str() : nullptr );
+    std::filesystem::remove_all( root, ec );
+}
+
+/**
  * @brief Runs the test functions in turn -- all of them, or those the arguments pick -- and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -13223,6 +13319,7 @@ int main( int argc, char **argv )
         { "testConductorsListen", testConductorsListen },
         { "testConductorOwnVoices", testConductorOwnVoices },
         { "testConductorsNoUnison", testConductorsNoUnison },
+        { "testLibraryStamp", testLibraryStamp },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );
     std::vector<bool> pick( static_cast<size_t>( count ), true );

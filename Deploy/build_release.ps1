@@ -271,6 +271,9 @@ if (Test-Path $manualPdf) { Copy-Item $manualPdf $out -Force }
 Copy-Item (Join-Path $root "LICENSE") (Join-Path $stage "LICENSE.txt")
 New-Item -ItemType Directory -Force -Path (Join-Path $stage "Packs") | Out-Null
 Copy-Item (Join-Path $root "Library\Packs\*.ambientpack") (Join-Path $stage "Packs")
+# The library's stamp travels with the packs (20.11.2026, cmake/LibraryStamp.cmake): without it the installed library
+# reads as older than the program, which says so in its status line.
+Copy-Item (Join-Path $root "Library\Packs\library.stamp") (Join-Path $stage "Packs")
 $packCount = (Get-ChildItem (Join-Path $stage "Packs") -Filter *.ambientpack).Count
 if ($packCount -lt 1) { throw "no preset packs staged" }
 # The journey templates (Library\Journeys\*.journey): presets in a row for an evening, beside the packs.

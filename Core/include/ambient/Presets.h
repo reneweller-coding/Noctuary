@@ -398,16 +398,72 @@ int loadPresetPacksIn( const char *dir );
 /**
  * @brief Loads the packs from the default places.
  *
- * $AMBIENT_PACKS (';'-separated) if it finds anything, else the user's own
+ * $AMBIENT_PACKS (';'-separated) when it is set; else, for a program that lies in a source tree's
+ * bin folder, that tree's Library/Packs (repoLibraryFor(), 20.11.2026); else the user's own
  * Documents/Noctuary/Packs and the folders an installer writes to (Windows: ProgramData and
- * LocalAppData; elsewhere /usr/local/share and /usr/share). A pack found twice loads once.
+ * LocalAppData; elsewhere /usr/local/share and /usr/share). A pack found twice loads once. Each
+ * folder's stamp is kept for libraryStatus().
  *
  * With $AMBIENT_PACKS set its folders are final, even when they yield nothing new -- a second
- * call in one process (a batch render) must not fall through to the installed copies.
+ * call in one process (a batch render) must not fall through to the installed copies. The
+ * source tree's folder is final in the same way.
  *
  * @return how many packs were loaded by this call
  */
 int loadDefaultPresetPacks();
+/**
+ * @brief A library's stamp: when its packs last changed and a hash of them (20.11.2026).
+ *
+ * The build keeps `library.stamp` in the source tree's Library/Packs (cmake/LibraryStamp.cmake) and compiles the
+ * same stamp into the program; an installer copies the file with the packs. A folder without one predates the stamp.
+ */
+struct LibraryStampS
+{
+    std::string m_date;   ///< "YYYY-MM-DD hh:mm" (UTC), empty when there is no stamp
+    std::string m_hash;   ///< the hash of the packs, empty when there is no stamp
+};
+/**
+ * @brief Reads `library.stamp` in a packs folder.
+ * @param[in] folder  the packs folder
+ * @return its stamp; empty fields when the folder has none
+ */
+LibraryStampS readLibraryStamp( const char *folder );
+/** @return the stamp of the library this program was built with (empty when the tree it was built in had none) */
+LibraryStampS builtLibraryStamp();
+/**
+ * @brief Whether a loaded library is older than the one the program was built with.
+ *
+ * Not older when the program carries no stamp, or when the two hashes agree; older when the loaded one has no stamp
+ * (it predates them) or an earlier date.
+ * @param[in] loaded  the loaded folder's stamp
+ * @param[in] built   the program's (builtLibraryStamp())
+ * @return true when it is older
+ */
+bool libraryIsOlder( const LibraryStampS &loaded, const LibraryStampS &built );
+/**
+ * @brief The source tree's packs folder for a program that lies in that tree's bin folder.
+ *
+ * Walks up from the program's folder; where a folder named `bin` sits beside a `Library/Packs` that holds packs, that
+ * is the answer. loadDefaultPresetPacks() reads it, and only it, when AMBIENT_PACKS is not set.
+ * @param[in] programPath  the program's (or plug-in's) file, as programPath() gives it
+ * @return the Library/Packs folder, or "" when the program is not in a source tree
+ */
+std::string repoLibraryFor( const char *programPath );
+/** @return the file of the program or plug-in this code is linked into (Windows and Linux), or "" */
+std::string programPath();
+/** @brief Where the presets came from, against the library the program was built with. */
+struct LibraryStatusS
+{
+    std::string   m_folder;          ///< the packs folder named: the first that gave packs, or the first older one
+    std::string   m_how;             ///< why it was read: "AMBIENT_PACKS", "the source tree", "the default folders"
+    LibraryStampS m_stamp;           ///< its stamp
+    LibraryStampS m_built;           ///< the program's
+    bool          m_older = false;   ///< libraryIsOlder( m_stamp, m_built )
+};
+/** @return the status of the packs loaded so far (an empty folder when none were) */
+LibraryStatusS libraryStatus();
+/** @return one line for the status line when the loaded library is older than the program's, else "" */
+std::string libraryNotice();
 /** @brief Unloads every pack: the list shrinks back to the built-ins, and every pack Preset's pointers die. */
 void clearPresetPacks();
 /** @return how many packs are loaded */

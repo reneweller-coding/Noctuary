@@ -343,8 +343,19 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
              << "built " << juce::String( __DATE__ ).trim() << ", " << __TIME__ << "\n\n"
              << ambient::numPresets() << " presets";
         if ( packs > 0 ) text << " (" << ambient::builtinPresetCount() << " built in, " << packs << " packs)";
-        text << "\n"
-             << ambient::numPresetClusters() << " measured groups, " << ambient::numPresetPhrases() << " phrases\n\n"
+        text << "\n";
+        {   // where the packs came from, against the library this build was made with (20.11.2026)
+            const ambient::LibraryStatusS lib = ambient::libraryStatus();
+            if ( !lib.m_folder.empty() )
+                text << "Library: " << juce::String( lib.m_folder ) << " (" << juce::String( lib.m_how ) << "), "
+                     << ( lib.m_stamp.m_date.empty() ? juce::String( "no stamp" )
+                                                     : "stamped " + juce::String( lib.m_stamp.m_date ) )
+                     << "\n";
+            if ( !lib.m_built.m_date.empty() )
+                text << "Built with the library of " << juce::String( lib.m_built.m_date )
+                     << ( lib.m_older ? juce::String( " -- the loaded one is OLDER" ) : juce::String() ) << "\n";
+        }
+        text << ambient::numPresetClusters() << " measured groups, " << ambient::numPresetPhrases() << " phrases\n\n"
              << "Sample library: "
              << ( m_proc.engine().displayTexture( 0 ) != nullptr && !m_proc.engine().displayTexture( 0 )->empty()
                       ? "a clip is loaded"
@@ -4291,7 +4302,11 @@ void NoctuaryEditor::paint( juce::Graphics &g )
                 juce::String( gl.input( GestureInputE::RIGHT_HEIGHT ), 2 ) + "  dist " +
                 juce::String( gl.input( GestureInputE::HAND_DISTANCE ), 2 ) + "  pinch " + juce::String( clutch, 2 );
     }
-    g.setColour( Dim );
+    // A library older than the program comes first on the line, in orange (20.11.2026): Rene played the
+    // program of 13.11. for weeks with the packs of 14.09. out of ProgramData, and nothing said so.
+    const juce::String libraryWarning( ambient::libraryNotice() );
+    if ( libraryWarning.isNotEmpty() ) info = libraryWarning + "   " + info;
+    g.setColour( libraryWarning.isNotEmpty() ? juce::Colours::orange : Dim );
     g.setFont( juce::Font( juce::FontOptions( juce::Font::getDefaultMonospacedFontName(), 11.0f,
                                               juce::Font::plain ) ) );   // figures that do not jump
     g.drawText( info, 14, m_header.getBottom() - 16, m_designW - 420, 14, juce::Justification::centredLeft );

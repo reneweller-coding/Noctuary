@@ -557,7 +557,8 @@ void NoctuaryEditor::BrowseView::applyFilter()
     m_list.updateContent();
     m_info.setText( juce::String( static_cast<int>( m_filtered.size() ) ) + " of " + juce::String( numPresets() ) +
                         " presets" +
-                        ( numPresetMeta() == 0 ? "   (map not measured yet: run Tools/library/map_all.py)" : "" ),
+                        ( numPresetMeta() == 0 ? "   (map not measured yet: run Tools/library/map_all.py)" : "" ) +
+                        ( libraryNotice().empty() ? juce::String() : "   " + juce::String( libraryNotice() ) ),
                     juce::dontSendNotification );
     if ( m_fitPending ) fitToFilter();
     m_map.repaint();

@@ -2,6 +2,23 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**The program says when its library is older than itself** (20.11.2026). Noctuary.exe started by a double-click in
+the source tree read the installed packs out of C:\ProgramData\Noctuary\Packs, not the tree's: the program built on
+13.11. played the packs of 14.09. for weeks, and nothing anywhere said so. A library now carries a stamp,
+`library.stamp` beside the packs -- when they last changed and a hash of them -- which the build keeps current in the
+tree and compiles into the program, and the installer copies along. When the loaded library has no stamp or an older
+one, the status line under the header begins with OLD LIBRARY in orange, names the folder and both dates, and the
+browser's count and About say the same; nothing blocks and nothing sounds. A program started from a source tree's
+`bin` folder now reads that tree's Library/Packs, as Tools/play.ps1 had it do; AMBIENT_PACKS, when set, still wins.
+
+**The music audit** (20.11.2026). The faults heard this week -- rubs inside a conductor and between the two, one
+doubling the other's note, a pitch struck again soon after it was let go, notes shorter than their own attack -- are
+counted by `Tools/library/music_audit.py` over an hour of both conductors per preset, without audio and in cents of
+what the tuning plays, and the ctest `music_audit` checks 200 library presets against stored bands. With the rule
+against the other conductor's notes switched off for a trial, doublings rose from 7 to 501 and the time with a
+semitone or tritone between the two from 1.05 % to 8.97 %, and the test failed. The self test takes `--list` and
+`--only` and prints each test's time.
+
 **The foreground's lines keep to the chord** (19.11.2026). A near Sequence drew each of its steps on its own, over two
 and a half octaves, against the first conductor's notes only. Under Steel Span with Bowed Line, 62 % of the line's notes
 stood a second, a seventh or a tritone from a note the conductors were holding. A Sequence and a Phrase are now figures,

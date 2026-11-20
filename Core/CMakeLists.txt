@@ -50,6 +50,17 @@ target_include_directories(NoctuaryCore
     # dr_flac, one public-domain header: the sample library ships as FLAC, and the core reads it
     # without a framework the way it reads WAV. PRIVATE -- nobody outside needs the decoder.
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/dr_libs)
+# The library's stamp (20.11.2026, cmake/LibraryStamp.cmake): Library/Packs/library.stamp kept current and the same
+# stamp compiled into the core as ambient/LibraryStamp.h, so the program can tell when the packs it loaded are older
+# than the ones it was built with. Run once now so the header exists, and before every build of the core.
+set(AMBIENT_STAMP_ARGS "-DPACKS=${CMAKE_CURRENT_SOURCE_DIR}/../Library/Packs"
+    "-DHEADER=${CMAKE_BINARY_DIR}/generated/ambient/LibraryStamp.h" -P "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/LibraryStamp.cmake")
+execute_process(COMMAND "${CMAKE_COMMAND}" ${AMBIENT_STAMP_ARGS})
+add_custom_target(ambient_library_stamp COMMAND "${CMAKE_COMMAND}" ${AMBIENT_STAMP_ARGS}
+                  BYPRODUCTS "${CMAKE_BINARY_DIR}/generated/ambient/LibraryStamp.h"
+                  COMMENT "library stamp" VERBATIM)
+add_dependencies(NoctuaryCore ambient_library_stamp)
+target_include_directories(NoctuaryCore PRIVATE ${CMAKE_BINARY_DIR}/generated)
 target_compile_features(NoctuaryCore PUBLIC cxx_std_20)
 set_target_properties(NoctuaryCore PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(MSVC)

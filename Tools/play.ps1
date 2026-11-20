@@ -2,10 +2,12 @@
 #
 #   powershell -File Tools\play.ps1 [-Dev] [-Preset "Tidal Expanse"] [-Layout 0|1|2]
 #
-# A double-click on the built Noctuary.exe finds only the 256 compiled-in presets: the packs and
-# their recordings live in Library/ here, while an installed copy reads ProgramData\Noctuary. This
-# points AMBIENT_PACKS at Library\Packs, which is also what makes the Journeys appear -- they are
-# looked for one level above every loaded pack, so Library\Journeys comes with it.
+# The packs and their recordings live in Library/ here, while an installed copy reads
+# ProgramData\Noctuary. This points AMBIENT_PACKS at Library\Packs, which is also what makes the
+# Journeys appear -- they are looked for one level above every loaded pack, so Library\Journeys
+# comes with it. Since 20.11.2026 a double-click on bin\*\Noctuary.exe reads this tree's
+# Library\Packs by itself (Core/src/PresetPacks.cpp, repoLibraryFor); this script stays the way
+# to start it unmuted, on a preset or in a layout.
 #
 # AMBIENT_MUTE is cleared on purpose. Every other script here sets it, because a standalone that
 # photographs itself should be silent; this one exists to be heard.
