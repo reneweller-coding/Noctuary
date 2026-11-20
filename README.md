@@ -99,7 +99,7 @@ small speaker hear it.
   beacon, morse, dial. It is a bank beside the sound presets, 512 of them in thirteen families, so a
   night's foreground can be chosen once and the backgrounds changed under it. Its **Night** switch guards
   sleep: then no event rises faster over the background, or stands further out of its own mean, than
-  limits measured over the whole bank (`Tools/library/near_night.py`); off, nothing changes.
+  limits measured over the whole bank (`Tools/library/near_night.py`). It is on by default; off, nothing changes.
 * **A conductor that plays all night.** The Cluster Brain chooses notes from the scale, places them
   on the planes and holds them for minutes. It judges a chord several ways at once, finds the key it
   has drifted into, makes its clock self-exciting — events that cause events — and tunes each

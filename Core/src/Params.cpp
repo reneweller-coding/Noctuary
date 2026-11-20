@@ -956,7 +956,7 @@ const std::array<ParamDesc, NumParams> Table = { {
     F( ParamIdE::FLOOR, "floor", "Floor", "Foundation", 0.f, 1.f, 1.f, 1.f, "" ),     // 21.10.2026 (FloorMatch)
     F( ParamIdE::BRAIN_ROOT_EVERY, "brain_root_every", "Root Every", "Cluster Brain", 20.f, 720.f, 240.f, 0.5f,
        "s" ),                                                     // 13.11.2026 (R6.1's floor, Robert Rich measured)
-    B( ParamIdE::FORE_NIGHT, "fore_night", "Night", "Near Events", false ),   // 20.11.2026 (plan C3, NearNight.inc)
+    B( ParamIdE::FORE_NIGHT, "fore_night", "Night", "Near Events", true ),   // 20.11.2026 (plan C3), on since 21.11.
 } };
 }   // namespace
 

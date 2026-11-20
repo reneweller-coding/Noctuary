@@ -1955,7 +1955,7 @@ private:
     NearEvents  m_near;                ///< the scheduler
     NearParams  m_np;                  ///< its parameters this block
     float       m_nearGain = 1.0f;     ///< fore_gain as a factor, read with the rest of the near layer
-    bool        m_nightOn = false;     ///< fore_night, read with the rest of the near layer
+    bool        m_nightOn = true;      ///< fore_night, read with the rest of the near layer (on by default)
     std::atomic<float> m_guardFade{ 0.0f },   ///< @brief the night guard's row (setNearGuard): seconds of fade-in
         m_guardGainDb{ 0.0f };                ///< and the gain in dB
     int   m_guardEvent = -1;      ///< the event (m_near.events()) the guard below was decided for, -1 none yet

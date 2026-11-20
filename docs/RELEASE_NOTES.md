@@ -24,7 +24,7 @@ the journeys now gives a journey's length as the player plays it: a fade lies in
 had added the fades on top, so an eight-hour night read "about 9:28:34". The browser's switches above the list are wide
 enough for their labels again ("only f...", "favour...").
 
-**Night, a sleep guard for the near layer** (20.11.2026). A switch beside the Near Events controls, off by default.
+**Night, a sleep guard for the near layer** (20.11.2026). A switch beside the Near Events controls, on by default (since 21.11.).
 On, no near event rises faster over the background than 15 dB in 100 ms, and none stands more than 14 dB out of its
 own mean (as heard over the background). Every preset of the near bank was rendered as it plays and measured
 (`Tools/library/near_night.py`); the two Rene took out as noise on 19.11. (Seed Pod, Geiger Counter) break both
@@ -33,7 +33,8 @@ sonar pings -- and get, decided once as each event begins, a fade-in over its fi
 5 dB, at most 16), from their row in `Core/src/NearNight.inc`. Nothing listens while an event plays, there is no
 compressor on the sum, and when the events come and what they play stays as it was. Off, everything sounds as
 before, bit for bit (checked on twelve near presets and the soundcheck). Night belongs to the player: no preset
-switches it either way, and a session saved before it loads with it off. A new ctest (`near_night`).
+switches it either way, and a session saved before 21.11. -- before Night existed, or while it was off by default --
+loads with it on. A new ctest (`near_night`).
 
 **Never again for sound presets** (20.11.2026), the counterpart to the favourites: in the browser a ring with a bar
 beside each row's star (or **Never again** under the list) marks a preset you never want to hear again. The night

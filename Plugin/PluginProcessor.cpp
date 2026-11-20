@@ -2164,6 +2164,7 @@ int NoctuaryProcessor::midiCcFor( ParamIdE id ) const
 void NoctuaryProcessor::getStateInformation( juce::MemoryBlock &destData )
 {
     auto state = m_apvts.copyState();
+    state.setProperty( "nightDefaultOn", 1, nullptr );   // Night's default is on (21.11.2026; setStateInformation)
     if ( m_scalaText.isNotEmpty() )
     {
         state.setProperty( "scalaText", m_scalaText, nullptr );
@@ -2371,6 +2372,21 @@ void NoctuaryProcessor::setStateInformation( const void *data, int sizeInBytes )
             tree.removeProperty( "favourites", nullptr );
             tree.removeProperty( "soundPreset", nullptr );
             tree.removeProperty( "cosmosPreset", nullptr );
+            // Night became the default on 21.11.2026 (the user). A state saved before then holds the old default,
+            // off, or nothing at all (saved before Night existed): either way nobody chose it, so such a state loads
+            // with Night on. A state saved since says so (getStateInformation) and keeps what it holds.
+            if ( !tree.hasProperty( "nightDefaultOn" ) )
+            {
+                auto night = tree.getChildWithProperty( "id", "fore_night" );
+                if ( !night.isValid() )
+                {
+                    night = juce::ValueTree( "PARAM" );
+                    night.setProperty( "id", "fore_night", nullptr );
+                    tree.appendChild( night, nullptr );
+                }
+                night.setProperty( "value", 1.0f, nullptr );
+                tree.setProperty( "nightDefaultOn", 1, nullptr );
+            }
             m_apvts.replaceState( tree );
             // Make the parameter objects agree with the state that was just restored. Replacing
             // the state moves a parameter only where the value IN THE TREE changes, and a switch

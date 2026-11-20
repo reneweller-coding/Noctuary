@@ -937,8 +937,9 @@ enum class ParamIdE : int
     /// The near layer's night guard (20.11.2026, plan C3): on, an event of a near preset that would rise faster over
     /// the background, or stand further out of its own mean, than the bank's measured limits gets a longer fade-in and
     /// less level, decided once as it begins from the preset's row in Core/src/NearNight.inc. The player's setting,
-    /// never a preset's: no preset sets it or clears it. Off by default, and off it changes nothing.
-    FORE_NIGHT,   ///< the near layer's night guard (off by default)
+    /// never a preset's: no preset sets it or clears it. On by default since 21.11.2026 (the user); off, the near layer
+    /// plays as before it existed.
+    FORE_NIGHT,   ///< the near layer's night guard (on by default)
     COUNT              ///< one past the last: NumParams
 };
 
