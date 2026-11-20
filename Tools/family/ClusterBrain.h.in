@@ -425,6 +425,179 @@ inline double chordUtonality( const double *freqs, int n, double w5 = 1.0, doubl
 }
 
 /**
+ * @name One ear instead of many vetoes (plan B1, step 1, 20.11.2026)
+ *
+ * The conductor weighs an interval by harmonic entropy (intervalConsonance()), whose curve is flat below the fourth --
+ * a semitone 0.10, a whole tone 0.13, a major third 0.17 -- and four vetoes with thresholds of their own were added
+ * after the fact (againstOther, rubsOwn, stepRubs, the ban on a unison). The functions here are the first step towards
+ * one measure in their place: the tension of a note against a set of notes, made of three parts after Harrison and
+ * Pearce (Simultaneous consonance in music perception and composition, Psychological Review 127, 2020), whose
+ * composite model joins interference between partials, harmonicity and cultural familiarity:
+ *   - roughness: Hutchinson and Knopoff (1978) over the voice's own partial template, in the algebraic form of
+ *     Bigand, Parncutt and Lerdahl (1996) that Harrison and Pearce use (their best interference model, r = .77): the
+ *     critical bandwidth 1.72 f^0.65 at the mean frequency of a pair of partials, g(y) = ((y / 0.25) e^(1 - y / 0.25))^2
+ *     for y < 1.2 bandwidths and 0 beyond, summed as a_i a_j g over every pair and divided by the sum of a_i^2;
+ *     coinciding partials (within a cent) merge first, so a unison adds nothing. Register dependent by construction;
+ *   - harmonicity: chordHarmonicity() of the pair (Terhardt's virtual pitch, Parncutt's root support) at its plain
+ *     weights, as the share of an octave's; a unison counts as fully harmonic;
+ *   - harmonic entropy: intervalConsonance() as it is. Harrison and Pearce's third part is familiarity, measured on a
+ *     corpus of popular music, which this instrument has no corpus for; entropy is a model of how simple a ratio
+ *     sounds, of the harmonicity family, so it is weighted at half to count that question less than twice.
+ * The weights are not Harrison and Pearce's coefficients (-1.62 and +1.78 on their own scales, which these measures do
+ * not share): each part is divided by its standard deviation over the eleven intervals from a minor second to a major
+ * seventh at middle C, 12-TET, with the instrument's default template (twelve partials at h^-1.2), so that roughness
+ * and harmonicity speak with one voice as in the composite model, entropy with half of one, and the sum is divided by
+ * the 2.5 weights: the tension is in those standard deviations. Nothing in the instrument decides with them yet; the
+ * conductor reports them through ClusterBrain::M_Ear when a tool asks for it.
+ * @{ */
+/**
+ * @brief The three parts of a tension and the weighted sum, for one pair of tones (pairTension()) or the worst pair of a
+ *        set (noteTension()).
+ */
+struct TensionParts
+{
+    double m_rough = 0.0;    ///< Hutchinson-Knopoff roughness of the pair less the mean of each tone's own, >= 0
+    double m_disharm = 0.0;  ///< 1 - chordHarmonicity of the pair / that of an octave, 0 .. 1; 0 for a unison
+    double m_entropy = 0.0;  ///< 1 - intervalConsonance (harmonic entropy, folded into the octave), 0 .. 0.95
+    double m_total = 0.0;    ///< the weighted sum, in standard deviations of the middle-C intervals (see above)
+};
+
+/**
+ * @brief Hutchinson and Knopoff's roughness of a set of partials (1978), in Bigand, Parncutt and Lerdahl's form.
+ *
+ * Sum over every pair of partials of a_i a_j g(|f_i - f_j| / cbw), cbw = 1.72 ((f_i + f_j) / 2)^0.65 and
+ * g(y) = ((y / 0.25) e^(1 - y / 0.25))^2 below 1.2 bandwidths, 0 above, divided by the sum of a_i^2. A pair further
+ * apart than 1.2 bandwidths of its upper partial is skipped before the power is taken (the bandwidth at the mean is
+ * never wider). Pure arithmetic, no allocation.
+ * @param[in] f  frequencies, Hz, any order, positive
+ * @param[in] a  amplitudes, linear, same length
+ * @param[in] n  how many; at most 4 BrainSpectrum::Max are read
+ * @return the roughness, 0 for one partial or none; at most about 0.25 for two pure tones a quarter bandwidth apart
+ */
+inline double hkRoughness( const double *f, const double *a, int n )
+{
+    double den = 0.0;
+    for ( int i = 0; i < n; ++i ) den += a[i] * a[i];
+    if ( den <= 1.0e-24 ) return 0.0;
+    constexpr int Most = 4 * BrainSpectrum::Max;   // pairTension() hands in at most two templates
+    double        reach[Most];                     // 1.2 critical bandwidths at each partial
+    for ( int i = 0; i < n && i < Most; ++i ) reach[i] = 1.2 * 1.72 * std::pow( f[i], 0.65 );
+    double num = 0.0;
+    for ( int i = 0; i < n && i < Most; ++i )
+        for ( int j = i + 1; j < n && j < Most; ++j )
+        {
+            const double d = std::fabs( f[j] - f[i] );
+            if ( d >= ( reach[i] > reach[j] ? reach[i] : reach[j] ) ) continue;
+            const double y = d / ( 1.72 * std::pow( 0.5 * ( f[i] + f[j] ), 0.65 ) );
+            if ( y >= 1.2 ) continue;
+            const double t = y / 0.25, g = t * std::exp( 1.0 - t );
+            num += a[i] * a[j] * g * g;
+        }
+    return num / den;
+}
+
+/**
+ * @brief The tension of two tones that share a partial template: roughness, harmonicity and harmonic entropy, weighted
+ *        (see the group's description).
+ *
+ * Pure, no allocation: two fixed arrays of 2 BrainSpectrum::Max partials on the stack. An empty template (no voice
+ * parameters yet) is taken as a pure tone.
+ * @param[in]  fa     one tone, Hz, positive
+ * @param[in]  fb     the other, Hz, positive
+ * @param[in]  sp     the partial template both are sounded with
+ * @param[out] parts  receives the three parts and the sum when not null
+ * @return the tension, >= 0, in standard deviations of the middle-C intervals; 0 for a unison, symmetric in fa and fb
+ */
+inline double pairTension( double fa, double fb, const BrainSpectrum &sp, TensionParts *parts = nullptr )
+{
+    // Roughness: the pair with coinciding partials merged, less the mean of the two tones by themselves.
+    constexpr int M = BrainSpectrum::Max;
+    const int     n = sp.m_count > 0 ? ( sp.m_count < M ? sp.m_count : M ) : 1;
+    double        f[2 * M], a[2 * M];
+    for ( int i = 0; i < n; ++i )
+    {
+        f[i] = fa * ( sp.m_count > 0 ? sp.m_ratio[i] : 1.0 );
+        a[i] = sp.m_count > 0 ? sp.m_amp[i] : 1.0;
+    }
+    const double ownA = hkRoughness( f, a, n );
+    int          m = n;
+    double       fbOnly[M], abOnly[M];
+    for ( int j = 0; j < n; ++j )
+    {
+        const double fj = fb * ( sp.m_count > 0 ? sp.m_ratio[j] : 1.0 ), aj = sp.m_count > 0 ? sp.m_amp[j] : 1.0;
+        fbOnly[j] = fj;
+        abOnly[j] = aj;
+        int at = -1;
+        for ( int i = 0; i < n && at < 0; ++i )
+            if ( std::fabs( fj / f[i] - 1.0 ) < 5.78e-4 ) at = i;   // within a cent: one partial, the amplitudes add
+        if ( at >= 0 )
+            a[at] += aj;
+        else
+        {
+            f[m] = fj;
+            a[m] = aj;
+            ++m;
+        }
+    }
+    const double ownB = hkRoughness( fbOnly, abOnly, n );
+    double       rough = hkRoughness( f, a, m ) - 0.5 * ( ownA + ownB );
+    if ( rough < 0.0 ) rough = 0.0;
+    // Harmonicity of the pair, as a share of an octave's (chordHarmonicity of 1:2 is 0.8155); a unison is the most
+    // harmonic pair there is, which the chord measure's rule against two tones on one harmonic would score as none.
+    const double cents = std::fabs( 1200.0 * std::log2( fb / fa ) );
+    double       disharm = 0.0;
+    if ( cents >= 25.0 )
+    {
+        const double pair[2] = { fa, fb };
+        disharm = 1.0 - chordHarmonicity( pair, 2 ) / 0.81546487678573;
+        if ( disharm < 0.0 ) disharm = 0.0;
+    }
+    const double entropy = 1.0 - intervalConsonance( fb > fa ? fb / fa : fa / fb );   // the interval, not its inversion
+    // Each part in standard deviations of the eleven intervals m2 .. M7 at middle C, 12-TET, default template:
+    // roughness 0.1346, disharmony 0.1112, entropy 0.0526 (ambient_brain_audit --ear-calibrate prints them).
+    const double total = ( rough / 0.1346 + disharm / 0.1112 + 0.5 * entropy / 0.0526 ) / 2.5;
+    if ( parts != nullptr )
+    {
+        parts->m_rough = rough;
+        parts->m_disharm = disharm;
+        parts->m_entropy = entropy;
+        parts->m_total = total;
+    }
+    return total;
+}
+
+/**
+ * @brief The tension of one note against a set of sounding notes: the worst pair.
+ *
+ * The worst pair rather than the sum, so that one threshold means the same with two voices sounding and with ten --
+ * the four vetoes it is to replace each strike a candidate for one pair. Pure, no allocation.
+ * @param[in]  fc     the note, Hz, positive
+ * @param[in]  set    the sounding notes, Hz; non-positive entries are skipped
+ * @param[in]  n      how many; 0 gives 0
+ * @param[in]  sp     the partial template
+ * @param[out] worst  receives the parts of the worst pair when not null (all 0 for an empty set)
+ * @return the largest pairTension() of fc with a member of the set, 0 for an empty set
+ */
+inline double noteTension( double fc, const double *set, int n, const BrainSpectrum &sp, TensionParts *worst = nullptr )
+{
+    double best = 0.0;
+    if ( worst != nullptr ) *worst = TensionParts{};
+    for ( int k = 0; k < n; ++k )
+    {
+        if ( !( set[k] > 0.0 ) ) continue;
+        TensionParts tp;
+        const double t = pairTension( fc, set[k], sp, &tp );
+        if ( t > best )
+        {
+            best = t;
+            if ( worst != nullptr ) *worst = tp;
+        }
+    }
+    return best;
+}
+/** @} */
+
+/**
  * @name The tonal hierarchy: how stable each degree of a key feels.
  *
  * Krumhansl and Kessler (1982) measured it. A listener hears a context that establishes a key,
@@ -1412,9 +1585,16 @@ public:
     template <class FreqFnT>
     bool stepRubs( int arriving, int leaving, const BrainParams &p, FreqFnT &&freqOf ) const
     {
-        if ( p.m_consonance < 0.3f || arriving < 0 || leaving < 0 ) return false;
+        if ( arriving < 0 || leaving < 0 ) return false;
+        if ( p.m_consonance < 0.3f )
+        {
+            if ( M_EarStep ) earStep( arriving, leaving, false, p, freqOf );   // B1 log
+            return false;
+        }
         const double d = std::fabs( 1200.0 * std::log2( freqOf( arriving ) / freqOf( leaving ) ) );
-        return ( d > 25.0 && d < 150.0 ) || ( d > 1225.0 && d < 1350.0 );
+        const bool   rubs = ( d > 25.0 && d < 150.0 ) || ( d > 1225.0 && d < 1350.0 );
+        if ( M_EarStep ) earStep( arriving, leaving, rubs, p, freqOf );   // B1 log
+        return rubs;
     }
 
     /**
@@ -1783,6 +1963,7 @@ public:
                         }
                     }
                 }
+                if ( M_Ear ) earPivot( from, lo, hi, found, p, freqOf );   // B1 log
                 if ( found >= 0 )
                 {
                     ++m_pivotTones;
@@ -2134,84 +2315,16 @@ public:
             if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
             if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
             if ( holdsPitch( fc, freqOf ) ) continue;   // its own pitch under another key, which snapped keys give
-            const double cons = p.consonanceOf( fc, rootFreq );
-            float        w = static_cast<float>( std::pow( cons, p.m_consonance * 3.0f ) );
-            // the other conductor's notes, weighed as the root is (listenTo())
-            for ( int k = 0; k < m_otherCount; ++k )
-                w *= static_cast<float>( std::pow( p.consonanceOf( fc, m_otherHz[k] ), p.m_consonance * 3.0f ) );
-            w *= 0.6f + 0.4f * static_cast<float>( 1.0 - std::fabs( c - mid ) / half );
-            // Octave doubling is rare -- but the two rules disagree here, and the disagreement is
-            // real rather than a wrinkle to be smoothed over. "A doubling is not a new colour" is a
-            // matter of taste; harmonicity says an octave is the strongest relation two tones can
-            // have, harmonics one and two of the same series. Harmonic is what settles it: at zero
-            // the old taste rule stands untouched, and as it rises the veto softens to a
-            // preference.
-            {
-                float doubling = 0.15f + 0.6f * clampv( p.m_harmonic, 0.0f, 1.0f );
-                // Under Layers the taste rule yields to the rule book, whose table has the octave
-                // and the unison at 0.18, "always allowed, low as well"; the ceiling per octave
-                // and the spacing keep them in check. Without it the octave came out at 0.06.
-                doubling += ( 1.0f - doubling ) * clampv( p.m_layers, 0.0f, 1.0f );
-                for ( auto &s : m_slots )
-                    if ( s.m_note >= 0 && pitchClassEqual( freqOf( s.m_note ), fc ) ) w *= doubling;
-            }
-            if ( p.m_spacing != 0.0f )
-                for ( auto &s : m_slots )
-                    if ( s.m_note >= 0 ) w *= p.crowding( fc, freqOf( s.m_note ) );
-            // How far this note may stand from the one chosen before it. In Chords mode Smooth is
-            // the voice-leading distance of an exchange; in Free mode -- the mode nearly every
-            // preset uses -- it did nothing at all, although the same idea is what a line is made
-            // of: a voice that wanders steps far more often than it leaps. A weight rather than a
-            // rule, so a leap stays possible, and short-circuited at zero so a conductor that was
-            // never asked for it draws exactly what it always drew. At 0.5 a neighbour is about
-            // ten times as likely as a note an octave away.
-            if ( p.m_smooth > 0.0f && m_lastNote >= 0 )
-            {
-                const double steps = std::fabs( posOf( c, p, freqOf ) - posOf( m_lastNote, p, freqOf ) );
-                w *= static_cast<float>(
-                    std::pow( 1.0 / ( 1.0 + steps / 3.0 ), 3.0 * static_cast<double>( p.m_smooth ) ) );
-            }
-            // The register and interval rules -- roles, spacing, the third floor, the leading note,
-            // the interval colours, a swapped degree -- as one weight, shared with chooseNote().
-            w *= ruleWeight( c, low, high, rootSounding, p, freqOf );
-            if ( w <= 0.0f ) continue;   // a veto: the candidate is out, and weights[c] stays at nought
-            // Free mode weighs a candidate against the ROOT alone, which is a weaker test than
-            // the chord mode's: a note can sit well on the root and still pull the chord away
-            // from having one. Harmonic is where that is caught, and it belongs here at least as
-            // much as it belongs there -- this is the mode nearly every preset uses.
-            if ( p.m_harmonic > 0.0f )
-            {
-                double set[Slots + 1];
-                int    m = 0;
-                for ( const auto &s : m_slots )
-                    if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
-                set[m++] = fc;
-                if ( m >= 2 )
-                    w *= static_cast<float>( std::pow( std::max( harmonicityOf( set, m, p ), 1.0e-4 ),
-                                                       5.0 * static_cast<double>( p.m_harmonic ) ) );
-            }
-            if ( p.m_series > 0.0f ) w *= static_cast<float>( seriesWeight( fc, rootFreq, p ) );
-            if ( p.m_light != nullptr ) w *= p.m_light[c];   // Follow Light: where the landscape is bright
-            if ( p.m_key > 0.0f ) w *= static_cast<float>( keyWeightOf( fc, key, p.m_key, modalProfile() ) );
-            if ( p.m_even > 0.0f )
-            {
-                double set[Slots + 1];
-                int    m = 0;
-                for ( const auto &s : m_slots )
-                    if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
-                set[m++] = fc;
-                w *= static_cast<float>(
-                    std::pow( std::max( chordEvenness( set, m ), 1.0e-3 ), 5.0 * static_cast<double>( p.m_even ) ) );
-            }
-            if ( pitchClassEqual( fc, rootFreq ) ) w *= rootSounding ? 0.25f : 3.0f;   // keep a foundation
-            // Sharpening needs far more than flattening: the untouched draw is already within
-            // two per cent of the maximum entropy twelve interval classes allow (measured:
-            // 3.52 of 3.58 bits), so there is almost nowhere to go upwards and a long way down.
-            if ( lean != 0.0f ) w = std::pow( w, lean > 0.0f ? 1.0f / ( 1.0f + 2.0f * lean ) : 1.0f - 6.0f * lean );
+            const float w = freeWeight( c, fc, rootFreq, rootSounding, mid, half, lean, key, low, high, p, freqOf );
+            if ( w < 0.0f ) continue;   // a veto: the candidate is out, and weights[c] stays at nought
             weights[c] = w;
             total += w;
         }
-        if ( total <= 0.0f ) return;
+        if ( total <= 0.0f )
+        {
+            if ( M_Ear ) earFree( -1, rootSounding, mid, half, lean, key, low, high, p, freqOf );   // B1 log
+            return;
+        }
         // The root wanders on Wander, and on Root Move, which until 12.09.2026 did nothing in this
         // mode: it was read only in Chords, and Free is what every preset in the library selects.
         // One draw from the stream, once a decision, and only once the field has proved to hold a
@@ -2274,6 +2387,7 @@ public:
             weights[chosen] = 0.0f;
             chosen = -1;
         }
+        if ( M_Ear ) earFree( chosen, rootSounding, mid, half, lean, key, low, high, p, freqOf );   // B1 log
         if ( chosen < 0 ) return;
         chosen = viaDejaVu( chosen, p, -1, low, high, freqOf );
         // Three constellations are stamped here, and the first of them is the one that was missing:
@@ -3338,6 +3452,202 @@ private:
     }
 
     /**
+     * @brief Free mode's weight of a candidate that passed the vetoes: its consonance with the root and the other
+     *        conductor's notes, the register, doubling, Spacing, Smooth, the rules, Harmonic, Series, Follow Light, Key,
+     *        Even, the foundation and the homeostat's lean -- the draw of update(), moved here unchanged (plan B1) so that
+     *        the ear's log (M_Ear) can ask what a candidate a veto struck would have weighed.
+     *
+     * Pure: reads the slots and the knobs, draws nothing from the stream.
+     * @param[in] c             the candidate, MIDI
+     * @param[in] fc            its frequency, Hz
+     * @param[in] rootFreq      the root's frequency, Hz
+     * @param[in] rootSounding  a voice sounds the root's pitch class
+     * @param[in] mid           the middle of the register, MIDI
+     * @param[in] half          half its width, at least 1
+     * @param[in] lean          the homeostat's lean as of the last decision
+     * @param[in] key           the key found (Key), or none
+     * @param[in] low           bottom of the register, MIDI
+     * @param[in] high          top of the register, MIDI
+     * @param[in] p             the knobs
+     * @param[in] freqOf        frequency of a MIDI note in the engine's current scale
+     * @return the weight, >= 0; -1 when the register and interval rules veto the candidate
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    float freeWeight( int c, double fc, double rootFreq, bool rootSounding, double mid, double half, float lean,
+                      const KeyEstimate &key, int low, int high, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        const double cons = p.consonanceOf( fc, rootFreq );
+        float        w = static_cast<float>( std::pow( cons, p.m_consonance * 3.0f ) );
+        // the other conductor's notes, weighed as the root is (listenTo())
+        for ( int k = 0; k < m_otherCount; ++k )
+            w *= static_cast<float>( std::pow( p.consonanceOf( fc, m_otherHz[k] ), p.m_consonance * 3.0f ) );
+        w *= 0.6f + 0.4f * static_cast<float>( 1.0 - std::fabs( c - mid ) / half );
+        // Octave doubling is rare -- but the two rules disagree here, and the disagreement is
+        // real rather than a wrinkle to be smoothed over. "A doubling is not a new colour" is a
+        // matter of taste; harmonicity says an octave is the strongest relation two tones can
+        // have, harmonics one and two of the same series. Harmonic is what settles it: at zero
+        // the old taste rule stands untouched, and as it rises the veto softens to a
+        // preference.
+        {
+            float doubling = 0.15f + 0.6f * clampv( p.m_harmonic, 0.0f, 1.0f );
+            // Under Layers the taste rule yields to the rule book, whose table has the octave
+            // and the unison at 0.18, "always allowed, low as well"; the ceiling per octave
+            // and the spacing keep them in check. Without it the octave came out at 0.06.
+            doubling += ( 1.0f - doubling ) * clampv( p.m_layers, 0.0f, 1.0f );
+            for ( auto &s : m_slots )
+                if ( s.m_note >= 0 && pitchClassEqual( freqOf( s.m_note ), fc ) ) w *= doubling;
+        }
+        if ( p.m_spacing != 0.0f )
+            for ( auto &s : m_slots )
+                if ( s.m_note >= 0 ) w *= p.crowding( fc, freqOf( s.m_note ) );
+        // How far this note may stand from the one chosen before it. In Chords mode Smooth is
+        // the voice-leading distance of an exchange; in Free mode -- the mode nearly every
+        // preset uses -- it did nothing at all, although the same idea is what a line is made
+        // of: a voice that wanders steps far more often than it leaps. A weight rather than a
+        // rule, so a leap stays possible, and short-circuited at zero so a conductor that was
+        // never asked for it draws exactly what it always drew. At 0.5 a neighbour is about
+        // ten times as likely as a note an octave away.
+        if ( p.m_smooth > 0.0f && m_lastNote >= 0 )
+        {
+            const double steps = std::fabs( posOf( c, p, freqOf ) - posOf( m_lastNote, p, freqOf ) );
+            w *= static_cast<float>(
+                std::pow( 1.0 / ( 1.0 + steps / 3.0 ), 3.0 * static_cast<double>( p.m_smooth ) ) );
+        }
+        // The register and interval rules -- roles, spacing, the third floor, the leading note,
+        // the interval colours, a swapped degree -- as one weight, shared with chooseNote().
+        w *= ruleWeight( c, low, high, rootSounding, p, freqOf );
+        if ( w <= 0.0f ) return -1.0f;   // a veto: the candidate is out, and weights[c] stays at nought
+        // Free mode weighs a candidate against the ROOT alone, which is a weaker test than
+        // the chord mode's: a note can sit well on the root and still pull the chord away
+        // from having one. Harmonic is where that is caught, and it belongs here at least as
+        // much as it belongs there -- this is the mode nearly every preset uses.
+        if ( p.m_harmonic > 0.0f )
+        {
+            double set[Slots + 1];
+            int    m = 0;
+            for ( const auto &s : m_slots )
+                if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
+            set[m++] = fc;
+            if ( m >= 2 )
+                w *= static_cast<float>( std::pow( std::max( harmonicityOf( set, m, p ), 1.0e-4 ),
+                                                   5.0 * static_cast<double>( p.m_harmonic ) ) );
+        }
+        if ( p.m_series > 0.0f ) w *= static_cast<float>( seriesWeight( fc, rootFreq, p ) );
+        if ( p.m_light != nullptr ) w *= p.m_light[c];   // Follow Light: where the landscape is bright
+        if ( p.m_key > 0.0f ) w *= static_cast<float>( keyWeightOf( fc, key, p.m_key, modalProfile() ) );
+        if ( p.m_even > 0.0f )
+        {
+            double set[Slots + 1];
+            int    m = 0;
+            for ( const auto &s : m_slots )
+                if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
+            set[m++] = fc;
+            w *= static_cast<float>(
+                std::pow( std::max( chordEvenness( set, m ), 1.0e-3 ), 5.0 * static_cast<double>( p.m_even ) ) );
+        }
+        if ( pitchClassEqual( fc, rootFreq ) ) w *= rootSounding ? 0.25f : 3.0f;   // keep a foundation
+        // Sharpening needs far more than flattening: the untouched draw is already within
+        // two per cent of the maximum entropy twelve interval classes allow (measured:
+        // 3.52 of 3.58 bits), so there is almost nowhere to go upwards and a long way down.
+        if ( lean != 0.0f ) w = std::pow( w, lean > 0.0f ? 1.0f / ( 1.0f + 2.0f * lean ) : 1.0f - 6.0f * lean );
+        return w;
+    }
+
+    /**
+     * @brief chooseNote()'s score of a candidate that passed the vetoes, before the little life of its noise: the mean
+     *        consonance with the root and the voices that stay, raised by Tension; the other conductor's notes; the
+     *        travel; the recent notes; Key, Even, Harmonic, Series, Follow Light; doublings, the root, the rules and the
+     *        lean -- moved here unchanged (plan B1) so that the ear's log (M_Ear) can score a candidate a veto struck.
+     *
+     * Pure: reads the slots and the knobs, draws nothing from the stream.
+     * @param[in] c         the candidate, MIDI
+     * @param[in] fc        its frequency, Hz
+     * @param[in] from      the note being replaced, or -1
+     * @param[in] rootFreq  the root's frequency, Hz
+     * @param[in] key       the key found (Key), or none
+     * @param[in] lead      the voice-leading allowance in semitones, at least 0.5
+     * @param[in] lean      the homeostat's lean
+     * @param[in] rule      ruleWeight() of the candidate, > 0
+     * @param[in] p         the knobs
+     * @param[in] freqOf    frequency of a MIDI note in the engine's current scale
+     * @return the score, >= 0; -1 when the candidate lies beyond the allowance
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    double chordScore( int c, double fc, int from, double rootFreq, const KeyEstimate &key, float lead, float lean,
+                       float rule, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        // How it sits against the voices that stay, and against the root.
+        double fit = p.consonanceOf( fc, rootFreq );
+        int    n = 1;
+        for ( const auto &s : m_slots )
+            if ( s.m_note >= 0 )
+            {
+                fit += p.consonanceOf( fc, freqOf( s.m_note ) );
+                ++n;
+            }
+        fit /= n;
+        double score = std::pow( fit, 1.0 + 2.5 * ( 1.0 - clampv( p.m_chordTension, 0.0f, 1.0f ) ) );
+        // the other conductor's notes, weighed as Free mode weighs the root (listenTo()): each by itself, not in the
+        // mean, where a semitone to one of them counted half against a consonance to the root
+        for ( int k = 0; k < m_otherCount; ++k )
+            score *= std::pow( p.consonanceOf( fc, m_otherHz[k] ), static_cast<double>( p.m_consonance ) * 3.0 );
+        // Voice leading: the further this voice has to travel, the worse, and beyond the
+        // allowance it is not considered at all.
+        if ( from >= 0 )
+        {
+            // In semitones -- which a MIDI step is only when the keys snap to the scale (F6).
+            const double steps = std::fabs( posOf( c, p, freqOf ) - posOf( from, p, freqOf ) );
+            if ( steps > lead ) return -1.0;
+            score *= 1.0 - 0.75 * ( steps / lead );
+        }
+        // What left recently is worth less. Without this the harmony keeps picking up the note
+        // it has just put down -- it is the nearest candidate and it fitted a moment ago, so
+        // it wins again -- and a run with little room to move (a pinned root and a narrow
+        // allowance) circles a handful of chords for ever instead of going somewhere. The
+        // penalty fades with age, so nothing is banned, only postponed.
+        for ( int i = 0; i < Recent; ++i )
+            if ( m_recent[i] == c )
+            {
+                const int age = ( m_recentHead - 1 - i + 2 * Recent ) % Recent;   // 0 = just left
+                score *= 0.12 + 0.11 * static_cast<double>( age );
+            }
+        if ( p.m_key > 0.0f ) score *= keyWeightOf( fc, key, p.m_key, modalProfile() );
+        if ( p.m_even > 0.0f )
+        {
+            double set[Slots + 1];
+            int    m = 0;
+            for ( const auto &s : m_slots )
+                if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
+            set[m++] = fc;
+            score *= std::pow( std::max( chordEvenness( set, m ), 1.0e-3 ), 5.0 * static_cast<double>( p.m_even ) );
+        }
+        // And how the WHOLE chord would sit, if the conductor has been told to listen for it.
+        // The pairwise score above cannot hear this: it asks how each pair sounds, never
+        // whether the set has one root.
+        if ( p.m_harmonic > 0.0f )
+        {
+            double set[Slots + 1];
+            int    m = 0;
+            for ( const auto &s : m_slots )
+                if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
+            set[m++] = fc;
+            const double h = harmonicityOf( set, m, p );
+            score *= std::pow( std::max( h, 1.0e-4 ), 5.0 * static_cast<double>( p.m_harmonic ) );
+        }
+        if ( p.m_series > 0.0f ) score *= seriesWeight( fc, rootFreq, p );
+        if ( p.m_light != nullptr ) score *= p.m_light[c];   // Follow Light: where the landscape is bright
+        // An octave of something already sounding is a doubling, not a new colour.
+        for ( const auto &s : m_slots )
+            if ( s.m_note >= 0 && pitchClassEqual( freqOf( s.m_note ), fc ) ) score *= 0.2;
+        if ( pitchClassEqual( fc, rootFreq ) ) score *= 0.5;
+        score *= rule;
+        if ( lean < 0.0f ) score = std::pow( score, 1.0 - 6.0 * static_cast<double>( lean ) );
+        return score;
+    }
+
+    /**
      * @brief The best note to bring in, given the ones that stay.
      *
      * `from` is the note being replaced, or
@@ -3398,72 +3708,8 @@ private:
             if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
             if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
             if ( holdsPitch( fc, freqOf ) ) continue;   // its own pitch under another key, which snapped keys give
-            // How it sits against the voices that stay, and against the root.
-            double fit = p.consonanceOf( fc, rootFreq );
-            int    n = 1;
-            for ( const auto &s : m_slots )
-                if ( s.m_note >= 0 )
-                {
-                    fit += p.consonanceOf( fc, freqOf( s.m_note ) );
-                    ++n;
-                }
-            fit /= n;
-            double score = std::pow( fit, 1.0 + 2.5 * ( 1.0 - clampv( p.m_chordTension, 0.0f, 1.0f ) ) );
-            // the other conductor's notes, weighed as Free mode weighs the root (listenTo()): each by itself, not in the
-            // mean, where a semitone to one of them counted half against a consonance to the root
-            for ( int k = 0; k < m_otherCount; ++k )
-                score *= std::pow( p.consonanceOf( fc, m_otherHz[k] ), static_cast<double>( p.m_consonance ) * 3.0 );
-            // Voice leading: the further this voice has to travel, the worse, and beyond the
-            // allowance it is not considered at all.
-            if ( from >= 0 )
-            {
-                // In semitones -- which a MIDI step is only when the keys snap to the scale (F6).
-                const double steps = std::fabs( posOf( c, p, freqOf ) - posOf( from, p, freqOf ) );
-                if ( steps > lead ) continue;
-                score *= 1.0 - 0.75 * ( steps / lead );
-            }
-            // What left recently is worth less. Without this the harmony keeps picking up the note
-            // it has just put down -- it is the nearest candidate and it fitted a moment ago, so
-            // it wins again -- and a run with little room to move (a pinned root and a narrow
-            // allowance) circles a handful of chords for ever instead of going somewhere. The
-            // penalty fades with age, so nothing is banned, only postponed.
-            for ( int i = 0; i < Recent; ++i )
-                if ( m_recent[i] == c )
-                {
-                    const int age = ( m_recentHead - 1 - i + 2 * Recent ) % Recent;   // 0 = just left
-                    score *= 0.12 + 0.11 * static_cast<double>( age );
-                }
-            if ( p.m_key > 0.0f ) score *= keyWeightOf( fc, key, p.m_key, modalProfile() );
-            if ( p.m_even > 0.0f )
-            {
-                double set[Slots + 1];
-                int    m = 0;
-                for ( const auto &s : m_slots )
-                    if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
-                set[m++] = fc;
-                score *= std::pow( std::max( chordEvenness( set, m ), 1.0e-3 ), 5.0 * static_cast<double>( p.m_even ) );
-            }
-            // And how the WHOLE chord would sit, if the conductor has been told to listen for it.
-            // The pairwise score above cannot hear this: it asks how each pair sounds, never
-            // whether the set has one root.
-            if ( p.m_harmonic > 0.0f )
-            {
-                double set[Slots + 1];
-                int    m = 0;
-                for ( const auto &s : m_slots )
-                    if ( s.m_note >= 0 && m < Slots ) set[m++] = freqOf( s.m_note );
-                set[m++] = fc;
-                const double h = harmonicityOf( set, m, p );
-                score *= std::pow( std::max( h, 1.0e-4 ), 5.0 * static_cast<double>( p.m_harmonic ) );
-            }
-            if ( p.m_series > 0.0f ) score *= seriesWeight( fc, rootFreq, p );
-            if ( p.m_light != nullptr ) score *= p.m_light[c];   // Follow Light: where the landscape is bright
-            // An octave of something already sounding is a doubling, not a new colour.
-            for ( const auto &s : m_slots )
-                if ( s.m_note >= 0 && pitchClassEqual( freqOf( s.m_note ), fc ) ) score *= 0.2;
-            if ( pitchClassEqual( fc, rootFreq ) ) score *= 0.5;
-            score *= rule;
-            if ( lean < 0.0f ) score = std::pow( score, 1.0 - 6.0 * static_cast<double>( lean ) );
+            double score = chordScore( c, fc, from, rootFreq, key, lead, lean, rule, p, freqOf );
+            if ( score < 0.0 ) continue;   // beyond the voice-leading allowance
             score *= lean > 0.0f ? ( 0.85 - 0.7 * static_cast<double>( lean ) ) +
                                        ( 0.3 + 1.4 * static_cast<double>( lean ) ) * m_rng.uniform()
                                  : 0.85 + 0.3 * m_rng.uniform();   // a little life, so it is not a machine
@@ -3473,6 +3719,7 @@ private:
                 best = c;
             }
         }
+        if ( M_Ear ) earChoose( from, best, bestScore, outScore != nullptr, low, high, p, freqOf );   // B1 log
         if ( outScore != nullptr ) *outScore = best >= 0 ? bestScore : 0.0;
         return best;
     }
@@ -3883,6 +4130,94 @@ public:
      */
     static inline void ( *M_OffWhy )( int note, const char *why, double age ) = nullptr;
 
+    /**
+     * @name The ear's log (plan B1, step 1, 20.11.2026)
+     *
+     * Every decision the conductor takes about a note, reported with both verdicts: which candidates today's vetoes
+     * struck and by which rule, and the tension of each candidate against what sounds (noteTension()), so the two can
+     * be compared over the library before the vetoes are replaced by one threshold. Off unless M_Ear is set; nothing in
+     * the instrument sets it. The report recomputes what it needs with the pure helpers the draws use (freeWeight(),
+     * chordScore(), the vetoes themselves) and changes nothing, so a conductor plays the same with it as without, down
+     * to the random stream. Tools/render/brain_audit.cpp prints it under AMBIENT_BRAIN_EAR.
+     * @{ */
+    static constexpr unsigned EarSounding = 1;        ///< sounding(): a voice of this conductor holds the key
+    static constexpr unsigned EarResting = 2;         ///< resting(): the pitch rests after its release (Retrigger)
+    static constexpr unsigned EarOtherUnison = 4;     ///< againstOther(): the other conductor's pitch, within 25 cents
+    static constexpr unsigned EarOtherRub = 8;        ///< againstOther(): a semitone, major seventh or tritone to it
+    static constexpr unsigned EarOwnRub = 16;         ///< rubsOwn(): a minor second or ninth from a voice that stays
+    static constexpr unsigned EarOwnPitch = 32;       ///< holdsPitch(): its own pitch under another key
+    static constexpr unsigned EarRules = 64;          ///< the register and interval rules veto it (ruleWeight, admissible)
+    static constexpr unsigned EarHeard = 128;         ///< Chords: the constellation was heard lately
+    static constexpr unsigned EarFromPitch = 256;     ///< Chords: the note replaced, or its pitch under another key
+    static constexpr unsigned EarLead = 512;          ///< Chords: beyond the voice-leading allowance
+    static constexpr unsigned EarPerfect = 1024;      ///< pivot: a perfect consonance to both roots (the first tier)
+    static constexpr unsigned EarConsonant = 2048;    ///< pivot: a consonance to both roots (the second tier)
+    /** @brief Which decision a report is about. */
+    enum class EarKindE : int
+    {
+        FREE_DRAW = 0,
+        CHOOSE,
+        TRIAL,
+        PIVOT,
+        DEJAVU
+    };
+    /** @var EarKindE::FREE_DRAW
+     *  @brief Free mode's weighted draw (update()); weight is the draw's weight. */
+    /** @var EarKindE::CHOOSE
+     *  @brief chooseNote(): Chords' exchange or fill, a Blend note; weight is the score before its noise. */
+    /** @var EarKindE::TRIAL
+     *  @brief chooseNote() asked by Smooth for one voice of several; the exchange made is one of them. */
+    /** @var EarKindE::PIVOT
+     *  @brief The pivot tone of a changeover: the first candidate in search order that fits; weight unused. */
+    /** @var EarKindE::DEJAVU
+     *  @brief The deja vu ring offers a past note: one candidate, taken or not. */
+    /** @brief One candidate of a decision, with both verdicts. */
+    struct EarCandidate
+    {
+        int          m_note = -1;     ///< MIDI
+        double       m_hz = 0.0;      ///< as the tuning plays it
+        unsigned     m_struck = 0;    ///< the Ear* bits of every rule that strikes it, each asked by itself
+        double       m_weight = 0.0;  ///< its weight (Free) or score before noise (Chords) as the decision had it, 0 when struck
+        double       m_would = 0.0;   ///< the same as if none of the bits EarOtherUnison .. EarOwnPitch had struck it
+        double       m_own = 0.0;     ///< noteTension() against this conductor's voices that stay
+        double       m_left = 0.0;    ///< against its voices on their way out (due, Overlap, the one being exchanged)
+        double       m_other = 0.0;   ///< against the other conductor's notes (listenTo())
+        TensionParts m_worst;         ///< the parts of the worst pair, staying voices and the other's together
+        int          m_order = 0;     ///< pivot: the place in the search, from 0
+        double       m_ownAt = 0.0;   ///< the staying voice m_own was measured against, Hz; 0 when none sounds
+        double       m_otherAt = 0.0; ///< the other conductor's note m_other was measured against, Hz; 0 when none
+    };
+    /** @brief The decision a run of EarCandidate reports belongs to. */
+    struct EarDecision
+    {
+        const ClusterBrain *m_who = nullptr;           ///< which conductor
+        EarKindE            m_kind = EarKindE::FREE_DRAW;   ///< which decision
+        const BrainParams  *m_params = nullptr;        ///< the knobs it was taken under
+        int                 m_from = -1;               ///< the note replaced (Chords), avoided (deja vu), or -1
+        int                 m_chosen = -1;             ///< what the decision chose, -1 for nothing
+        double              m_best = 0.0;              ///< Chords: the winner's score with its noise
+        int                 m_root = -1;               ///< the root, MIDI
+        int                 m_ownCount = 0;            ///< voices that stay
+        int                 m_leftCount = 0;           ///< voices on their way out
+        int                 m_otherCount = 0;          ///< the other conductor's notes
+        double              m_own[Slots] = {};         ///< their frequencies, Hz
+        double              m_left[2 * Slots + 1] = {};   ///< Hz
+        double              m_other[2 * Slots] = {};   ///< Hz
+    };
+    /**
+     * @brief The ear's log: called once with a decision and no candidate, then once per candidate of it.
+     *
+     * Single-threaded tools only; one pointer for every conductor.
+     */
+    static inline void ( *M_Ear )( const EarDecision &d, const EarCandidate *c ) = nullptr;
+    /**
+     * @brief The ear's log of stepRubs(): every time a new note and the voice it follows are compared, the verdict and
+     *        the tension of the pair (Free mode asks once per tick while the voice waits; a reader keeps the first).
+     */
+    static inline void ( *M_EarStep )( const ClusterBrain *who, int arriving, int leaving, bool rubs,
+                                       const TensionParts &t ) = nullptr;
+    /** @} */
+
 private:
     /**
      * @brief Tells M_OffWhy why a note ends, when it is set.
@@ -3894,6 +4229,257 @@ private:
     {
         if ( M_OffWhy ) M_OffWhy( note, why, age );
     }
+
+    /**
+     * @name The ear's log, the reporting side (see M_Ear)
+     * @{ */
+    /**
+     * @brief Fills a decision's header: who, the knobs, the root and the three sets of what sounds.
+     * @param[out] d       the decision
+     * @param[in]  kind    which decision
+     * @param[in]  p       the knobs
+     * @param[in]  freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earHeader( EarDecision &d, EarKindE kind, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        d.m_who = this;
+        d.m_kind = kind;
+        d.m_params = &p;
+        d.m_root = m_root;
+        for ( const auto &s : m_slots )
+        {
+            if ( s.m_note < 0 ) continue;
+            if ( s.m_remaining >= 0.0 )
+                d.m_own[d.m_ownCount++] = freqOf( s.m_note );   // the set rubsOwn() reads
+            else
+                d.m_left[d.m_leftCount++] = freqOf( s.m_note );   // Free: due, on its way out
+        }
+        for ( const auto &l : m_leaving )
+            if ( l.m_note >= 0 ) d.m_left[d.m_leftCount++] = freqOf( l.m_note );
+        if ( m_extraHeard >= 0 ) d.m_left[d.m_leftCount++] = freqOf( m_extraHeard );
+        for ( int k = 0; k < m_otherCount; ++k ) d.m_other[d.m_otherCount++] = m_otherHz[k];
+    }
+    /**
+     * @brief The candidate's verdicts under the vetoes that every decision shares, and its tensions.
+     * @param[out] e       the candidate; m_note set by the caller
+     * @param[in]  d       its decision, header filled
+     * @param[in]  p       the knobs
+     * @param[in]  freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earJudge( EarCandidate &e, const EarDecision &d, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        const int c = e.m_note;
+        e.m_hz = freqOf( c );
+        if ( sounding( c ) ) e.m_struck |= EarSounding;
+        if ( resting( c, p, freqOf ) ) e.m_struck |= EarResting;
+        bool unison = false;
+        for ( int k = 0; k < m_otherCount; ++k )
+            if ( std::fabs( 1200.0 * std::log2( e.m_hz / m_otherHz[k] ) ) < 25.0 ) unison = true;
+        if ( unison ) e.m_struck |= EarOtherUnison;
+        if ( !unison && againstOther( e.m_hz, p ) ) e.m_struck |= EarOtherRub;
+        if ( rubsOwn( e.m_hz, p, freqOf ) ) e.m_struck |= EarOwnRub;
+        if ( holdsPitch( e.m_hz, freqOf ) ) e.m_struck |= EarOwnPitch;
+        const BrainSpectrum pure;
+        const BrainSpectrum &sp = p.m_spectrum != nullptr ? *p.m_spectrum : pure;
+        TensionParts         a, b;
+        // noteTension() by hand, to know which note the worst pair is with
+        auto worstOf = [&]( const double *set, int n, TensionParts &parts, double &at )
+        {
+            double best = 0.0;
+            parts = TensionParts{};
+            at = 0.0;
+            for ( int k = 0; k < n; ++k )
+            {
+                TensionParts tp;
+                const double t = pairTension( e.m_hz, set[k], sp, &tp );
+                if ( at == 0.0 || t > best )
+                {
+                    best = t;
+                    parts = tp;
+                    at = set[k];
+                }
+            }
+            return best;
+        };
+        e.m_own = worstOf( d.m_own, d.m_ownCount, a, e.m_ownAt );
+        e.m_left = noteTension( e.m_hz, d.m_left, d.m_leftCount, sp );
+        e.m_other = worstOf( d.m_other, d.m_otherCount, b, e.m_otherAt );
+        e.m_worst = e.m_other > e.m_own ? b : a;
+    }
+    /**
+     * @brief Reports Free mode's draw (M_Ear): every key of the register with its verdicts and weights.
+     * @param[in] chosen        the draw's note before the deja vu ring, -1 when it found none
+     * @param[in] rootSounding  as the draw had it
+     * @param[in] mid           the middle of the register, MIDI
+     * @param[in] half          half its width
+     * @param[in] lean          the homeostat's lean
+     * @param[in] key           the key found, or none
+     * @param[in] low           bottom of the register, MIDI
+     * @param[in] high          top of the register, MIDI
+     * @param[in] p             the knobs
+     * @param[in] freqOf        frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earFree( int chosen, bool rootSounding, double mid, double half, float lean, const KeyEstimate &key, int low,
+                  int high, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        EarDecision d;
+        earHeader( d, EarKindE::FREE_DRAW, p, freqOf );
+        d.m_chosen = chosen;
+        M_Ear( d, nullptr );
+        const double rootFreq = freqOf( m_root );
+        for ( int c = low; c <= high && c < 128; ++c )
+        {
+            EarCandidate e;
+            e.m_note = c;
+            earJudge( e, d, p, freqOf );
+            const float w = freeWeight( c, e.m_hz, rootFreq, rootSounding, mid, half, lean, key, low, high, p, freqOf );
+            if ( w < 0.0f ) e.m_struck |= EarRules;
+            e.m_would = w > 0.0f ? static_cast<double>( w ) : 0.0;
+            e.m_weight = ( e.m_struck & ( EarSounding | EarResting | EarOtherUnison | EarOtherRub | EarOwnRub | EarOwnPitch |
+                                          EarRules ) ) == 0
+                             ? e.m_would
+                             : 0.0;
+            M_Ear( d, &e );
+        }
+    }
+    /**
+     * @brief Reports a chooseNote() (M_Ear): every key of the register with its verdicts and scores before noise.
+     * @param[in] from    the note being replaced, or -1
+     * @param[in] best    the winner, or -1
+     * @param[in] score   the winner's score with its noise
+     * @param[in] trial   asked by Smooth for one voice of several
+     * @param[in] low     bottom of the register, MIDI
+     * @param[in] high    top of the register, MIDI
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earChoose( int from, int best, double score, bool trial, int low, int high, const BrainParams &p,
+                    FreqFnT &&freqOf ) const
+    {
+        EarDecision d;
+        earHeader( d, trial ? EarKindE::TRIAL : EarKindE::CHOOSE, p, freqOf );
+        d.m_from = from;
+        d.m_chosen = best;
+        d.m_best = best >= 0 ? score : 0.0;
+        M_Ear( d, nullptr );
+        const double      rootFreq = freqOf( m_root );
+        const KeyEstimate key = p.m_key > 0.0f ? findKey( m_pcWeight, modalProfile() ) : KeyEstimate{};
+        const float       lead = std::max( p.m_voiceLead, 0.5f );
+        const float       lean = leanOf( p );
+        bool              rootSounding = false;
+        for ( const auto &s : m_slots )
+            if ( s.m_note >= 0 && pitchClassEqual( freqOf( s.m_note ), rootFreq ) ) rootSounding = true;
+        for ( int c = low; c <= high && c < 128; ++c )
+        {
+            EarCandidate e;
+            e.m_note = c;
+            earJudge( e, d, p, freqOf );
+            if ( from >= 0 && ( c == from || std::fabs( 1200.0 * std::log2( e.m_hz / freqOf( from ) ) ) < 25.0 ) )
+                e.m_struck |= EarFromPitch;
+            if ( constellationHeard( c, p, freqOf ) ) e.m_struck |= EarHeard;
+            const float rule = ruleWeight( c, low, high, rootSounding, p, freqOf );
+            if ( rule <= 0.0f )
+                e.m_struck |= EarRules;
+            else
+            {
+                const double sc = chordScore( c, e.m_hz, from, rootFreq, key, lead, lean, rule, p, freqOf );
+                if ( sc < 0.0 ) e.m_struck |= EarLead;
+                e.m_would = sc > 0.0 ? sc : 0.0;
+            }
+            e.m_weight = ( e.m_struck & ( EarSounding | EarResting | EarOtherUnison | EarOtherRub | EarOwnRub | EarOwnPitch |
+                                          EarRules | EarHeard | EarFromPitch | EarLead ) ) == 0
+                             ? e.m_would
+                             : 0.0;
+            M_Ear( d, &e );
+        }
+    }
+    /**
+     * @brief Reports the pivot tone's search (M_Ear): every key of the register in search order, with the tiers it fits.
+     * @param[in] from    where the search began, MIDI
+     * @param[in] lo      bottom of the register, MIDI
+     * @param[in] hi      top of the register, MIDI
+     * @param[in] found   the pivot tone found, or -1
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earPivot( int from, int lo, int hi, int found, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        EarDecision d;
+        earHeader( d, EarKindE::PIVOT, p, freqOf );
+        d.m_chosen = found;
+        M_Ear( d, nullptr );
+        const int span = std::max( 1, hi - lo + 1 );
+        for ( int i = 0; i < span; ++i )
+        {
+            const int c = lo + ( ( from - lo + i ) % span );
+            if ( c < 0 || c > 127 ) continue;
+            EarCandidate e;
+            e.m_note = c;
+            e.m_order = i;
+            earJudge( e, d, p, freqOf );
+            const int a = icOf( c, m_pivotOld, p, freqOf ), b = icOf( c, m_pivotTo, p, freqOf );
+            if ( perfectTo( a ) && perfectTo( b ) ) e.m_struck |= EarPerfect;
+            if ( consonantTo( a ) && consonantTo( b ) ) e.m_struck |= EarConsonant;
+            if ( !admissible( c, lo, hi, p, freqOf, true ) ) e.m_struck |= EarRules;
+            M_Ear( d, &e );
+        }
+    }
+    /**
+     * @brief Reports the deja vu ring's offer (M_Ear): one candidate, the past note, taken or not.
+     * @param[in] old     the note the ring offered, MIDI
+     * @param[in] avoid   the note being replaced, or -1
+     * @param[in] out     what the ring returns: old when taken
+     * @param[in] low     one end of the register
+     * @param[in] high    the other end
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earDejavu( int old, int avoid, int out, int low, int high, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        EarDecision d;
+        earHeader( d, EarKindE::DEJAVU, p, freqOf );
+        d.m_from = avoid;
+        d.m_chosen = out;
+        M_Ear( d, nullptr );
+        EarCandidate e;
+        e.m_note = old;
+        earJudge( e, d, p, freqOf );
+        if ( avoid >= 0 && ( old == avoid || std::fabs( 1200.0 * std::log2( e.m_hz / freqOf( avoid ) ) ) < 25.0 ) )
+            e.m_struck |= EarFromPitch;
+        if ( !admissible( old, low, high, p, freqOf ) ) e.m_struck |= EarRules;
+        M_Ear( d, &e );
+    }
+    /**
+     * @brief Reports stepRubs()'s verdict (M_EarStep) with the tension of the pair.
+     * @param[in] arriving  the new note, MIDI
+     * @param[in] leaving   the voice it follows, MIDI
+     * @param[in] rubs      stepRubs()'s verdict
+     * @param[in] p         the knobs
+     * @param[in] freqOf    frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void earStep( int arriving, int leaving, bool rubs, const BrainParams &p, FreqFnT &&freqOf ) const
+    {
+        const BrainSpectrum  pure;
+        const BrainSpectrum &sp = p.m_spectrum != nullptr ? *p.m_spectrum : pure;
+        TensionParts         t;
+        pairTension( freqOf( arriving ), freqOf( leaving ), sp, &t );
+        M_EarStep( this, arriving, leaving, rubs, t );
+    }
+    /** @} */
     /**
      * @brief How long until the next event.
      *
@@ -4066,6 +4652,7 @@ private:
                  admissible( old, low, high, p, freqOf ) &&
                  !againstOther( freqOf( old ), p ) && !rubsOwn( freqOf( old ), p, freqOf ) )
                 out = old;
+            if ( M_Ear ) earDejavu( old, avoid, out, low, high, p, freqOf );   // B1 log
         }
         m_ring[m_ringPos] = out;
         return out;

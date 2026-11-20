@@ -13,6 +13,8 @@ elseif(APPLE)
     target_link_options(ambient_selftest PRIVATE "LINKER:-stack_size,0x3F00000")
 endif()
 add_test(NAME selftest COMMAND ambient_selftest)
+# The tension of a note against a set (plan B1) by itself, in a second: the measure the vetoes are to become.
+add_test(NAME note_tension COMMAND ambient_selftest --only testNoteTension)
 
 # The handovers between the rendering thread and the one that answers the mouse, under load. No
 # framework, so it builds on Linux too -- which is the only place a sanitizer can watch a data

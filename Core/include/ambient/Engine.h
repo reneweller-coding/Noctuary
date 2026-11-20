@@ -1312,6 +1312,12 @@ public:
      * @{ */
     /** @brief The partial template the conductor judges intervals with. @return amplitudes and ratios of the current timbre */
     const BrainSpectrum &brainSpectrum() const { return m_brainSpec; }
+    /**
+     * @brief Which of the two conductors an address is, for a tool reading ClusterBrain::M_Ear (plan B1).
+     * @param[in] b  the conductor a report came from
+     * @return 1 for the foreground conductor (m_brain), 2 for Brain 2, 0 for neither
+     */
+    int conductorIndex( const ClusterBrain *b ) const { return b == &m_brain ? 1 : ( b == &m_brain2 ? 2 : 0 ); }
     /** @brief The tide's current offset. @return cents */
     float tideNow() const { return m_tide * m_tideDrift.value(); }
     /**

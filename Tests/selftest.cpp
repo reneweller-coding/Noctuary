@@ -14346,6 +14346,62 @@ void testNeverAgain()
 }
 
 /**
+ * @brief One ear instead of many vetoes, step 1 (plan B1, 20.11.2026): the tension of a note against a set
+ *        (noteTension(), pairTension()) on fixed spectra.
+ *
+ * The four vetoes the conductor grew (againstOther, rubsOwn, stepRubs, the ban on a unison) are to become one threshold
+ * on one measure; this test pins the measure itself before anything decides with it. With twelve harmonic partials
+ * at h^-1.2 (the default voice) and with a pure tone: at middle C a semitone is tenser than a major third, and a major
+ * third than a fifth; the tension is the same whichever tone comes first; a unison and an empty set are 0; and the
+ * register matters as the roughness model says it must -- a major third two octaves below middle C is rougher and
+ * tenser than at middle C (the critical band is a wider interval down there), while above it the third's roughness is
+ * nearly gone. Harmonicity and harmonic entropy do not know the register at all, so the last checks are the ones that
+ * fail when the roughness part is taken out.
+ */
+void testNoteTension()
+{
+    std::printf( "\n--- the tension of a note against a set (plan B1) ---\n" );
+    BrainSpectrum tmpl, pure;
+    tmpl.m_count = 12;
+    for ( int h = 1; h <= 12; ++h )
+    {
+        tmpl.m_ratio[h - 1] = h;
+        tmpl.m_amp[h - 1] = std::pow( static_cast<double>( h ), -1.2 );
+    }
+    const double c4 = 261.6255653005986, c2 = c4 / 4.0, c6 = c4 * 4.0;
+    auto         st = []( double f, int k ) { return f * std::pow( 2.0, k / 12.0 ); };
+    for ( const BrainSpectrum *sp : { &tmpl, &pure } )
+    {
+        const char  *what = sp == &pure ? "pure tone" : "harmonic template";
+        const double m2 = pairTension( c4, st( c4, 1 ), *sp ), m3 = pairTension( c4, st( c4, 4 ), *sp ),
+                     p5 = pairTension( c4, st( c4, 7 ), *sp );
+        std::printf( "  [probe] %s at C4: semitone %.2f, major third %.2f, fifth %.2f\n", what, m2, m3, p5 );
+        CHECK( m2 > m3 && m3 > p5, "tension: a semitone above a major third above a fifth at middle C" );
+        double asym = 0.0;
+        for ( int k = 1; k <= 24; ++k )
+            asym = std::max( asym, std::fabs( pairTension( c4, st( c4, k ), *sp ) - pairTension( st( c4, k ), c4, *sp ) ) );
+        CHECK( asym < 1.0e-9, "tension: the same whichever of the two tones comes first" );
+        CHECK( pairTension( c4, c4, *sp ) == 0.0, "tension: a unison is 0" );
+        CHECK( noteTension( c4, nullptr, 0, *sp ) == 0.0, "tension: against nothing it is 0" );
+    }
+    // The register, as the roughness model predicts: a major third at C2 against at C4 and C6.
+    TensionParts lo, mid, hi;
+    pairTension( c2, st( c2, 4 ), tmpl, &lo );
+    pairTension( c4, st( c4, 4 ), tmpl, &mid );
+    pairTension( c6, st( c6, 4 ), tmpl, &hi );
+    std::printf( "  [probe] major third, roughness (tension): C2 %.3f (%.2f), C4 %.3f (%.2f), C6 %.3f (%.2f)\n", lo.m_rough,
+                 lo.m_total, mid.m_rough, mid.m_total, hi.m_rough, hi.m_total );
+    CHECK( lo.m_rough > 2.0 * mid.m_rough && mid.m_rough > hi.m_rough,
+           "tension: a major third is rougher low than at middle C, and least rough high" );
+    CHECK( lo.m_total > mid.m_total + 0.2, "tension: a major third at C2 is tenser than at C4" );
+    // A set: the worst pair decides.
+    const double set[3] = { c4, st( c4, 7 ), st( c4, 12 ) };
+    double       worst = 0.0;
+    for ( double f : set ) worst = std::max( worst, pairTension( st( c4, 1 ), f, tmpl ) );
+    CHECK( noteTension( st( c4, 1 ), set, 3, tmpl ) == worst, "tension: against a set, its worst pair" );
+}
+
+/**
  * @brief Runs the test functions in turn -- all of them, or those the arguments pick -- and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -14451,6 +14507,7 @@ int main( int argc, char **argv )
         { "testNearTaste", testNearTaste },
         { "testNightDirector", testNightDirector },
         { "testNeverAgain", testNeverAgain },
+        { "testNoteTension", testNoteTension },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );
     std::vector<bool> pick( static_cast<size_t>( count ), true );
