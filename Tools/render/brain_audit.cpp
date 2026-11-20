@@ -15,6 +15,9 @@
  * `--presets file` audits every preset named in the file (one name per line) in turn, each on a fresh engine, each
  * introduced by its `# preset <name>` line (20.11.2026, Tools/library/music_audit.py): loading the library takes
  * longer than an hour of one preset's conductors, so a process per preset spent most of a full-library run loading.
+ *
+ * Under AMBIENT_BRAIN_OFFWHY each conductor NoteOff is preceded by a W,\<note\>,\<why\>,\<age\> line naming the path
+ * that ended the note (ClusterBrain::M_OffWhy), for the study of notes shorter than their attack (20.11.2026).
  * @author Rene Weller
  */
 #include "ambient/Engine.h"
@@ -117,6 +120,12 @@ int main( int argc, char **argv )
     if ( std::getenv( "AMBIENT_BRAIN_TRACE" ) )
         ClusterBrain::M_Trace = []( const char *what, int note, uint32_t key )
         { std::printf( "T,%.4f,%s,%d,%u\n", now, what, note, key ); };
+    // With AMBIENT_BRAIN_OFFWHY set, every NoteOff of a conductor is preceded by W,\<note\>,\<why\>,\<age\>: the path
+    // that ended it and, in Chords mode, the seconds it had sounded when it left its slot (ClusterBrain::M_OffWhy;
+    // 20.11.2026, plan F1). The E line that follows carries the time and the conductor.
+    if ( std::getenv( "AMBIENT_BRAIN_OFFWHY" ) )
+        ClusterBrain::M_OffWhy = []( int note, const char *why, double age )
+        { std::printf( "W,%d,%s,%.3f\n", note, why, age ); };
     for ( const int presetIndex : presetIndices )
     {
         auto engine = std::make_unique<Engine>();   // an Engine is large; the heap, not the stack -- and a fresh one each

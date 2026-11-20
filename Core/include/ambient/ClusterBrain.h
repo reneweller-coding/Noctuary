@@ -1477,12 +1477,20 @@ public:
     {
         for ( auto &s : m_slots )
         {
-            if ( s.m_note >= 0 ) emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, s.m_note, 0.0f } );
+            if ( s.m_note >= 0 )
+            {
+                traceOff( s.m_note, "off", -1.0 );
+                emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, s.m_note, 0.0f } );
+            }
             s = Slot{};
         }
         for ( auto &l : m_leaving )
         {
-            if ( l.m_note >= 0 ) emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, l.m_note, 0.0f } );
+            if ( l.m_note >= 0 )
+            {
+                traceOff( l.m_note, "off", -1.0 );
+                emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, l.m_note, 0.0f } );
+            }
             l = Leaving{};
         }
         for ( int i = 0; i < count && i < Slots; ++i )
@@ -1617,6 +1625,7 @@ public:
                 for ( auto &s : m_slots )
                     if ( s.m_note >= 0 )
                     {
+                        traceOff( s.m_note, "off", -1.0 );
                         emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, s.m_note, 0.0f } );
                         s.m_note = -1;
                     }
@@ -1644,8 +1653,11 @@ public:
             int n = 0;
             for ( auto &s : m_slots )
                 if ( s.m_note >= 0 )
-                    s.m_remaining =
-                        std::min( s.m_remaining, 0.5 + 1.5 * static_cast<double>( m_rng.uniform() ) + 0.7 * n++ );
+                {
+                    const double rest = 0.5 + 1.5 * static_cast<double>( m_rng.uniform() ) + 0.7 * n++;
+                    if ( rest < s.m_remaining ) s.m_why = "silence";
+                    s.m_remaining = std::min( s.m_remaining, rest );
+                }
         }
         if ( anchorNote >= 0 ) m_root = anchorNote;
 
@@ -1742,7 +1754,10 @@ public:
                              ( p.m_mode == BrainModeE::CHORDS
                                    ? ( ( s.m_note - m_pivotOld ) % 12 + 12 ) % 12 == 0
                                    : pitchClassEqual( freqOf( s.m_note ), freqOf( m_pivotOld ) ) ) )
+                        {
+                            if ( s.m_remaining > 1.0 && p.m_mode != BrainModeE::CHORDS ) s.m_why = "changeover";
                             s.m_remaining = std::min( s.m_remaining, 1.0 );
+                        }
                 m_pivotTo = m_pivotOld = -1;
             }
         }
@@ -1821,6 +1836,7 @@ public:
             }
             if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) ) continue;
             if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the constellation that ends here
+            traceOff( s.m_note, s.m_why, -1.0 );
             emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, s.m_note, 0.0f } );
             if ( s.m_note >= 0 && s.m_note < 128 ) m_pitchOffAt[static_cast<size_t>( s.m_note )] = m_now;
             m_sinceOff = 0.0;
@@ -1908,7 +1924,8 @@ public:
             if ( p.m_overlap > 0.0f && activeCount() > density ) return;
             // Room is full: half of the time retire a note, else wait.
             if ( m_rng.uniform() >= 0.5f ) return;
-            int best = -1;
+            int         best = -1;
+            const char *why = "retire";   // for M_OffWhy only
             // Which one leaves is half the question. By the clock alone -- the note that would end
             // soonest -- whatever the additions gained in harmonicity is given back one voice at a
             // time, and the chord never settles anywhere. With Harmonic up, the voice that goes is
@@ -1917,6 +1934,7 @@ public:
             // exactly as it always did, down to the random stream.
             if ( p.m_harmonic > 0.0f && m_rng.uniform() < p.m_harmonic )
             {
+                why = "retire_harmonic";
                 double bestH = -1.0;
                 for ( int i = 0; i < Slots; ++i )
                 {
@@ -1951,6 +1969,7 @@ public:
                 // through the expiry above, which is where that wait is kept. It used to be the
                 // other way round, note-off and note-on on one tick, so every change landed on a
                 // chord one voice thinner than the one the listener had been hearing.
+                if ( m_slots[best].m_remaining > -1.0e-9 ) m_slots[best].m_why = why;
                 m_slots[best].m_remaining = -1.0e-9;   // due, and already "on its way out" to chordKey()
             }
             else
@@ -1959,6 +1978,11 @@ public:
                 // clocks that guard note-offs apply to it: it waits its turn rather than slipping past.
                 if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) ) return;
                 if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );
+                if ( M_OffWhy )   // a voice already due goes for its own reason
+                    traceOff( m_slots[best].m_note,
+                              m_slots[best].m_remaining <= 0.0 ? m_slots[best].m_why
+                                                               : ( activeCount() > density ? "density" : why ),
+                              -1.0 );
                 emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, m_slots[best].m_note, 0.0f } );
                 if ( m_slots[best].m_note >= 0 && m_slots[best].m_note < 128 )
                     m_pitchOffAt[static_cast<size_t>( m_slots[best].m_note )] = m_now;
@@ -2162,6 +2186,7 @@ public:
             if ( s.m_note >= 0 ) continue;
             s.m_note = chosen;
             s.m_remaining = holdFor( chosen, low, high, p, isLowest( chosen ) );
+            s.m_why = m_holdWhy;
             const float vel = velocityFor( chosen, low, high, p );   // nearness, not loudness (Top Soft)
             s.m_vel = vel;
             m_sinceOn = 0.0;
@@ -2203,6 +2228,7 @@ public:
                     if ( s.m_note >= 0 ) continue;
                     s.m_note = next;
                     s.m_remaining = holdFor( next, low, high, p, isLowest( next ) );
+                    s.m_why = m_holdWhy;
                     s.m_startIn = 0.001 + m_rng.uniform() * window;
                     s.m_vel = velocityFor( next, low, high, p );
                     placed = true;
@@ -2230,6 +2256,7 @@ private:
          *         once it sounds. */
         double m_startIn = 0.0;
         float  m_vel = 0.7f;   ///< the velocity it was, or will be, started with
+        const char *m_why = "hold";   ///< Free mode: what last set its end, for M_OffWhy only
     };
 
     // ---------------------------------------------------------------- chords
@@ -2275,6 +2302,7 @@ private:
             if ( l.m_in > 0.0 ) continue;
             if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) ) continue;
             if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the constellation that ends here
+            traceOff( l.m_note, l.m_why, l.m_age );
             emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, l.m_note, 0.0f } );
             if ( l.m_note < 128 ) m_pitchOffAt[static_cast<size_t>( l.m_note )] = m_now;
             m_sinceOff = 0.0;
@@ -2383,12 +2411,15 @@ private:
                     {
                         l.m_note = leaving;
                         l.m_in = static_cast<double>( p.m_overlap );
+                        l.m_why = "shed";
+                        l.m_age = m_slots[oldest].m_remaining;
                         parked = true;
                         break;
                     }
             if ( !parked )
             {
                 if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );
+                traceOff( leaving, "shed", m_slots[oldest].m_remaining );
                 emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, leaving, 0.0f } );
                 if ( leaving >= 0 && leaving < 128 ) m_pitchOffAt[static_cast<size_t>( leaving )] = m_now;
                 m_sinceOff = 0.0;
@@ -2486,14 +2517,18 @@ private:
                 if ( l.m_note < 0 )
                 {
                     l.m_note = leaving;
-                    l.m_in = stepRubs( arriving, leaving, p, freqOf )
-                                 ? std::min( static_cast<double>( p.m_overlap ), 2.0 )
-                                 : static_cast<double>( p.m_overlap );
+                    const bool rubs = stepRubs( arriving, leaving, p, freqOf );
+                    l.m_in = rubs ? std::min( static_cast<double>( p.m_overlap ), 2.0 )
+                                  : static_cast<double>( p.m_overlap );
+                    l.m_why = rubs && p.m_overlap > 2.0f ? "steprub"
+                                                          : ( moving == oldest ? "exchange" : "exchange_smooth" );
+                    l.m_age = m_slots[moving].m_remaining;
                     parked = true;
                     break;
                 }
         if ( !parked )
         {
+            traceOff( leaving, moving == oldest ? "exchange" : "exchange_smooth", m_slots[moving].m_remaining );
             emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, leaving, 0.0f } );
             if ( leaving >= 0 && leaving < 128 ) m_pitchOffAt[static_cast<size_t>( leaving )] = m_now;
             m_sinceOff = 0.0;
@@ -2539,6 +2574,7 @@ private:
                 // here -- the pivot tone of a changeover -- is a voice like any other. At nought it
                 // expired at once and went ten seconds later: every changeover ended with a note-off.
                 s.m_remaining = p.m_mode == BrainModeE::CHORDS ? 0.0 : holdFor( note, lo, hi, p, isLowest( note ) );
+                s.m_why = m_holdWhy;
                 m_sinceOn = 0.0;
                 s.m_vel = velocityFor( note, lo, hi, p );
                 emit( BrainEvent{ BrainEvent::TypeE::NOTE_ON, note, s.m_vel } );
@@ -2563,7 +2599,11 @@ private:
     void cutRubbingOverlaps( int arriving, const BrainParams &p, FreqFnT &&freqOf )
     {
         for ( auto &l : m_leaving )
-            if ( l.m_note >= 0 && stepRubs( arriving, l.m_note, p, freqOf ) ) l.m_in = std::min( l.m_in, 2.0 );
+            if ( l.m_note >= 0 && stepRubs( arriving, l.m_note, p, freqOf ) )
+            {
+                if ( l.m_in > 2.0 ) l.m_why = "cutrub";   // for M_OffWhy only
+                l.m_in = std::min( l.m_in, 2.0 );
+            }
     }
 
     /**
@@ -3075,6 +3115,7 @@ private:
     {
         const float hmin = std::min( p.m_holdMin, p.m_holdMax ), hmax = std::max( p.m_holdMin, p.m_holdMax );
         double      hold = hmin + p.shaped( m_rng.uniform() ) * ( hmax - hmin );
+        m_holdWhy = "hold";   // for M_OffWhy only
         // The foundation lies while what stands on it moves: the lowest voice keeps its note for
         // Bass Hold times everyone else's, which at 6 is table 2's three to twenty minutes. The
         // other roles have their own times under Layers -- a second foundation voice four times
@@ -3086,6 +3127,7 @@ private:
             const double t = static_cast<double>( clampv( note, low, high ) - low ) / static_cast<double>( high - low );
             const double role = t < 0.15 ? 4.0 : ( t < 0.55 ? 1.0 : ( t < 0.85 ? 0.5 : 0.25 ) );
             hold *= 1.0 + static_cast<double>( p.m_layers ) * ( role - 1.0 );
+            if ( role < 1.0 ) m_holdWhy = "hold_layers";
         }
         return hold;
     }
@@ -3617,8 +3659,34 @@ public:
      * One pointer for every conductor in the process.
      */
     static inline void ( *M_Trace )( const char *what, int note, uint32_t key ) = nullptr;
+    /**
+     * @brief A hook for the audit tool: why a note ended, given just before its NoteOff is emitted (20.11.2026, plan
+     *        F1, the notes that end before their attack has swelled in).
+     *
+     * Off unless set; nothing in the instrument sets it, and the reasons are kept whether or not it is, a pointer
+     * written where a note's end is decided, so the conductor plays the same either way. `why` names the path that
+     * decided the end: "hold" (its hold ran out), "hold_layers" (a hold that Layers shortened for its role), "silence"
+     * (a planned silence), "changeover" (the end of a changeover asked it to go), "retire" and "retire_harmonic" (the
+     * room was full: the voice ending soonest, or the one whose leaving helps the chord most), "density" (Density
+     * came down), "exchange" (Chords: the oldest voice exchanged), "exchange_smooth" (Smooth chose it), "shed" (Chords:
+     * above the density), "steprub" and "cutrub" (its Overlap cut to two seconds beside a note a minor second or
+     * ninth away, at its exchange or later), "off" (the conductor switched off, or a crossfade's adopt()). `age` is
+     * the seconds it had sounded when the voice left its slot (Chords; -1 in Free mode, where the hold is the clock).
+     * Tools/render/brain_audit.cpp prints it under AMBIENT_BRAIN_OFFWHY. One pointer for every conductor.
+     */
+    static inline void ( *M_OffWhy )( int note, const char *why, double age ) = nullptr;
 
 private:
+    /**
+     * @brief Tells M_OffWhy why a note ends, when it is set.
+     * @param[in] note  the MIDI note whose NoteOff follows
+     * @param[in] why   the path that decided it (see M_OffWhy)
+     * @param[in] age   seconds it had sounded when it left its slot, or -1
+     */
+    static void traceOff( int note, const char *why, double age )
+    {
+        if ( M_OffWhy ) M_OffWhy( note, why, age );
+    }
     /**
      * @brief How long until the next event.
      *
@@ -3855,6 +3923,7 @@ private:
     bool   m_settled = false;          ///< the cluster has once stood at its density: the exposition is over
     int    m_extraHeard =
         -1;   ///< Chords: the voice being exchanged, out of its slot for the vote, still heard by the rules
+    const char *m_holdWhy = "hold";   ///< what the last holdFor() did, "hold" or "hold_layers", for M_OffWhy only
     /**
      * @brief Chords: a voice that has been exchanged keeps sounding until the one replacing it has been
      * in the air for Overlap seconds (R5.4), and only then is let go.
@@ -3864,8 +3933,10 @@ private:
      */
     struct Leaving
     {
-        int    m_note = -1;   ///< the MIDI note sounding out its overlap, -1 for an empty place
-        double m_in = 0.0;    ///< seconds until it may be let go
+        int         m_note = -1;            ///< the MIDI note sounding out its overlap, -1 for an empty place
+        double      m_in = 0.0;             ///< seconds until it may be let go
+        const char *m_why = "exchange";     ///< why it left its slot, for M_OffWhy only
+        double      m_age = 0.0;            ///< seconds it had sounded when it left its slot, for M_OffWhy only
     };
     Leaving m_leaving[Slots];   ///< the voices on their way out, one place per slot at most
     float   m_degreeBias[12] = {
