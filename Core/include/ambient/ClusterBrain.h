@@ -954,6 +954,53 @@ struct BrainParams
     const float *m_light =
         nullptr;   ///< Follow Light (Empyrean): per MIDI note a factor on the candidate, from where the landscape is bright (1 leaves it alone); null: none
     /**
+     * @name Arrival: no note ends before its attack has brought it in (20.11.2026, plan F1b)
+     *
+     * Rene: the conductor strikes notes that make no sense under long attack times. Measured over the library (F1):
+     * 13591 of 786882 notes ended before their attack was over -- a tone that swells and is gone before it is there.
+     * Four paths made almost all of them: Chords' exchange took a young voice (Smooth looks at travel, not at age),
+     * Free's retirement when the room is full did the same, the pivot tone of a changeover was let go with the old
+     * root's voices at the window's end, and Layers cut the holds of the upper roles below the attack. Each repair is
+     * one bit of m_arrive, and every bit is off by default: a library rendered before them renders as it did, down to
+     * the random stream. The engine fills m_attack and m_velAttack from the voice's own envelope knobs, so the
+     * conductor knows how long each of its voices takes to arrive (attackFor()).
+     * @{ */
+    static constexpr int ArrivePivot = 1;    ///< Free: the pivot tone is not let go with the old root's voices
+    static constexpr int ArriveLayers = 2;   ///< Free: Layers never shortens a hold below the voice's attack
+    static constexpr int ArriveChords = 4;   ///< Chords: no exchange of a voice that has not arrived; the decision waits
+    static constexpr int ArriveFree = 8;     ///< Free, room full: no voice that has not arrived is retired; it waits
+    static constexpr int ArriveAll = 15;     ///< the four repairs together
+    static constexpr int ArriveChordsOldest =
+        16;   ///< with ArriveChords: when no voice has arrived the oldest goes instead of the decision waiting
+    static constexpr int ArriveChordsChangeover =
+        32;   ///< Chords, measurement only (not in ArriveAll): the old root's voices are asked to go at a changeover's end
+    static constexpr int ArriveChangeoverYoung =
+        64;   ///< Free, measurement only (not in ArriveAll): a changeover's end lets no voice go that has not arrived
+    int   m_arrive = 0;        ///< which arrival repairs are on, a sum of the Arrive bits; 0 is the conductor as it was
+    float m_attack = 0.0f;     ///< the voice's written attack in seconds (Attack, as modulated); 0: unknown, nothing waits
+    float m_velAttack = 0.0f;  ///< the voice's Vel to Attack, -1 .. 1: how its velocity scales that attack per note
+    /**
+     * @brief How long a voice started at this velocity takes to reach its level: the written attack times the factor
+     *        Vel to Attack makes of it, as Voice::noteOn computes it (the envelope reaches 1 after that time).
+     * @param[in] vel  the velocity the conductor starts the note with, 0 .. 1
+     * @return seconds; 0 when the attack is unknown
+     */
+    double attackFor( float vel ) const
+    {
+        if ( m_attack <= 0.0f ) return 0.0;
+        const float mul = m_velAttack != 0.0f
+                              ? std::pow( 4.0f, m_velAttack * ( 0.5f - clampv( vel, 0.0f, 1.0f ) ) * 2.0f )
+                              : 1.0f;
+        return static_cast<double>( m_attack * mul );
+    }
+    /**
+     * @brief Whether an arrival repair is on and can act: its bit is set and the attack is known.
+     * @param[in] bit  one of the Arrive bits
+     * @return true when the repair applies
+     */
+    bool arriving( int bit ) const { return ( m_arrive & bit ) != 0 && m_attack > 0.0f; }
+    /** @} */
+    /**
      * @brief The equivalent rectangular bandwidth of the auditory filter at f, in hertz
      * (Glasberg and Moore 1990): ERB = 24.7 (0.00437 f + 1).
      * @param[in] f  centre frequency, Hz
@@ -1078,7 +1125,10 @@ public:
             s.m_note = -1;
             s.m_remaining = 0.0;
             s.m_startIn = 0.0;
+            s.m_age = 0.0;
+            s.m_arrival = 0.0;
         }
+        m_pivotTone = -1;
         for ( float &w : m_pcWeight ) w = 0.0f;
         m_root = rootNote;
         m_timer = 1.0;
@@ -1731,6 +1781,7 @@ public:
                     ++m_pivotTones;
                     if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the set that ends here
                     startIn( found, p, emit );
+                    m_pivotTone = found;   // read by ArrivePivot alone
                     if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );
                 }
             }
@@ -1755,10 +1806,48 @@ public:
                                    ? ( ( s.m_note - m_pivotOld ) % 12 + 12 ) % 12 == 0
                                    : pitchClassEqual( freqOf( s.m_note ), freqOf( m_pivotOld ) ) ) )
                         {
-                            if ( s.m_remaining > 1.0 && p.m_mode != BrainModeE::CHORDS ) s.m_why = "changeover";
+                            // Arrival, pivot (20.11.2026, plan F1b): the pivot tone was chosen because it belongs to
+                            // both roots, and the search lets it be the old root's own pitch class -- so it was asked
+                            // to go with the old harmony it was there to join to the new one, a window plus a second
+                            // after it began (1432 of the library's 13591 notes that ended before their attack). It
+                            // keeps its hold. Nothing is drawn here, so the stream is untouched until its end moves.
+                            if ( s.m_note == m_pivotTone && p.m_mode != BrainModeE::CHORDS &&
+                                 ( p.m_arrive & BrainParams::ArrivePivot ) != 0 )
+                                continue;
+                            // Measurement only (not in ArriveAll): neither does a voice that has not arrived -- most
+                            // often one the draw struck on the old root inside the window, before the root moved.
+                            if ( p.m_mode != BrainModeE::CHORDS && p.arriving( BrainParams::ArriveChangeoverYoung ) &&
+                                 !arrived( s, p ) )
+                                continue;
+                            // Measurement only (not in ArriveAll): in Chords mode `remaining` is the voice's age, and
+                            // the line below makes the old root's voice the youngest instead of asking it to go (plan
+                            // A4 port note). This asks it to go within a second, as Free mode does.
+                            if ( p.m_mode == BrainModeE::CHORDS && s.m_note != m_pivotTone &&
+                                 ( p.m_arrive & BrainParams::ArriveChordsChangeover ) != 0 )
+                            {
+                                bool parked = false;
+                                for ( auto &l : m_leaving )
+                                    if ( l.m_note < 0 )
+                                    {
+                                        l.m_note = s.m_note;
+                                        l.m_in = 1.0;
+                                        l.m_why = "changeover";
+                                        l.m_age = s.m_remaining;
+                                        parked = true;
+                                        break;
+                                    }
+                                if ( parked )
+                                {
+                                    s.m_note = -1;
+                                    continue;
+                                }
+                            }
+                            if ( s.m_remaining > 1.0 && p.m_mode != BrainModeE::CHORDS )
+                                s.m_why = s.m_note == m_pivotTone ? "changeover_pivot" : "changeover";
                             s.m_remaining = std::min( s.m_remaining, 1.0 );
                         }
                 m_pivotTo = m_pivotOld = -1;
+                m_pivotTone = -1;
             }
         }
 
@@ -1814,6 +1903,7 @@ public:
         {
             if ( s.m_note < 0 ) continue;
             s.m_remaining -= dt;
+            s.m_age += dt;
             if ( s.m_remaining > 0.0 ) continue;
             // Two guards on letting go. Overlap keeps a voice sounding until the one that replaces
             // it has been in the air for its seconds, so no change ever lands on an empty chord;
@@ -1926,6 +2016,13 @@ public:
             if ( m_rng.uniform() >= 0.5f ) return;
             int         best = -1;
             const char *why = "retire";   // for M_OffWhy only
+            // Arrival, Free (20.11.2026, plan F1b): neither way of choosing asked how long the voice had been
+            // sounding, and the one that would end soonest was often one Layers had just given a short hold -- 3699 of
+            // the library's notes went before their attack was over. With the bit on, only a voice that has arrived
+            // (or is due anyway) may be retired; when none has, the decision waits until the first one arrives. Only
+            // at the target: above it Density came down, and that shedding is left as it was.
+            const bool spare = p.arriving( BrainParams::ArriveFree ) && activeCount() == density;
+            auto       may = [&]( const Slot &s ) { return !spare || s.m_remaining <= 0.0 || arrived( s, p ); };
             // Which one leaves is half the question. By the clock alone -- the note that would end
             // soonest -- whatever the additions gained in harmonicity is given back one voice at a
             // time, and the chord never settles anywhere. With Harmonic up, the voice that goes is
@@ -1938,7 +2035,7 @@ public:
                 double bestH = -1.0;
                 for ( int i = 0; i < Slots; ++i )
                 {
-                    if ( m_slots[i].m_note < 0 ) continue;
+                    if ( m_slots[i].m_note < 0 || !may( m_slots[i] ) ) continue;
                     double rest[Slots];
                     int    m = 0;
                     for ( int j = 0; j < Slots; ++j )
@@ -1955,11 +2052,16 @@ public:
             {
                 double rem = 1e12;
                 for ( int i = 0; i < Slots; ++i )
-                    if ( m_slots[i].m_note >= 0 && m_slots[i].m_remaining < rem )
+                    if ( m_slots[i].m_note >= 0 && m_slots[i].m_remaining < rem && may( m_slots[i] ) )
                     {
                         rem = m_slots[i].m_remaining;
                         best = i;
                     }
+            }
+            if ( best < 0 && spare )
+            {
+                m_timer = std::min( m_timer, untilArrival( p ) );   // the decision waits for the first arrival
+                return;
             }
             if ( best < 0 ) return;
             if ( p.m_overlap > 0.0f && activeCount() == density )
@@ -2189,6 +2291,10 @@ public:
             s.m_why = m_holdWhy;
             const float vel = velocityFor( chosen, low, high, p );   // nearness, not loudness (Top Soft)
             s.m_vel = vel;
+            s.m_age = 0.0;
+            s.m_arrival = p.attackFor( vel );
+            s.m_remaining = keepArrival( s.m_remaining, vel, p );
+            s.m_why = m_holdWhy;
             m_sinceOn = 0.0;
             emit( BrainEvent{ BrainEvent::TypeE::NOTE_ON, chosen, vel } );
             kick( p );
@@ -2231,6 +2337,10 @@ public:
                     s.m_why = m_holdWhy;
                     s.m_startIn = 0.001 + m_rng.uniform() * window;
                     s.m_vel = velocityFor( next, low, high, p );
+                    s.m_age = 0.0;
+                    s.m_arrival = p.attackFor( s.m_vel );
+                    s.m_remaining = keepArrival( s.m_remaining, s.m_vel, p );
+                    s.m_why = m_holdWhy;
                     placed = true;
                     break;
                 }
@@ -2257,6 +2367,8 @@ private:
         double m_startIn = 0.0;
         float  m_vel = 0.7f;   ///< the velocity it was, or will be, started with
         const char *m_why = "hold";   ///< Free mode: what last set its end, for M_OffWhy only
+        double      m_age = 0.0;      ///< Free mode: seconds since the note was placed (Chords mode counts it in remaining)
+        double m_arrival = 0.0;   ///< seconds the voice's attack takes at its velocity (BrainParams::attackFor); 0: unknown
     };
 
     // ---------------------------------------------------------------- chords
@@ -2360,6 +2472,7 @@ private:
                         s.m_remaining = 0.0;
                         s.m_startIn = 0.001 + m_rng.uniform() * window;
                         s.m_vel = velocityFor( next, low, high, p );
+                        s.m_arrival = p.attackFor( s.m_vel );
                         placed = true;
                         break;
                     }
@@ -2427,6 +2540,34 @@ private:
             m_slots[oldest].m_note = -1;
             return;
         }
+        // Arrival, Chords (20.11.2026, plan F1b): Smooth tries every voice and keeps the exchange that travels least,
+        // whatever the voice's age, so a voice that came ten to twenty-five seconds ago went under an attack of fifty
+        // (5389 of the library's 13591 notes that ended before their attack, the Overlap cut beside a semitone
+        // included). With the bit on only a voice that has arrived may be exchanged -- without Smooth, the oldest of
+        // those. When none has, the decision waits for the first one (or, with ArriveChordsOldest, the oldest goes as
+        // it always did). Decided before the dice of the root, so a decision that waits draws nothing.
+        bool onlyArrived = false;
+        if ( p.arriving( BrainParams::ArriveChords ) )
+        {
+            int    first = -1;
+            double firstAge = -1.0;
+            for ( int i = 0; i < Slots; ++i )
+                if ( m_slots[i].m_note >= 0 && arrived( m_slots[i], p ) && m_slots[i].m_remaining > firstAge )
+                {
+                    firstAge = m_slots[i].m_remaining;
+                    first = i;
+                }
+            if ( first >= 0 )
+            {
+                oldest = first;   // the oldest of the voices that have arrived
+                onlyArrived = true;
+            }
+            else if ( ( p.m_arrive & BrainParams::ArriveChordsOldest ) == 0 )
+            {
+                m_timer = std::min( m_timer, untilArrival( p ) );
+                return;
+            }
+        }
         // The root may travel with the chord, which is what turns a voicing change into a
         // progression; without it the harmony circles one centre for ever. The same chance as
         // Free mode's, Wander included -- Chords read Root Move alone, and at the rule book's
@@ -2439,8 +2580,9 @@ private:
                 wanderRoot( low, high, freqOf, p );
         }
 
-        int moving = oldest, arriving = -1;
-        if ( p.m_smooth > 0.0f )
+        int        moving = oldest, arriving = -1;
+        const bool oldestGoes = p.arriving( BrainParams::ArriveChords ) && !onlyArrived;   // none arrived, Oldest
+        if ( p.m_smooth > 0.0f && !oldestGoes )
         {
             // Try them all and keep the exchange that moves the chord least for what it gains.
             // The distance a chord travels is the sum of what its voices move under the cheapest
@@ -2451,7 +2593,7 @@ private:
             double bestQ = -1.0;
             for ( int i = 0; i < Slots; ++i )
             {
-                if ( m_slots[i].m_note < 0 ) continue;
+                if ( m_slots[i].m_note < 0 || ( onlyArrived && !arrived( m_slots[i], p ) ) ) continue;
                 const int was = m_slots[i].m_note;
                 // Out of its slot so that it does not vote on its successor -- but still heard by
                 // the rules, since it sounds for the overlap beside whatever replaces it. Unheard,
@@ -2547,7 +2689,9 @@ private:
             rememberChord( chordKey( -1, freqOf, true ) );
         }
         m_sinceOn = 0.0;
-        emit( BrainEvent{ BrainEvent::TypeE::NOTE_ON, arriving, velocityFor( arriving, low, high, p ) } );
+        const float vel = velocityFor( arriving, low, high, p );
+        m_slots[moving].m_arrival = p.attackFor( vel );   // its m_vel is left as it was: a crossfade adopts that
+        emit( BrainEvent{ BrainEvent::TypeE::NOTE_ON, arriving, vel } );
     }
 
     /**
@@ -2577,6 +2721,13 @@ private:
                 s.m_why = m_holdWhy;
                 m_sinceOn = 0.0;
                 s.m_vel = velocityFor( note, lo, hi, p );
+                s.m_age = 0.0;
+                s.m_arrival = p.attackFor( s.m_vel );
+                if ( p.m_mode != BrainModeE::CHORDS )
+                {
+                    s.m_remaining = keepArrival( s.m_remaining, s.m_vel, p );
+                    s.m_why = m_holdWhy;
+                }
                 emit( BrainEvent{ BrainEvent::TypeE::NOTE_ON, note, s.m_vel } );
                 return;
             }
@@ -3116,6 +3267,7 @@ private:
         const float hmin = std::min( p.m_holdMin, p.m_holdMax ), hmax = std::max( p.m_holdMin, p.m_holdMax );
         double      hold = hmin + p.shaped( m_rng.uniform() ) * ( hmax - hmin );
         m_holdWhy = "hold";   // for M_OffWhy only
+        m_holdDrawn = hold;   // for keepArrival(): the hold before Layers scaled it
         // The foundation lies while what stands on it moves: the lowest voice keeps its note for
         // Bass Hold times everyone else's, which at 6 is table 2's three to twenty minutes. The
         // other roles have their own times under Layers -- a second foundation voice four times
@@ -3130,6 +3282,52 @@ private:
             if ( role < 1.0 ) m_holdWhy = "hold_layers";
         }
         return hold;
+    }
+
+    /**
+     * @brief Arrival, Layers (BrainParams::ArriveLayers): a hold Layers shortened for an upper role is kept at least as
+     *        long as the voice's attack -- but never longer than the hold drawn before Layers scaled it.
+     *
+     * Called where a Free-mode note is placed, once its velocity (and so its attack) is known, right after holdFor().
+     * Draws nothing: with the bit off, or where Layers lengthened or left the hold, it returns the hold unchanged. A hold
+     * it lengthens is labelled "hold" for M_OffWhy (the caller copies m_holdWhy after it).
+     * @param[in] hold  the hold holdFor() returned
+     * @param[in] vel   the velocity the note starts with
+     * @param[in] p     the knobs: Arrive, Attack, Vel to Attack
+     * @return the hold to use, seconds
+     */
+    double keepArrival( double hold, float vel, const BrainParams &p )
+    {
+        if ( !p.arriving( BrainParams::ArriveLayers ) || hold >= m_holdDrawn ) return hold;
+        const double kept = std::max( hold, std::min( m_holdDrawn, p.attackFor( vel ) ) );
+        if ( kept > hold ) m_holdWhy = "hold";   // for M_OffWhy only: what is left short is the draw's own doing
+        return kept;
+    }
+
+    /**
+     * @brief Whether a voice has arrived: it has sounded at least as long as its attack takes (Slot::m_arrival).
+     * @param[in] s  the slot, sounding
+     * @param[in] p  the knobs: the mode says where the slot keeps its age
+     * @return true once its attack is over, or when its attack is unknown
+     */
+    static bool arrived( const Slot &s, const BrainParams &p )
+    {
+        return ( p.m_mode == BrainModeE::CHORDS ? s.m_remaining : s.m_age ) >= s.m_arrival;
+    }
+
+    /**
+     * @brief Seconds until the first sounding voice that has not arrived will have: when a decision that waits for an
+     *        arrival can be made.
+     * @param[in] p  the knobs: the mode says where the slots keep their age
+     * @return seconds, at least a hundredth; a large number when nothing sounds
+     */
+    double untilArrival( const BrainParams &p ) const
+    {
+        double soonest = 1.0e9;
+        for ( const auto &s : m_slots )
+            if ( s.m_note >= 0 )
+                soonest = std::min( soonest, s.m_arrival - ( p.m_mode == BrainModeE::CHORDS ? s.m_remaining : s.m_age ) );
+        return std::max( soonest, 0.01 );
     }
 
     /**
@@ -3501,6 +3699,7 @@ private:
             m_pivotOld = m_root;
             m_pivotLeft = static_cast<double>( p.m_pivot );
             m_pivotAnnounced = false;
+            m_pivotTone = -1;
             return;
         }
         setRoot( best, p );
@@ -3666,7 +3865,8 @@ public:
      * Off unless set; nothing in the instrument sets it, and the reasons are kept whether or not it is, a pointer
      * written where a note's end is decided, so the conductor plays the same either way. `why` names the path that
      * decided the end: "hold" (its hold ran out), "hold_layers" (a hold that Layers shortened for its role), "silence"
-     * (a planned silence), "changeover" (the end of a changeover asked it to go), "retire" and "retire_harmonic" (the
+     * (a planned silence), "changeover" (the end of a changeover asked it to go; "changeover_pivot" when it was the
+     * changeover's own pivot tone), "retire" and "retire_harmonic" (the
      * room was full: the voice ending soonest, or the one whose leaving helps the chord most), "density" (Density
      * came down), "exchange" (Chords: the oldest voice exchanged), "exchange_smooth" (Smooth chose it), "shed" (Chords:
      * above the density), "steprub" and "cutrub" (its Overlap cut to two seconds beside a note a minor second or
@@ -3924,6 +4124,8 @@ private:
     int    m_extraHeard =
         -1;   ///< Chords: the voice being exchanged, out of its slot for the vote, still heard by the rules
     const char *m_holdWhy = "hold";   ///< what the last holdFor() did, "hold" or "hold_layers", for M_OffWhy only
+    double      m_holdDrawn = 0.0;    ///< the last holdFor()'s draw before Layers scaled it, for keepArrival()
+    int m_pivotTone = -1;   ///< the pivot tone the running changeover began, for BrainParams::ArrivePivot; -1 when none
     /**
      * @brief Chords: a voice that has been exchanged keeps sounding until the one replacing it has been
      * in the air for Overlap seconds (R5.4), and only then is let go.

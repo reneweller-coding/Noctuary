@@ -13561,6 +13561,210 @@ void testChangeoverByPitch()
     CHECK( wrong <= windows / 10, "changeover: voices on other pitches are not asked to go" );
 }
 
+/** @brief What M_OffWhy reported for the NoteOff about to be emitted (testConductorArrives): the note, -1 when none. */
+static int g_arriveWhyNote = -1;
+/** @brief The path that note ends by, as M_OffWhy names it (testConductorArrives). */
+static const char *g_arriveWhy = "?";
+
+/** @brief The tally of one run of testConductorArrives' draws. */
+struct ArriveTallyS
+{
+    int                        m_notes = 0;   ///< conductor notes that ended
+    std::map<std::string, int> m_short;       ///< notes that ended before their attack, by the path that ended them
+    uint64_t                   m_hash = 1469598103934665603ull;   ///< FNV-1a over every conductor event
+};
+
+/**
+ * @brief One of testConductorArrives' fixed parameter draws, as key=value pairs the render tools' --set takes.
+ *
+ * Free and Chords alternate; the rest is drawn from a fixed stream, each value rounded to a tenth so that the same
+ * draw can be replayed with `ambient_brain_audit --set` (which is how the hash of the conductor before the arrival
+ * repairs was taken). Long attacks, short holds, Layers, Harmonic, Smooth, Pivot and Overlap: the paths that let a
+ * note go before its attack.
+ * @param[in] k  the draw, 0 ..
+ * @return the parameters, in the order they are set
+ */
+static std::vector<std::pair<std::string, float>> arriveDraw( int k )
+{
+    uint64_t x = 0x9E3779B97F4A7C15ull * static_cast<uint64_t>( k + 1 );
+    auto     u = [&x]()
+    {
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        return static_cast<double>( ( x * 2685821657736338717ull ) >> 11 ) / 9007199254740992.0;
+    };
+    auto tenth = []( double v ) { return static_cast<float>( std::round( v * 10.0 ) / 10.0 ); };
+    const bool                                 chords = k % 2 == 1;
+    std::vector<std::pair<std::string, float>> set;
+    set.emplace_back( "brain_on", 1.0f );
+    set.emplace_back( "auto_mode", chords ? 1.0f : 0.0f );
+    set.emplace_back( "attack", tenth( 15.0 + 40.0 * u() ) );
+    set.emplace_back( "env_vel_attack", tenth( -0.6 + 1.2 * u() ) );
+    set.emplace_back( "brain_density", static_cast<float>( 3 + static_cast<int>( 5.0 * u() ) ) );
+    set.emplace_back( "brain_rate", tenth( 8.0 + 40.0 * u() ) );
+    set.emplace_back( "auto_rate", tenth( 8.0 + 40.0 * u() ) );
+    const float hmin = tenth( 10.0 + 40.0 * u() );
+    set.emplace_back( "brain_hold_min", hmin );
+    set.emplace_back( "brain_hold_max", tenth( hmin + 20.0 + 80.0 * u() ) );
+    const double layers = u();
+    set.emplace_back( "brain_layers", layers > 0.4 ? tenth( 0.5 + 0.5 * u() ) : 0.0f );
+    set.emplace_back( "brain_smooth", tenth( 0.3 + 0.7 * u() ) );
+    const double harmonic = u();
+    set.emplace_back( "brain_harmonic", harmonic > 0.5 ? tenth( harmonic ) : 0.0f );
+    set.emplace_back( "brain_pivot", tenth( 10.0 + 30.0 * u() ) );
+    const double overlap = u();
+    set.emplace_back( "brain_overlap", overlap > 0.3 ? tenth( 2.0 + 28.0 * overlap ) : 0.0f );
+    set.emplace_back( "brain_root_every", tenth( 60.0 + 120.0 * u() ) );
+    set.emplace_back( "brain_wander", 0.6f );
+    set.emplace_back( "brain_top_soft", 0.5f );
+    set.emplace_back( "brain2_on", k % 4 >= 2 ? 1.0f : 0.0f );
+    set.emplace_back( "seed", static_cast<float>( 3000 + k ) );
+    return set;
+}
+
+/**
+ * @brief Plays one of testConductorArrives' draws for a quarter of an hour with the arrival repairs given, and tallies the
+ *        notes that end before their attack by the path that ended them.
+ * @param[in] k       the draw (arriveDraw())
+ * @param[in] mask    the arrival repairs (Engine::setArriveMask())
+ * @param[in] attack  a factor on the drawn Attack (1 as drawn), to show that with the mask at 0 nothing reads it
+ * @return the tally, and a hash of every conductor event (time to the millisecond, conductor, on or off, note)
+ */
+static ArriveTallyS arriveRun( int k, int mask, float attack )
+{
+    ArriveTallyS out;
+    Engine       e;
+    e.prepare( ambient::DefaultSampleRate, 256 );
+    float a = 6.0f, va = 0.0f;
+    for ( const auto &kv : arriveDraw( k ) )
+    {
+        const ParamDesc *d = findParam( kv.first.c_str() );
+        if ( d == nullptr ) continue;
+        float v = kv.second;
+        if ( kv.first == "attack" ) v *= attack;
+        e.setParam( d->m_id, v );
+        if ( kv.first == "attack" ) a = v;
+        if ( kv.first == "env_vel_attack" ) va = v;
+    }
+    e.setArriveMask( mask );
+    std::map<std::pair<int, int>, std::pair<double, float>> on;   // (conductor, note) -> onset, velocity
+    g_arriveWhyNote = -1;
+    ClusterBrain::M_OffWhy = []( int note, const char *why, double )
+    {
+        g_arriveWhyNote = note;
+        g_arriveWhy = why;
+    };
+    auto fnv = [&out]( long long v )
+    {
+        for ( int b = 0; b < 8; ++b )
+        {
+            out.m_hash ^= static_cast<uint64_t>( ( v >> ( 8 * b ) ) & 0xff );
+            out.m_hash *= 1099511628211ull;
+        }
+    };
+    e.auditConductor(
+        900.0, 0.01,
+        [&]( double t, int which, const BrainEvent &ev )
+        {
+            if ( which != 1 && which != 2 ) return;
+            const bool isOn = ev.m_type == BrainEvent::TypeE::NOTE_ON;
+            fnv( std::llround( t * 1000.0 ) );
+            fnv( which * 1000 + ( isOn ? 500 : 0 ) + ev.m_note );
+            const auto key = std::make_pair( which, ev.m_note );
+            auto       ended = [&]( const char *why )
+            {
+                const auto   it = on.find( key );
+                const double held = t - it->second.first;
+                const float  vel = std::min( std::max( it->second.second, 0.0f ), 1.0f );
+                const double arrive = static_cast<double>(
+                    a * ( va != 0.0f ? std::pow( 4.0f, va * ( 0.5f - vel ) * 2.0f ) : 1.0f ) );
+                ++out.m_notes;
+                if ( held < arrive - 0.05 ) ++out.m_short[why];
+                on.erase( it );
+            };
+            if ( isOn )
+            {
+                if ( on.count( key ) ) ended( "restruck" );
+                on[key] = std::make_pair( t, ev.m_velocity );
+            }
+            else if ( on.count( key ) )
+                ended( g_arriveWhyNote == ev.m_note ? g_arriveWhy : "?" );
+            g_arriveWhyNote = -1;
+        },
+        nullptr );
+    ClusterBrain::M_OffWhy = nullptr;
+    return out;
+}
+
+/**
+ * @brief With the arrival repairs on, no conductor note ends before its attack but by the paths left alone; with them
+ *        off, the conductor plays as it did (20.11.2026, plan F1b).
+ *
+ * Rene: the conductor strikes notes that make no sense under long attack times. The library measured, 13591 of 786882
+ * notes ended before their attack -- by four paths: Chords' exchange (Smooth) taking a young voice, Free's retirement
+ * when the room is full doing the same, a changeover's pivot tone let go with the old root's voices, and Layers
+ * cutting holds below the attack. Twenty draws of the knobs those paths read (arriveDraw()), a quarter hour each, the
+ * note's attack its own (Attack times what Vel to Attack makes of its velocity):
+ *  - with all four repairs (BrainParams::ArriveAll) no note ends early by those paths. What is left ends by the paths
+ *    left alone on purpose, counted and printed: "hold" (a hold drawn shorter than the attack: Hold Min under the
+ *    attack is the preset's doing), "changeover" (the old root's other voices at a changeover's end), "density" and
+ *    "shed" (fewer voices asked for), "silence" (a planned silence), "restruck";
+ *  - with the mask at 0 the repairs' paths do let notes go early (the test sees what it guards), the attack the
+ *    conductor is told does not change a single event (twice the attack, the same events), and the events hash to what
+ *    the conductor played before the repairs existed (0xba11cb5c2f0b94f3: ambient_brain_audit built at 811839b, the same
+ *    draws replayed with --set, plan_tools_2026-11-20/F1/ankommen/base_hash.py).
+ */
+void testConductorArrives()
+{
+    std::printf( "\n--- a conductor note arrives before it goes (arrival repairs) ---\n" );
+    const std::set<std::string> leftAlone = { "hold", "changeover", "density", "shed", "silence", "restruck", "off" };
+    std::map<std::string, int>  before, after;
+    int                         notesBefore = 0, notesAfter = 0, sameWithAttack = 0;
+    uint64_t                    hash = 1469598103934665603ull;
+    const int                   draws = 20;
+    for ( int k = 0; k < draws; ++k )
+    {
+        const ArriveTallyS b = arriveRun( k, 0, 1.0f );
+        const ArriveTallyS a = arriveRun( k, BrainParams::ArriveAll, 1.0f );
+        const ArriveTallyS b2 = arriveRun( k, 0, 2.0f );
+        sameWithAttack += b2.m_hash == b.m_hash ? 1 : 0;
+        hash = ( hash ^ b.m_hash ) * 1099511628211ull;
+        notesBefore += b.m_notes;
+        notesAfter += a.m_notes;
+        for ( const auto &w : b.m_short ) before[w.first] += w.second;
+        for ( const auto &w : a.m_short ) after[w.first] += w.second;
+    }
+    int repairedBefore = 0, repairedAfter = 0, aloneAfter = 0;
+    std::printf( "  [probe] notes before their attack, by path (mask 0 -> all four), of %d -> %d notes:\n", notesBefore,
+                 notesAfter );
+    std::set<std::string> paths;
+    for ( const auto &w : before ) paths.insert( w.first );
+    for ( const auto &w : after ) paths.insert( w.first );
+    for ( const auto &w : paths )
+    {
+        const int nb = before.count( w ) ? before[w] : 0, na = after.count( w ) ? after[w] : 0;
+        const bool alone = leftAlone.count( w ) > 0;
+        std::printf( "    %-18s %5d -> %5d%s\n", w.c_str(), nb, na, alone ? "   (left alone)" : "" );
+        if ( alone )
+            aloneAfter += na;
+        else
+        {
+            repairedBefore += nb;
+            repairedAfter += na;
+        }
+    }
+    std::printf( "  [probe] by the repaired paths %d -> %d; by the paths left alone, after: %d; mask 0 with twice the "
+                 "attack: %d of %d draws the same; hash %016llx\n",
+                 repairedBefore, repairedAfter, aloneAfter, sameWithAttack, draws,
+                 static_cast<unsigned long long>( hash ) );
+    CHECK( notesAfter > 700, "arrival: the conductors keep playing with the repairs on" );
+    CHECK( repairedBefore > 50, "arrival: without the repairs, the four paths let notes go before their attack" );
+    CHECK( repairedAfter == 0, "arrival: with the repairs, no note goes before its attack by the four paths" );
+    CHECK( sameWithAttack == draws, "arrival: with the mask at 0 the attack the conductor is told changes nothing" );
+    CHECK( hash == 0xba11cb5c2f0b94f3ull, "arrival: with the mask at 0 the conductor plays exactly as before the repairs" );
+}
+
 /**
  * @brief The conductors' pitch invariants, in Hz, over every tuning the instrument has (20.11.2026, plan A4).
  *
@@ -13911,6 +14115,7 @@ int main( int argc, char **argv )
         { "testConductorNoSelfUnison", testConductorNoSelfUnison },
         { "testFigureMoves", testFigureMoves },
         { "testChangeoverByPitch", testChangeoverByPitch },
+        { "testConductorArrives", testConductorArrives },
         { "testPitchInvariants", testPitchInvariants },
         { "testLibraryStamp", testLibraryStamp },
         { "testNearTaste", testNearTaste },

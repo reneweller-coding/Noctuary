@@ -4,6 +4,7 @@
  *
  * @code
  *   ambient_brain_audit [--preset "name"] [--presets file] [--set key=value]... [--hours 1] [--dt 0.005] [--seed N]
+ *                       [--arrive N]
  * @endcode
  *
  * Prints one line per event, E,\<seconds\>,\<conductor 1|2\>,\<on 1|0\>,\<note\>,\<velocity\>,\<pitch
@@ -18,6 +19,10 @@
  *
  * Under AMBIENT_BRAIN_OFFWHY each conductor NoteOff is preceded by a W,\<note\>,\<why\>,\<age\> line naming the path
  * that ended the note (ClusterBrain::M_OffWhy), for the study of notes shorter than their attack (20.11.2026).
+ *
+ * `--arrive N` (or AMBIENT_BRAIN_ARRIVE=N; the option wins) plays the conductors with the arrival repairs of plan F1b
+ * switched on: a sum of BrainParams::Arrive* bits, 0 for none; without either the engine's default (none). README.md, "Arrival repairs", lists them
+ * and says how they would become the default.
  * @author Rene Weller
  */
 #include "ambient/Engine.h"
@@ -48,6 +53,8 @@ int main( int argc, char **argv )
     ambient::ensureMainStack( argv, 64ull << 20 );   // Linux: the stack Windows and macOS link in (MainStack.h)
     double                                           hours = 1.0, dt = 0.005;
     long long                                        seed = -1;
+    int arrive = std::getenv( "AMBIENT_BRAIN_ARRIVE" ) ? std::atoi( std::getenv( "AMBIENT_BRAIN_ARRIVE" ) )
+                                                       : -1;   // -1: the engine's own default
     std::vector<std::string>                         presetNames;
     std::vector<std::pair<std::string, std::string>> sets;
     for ( int i = 1; i < argc; ++i )
@@ -77,6 +84,8 @@ int main( int argc, char **argv )
             dt = std::atof( next().c_str() );
         else if ( a == "--seed" )
             seed = std::atoll( next().c_str() );
+        else if ( a == "--arrive" )
+            arrive = std::atoi( next().c_str() );
         else if ( a == "--set" )
         {
             const std::string kv = next();
@@ -130,6 +139,7 @@ int main( int argc, char **argv )
     {
         auto engine = std::make_unique<Engine>();   // an Engine is large; the heap, not the stack -- and a fresh one each
         engine->prepare( ambient::DefaultSampleRate, 256 );
+        if ( arrive >= 0 ) engine->setArriveMask( arrive );
         if ( presetIndex >= 0 ) engine->applyPreset( presetIndex );
         for ( const auto &kv : sets )
         {

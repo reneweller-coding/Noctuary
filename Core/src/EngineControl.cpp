@@ -1172,6 +1172,15 @@ void Engine::readParams()
     m_bp2.m_series = m_bp.m_series;
     m_bp.m_loop = static_cast<int>( std::lround( g( ParamIdE::BRAIN_LOOP ) ) );
     m_bp2.m_loop = m_bp.m_loop;
+    // How long a voice takes to arrive, for the arrival repairs (plan F1b): the envelope's Attack as modulated and Vel to
+    // Attack, both read above; the conductor applies the velocity factor per note as Voice::noteOn does. Nothing reads
+    // them while the mask is 0.
+    m_bp.m_arrive = m_arriveMask;
+    m_bp2.m_arrive = m_arriveMask;
+    m_bp.m_attack = m_vp.m_attack;
+    m_bp2.m_attack = m_vp.m_attack;
+    m_bp.m_velAttack = m_vp.m_velAttack;
+    m_bp2.m_velAttack = m_vp.m_velAttack;
     m_bp.m_spread = g( ParamIdE::BRAIN_SPREAD );
     m_bp2.m_spread = m_bp.m_spread;
     m_bp.m_bias = g( ParamIdE::BRAIN_BIAS );

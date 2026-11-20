@@ -16,6 +16,8 @@
  *                  [--write-default-ir file.wav] (the Room's built-in hall as a WAV at --sr, then exit)
  *                  [--route "name or text" [speed]] (walk a route over the map; --list-routes)
  *                  [--set-file set.ambientset] (replay a recorded set; length = set + 20 s unless --seconds)
+ *                  [--arrive N] (the conductors' arrival repairs, a sum of BrainParams::Arrive* bits; 0 = off,
+ *                  the default, also from AMBIENT_BRAIN_ARRIVE)
  * @endcode
  *
  * The usage line is the tool as it started; runOnce() reads the whole list, which has grown to
@@ -769,12 +771,25 @@ static int runOnce( int argc, char **argv )
     double                  fadeSeconds = 0.0, fadeHead = 0.0;
     auto                    live = [&]() -> Engine                    &{ return *liveEngine; };
 
+    // The arrival repairs of plan F1b (20.11.2026), off unless asked for: AMBIENT_BRAIN_ARRIVE=N, or --arrive N below,
+    // which wins. A sum of BrainParams::Arrive* bits (README.md, "Arrival repairs"); a developer's switch for the
+    // listening comparison, never read by the instrument.
+    // Without either the engine's own default stands.
+    int arriveMask = engine.arriveMask();
+    if ( const char *env = std::getenv( "AMBIENT_BRAIN_ARRIVE" ) ) arriveMask = std::atoi( env );
+    engine.setArriveMask( arriveMask );
+
     for ( int i = 1; i < argc; ++i )
     {
         std::string a = argv[i];
         auto        next = [&]() -> std::string { return ( i + 1 < argc ) ? argv[++i] : ""; };
         if ( a == "--out" )
             out = next();
+        else if ( a == "--arrive" )
+        {
+            arriveMask = std::atoi( next().c_str() );
+            engine.setArriveMask( arriveMask );
+        }
         else if ( a == "--seconds" )
         {
             seconds = std::atof( next().c_str() );
@@ -1519,7 +1534,11 @@ static int runOnce( int argc, char **argv )
             fadingEngine->reset();
             fadingEngine = nullptr;
         }
-        if ( engineB == nullptr ) engineB = std::make_unique<Engine>();
+        if ( engineB == nullptr )
+        {
+            engineB = std::make_unique<Engine>();
+            engineB->setArriveMask( arriveMask );
+        }
         Engine &in = ( liveEngine == &engine ) ? *engineB : engine;
         in.allNotesOff();
         in.reset();

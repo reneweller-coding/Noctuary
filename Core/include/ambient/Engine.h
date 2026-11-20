@@ -148,6 +148,18 @@ public:
     void auditConductor( double seconds, double dt, const std::function<void( double, int, const BrainEvent & )> &sink,
                          const std::function<void( double, int )> &rootSink );
     /**
+     * @brief Which arrival repairs the two conductors play with (BrainParams::m_arrive): a sum of the
+     *        BrainParams::Arrive bits, 0 for none -- the conductor as it was, which is the default.
+     *
+     * A developer's switch for the measurement and the listening comparison of plan F1b (20.11.2026): the render tool
+     * and the conductor audit set it from `--arrive N` or AMBIENT_BRAIN_ARRIVE. No panel, preset or pack reads or
+     * writes it. Takes effect at the next readParams().
+     * @param[in] mask  the bits, 0 .. 63
+     */
+    void setArriveMask( int mask ) { m_arriveMask = mask; }
+    /** @return the arrival repairs set with setArriveMask(), 0 by default */
+    int arriveMask() const { return m_arriveMask; }
+    /**
      * @brief Loads a preset of the main bank as a sound layer.
      *
      * sound layer only: everything except the Cosmos section -- and the modulation, which belongs to
@@ -2006,6 +2018,12 @@ private:
     /** @} */
     VoiceParams m_vp;    ///< what the voices render with this block
     BrainParams m_bp;    ///< the first conductor's parameters this block
+    /**
+     * @brief The arrival repairs both conductors play with (BrainParams::m_arrive, plan F1b, 20.11.2026): 0, the
+     *        conductor as it was, until Rene has heard them. Set by the tools only (setArriveMask()); README.md,
+     *        "Arrival repairs", says how it would be switched on by default.
+     */
+    int m_arriveMask = 0;
     Drifter     m_arc;   ///< the hour-scale arc's own drift
     /** @var float m_arcAmount
      *  @brief how far the arc leans on density, brightness and depth */

@@ -250,6 +250,20 @@ shorter than their own attack — in cents of what the tuning plays. The ctest `
 `slow`) checks a fixed sample of 200 against `Tests/golden/music_audit.json`; `--update` writes it
 again, `--all` measures the whole library.
 
+**Arrival repairs (off).** Four repairs keep the conductor from letting a note go before its attack has brought it in
+(plan F1b, 20.11.2026; a sum of `BrainParams::Arrive*` bits): 1 the pivot tone of a changeover stays (Free), 2 Layers
+never shortens a hold below the voice's attack, 4 Chords never exchanges a voice that has not arrived (the decision
+waits; add 16 and the oldest goes instead), 8 Free never retires a voice that has not arrived when the room is full
+(it waits); 15 is all four; 32 (Chords: the old root's voices go at a changeover's end) and 64 (Free: a changeover's end lets
+no voice go that has not arrived) are measurements and not part of them. They change how
+presets play, so they are off until Rene has heard them. `ambient_render --arrive N`, `ambient_brain_audit --arrive N`
+or `AMBIENT_BRAIN_ARRIVE=N` in their environment (which `music_audit.py` passes on) switch them on for a run; no
+panel, preset or pack sees them. To make them the default later, change the initialiser of `Engine::m_arriveMask`
+(`Core/include/ambient/Engine.h`) to the bits chosen — one line; the tools keep the engine's default unless told
+otherwise, and the shared conductor reads nothing but the mask the engine hands it — then write the golden sample
+again (`music_audit.py --update`), since every preset a repair touches then plays differently.
+`testConductorArrives` sets its masks itself and keeps checking both sides.
+
 The conductor, `Core/include/ambient/ClusterBrain.h`, is shared with the family's other two
 instruments (Empyrean, Zodiacal), and each repository checks in its own copy so that it builds
 alone. The copies are generated: the canonical file is `Tools/family/ClusterBrain.h.in` (this

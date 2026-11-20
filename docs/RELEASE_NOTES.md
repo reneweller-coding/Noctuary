@@ -2,6 +2,18 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**Inside: notes that arrive before they go, as a switch that is off** (20.11.2026). Rene: the conductor strikes
+notes that make no sense under long attack times -- a tone that swells and is gone before it is there. The library
+measured, 13591 of 786882 conductor notes ended before their attack was over, by four paths. The conductor now knows
+each voice's attack (Attack, and what Vel to Attack makes of it at the note's velocity), and four repairs are built,
+one bit each: the pivot tone of a changeover stays (1), Layers never shortens a hold below the attack (2), Chords
+never exchanges a voice that has not arrived (4), Free never retires one when the room is full (8). All of them are
+**off**: presets play exactly as before (the music audit's 200 presets give a byte-identical table, and a new
+selftest, `testConductorArrives`, checks the conductor's events against those of the code before the change). They
+are for listening first: `ambient_render --arrive 15`, `ambient_brain_audit --arrive 15` or `AMBIENT_BRAIN_ARRIVE=15`;
+the README ("Arrival repairs") says how one would become the default. With all four on, the selftest's twenty draws
+let no note go early by those paths (159 before).
+
 **Inside: one conductor for the family** (20.11.2026). The conductor, `ClusterBrain.h`, lived three times -- in
 Noctuary, Empyrean and Zodiacal -- and every fix of 19. and 20.11. had to be carried into the other copies by hand,
 with six port scripts; Zodiacal still has none of them. There is now one canonical file, `Tools/family/ClusterBrain.h.in`
