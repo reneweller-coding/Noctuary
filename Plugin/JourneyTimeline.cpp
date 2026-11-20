@@ -183,7 +183,7 @@ void JourneyTimeline::paint( juce::Graphics &g )
     else
     {
         juce::String head = juce::String( j.m_name ) + "   " + juce::String( static_cast<int>( j.m_steps.size() ) ) +
-                            " steps, about " + juce::String( ambient::Journey::timeText( total ) ) +
+                            " steps, about " + juce::String( ambient::Journey::timeText( j.meanLength() ) ) +
                             ( j.m_cyclic ? ", then again" : "" );
         if ( running )
             head << "   -- step " << ( player.step() + 1 ) << ", "
@@ -224,7 +224,7 @@ void JourneyTimeline::paint( juce::Graphics &g )
         g.drawText(
             "Being written: " + juce::String( d.m_name.empty() ? "your journey" : d.m_name ) + ", " +
                 juce::String( static_cast<int>( d.m_steps.size() ) ) + " steps, about " +
-                juce::String( ambient::Journey::timeText( journeySeconds( d ) ) ) +
+                juce::String( ambient::Journey::timeText( d.meanLength() ) ) +
                 "   -- drag an edge: how long it stays; the ramp: how long it fades in; the block: where it goes; right-click: remove",
             juce::Rectangle<float>( r1.getX(), r1.getY() - 21.0f, r1.getWidth(), 18.0f ),
             juce::Justification::centredLeft );
@@ -504,7 +504,7 @@ void NightBar::resized()
     row.removeFromLeft( 8 );
     m_choice.setBounds( row.removeFromLeft( 230 ) );
     row.removeFromLeft( 8 );
-    m_favourites.setBounds( row.removeFromLeft( 180 ) );
+    m_favourites.setBounds( row.removeFromLeft( 240 ) );
     row.removeFromLeft( 8 );
     m_dice.setBounds( row.removeFromLeft( 90 ) );
     row.removeFromLeft( 6 );

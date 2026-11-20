@@ -19,7 +19,10 @@ starts by itself, and at the end the morning's preset stays (there is no sleep t
 pack (seed 1): 58 presets; its stillness follows the curve with a Spearman of 0.94 (1.6 percentile points off on
 average), its brightness with 0.85, and a step between neighbours measures 2.0 against 5.8 for a random pair and for
 the steps of the library's Nights. Noctuary Journeys lists three ready nights (6, 8 and 10 hours); `ambient_night`
-prints a night, `Tools/night_plot.py` draws it. A new selftest (`testNightDirector`) and ctest (`night_table`).
+prints a night, `Tools/night_plot.py` draws it. A new selftest (`testNightDirector`) and ctest (`night_table`). The timeline over
+the journeys now gives a journey's length as the player plays it: a fade lies inside its step's dwell, and the timeline
+had added the fades on top, so an eight-hour night read "about 9:28:34". The browser's switches above the list are wide
+enough for their labels again ("only f...", "favour...").
 
 **Never again for sound presets** (20.11.2026), the counterpart to the favourites: in the browser a ring with a bar
 beside each row's star (or **Never again** under the list) marks a preset you never want to hear again. The night

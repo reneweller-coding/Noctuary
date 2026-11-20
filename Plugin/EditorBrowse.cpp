@@ -890,11 +890,13 @@ void NoctuaryEditor::BrowseView::resized()
     }
     m_sort.setBounds( top.removeFromLeft( 150 ) );
     top.removeFromLeft( 12 );
-    m_onlyFavourites.setBounds( top.removeFromLeft( 130 ) );
-    m_onlyNever.setBounds( top.removeFromLeft( 140 ) );
-    m_favouritesFirst.setBounds( top.removeFromLeft( 130 ) );
+    // The switch stands in the middle of its cell and the label in the right half (NoctuaryLookAndFeel), so a cell
+    // is twice its label wide (20.11.2026: they read "only f...", "favour...", "hide the ...").
+    m_onlyFavourites.setBounds( top.removeFromLeft( 240 ) );
+    m_onlyNever.setBounds( top.removeFromLeft( 260 ) );
+    m_favouritesFirst.setBounds( top.removeFromLeft( 240 ) );
     m_similar.setBounds( top.removeFromLeft( 150 ) );
-    m_hideDull.setBounds( top.removeFromLeft( 160 ) );
+    m_hideDull.setBounds( top.removeFromLeft( 280 ) );
     area.removeFromTop( 8 );
     auto buttons = area.removeFromBottom( 26 );
     m_load.setBounds( buttons.removeFromLeft( 80 ) );

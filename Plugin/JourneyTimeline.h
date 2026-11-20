@@ -163,7 +163,7 @@ private:
     juce::ComboBox      m_length;                                ///< until a wake time, or so many hours
     std::vector<double> m_lengthHours;                           ///< the hours behind each item of m_length (id - 1)
     juce::ComboBox      m_choice;                                ///< every pack, a family, a pack
-    juce::ToggleButton  m_favourites{ "Prefer my favourites" };  ///< the stars count
+    juce::ToggleButton  m_favourites{ "Prefer favourites" };     ///< the stars count
     juce::TextButton    m_dice{ "New dice" };                    ///< another seed, and made at once
     juce::TextButton    m_make{ "Make" };                        ///< composes the night
     juce::TextButton    m_save{ "Save ..." };                    ///< writes the journey being written
