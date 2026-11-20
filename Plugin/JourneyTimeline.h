@@ -127,9 +127,9 @@ private:
  * @brief The night director's controls (20.11.2026, plan D3; Empyrean's NightPanel the model): how long the night is
  *        (until a wake time from now, or so many hours), which presets it draws from (every pack, a family of packs, one
  *        pack), whether the favourites are preferred, the dice, Make; under them what came of it and its curve -- the
- *        stillness and brightness the night wants (dashed) and the presets chosen (solid). Make writes the night into the
- *        journey being written (the timeline below shows it); Save ... and Play are the player's, nothing starts by
- *        itself.
+ *        motion and brightness the night wants (dashed, more of each higher up) and the presets chosen (solid). Make
+ *        writes the night into the journey being written (the timeline below shows it); Save ... and Play are the
+ *        player's, nothing starts by itself.
  */
 class NightBar final : public juce::Component
 {

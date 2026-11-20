@@ -2,12 +2,13 @@
 picture of the curve against what was chosen.
 
 Runs ambient_night (no audio, no library) and prints, per step: when it begins on the clock, the preset and its pack,
-how long it stays, its stillness and brightness as percentiles of the candidates against the curve's targets there,
+how long it stays, its movement and brightness as percentiles of the candidates against the curve's targets there,
 its roughness, and its distance in sound from the step before (the journeys' distance). Then the night's numbers: how
-closely stillness and brightness follow the curve (Spearman, and the mean and largest distance from it in percentile
+closely movement and brightness follow the curve (Spearman, and the mean and largest distance from it in percentile
 points), the mean step between neighbours against the shipped pack Nights', and the stays. With --png it draws the two
-curves (stillness above, brightness below) and the presets chosen as a step line over the hours, the phases marked
-(Pillow; matplotlib is in no environment on this machine).
+curves (movement above, brightness below; up is more of each, so the deep of the night lies low in both) and the
+presets chosen as a step line over the hours, the phases marked (Pillow; matplotlib is in no environment on this
+machine).
 
     python Tools/night_plot.py [--hours 8 | --until 7:00] [--start 23:00] [--seed 1] [--choice every|sleep|PACK]
                                [--prefer FILE] [--exclude FILE] [--txt FILE] [--png FILE] [--journey FILE]
@@ -91,7 +92,7 @@ def table(head, steps, shipped, start_h):
              "morning %d min" % (head["hours"], clock(0, start_h), head["seed"], head["choice"], len(steps),
                                   head["candidates"], round(head["asleep"] * head["hours"] * 60), head["waves"],
                                   round(head["morning"] * head["hours"] * 60)), "",
-             "%-6s %-28s %-18s %6s  %-15s %-15s %5s %5s" % ("time", "preset", "pack", "stay", "stillness/goal",
+             "%-6s %-28s %-18s %6s  %-15s %-15s %5s %5s" % ("time", "preset", "pack", "stay", "movement/goal",
                                                            "bright/goal", "rough", "step"),
              "-" * 108]
     for s in steps:
@@ -110,7 +111,7 @@ def table(head, steps, shipped, start_h):
     for s in steps:
         stays[s["class"]] += 1
     lines += ["",
-              "stillness follows the curve: Spearman %.2f, %.1f percentile points off on average, %.1f at most" % (
+              "movement follows the curve: Spearman %.2f, %.1f percentile points off on average, %.1f at most" % (
                   rho, 100 * sum(err_s) / len(err_s), 100 * max(err_s)),
               "brightness follows the curve: Spearman %.2f, %.1f points off on average, %.1f at most" % (
                   rho_b, 100 * sum(err_b) / len(err_b), 100 * max(err_b)),
@@ -119,8 +120,8 @@ def table(head, steps, shipped, start_h):
               "roughest preset while falling asleep: the %.0fth percentile (kept below the 60th)" % (100 * rough_asleep),
               "stays: %d short (3-6 min), %d middle (6-10), %d long (10-15), scaled by %.3f to fill the night" % (
                   stays[0], stays[1], stays[2], head["scale"]),
-              "stillness, brightness and roughness are percentiles of the candidates: 0 % the stillest / darkest / "
-              "smoothest"]
+              "movement, brightness and roughness are percentiles of the candidates: 0 % the stillest / darkest / "
+              "smoothest, drawn upward"]
     return "\n".join(lines)
 
 
@@ -141,7 +142,7 @@ def plot(head, steps, curve, path, start_h):
     colours = [(120, 200, 230), (190, 150, 240)]
     d.text((L, 16), "Noctuary night director: %g h from %s, seed %s, %s -- %d presets (curve dashed, chosen solid)" % (
         head["hours"], clock(0, start_h), head["seed"], head["choice"], len(steps)), fill=ink, font=font)
-    for p, (key, name) in enumerate([("still", "stillness"), ("bright", "brightness")]):
+    for p, (key, name) in enumerate([("still", "movement"), ("bright", "brightness")]):
         top = T + p * (panel_h + 50)
         x0, x1, y0, y1 = L, W - R, top, top + panel_h
         d.rectangle([x0, y0, x1, y1], outline=dim)

@@ -8,15 +8,15 @@ top, then **Night ...**: how long (until a wake time, counted from now, or three
 pack, one family of artists, one pack), whether your favourites come a little more often, **Make**. The night has a
 form: falling asleep (the first 30 to 45 minutes, darker and stiller), a deep middle in waves of about ninety minutes
 (the later ones a little higher, as sleep grows lighter towards the morning), and a morning (the last 30 to 45
-minutes, brighter). Stillness and brightness are measured -- the motion of a minute of every pack preset (its flux
+minutes, brighter). Motion and brightness are measured -- the motion of a minute of every pack preset (its flux
 and how its level and tone evolve over the minute) and its spectral centroid -- and the curve asks for ranks among the
 presets chosen from, so it fits any choice; the rougher two fifths are kept out of the falling asleep and the deep.
 Step by step the director takes the preset nearest the curve that also measures like the one before, by the
 journeys' own distance (eighteen measures); never one twice, never one marked never again. Each step stays as the
 library's Nights do, by how much the preset moves by itself (3-6, 6-10 or 10-15 minutes). The result is the journey
-being written: the panel draws its curve and the timeline its steps; Save ... keeps it, Play starts it; nothing
+being written: the panel draws its curve (motion and brightness, more of each higher up) and the timeline its steps; Save ... keeps it, Play starts it; nothing
 starts by itself, and at the end the morning's preset stays (there is no sleep timer). An eight-hour night from every
-pack (seed 1): 58 presets; its stillness follows the curve with a Spearman of 0.94 (1.6 percentile points off on
+pack (seed 1): 58 presets; its motion follows the curve with a Spearman of 0.94 (1.6 percentile points off on
 average), its brightness with 0.85, and a step between neighbours measures 2.0 against 5.8 for a random pair and for
 the steps of the library's Nights. Noctuary Journeys lists three ready nights (6, 8 and 10 hours); `ambient_night`
 prints a night, `Tools/night_plot.py` draws it. A new selftest (`testNightDirector`) and ctest (`night_table`). The timeline over

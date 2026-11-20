@@ -405,8 +405,9 @@ NightBar::NightBar( NoctuaryProcessor &proc ) : m_proc( proc )
     m_summary.setJustificationType( juce::Justification::topLeft );
     m_summary.setColour( juce::Label::textColourId, ui::Text );
     m_summary.setFont( juce::FontOptions( 13.0f ) );
-    m_summary.setText( "A whole night as a journey: falling asleep (darker, stiller), a deep middle in waves of about "
-                       "ninety minutes, a morning (brighter). Choose the length and the presets, then Make.",
+    m_summary.setText( "A whole night as a journey: falling asleep (darker, less motion), a deep middle in waves of "
+                       "about ninety minutes, a morning (brighter, more motion). Choose the length and the presets, "
+                       "then Make.",
                        juce::dontSendNotification );
     for ( juce::Component *c : { static_cast<juce::Component *>( &m_length ), static_cast<juce::Component *>( &m_choice ),
                                  static_cast<juce::Component *>( &m_favourites ), static_cast<juce::Component *>( &m_dice ),
@@ -530,7 +531,9 @@ void NightBar::paint( juce::Graphics &g )
         g.setColour( ui::CardColour );
         g.fillRoundedRectangle( r, 4.0f );
         g.setColour( ui::Dim );
-        g.drawText( lane == 0 ? "still" : "bright", juce::Rectangle<float>( 0.0f, r.getY(), 38.0f, r.getHeight() ),
+        // Up is more in both lanes: the first is the motion the night wants (its percentile, 0 the stillest), so the
+        // deep of the night lies low in it as it lies dark in the second.
+        g.drawText( lane == 0 ? "motion" : "bright",juce::Rectangle<float>( 0.0f, r.getY(), 38.0f, r.getHeight() ),
                     juce::Justification::centred );
         // the curve, dashed
         juce::Path curve;

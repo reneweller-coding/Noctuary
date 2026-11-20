@@ -147,7 +147,7 @@ crossfaded as the instrument plays it; `NoctuaryJourneys --render "NAME" --forma
 
 The **night director** (the Journey button, then Night ...) writes a whole night as a journey with a form --
 falling asleep, a deep middle in waves of about ninety minutes, a morning -- along a curve of the measured
-stillness and brightness, every crossfade a step to a preset that measures alike, never one twice. Its table
+motion and brightness, every crossfade a step to a preset that measures alike, never one twice. Its table
 of the library is `Core/src/NightDirector.inc` (`Tools/make_night.py`, from the measurement the journeys are made
 from); `ambient_night` prints a night and `Tools/night_plot.py` draws it.
 
