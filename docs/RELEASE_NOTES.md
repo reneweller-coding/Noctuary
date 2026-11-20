@@ -2,6 +2,16 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**Inside: one conductor for the family** (20.11.2026). The conductor, `ClusterBrain.h`, lived three times -- in
+Noctuary, Empyrean and Zodiacal -- and every fix of 19. and 20.11. had to be carried into the other copies by hand,
+with six port scripts; Zodiacal still has none of them. There is now one canonical file, `Tools/family/ClusterBrain.h.in`
+in this repository, and `Tools/family/sync_brain.py` writes each instrument's copy from it (only the namespace
+differs). What one instrument needs and the others do not stays in the one file as a knob the others leave at rest:
+Empyrean's Follow Light (`BrainParams::m_light`) and its countdown (`untilNext()`) are now in Noctuary's copy too,
+unused. Noctuary's conductor plays exactly as before: the music audit's 200 presets give the same 10852 onsets, 10066
+notes, 87 short notes and 3 strikes again, preset by preset. A new ctest, `brain_in_sync`, fails when the checked-in
+copy is not what the sync writes.
+
 **The near bank learns your taste: like and never again** (20.11.2026). On 19.11. Rene rated fifteen near presets
 by ear; the thirteen he liked became a list in the generator's source. Now the instrument asks: beside the near
 preset box (Near Events) a heart (like) and a struck circle (never again), for the near preset that is playing, with

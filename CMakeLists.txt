@@ -70,6 +70,11 @@ if(AMBIENT_BUILD_TOOLS)
     # near, Cosmos and Strike banks and the near table in the tree. A few seconds.
     if(Python3_Interpreter_FOUND)
         add_test(NAME layer_presets COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/make_layer_presets.py" --check)
+        # One conductor for the family (20.11.2026, plan A1): Core/include/ambient/ClusterBrain.h is what
+        # Tools/family/sync_brain.py makes from the canonical Tools/family/ClusterBrain.h.in, never edited by hand.
+        # Under a second.
+        add_test(NAME brain_in_sync COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/family/sync_brain.py"
+                 --check "${CMAKE_SOURCE_DIR}/Core/include/ambient/ClusterBrain.h" --product ambient)
     endif()
 endif()
 

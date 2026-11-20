@@ -250,6 +250,15 @@ shorter than their own attack — in cents of what the tuning plays. The ctest `
 `slow`) checks a fixed sample of 200 against `Tests/golden/music_audit.json`; `--update` writes it
 again, `--all` measures the whole library.
 
+The conductor, `Core/include/ambient/ClusterBrain.h`, is shared with the family's other two
+instruments (Empyrean, Zodiacal), and each repository checks in its own copy so that it builds
+alone. The copies are generated: the canonical file is `Tools/family/ClusterBrain.h.in` (this
+repository is its home), and `python Tools/family/sync_brain.py --product ambient --out
+Core/include/ambient/ClusterBrain.h` writes Noctuary's. Never edit the copy by hand — edit the
+canonical file, run the sync here and in the other two repositories, commit each. The ctest
+`brain_in_sync` fails when the copy is not what the sync writes; `sync_brain.py --all` checks all
+three copies at once where the repositories sit side by side.
+
 ```bash
 build/Tests/Release/ambient_selftest.exe
 build/Tests/Release/ambient_selftest.exe --list

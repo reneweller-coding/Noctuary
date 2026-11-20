@@ -25,6 +25,12 @@
  * rendered and measured before most of the knobs existed. The comments cite the user's rule book
  * of 12.09.2026 by section (R6.1, Anti 2, G3, table 2): those are the rules the conductor was made
  * to keep, and the measurements beside them are what it did before and after.
+ *
+ * @note One conductor for the family (20.11.2026, plan A1): Noctuary, Empyrean and Zodiacal each check in this file,
+ *       generated from the canonical `Tools/family/ClusterBrain.h.in` (home of record: Noctuary's repository) by
+ *       `python Tools/family/sync_brain.py --product ambient --out <this file>`. Never edit a copy by hand: edit
+ *       the canonical file, run the sync in each repository, commit each; the ctest brain_in_sync fails on a copy
+ *       that differs from what the sync writes.
  * @author Rene Weller
  */
 #pragma once
@@ -945,6 +951,8 @@ struct BrainParams
     /** @} */
     const BrainSpectrum *m_spectrum =
         nullptr;   ///< the voice's partial template for Timbre, owned by the engine (m_brainSpec); null or empty means the ratio score alone
+    const float *m_light =
+        nullptr;   ///< Follow Light (Empyrean): per MIDI note a factor on the candidate, from where the landscape is bright (1 leaves it alone); null: none
     /**
      * @brief The equivalent rectangular bandwidth of the auditory filter at f, in hertz
      * (Glasberg and Moore 1990): ERB = 24.7 (0.00437 f + 1).
@@ -1517,6 +1525,8 @@ public:
      * @return true from requestFill() until the cluster once reaches its density
      */
     bool filling() const { return m_filling; }
+    /** @brief Seconds until the next decision (Empyrean's Step shows them running down). @return seconds */
+    double untilNext() const { return m_timer; }
     /**
      * @name Read-outs for the panel and the tests
      *
@@ -2048,6 +2058,7 @@ public:
                                                        5.0 * static_cast<double>( p.m_harmonic ) ) );
             }
             if ( p.m_series > 0.0f ) w *= static_cast<float>( seriesWeight( fc, rootFreq, p ) );
+            if ( p.m_light != nullptr ) w *= p.m_light[c];   // Follow Light: where the landscape is bright
             if ( p.m_key > 0.0f ) w *= static_cast<float>( keyWeightOf( fc, key, p.m_key, modalProfile() ) );
             if ( p.m_even > 0.0f )
             {
@@ -3199,6 +3210,7 @@ private:
                 score *= std::pow( std::max( h, 1.0e-4 ), 5.0 * static_cast<double>( p.m_harmonic ) );
             }
             if ( p.m_series > 0.0f ) score *= seriesWeight( fc, rootFreq, p );
+            if ( p.m_light != nullptr ) score *= p.m_light[c];   // Follow Light: where the landscape is bright
             // An octave of something already sounding is a doubling, not a new colour.
             for ( const auto &s : m_slots )
                 if ( s.m_note >= 0 && pitchClassEqual( freqOf( s.m_note ), fc ) ) score *= 0.2;
