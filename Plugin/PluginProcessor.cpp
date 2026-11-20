@@ -2065,7 +2065,14 @@ void NoctuaryProcessor::getStateInformation( juce::MemoryBlock &destData )
     if ( m_cosmosName.isNotEmpty() ) state.setProperty( "cosmosPreset", m_cosmosName, nullptr );
     if ( m_nearName.isNotEmpty() ) state.setProperty( "nearPreset", m_nearName, nullptr );
     if ( m_compact ) state.setProperty( "compact", 1, nullptr );   // how the editor is laid out
-    if ( m_layoutMode != 0 ) state.setProperty( "layout", m_layoutMode, nullptr );
+    // Pages (3) under its own key and no "layout" at all: a build that knows only 0 .. 2 clamps a 3 to Expanded,
+    // and without the key it opens Normal.
+    if ( m_layoutMode == 1 || m_layoutMode == 2 ) state.setProperty( "layout", m_layoutMode, nullptr );
+    if ( m_layoutMode == 3 )
+    {
+        state.setProperty( "pages", 1, nullptr );
+        state.setProperty( "pagesPage", m_layoutPage, nullptr );
+    }
     if ( m_levelMatch ) state.setProperty( "levelMatch", 1, nullptr );
     juce::ValueTree midi( "midi" );
     for ( int cc = 0; cc < 128; ++cc )
@@ -2194,6 +2201,8 @@ void NoctuaryProcessor::setStateInformation( const void *data, int sizeInBytes )
                     }
             m_compact = static_cast<int>( tree.getProperty( "compact", 0 ) ) != 0;
             m_layoutMode = static_cast<int>( tree.getProperty( "layout", m_compact ? 1 : 0 ) );
+            if ( static_cast<int>( tree.getProperty( "pages", 0 ) ) != 0 ) m_layoutMode = 3;
+            m_layoutPage = static_cast<int>( tree.getProperty( "pagesPage", 0 ) );
             m_compact = m_layoutMode == 1;
             m_levelMatch = static_cast<int>( tree.getProperty( "levelMatch", 0 ) ) != 0;
             const juce::String route = tree.getProperty( "route" ).toString();

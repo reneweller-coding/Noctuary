@@ -18,6 +18,7 @@
  * down by section). The exit code is the number of failed checks, clamped to one.
  * @author Rene Weller
  */
+#include "PluginEditor.h"
 #include "PluginProcessor.h"
 #include "ambient/MainStack.h"
 #include <atomic>
@@ -167,6 +168,21 @@ int main()
             }
         }
         check( wrong == 0, "every parameter survives a state round trip" );
+        {   // The Pages layout is kept under a key of its own: a build that knows only Normal, Compact and Expanded
+            // reads "layout" and would clamp a 3 to Expanded; without the key it opens Normal.
+            a->setLayoutMode( 3 );
+            a->setLayoutPage( 7 );
+            juce::MemoryBlock pagesBlob;
+            a->getStateInformation( pagesBlob );
+            const auto xml =
+                juce::AudioProcessor::getXmlFromBinary( pagesBlob.getData(), static_cast<int>( pagesBlob.getSize() ) );
+            check( xml != nullptr && !xml->hasAttribute( "layout" ) && xml->getIntAttribute( "pages" ) == 1,
+                   "the Pages layout is stored where older builds do not read it (they open Normal)" );
+            auto c = std::make_unique<NoctuaryProcessor>();
+            c->setStateInformation( pagesBlob.getData(), static_cast<int>( pagesBlob.getSize() ) );
+            check( c->layoutMode() == 3 && c->layoutPage() == 7, "the Pages layout and its page come back" );
+            a->setLayoutMode( 0 );
+        }
         char m1[4096], m2[4096];
         a->engine().writeModMatrix( m1, sizeof( m1 ) );
         b->engine().writeModMatrix( m2, sizeof( m2 ) );
@@ -846,6 +862,15 @@ int main()
                     ed->setBounds( 0, 0, 1600, 950 );
                     const juce::Image shot = ed->createComponentSnapshot( ed->getLocalBounds(), true, 1.0f );
                     check( shot.isValid() && shot.getWidth() > 100, "the editor paints" );
+                    // The Pages layout (20.11.2026) leaves nothing out: every parameter stands on a page of it,
+                    // or in the header, the modulation strip or the browser's map, which every layout shares.
+                    if ( auto *ne = dynamic_cast<NoctuaryEditor *>( ed ); ne != nullptr && i == 0 )
+                    {
+                        const juce::StringArray missing = ne->paramsMissingFromPages();
+                        for ( int m = 0; m < juce::jmin( 5, missing.size() ); ++m )
+                            std::printf( "  on no page: %s\n", missing[m].toRawUTF8() );
+                        check( missing.isEmpty(), "every parameter stands on a page of the Pages layout" );
+                    }
                     p->editorBeingDeleted( ed );
                     delete ed;
                 }

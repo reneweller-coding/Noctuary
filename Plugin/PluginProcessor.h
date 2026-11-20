@@ -251,7 +251,9 @@ public:
     bool compactLayout() const { return m_compact; }
     /**
      * @brief 0 normal, 1 compact (wide rows wrap), 2 expanded (every page of every tab row laid out
-     *        under one another -- the tabs gone, the page tall). Kept in the state like Compact.
+     *        under one another -- the tabs gone, the page tall), 3 pages (one page at a time, as in Empyrean). Kept in
+     *        the state like Compact; Pages under a key of its own ("pages"), so that a build without it reads
+     *        Normal rather than a mode it does not know.
      * @param[in] m  the mode; 1 also sets the compact switch
      */
     void setLayoutMode( int m )
@@ -259,8 +261,15 @@ public:
         m_layoutMode = m;
         m_compact = m == 1;
     }
-    /** @return the layout mode, 0 .. 2 (see setLayoutMode) */
+    /** @return the layout mode, 0 .. 3 (see setLayoutMode) */
     int layoutMode() const { return m_layoutMode; }
+    /**
+     * @brief The page open in the Pages layout, kept in the state with it.
+     * @param[in] p  index of the page
+     */
+    void setLayoutPage( int p ) { m_layoutPage = p; }
+    /** @return the page open in the Pages layout */
+    int layoutPage() const { return m_layoutPage; }
     /**
      * @param[in] slot  source slot, clamped to 0 .. ambient::Slots - 1
      * @return the name of the recording in that slot without extension, or empty
@@ -1034,7 +1043,8 @@ private:
     /** @brief What the browser last set for a travelling preset change. */
     bool               m_morphOnSelect = true;
     std::atomic<float> m_morphSelectSeconds{ 20.0f };   ///< editor writes, audio reads
-    int                m_layoutMode = 0;                ///< 0 normal, 1 compact, 2 expanded (setLayoutMode)
+    int                m_layoutMode = 0;                ///< 0 normal, 1 compact, 2 expanded, 3 pages (setLayoutMode)
+    int                m_layoutPage = 0;                ///< the page open in the Pages layout (setLayoutPage)
     /**
      * @brief Trims the master gain after a preset so its measured loudness meets the common target;
      *        does nothing while level matching is off or the preset was never measured.

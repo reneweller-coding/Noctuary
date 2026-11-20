@@ -387,7 +387,7 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
         "Layout. Normal: one page with tabs. Compact: the same page in narrower columns, every section refitted taller. Expanded: every page of every tab row laid out under one another -- no tabs, a wide page, everything in sight." );
     m_compactButton->setClickingTogglesState( false );
     m_compactButton->setColour( juce::TextButton::buttonOnColourId, Accent.withAlpha( 0.5f ) );
-    m_compactButton->onClick = [this] { applyLayoutMode( ( m_proc.layoutMode() + 1 ) % 3 ); };
+    m_compactButton->onClick = [this] { applyLayoutMode( ( m_proc.layoutMode() + 1 ) % 4 ); };
     addChildComponent( *m_compactButton );   // the layout is in the settings menu (01.10.2026)
     // Session recall, and the switch for it. Only in the standalone: in a plugin the host saves
     // the state with the project, which is what a plugin is supposed to do.
@@ -586,6 +586,7 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
     // Maximised, the screen's shape is what there is: the constrainer lets go of the ratio and the
     // page fits into the screen, on a wide one in three columns (FitConstrainer, resized).
     for ( const auto &g : m_groups ) m_ownColumns.emplace_back( g.m_column, g.m_stretch );
+    buildPages();
     setConstrainer( &m_fitConstrainer );
     setResizable( true, true );
     layoutBody();   // measure once: the design size is what the body needs
@@ -613,7 +614,10 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
         if ( juce::SystemStats::getEnvironmentVariable( "AMBIENT_EXPANDED", "" ).isNotEmpty() ) mode = 2;
         const juce::String lm =
             juce::SystemStats::getEnvironmentVariable( "AMBIENT_LAYOUT", "" );   // 0, 1 or 2, over the recalled one
-        if ( lm.isNotEmpty() ) mode = juce::jlimit( 0, 2, lm.getIntValue() );
+        if ( lm.isNotEmpty() ) mode = juce::jlimit( 0, 3, lm.getIntValue() );   // 3: Pages
+        // AMBIENT_PAGE=\<n\>: the page of the Pages layout to open, from zero (for a picture of it).
+        const juce::String pg = juce::SystemStats::getEnvironmentVariable( "AMBIENT_PAGE", "" );
+        if ( pg.isNotEmpty() ) m_proc.setLayoutPage( pg.getIntValue() );
         if ( mode != 0 ) applyLayoutMode( mode );
         // A picture is taken at design size, so its pixels are the layout's own measurements.
         if ( juce::SystemStats::getEnvironmentVariable( "AMBIENT_SHOT", "" ).isNotEmpty() )
@@ -1474,7 +1478,7 @@ void NoctuaryEditor::resized()
     const auto measure = [this]
     {
         layoutBody();
-        m_designW = std::max( MinDesignW, m_bodyW );
+        m_designW = std::max( m_paged ? PagedMinW : MinDesignW, m_bodyW );
         m_designH = std::max( MinDesignH, HeaderH + m_bodyH + StripH );
     };
     const auto fitScale = [this]
@@ -1486,7 +1490,7 @@ void NoctuaryEditor::resized()
     // much wider than the page's own shape that is three columns (20.11.2026: on a 32:9 screen two columns came
     // out at 1.2 screen pixels a design pixel and three come out at 1.5).
     int arrangement = 0;
-    if ( full && !m_expanded && !m_ownColumns.empty() )
+    if ( full && !m_expanded && !m_paged && !m_ownColumns.empty() )
     {
         float best = 0.0f;
         for ( int a : { 0, 1 } )
@@ -1591,10 +1595,11 @@ void NoctuaryEditor::resized()
     if ( Section *ms = findSection( "Master" ) )
     {
         // Wide, the header has the room for all of it in one row; two rows hung its last knob over the morph below.
-        if ( m_arrangement == 1 ) ms->m_maxUnits = 64;
+        const bool oneRow = m_arrangement == 1 || m_paged;
+        if ( oneRow ) ms->m_maxUnits = 64;
         layoutSection( *ms, W - 74 - sectionWidth( *ms ) - 6, 4 );
         ms->m_bounds = ms->m_bounds.withTrimmedTop( -2 );
-        if ( m_arrangement == 1 )
+        if ( oneRow )
         {
             const int w = juce::jmax( 160, ms->m_bounds.getX() - 16 - W / 2 );
             m_keys = { W / 2, 44, w, 24 };
@@ -1633,11 +1638,14 @@ void NoctuaryEditor::resized()
  */
 void NoctuaryEditor::applyLayoutMode( int mode )
 {
-    mode = juce::jlimit( 0, 2, mode );
+    mode = juce::jlimit( 0, 3, mode );
     m_compact = mode == 1;
     m_expanded = mode == 2;
+    m_paged = mode == 3;
+    if ( m_paged ) m_page = juce::jlimit( 0, juce::jmax( 0, static_cast<int>( m_pages.size() ) - 1 ), m_proc.layoutPage() );
     m_proc.setLayoutMode( mode );
-    if ( m_compactButton ) m_compactButton->setButtonText( mode == 0 ? "Normal" : mode == 1 ? "Compact" : "Expanded" );
+    if ( m_compactButton )
+        m_compactButton->setButtonText( mode == 0 ? "Normal" : mode == 1 ? "Compact" : mode == 2 ? "Expanded" : "Pages" );
     rebuildLayout();
 }
 
@@ -1713,6 +1721,234 @@ void NoctuaryEditor::setArrangement( int a )
     }
 }
 
+void NoctuaryEditor::buildPages()
+{
+    // The pages, after Empyrean's (20.11.2026, Rene: "eine ähnliche Anordnung der Elemente wie bei Empyrean"): the
+    // sections of the tabbed page cut into pages of a few each, under five headings. Every section of the tabbed
+    // page stands on exactly one page, and every picture beside the sections it shows (paramsMissingFromPages).
+    auto one = [this]( const char *name, juce::Colour colour, std::vector<std::vector<juce::String>> rows,
+                       std::vector<juce::Component *> displays, int minRowH = 0 )
+    {
+        Group g;
+        g.m_name = name;
+        g.m_colour = colour;
+        g.m_rows = std::move( rows );
+        g.m_displays = std::move( displays );
+        g.m_minRowH = minRowH;
+        // The last row grows into the height the tallest page leaves, if it has a picture to grow.
+        g.m_stretch = !g.m_displays.empty() && g.m_displays.size() == g.m_rows.size() && g.m_displays.back() != nullptr;
+        return std::vector<Group>{ g };
+    };
+    m_pages = {
+        { "Source 1", "SOUND", one( "VOICE", VoiceHue, { { "Source 1", "Strands" } }, { m_source1View.get() } ) },
+        { "Source 2", "SOUND", one( "VOICE", VoiceHue, { { "Source 2" } }, { m_source2View.get() } ) },
+        { "Source 3", "SOUND", one( "VOICE", VoiceHue, { { "Source 3" } }, { m_source3View.get() } ) },
+        { "Source 4", "SOUND", one( "VOICE", VoiceHue, { { "Source 4" } }, { m_source4View.get() } ) },
+        { "Filter", "SOUND",
+          one( "VOICE", VoiceHue, { { "Z-Plane" }, { "Air", "Filter" } }, { nullptr, m_filterView.get() } ) },
+        { "Envelope", "SOUND",
+          one( "VOICE", VoiceHue, { { "Envelope", "Expression" } }, { m_envView.get() } ) },
+        { "Stage", "SPACE", one( "VOICE", VoiceHue, { { "Space", "Foundation" } }, { m_stageView.get() } ) },
+        { "Foreground", "SPACE",
+          one( "FOREGROUND", ForeHue, { { "Ensemble", "Delay" }, { "Delay 2", "Loop" }, { "Near Reverb", "Blur" } },
+               {} ) },
+        { "Background", "SPACE",
+          one( "BACKGROUND", BackHue,
+               { { "Cloud", "Far Reverb" }, { "Feedback", "Room" }, { "Early Room", "Body", "Patina" } }, {} ) },
+        { "Cosmos", "WORLDS",
+          one( "COSMOS", CosmosHue, { { "Strike" }, { "Cosmos" } }, { nullptr, m_cosmosView.get() } ) },
+        { "Memory", "WORLDS", one( "COSMOS", CosmosHue, { { "Memory" } }, {} ) },
+        { "Near Layer", "WORLDS", one( "COSMOS", CosmosHue, { { "Near Source" }, { "Near Events" } }, {} ) },
+        { "Brain", "CONDUCTOR", one( "CONDUCTOR", ConductorHue, { { "Cluster Brain" } }, { m_brainView.get() } ) },
+        { "Autoplay", "CONDUCTOR",
+          one( "CONDUCTOR", ConductorHue, { { "Autoplay" }, { "Brain 2" } },
+               { m_brainView3.get(), m_brainView2.get() } ) },
+        { "Tuning", "CONDUCTOR",
+          one( "CONDUCTOR", ConductorHue, { { "Coherence", "Clock" }, { "Tuning" } },
+               { m_coherenceView.get(), m_tuningView.get() } ) },
+        { "Morph", "MOVEMENT",
+          one( "MORPH", MorphHue, { { "Morph", "Macros", "Vector" } }, { m_vectorView.get() } ) },
+        { "Spectrum", "MOVEMENT", one( "ANALYSIS", VoiceHue, { {} }, { m_spectrumView.get() }, 300 ) },
+    };
+}
+
+int NoctuaryEditor::pageOfSection( const juce::String &name ) const
+{
+    for ( size_t p = 0; p < m_pages.size(); ++p )
+        for ( const auto &g : m_pages[p].m_groups )
+            for ( const auto &row : g.m_rows )
+                for ( const auto &n : row )
+                    if ( n == name ) return static_cast<int>( p );
+    return -1;
+}
+
+bool NoctuaryEditor::pageLit( int page ) const
+{
+    if ( page < 0 || page >= static_cast<int>( m_pages.size() ) ) return false;
+    for ( const auto &g : m_pages[static_cast<size_t>( page )].m_groups )
+    {
+        if ( g.m_rows.size() == 1 && g.m_rows[0].empty() ) return true;   // a picture alone: always there
+        for ( const auto &row : g.m_rows )
+            for ( const auto &n : row )
+                for ( const auto &s : m_sections )
+                    if ( s.m_name == n && shownCells( s ) > 0 && !sectionCollapsed( s ) ) return true;
+    }
+    return false;
+}
+
+void NoctuaryEditor::showPagedPage( int page )
+{
+    if ( page < 0 || page >= static_cast<int>( m_pages.size() ) ) return;
+    m_page = page;
+    m_proc.setLayoutPage( page );
+    layoutBody();   // every page has the body's size, so the window keeps its shape
+    m_content.repaint();
+    repaint();
+}
+
+juce::StringArray NoctuaryEditor::paramsMissingFromPages() const
+{
+    juce::StringArray out;
+    for ( const ParamDesc &d : paramTable() )
+    {
+        const juce::String sec( d.m_section );
+        if ( d.m_id == ParamIdE::MASTER_GAIN || sec == "Master" ) continue;   // the header, over every page
+        if ( sec.startsWith( "LFO " ) || sec.startsWith( "Env " ) || sec.startsWith( "Src Env " ) )
+            continue;                                     // the modulation strip, under every page
+        if ( sec == "Map" || sec == "Route" ) continue;   // the browser's map, as in every layout
+        if ( pageOfSection( sec ) < 0 ) out.add( d.m_key );
+    }
+    return out;
+}
+
+void NoctuaryEditor::layoutPaged()
+{
+    if ( m_pages.empty() ) return;
+    m_page = juce::jlimit( 0, static_cast<int>( m_pages.size() ) - 1, m_page );
+    // Out of sight first, everything the other layouts and the other pages place; a page shows its own.
+    auto hideAll = [this]
+    {
+        for ( auto &s : m_sections )
+            if ( s.m_name != "Master" ) setSectionVisible( s, false );
+        for ( auto &g : m_groups )
+            for ( auto *d : g.m_displays )
+                if ( d != nullptr ) d->setVisible( false );
+        for ( auto &t : m_tabRows )
+        {
+            for ( auto *d : t.m_displays )
+                if ( d != nullptr ) d->setVisible( false );
+            t.m_tabs.clear();
+            t.m_bar = {};
+        }
+        for ( auto &g : m_expandedGroups )
+            for ( auto *d : g.m_displays )
+                if ( d != nullptr ) d->setVisible( false );
+        for ( auto &pg : m_pages )
+            for ( auto &g : pg.m_groups )
+                for ( auto *d : g.m_displays )
+                    if ( d != nullptr ) d->setVisible( false );
+        if ( m_scope ) m_scope->setVisible( false );
+    };
+    // The strip: each section's title over the names of its pages.
+    const juce::Font nameFont( juce::FontOptions( 15.0f, juce::Font::bold ) );
+    m_pageTabs.clear();
+    m_pageHeads.clear();
+    int x = Pad + 4;
+    for ( size_t i = 0; i < m_pages.size(); ++i )
+    {
+        if ( i == 0 || m_pages[i].m_section != m_pages[i - 1].m_section )
+        {
+            if ( i > 0 )
+            {
+                m_pageHeads.back().first = m_pageHeads.back().first.withRight( x - 14 );
+                x += 22;
+            }
+            m_pageHeads.push_back( { { x, Pad, 10, 16 }, m_pages[i].m_section } );
+        }
+        const int w = juce::GlyphArrangement::getStringWidthInt( nameFont, m_pages[i].m_name ) + 18;   // and the dot
+        m_pageTabs.push_back( { x, Pad + 20, w, 28 } );
+        x += w + 16;
+    }
+    if ( !m_pageHeads.empty() ) m_pageHeads.back().first = m_pageHeads.back().first.withRight( x - 14 );
+    const int stripW = x + Pad;
+
+    // Measured: every page at its natural width, then every page at the widest's, for the tallest.
+    m_bodyTop = PageStripH;
+    m_minBodyH = 0;
+    m_minColW = 0;
+    const int open = m_page;
+    int       maxW = std::max( stripW, PagedMinW ), maxH = 0;
+    for ( size_t p = 0; p < m_pages.size(); ++p )
+    {
+        m_page = static_cast<int>( p );
+        hideAll();
+        layoutTabbed();
+        maxW = std::max( maxW, m_bodyW );
+    }
+    m_minColW = maxW - 2 * Pad;
+    for ( size_t p = 0; p < m_pages.size(); ++p )
+    {
+        m_page = static_cast<int>( p );
+        hideAll();
+        layoutTabbed();
+        maxH = std::max( maxH, m_bodyH );
+    }
+    m_page = open;
+    hideAll();
+    m_minBodyH = maxH;
+    layoutTabbed();
+    m_bodyW = std::max( maxW, m_bodyW );
+    m_bodyH = maxH;
+    m_bodyTop = 0;
+    m_minBodyH = 0;
+    m_minColW = 0;
+}
+
+void NoctuaryEditor::paintPageStrip( juce::Graphics &g )
+{
+    const juce::Font headFont = ui::title( 10.5f );
+    for ( const auto &h : m_pageHeads )
+    {
+        const int tw = juce::GlyphArrangement::getStringWidthInt( headFont, h.second );
+        g.setColour( Dim );
+        g.setFont( headFont );
+        g.drawText( h.second, h.first.withWidth( tw + 4 ), juce::Justification::centredLeft, false );
+        g.setColour( Dim.withAlpha( 0.35f ) );
+        if ( h.first.getWidth() > tw + 12 )
+            g.fillRect( h.first.getX() + tw + 10, h.first.getCentreY(), h.first.getWidth() - tw - 10, 1 );
+    }
+    for ( size_t i = 0; i < m_pageTabs.size() && i < m_pages.size(); ++i )
+    {
+        const auto         r = m_pageTabs[i];
+        const bool         open = static_cast<int>( i ) == m_page;
+        const auto        &groups = m_pages[i].m_groups;
+        const juce::Colour col = groups.empty() ? Accent : groups.front().m_colour;
+        g.setColour( open ? Text : Dim );
+        g.setFont( juce::FontOptions( 15.0f, open ? juce::Font::bold : juce::Font::plain ) );
+        g.drawText( m_pages[i].m_name, r.withTrimmedRight( 16 ), juce::Justification::centredLeft, false );
+        const juce::Rectangle<float> dot( static_cast<float>( r.getRight() - 11 ),
+                                          static_cast<float>( r.getCentreY() ) - 3.5f, 7.0f, 7.0f );
+        if ( pageLit( static_cast<int>( i ) ) )
+        {
+            g.setColour( col );
+            g.fillEllipse( dot );
+        }
+        else
+        {
+            g.setColour( Dim.withAlpha( 0.6f ) );
+            g.drawEllipse( dot.reduced( 0.5f ), 1.0f );
+        }
+        if ( open )
+        {
+            g.setColour( col );
+            g.fillRoundedRectangle( juce::Rectangle<float>( static_cast<float>( r.getX() ),
+                                                            static_cast<float>( r.getBottom() + 1 ),
+                                                            static_cast<float>( r.getWidth() - 16 ), 3.0f ),
+                                    1.5f );
+        }
+    }
+}
+
 void NoctuaryEditor::layoutBody()
 {
     for ( auto &s : m_sections )
@@ -1722,7 +1958,12 @@ void NoctuaryEditor::layoutBody()
         const int natural = m_expanded ? s.m_flowUnits : s.m_wideUnits;
         if ( natural > 0 ) s.m_maxUnits = natural;
     }
-    // Which page: the tabbed two-column page, or the Expanded three-column one with no tabs.
+    // Which page: the tabbed two-column page, one page of Pages, or the Expanded three-column one with no tabs.
+    if ( m_paged )
+    {
+        layoutPaged();
+        return;
+    }
     if ( !m_expanded )
     {
         layoutTabbed();
@@ -1933,11 +2174,11 @@ void NoctuaryEditor::layoutTabbed()
     for ( auto &g : m_expandedGroups )
         for ( auto *d : g.m_displays )
             if ( d != nullptr ) d->setVisible( false );
-    std::vector<Group> &G = m_groups;
+    std::vector<Group> &G = m_paged ? m_pages[static_cast<size_t>( m_page )].m_groups : m_groups;
     int                 nCols = 1;
     for ( auto &g : G ) nCols = std::max( nCols, g.m_column + 1 );
     const size_t     NC = static_cast<size_t>( nCols );
-    std::vector<int> colWidth( NC, 0 ), colX( NC, 0 ), colY( NC, Pad ), colYMax( NC, Pad );
+    std::vector<int> colWidth( NC, 0 ), colX( NC, 0 ), colY( NC, Pad + m_bodyTop ), colYMax( NC, Pad + m_bodyTop );
 
     // A page: the sections that stand side by side, and the display that takes the rest.
     struct Page
@@ -2124,6 +2365,7 @@ void NoctuaryEditor::layoutTabbed()
     if ( m_compact )
         for ( size_t c = 0; c < NC; ++c )
             colWidth[c] = std::max( narrow[c], juce::roundToInt( colWidth[c] * CompactFactor ) );
+    if ( m_paged && NC == 1 ) colWidth[0] = std::max( colWidth[0], m_minColW );   // every page as wide as the widest
     colX[0] = Pad;
     for ( size_t ci = 1; ci < colX.size(); ++ci ) colX[ci] = colX[ci - 1] + colWidth[ci - 1] + Pad;
 
@@ -2209,6 +2451,7 @@ void NoctuaryEditor::layoutTabbed()
     m_bodyH = 0;
     for ( int yy : colYMax )
         m_bodyH = std::max( m_bodyH, yy );   // the tallest pages: the shape a tab click cannot change
+    m_bodyH = std::max( m_bodyH, m_minBodyH );   // Pages: the tallest page, which the stretchy rows grow to
     // The stretch: the last row of each column grows to the body's height. Its page is refitted
     // for the new height -- the sections as tall as it holds, the display beside them as wide as
     // that leaves -- so the room under the knobs is not a hole but more picture.
@@ -2237,6 +2480,7 @@ void NoctuaryEditor::layoutTabbed()
 
 NoctuaryEditor::TabRow *NoctuaryEditor::tabRowFor( int group, int row )
 {
+    if ( m_paged ) return nullptr;   // a page's groups are its own, and nothing on a page has tabs
     for ( auto &t : m_tabRows )
         if ( t.m_group == group && t.m_row == row ) return &t;
     return nullptr;
@@ -2276,6 +2520,16 @@ bool NoctuaryEditor::refreshLayoutState()
 
 void NoctuaryEditor::clickTabs( juce::Point<int> pos )
 {
+    if ( m_paged )
+    {
+        for ( size_t i = 0; i < m_pageTabs.size(); ++i )
+            if ( m_pageTabs[i].contains( pos ) )
+            {
+                showPagedPage( static_cast<int>( i ) );
+                return;
+            }
+        return;
+    }
     if ( m_expanded ) return;   // every page is open; the titles are titles, not tabs
     for ( auto &t : m_tabRows )
         for ( size_t i = 0; i < t.m_tabs.size(); ++i )
@@ -2538,6 +2792,13 @@ juce::Image NoctuaryEditor::snapshotSection( const juce::String &name )
                     was = t.m_active;
                     t.m_active = static_cast<int>( pi );
                 }
+    // Pages: the page the section stands on, open for the picture.
+    const int pageWas = m_page;
+    if ( m_paged && pageOfSection( name ) >= 0 && pageOfSection( name ) != m_page )
+    {
+        m_page = pageOfSection( name );
+        layoutBody();
+    }
     if ( row != nullptr ) layoutBody();
     // The Master section is painted in the header and its bounds are the editor's; every other
     // section belongs to the scrolling content. Photographed from the wrong component, the
@@ -2548,6 +2809,11 @@ juce::Image NoctuaryEditor::snapshotSection( const juce::String &name )
     if ( row != nullptr )
     {
         row->m_active = was;
+        layoutBody();
+    }
+    if ( m_page != pageWas )
+    {
+        m_page = pageWas;
         layoutBody();
     }
     return img;
@@ -2566,7 +2832,9 @@ juce::Image NoctuaryEditor::snapshotTab( int rowIndex, int page )
     if ( page < 0 || page >= static_cast<int>( t.m_pages.size() ) ) return {};
     const int  was = t.m_active;
     const bool wasExpanded = m_expanded;   // the manual's pictures are of the page as it is normally: one tab open
+    const bool wasPaged = m_paged;
     m_expanded = false;
+    m_paged = false;
     t.m_active = page;
     layoutBody();
     juce::Rectangle<int> box = t.m_bar;   // the tab bar itself belongs in the picture
@@ -2585,6 +2853,7 @@ juce::Image NoctuaryEditor::snapshotTab( int rowIndex, int page )
     if ( !box.isEmpty() ) img = m_content.createComponentSnapshot( box.expanded( 4 ), true, 1.0f );
     t.m_active = was;
     m_expanded = wasExpanded;
+    m_paged = wasPaged;
     layoutBody();
     return img;
 }
@@ -3571,10 +3840,11 @@ void NoctuaryEditor::showSettings()
     {
         juce::PopupMenu          layout;
         const int                mode = m_proc.layoutMode();
-        static const char *const Modes[3] = { "Normal: one page with tabs",
+        static const char *const Modes[4] = { "Normal: one page with tabs",
                                               "Compact: narrower columns, taller sections",
-                                              "Expanded: every page laid out under one another" };
-        for ( int i = 0; i < 3; ++i ) layout.addItem( Modes[i], true, mode == i, [this, i] { applyLayoutMode( i ); } );
+                                              "Expanded: every page laid out under one another",
+                                              "Pages: one page at a time, larger (as in Empyrean)" };
+        for ( int i = 0; i < 4; ++i ) layout.addItem( Modes[i], true, mode == i, [this, i] { applyLayoutMode( i ); } );
         menu.addSubMenu( "Layout", layout );
         if ( NoctuaryProcessor::sessionRecallAvailable() )
             menu.addItem( "Start where you left off (session recall)", true, m_proc.sessionRecall(),
@@ -4476,7 +4746,9 @@ void NoctuaryEditor::paint( juce::Graphics &g )
 void NoctuaryEditor::paintContent( juce::Graphics &g )
 {
     g.fillAll( Bg );
-    for ( const auto &grp : ( m_expanded ? m_expandedGroups : m_groups ) )
+    if ( m_paged ) paintPageStrip( g );
+    for ( const auto &grp :
+          ( m_expanded ? m_expandedGroups : m_paged ? m_pages[static_cast<size_t>( m_page )].m_groups : m_groups ) )
     {
         g.setColour( GroupFill );
         g.fillRoundedRectangle( grp.m_bounds.toFloat(), 8.0f );
@@ -4491,7 +4763,7 @@ void NoctuaryEditor::paintContent( juce::Graphics &g )
     }
     for ( const auto &t : m_tabRows )
     {
-        if ( m_expanded ) break;   // no tabs on the Expanded page
+        if ( m_expanded || m_paged ) break;   // no tabs on the Expanded page or on a page of Pages
         const juce::Colour col = m_groups[static_cast<size_t>( t.m_group )].m_colour;
         for ( size_t i = 0; i < t.m_tabs.size(); ++i )
         {
@@ -4604,6 +4876,10 @@ bool NoctuaryEditor::revealParam( int id )
     const int cell = id >= 0 && id < NumParams ? cellForParam( static_cast<ParamIdE>( id ) ) : -1;
     if ( cell < 0 ) return false;
     setPage( 0 );
+    if ( m_paged )   // Pages: the page holding its section, open
+        for ( const auto &s : m_sections )
+            if ( std::find( s.m_cells.begin(), s.m_cells.end(), cell ) != s.m_cells.end() )
+                if ( const int pg = pageOfSection( s.m_name ); pg >= 0 && pg != m_page ) showPagedPage( pg );
     // The tab holding its section, open.
     for ( auto &t : m_tabRows )
         for ( size_t p = 0; p < t.m_pages.size(); ++p )
@@ -4663,8 +4939,8 @@ std::vector<frame::CommandPalette::Command> NoctuaryEditor::paletteCommands()
     action( "Stop the journey", "", [this] { m_proc.stopJourney(); } );
     action( "First steps", "the tour of the panel", [this] { startTour(); } );
     action( "Settings", "the layout, the headset, the jam, Link", [this] { showSettings(); } );
-    static const char *const Modes[3] = { "Layout: Normal", "Layout: Compact", "Layout: Expanded" };
-    for ( int i = 0; i < 3; ++i ) action( Modes[i], "settings", [this, i] { applyLayoutMode( i ); } );
+    static const char *const Modes[4] = { "Layout: Normal", "Layout: Compact", "Layout: Expanded", "Layout: Pages" };
+    for ( int i = 0; i < 4; ++i ) action( Modes[i], "settings", [this, i] { applyLayoutMode( i ); } );
     // The tabs of the paging rows.
     for ( size_t ti = 0; ti < m_tabRows.size(); ++ti )
     {

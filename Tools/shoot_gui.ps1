@@ -3,7 +3,7 @@
 #
 #   powershell -File Tools\shoot_gui.ps1 -Out docs\screenshot.png [-Width 1500] [-Height 920]
 #                                        [-Wait 6] [-Page ""|perform|browse|browse-map] [-Tab "5,1"]
-#                                        [-Maximize] [-Layout 0..2] [-KeepSettings] [-Exe <path>]
+#                                        [-Maximize] [-Layout 0..3] [-PageNo n] [-KeepSettings] [-Exe <path>]
 #
 # The instrument always starts muted (AMBIENT_MUTE=1): a picture is never a reason for sound.
 # -Maximize maximises the window the way its title bar's button does (ShowWindow, no input is
@@ -20,7 +20,8 @@ param(
     [switch]$Fresh,         # forget the standalone's saved window size, so it opens at its own fit
     [switch]$Maximize,      # maximise the window before the picture
     [switch]$Restore,       # with -Maximize: maximise, then restore (the way back to a window)
-    [int]$Layout = -1,      # 0 Normal, 1 Compact, 2 Expanded (AMBIENT_LAYOUT); -1 the recalled one
+    [int]$Layout = -1,      # 0 Normal, 1 Compact, 2 Expanded, 3 Pages (AMBIENT_LAYOUT); -1 the recalled one
+    [int]$PageNo = -1,     # with -Layout 3: the page to open, from zero (AMBIENT_PAGE)
     [switch]$KeepSettings,  # restore Noctuary.settings and Noctuary.frame afterwards
     [string]$Exe = ""       # another build of the standalone (the build tree's, when bin\ is locked)
 )
@@ -30,6 +31,7 @@ $exe = if ($Exe) { $Exe } else { Join-Path $root "bin\msvc\Noctuary.exe" }
 if (-not (Test-Path $exe)) { throw "standalone not built: $exe" }
 $env:AMBIENT_MUTE = "1"
 if ($Layout -ge 0) { $env:AMBIENT_LAYOUT = "$Layout" } else { Remove-Item env:AMBIENT_LAYOUT -ErrorAction SilentlyContinue }
+if ($PageNo -ge 0) { $env:AMBIENT_PAGE = "$PageNo" } else { Remove-Item env:AMBIENT_PAGE -ErrorAction SilentlyContinue }
 $userDir = Join-Path $env:APPDATA "Noctuary"
 $kept = @{}
 if ($KeepSettings) {

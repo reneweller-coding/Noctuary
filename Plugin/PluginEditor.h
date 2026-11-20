@@ -119,6 +119,14 @@ public:
      * inside it -- hence here rather than in the constructor.
      */
     void parentHierarchyChanged() override;
+    /**
+     * @brief The check that the Pages layout leaves nothing out (hosttest): the keys of the parameters that are on no
+     *        page of it. The header's Master (with the master gain), the modulation strip's LFOs and envelopes and the
+     *        browser's map and route are the same in every layout and count as reachable; everything else has to
+     *        stand on a page.
+     * @return the keys of the parameters on no page, empty when every one is reachable
+     */
+    juce::StringArray paramsMissingFromPages() const;
 
 private:
     /**
@@ -452,6 +460,11 @@ private:
      * sight at once -- for a tall screen, or for reading a preset through.
      */
     bool m_expanded = false;
+    /**
+     * @brief Pages (layout mode 3, 20.11.2026, after Empyrean): one page at a time, chosen from a strip of pages in
+     *        sections; a page holds a few sections, so the page is small and the window shows it large. See m_pages.
+     */
+    bool m_paged = false;
     /** @brief The manual's pictures: every section open whatever its switch says, and the tabs. */
     bool m_openAll = false;
     /**
@@ -471,7 +484,7 @@ private:
     void rebuildLayout();
     /**
      * @brief Switches the layout mode, stores it in the processor and rebuilds.
-     * @param[in] mode  0 normal, 1 compact, 2 expanded
+     * @param[in] mode  0 normal, 1 compact, 2 expanded, 3 pages
      */
     void applyLayoutMode( int mode );
     /**
@@ -765,6 +778,57 @@ private:
         std::vector<juce::Rectangle<int>> m_tabs;   ///< one rectangle per tab, for painting and for the click
     };
     std::vector<TabRow> m_tabRows;   ///< the rows that page, filled in the constructor
+    /**
+     * @brief One page of the Pages layout: a name in the page strip, the strip's section it stands under, and the
+     *        groups on it, laid out like the tabbed page's (layoutTabbed) without tabs.
+     */
+    struct Page
+    {
+        juce::String       m_name;      ///< as the strip shows it
+        juce::String       m_section;   ///< the strip's section above it (SOUND, SPACE, ...)
+        std::vector<Group> m_groups;    ///< what stands on it
+    };
+    std::vector<Page> m_pages;   ///< the Pages layout's pages, in the strip's order (buildPages)
+    int               m_page = 0;   ///< the page open in the Pages layout
+    std::vector<juce::Rectangle<int>> m_pageTabs;   ///< one rectangle per page name in the strip, content coordinates
+    /** @brief The strip's section titles: where each stands, in content coordinates, and the text. */
+    std::vector<std::pair<juce::Rectangle<int>, juce::String>> m_pageHeads;
+    int m_bodyTop = 0;    ///< what the body leaves free above its groups (the page strip in the Pages layout)
+    int m_minBodyH = 0;   ///< the least body height layoutTabbed grows its stretchy rows to (the tallest page)
+    int m_minColW = 0;    ///< the least column width of a page of Pages (the widest page's), so every page fills it
+    /**
+     * @brief Paints the page strip of the Pages layout: the sections' titles, the page names, a dot per page lit while
+     *        something on it is on, the open page underlined.
+     * @param[in,out] g  the graphics, in content coordinates
+     */
+    void paintPageStrip( juce::Graphics &g );
+    static constexpr int PageStripH = 58;   ///< the page strip's height: the section titles over the page names
+    /** @brief The least design width of the Pages layout: what the header needs with the Master in one row. */
+    static constexpr int PagedMinW = 2140;
+    /** @brief Fills m_pages: every section of the tabbed page on exactly one page, its pictures beside it. */
+    void buildPages();
+    /**
+     * @brief The Pages layout: every page measured (the body is as large as the largest, so a page change never
+     *        changes the window's shape), then the open one placed under the page strip.
+     */
+    void layoutPaged();
+    /**
+     * @brief The page a section stands on in the Pages layout.
+     * @param[in] name  the section
+     * @return its index in m_pages, -1 for none
+     */
+    int pageOfSection( const juce::String &name ) const;
+    /**
+     * @brief Whether something on a page is on: at least one of its sections is not closed by its switch.
+     * @param[in] page  index into m_pages
+     * @return true for the lit dot beside its name
+     */
+    bool pageLit( int page ) const;
+    /**
+     * @brief Opens a page of the Pages layout and lays it out.
+     * @param[in] page  index into m_pages
+     */
+    void showPagedPage( int page );
     /**
      * @brief The tab row of a group's row, if it has one.
      * @param[in] group  index into m_groups
