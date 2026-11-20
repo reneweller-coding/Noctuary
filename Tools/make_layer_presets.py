@@ -4,7 +4,17 @@ Both are layers: a bank of presets that touches only one section, so it lands on
 sound is loaded without disturbing it. The Cosmos bank is the feedback network; the Strike bank is
 the Karplus-Strong pluck that fires on note-on.
 
-    python Tools/make_layer_presets.py
+    python Tools/make_layer_presets.py [--taste PATH]
+
+--taste names the player's taste file (20.11.2026, plan C2): what the near preset box's "like" and "never again"
+wrote, Documents/Noctuary/near_taste.txt, one `like <name>` or `never <name>` a line. A liked near preset joins
+LIKED as a parent of variants (a liked variant counts for its parent); a turned-down one, and every variant of it,
+is left out of the bank, and the variants fill the bank to 512 as before. Without --taste nothing is read and the
+banks come out as they always did, byte for byte. Tools/library/near_table.py takes the same option.
+
+--check writes nothing: it generates the three banks and near_by_artist.json (Tools/library/near_table.py) and
+compares them with the files in the tree, exit 1 when one differs -- the ctest layer_presets, which keeps the default
+run byte-identical to what is checked in.
 
 Why generated. Two hundred and fifty-six presets written by hand are two hundred and fifty-six
 chances to type 0.8 where 0.08 was meant, and the result of that is not a wrong note, it is a
@@ -938,14 +948,15 @@ _SHORT = {"Whistler Cosmic Echo", "Whistler Low Cosmic", "Whistler Slow Close", 
 _INSTEAD = ["Bowed Line", "Drop Sequence", "Tuned Noise", "Machine Pulse"]
 
 
-def generated_variants(target_total):
+def generated_variants(target_total, exclude=()):
     """Variants of LIKED and NEW_BASES until the bank (with Near Off) holds target_total presets: the liked ones
     get more, every parent's variants differ from each other in their pair of moves, and a single note never ends
-    up under six seconds."""
+    up under six seconds. Names in `exclude` (the player's "never again") are never generated; their pair of moves
+    goes to the next one."""
     import zlib
     settings = {nm: kw for _, ps in NEAR for nm, kw in ps}
-    taken = set(settings) | {name for _, name, _ in NEAR_VARIANTS}
-    parents = LIKED + [name for _, name, _, _ in NEW_BASES]
+    taken = set(settings) | {name for _, name, _ in NEAR_VARIANTS} | set(exclude)
+    parents = [p for p in LIKED + [name for _, name, _, _ in NEW_BASES] if p in settings]
     free = target_total - 1 - len(settings) - len(NEAR_VARIANTS)
     if free <= 0:
         return []
@@ -960,7 +971,8 @@ def generated_variants(target_total):
                 break
         k += 1
     for q in _INSTEAD:   # the slots of the short ones go to lines
-        per[q] += 1
+        if q in per:
+            per[q] += 1
     desc = _descriptors()
     out = []
     for p in parents:
@@ -991,16 +1003,87 @@ def generated_variants(target_total):
             taken.add(name)
             chosen.append((p, name, over))
         out += [v for v in chosen if v[1] not in _SHORT]
+    while len(out) > free:   # a taste can leave one of _SHORT undrawn: the bank keeps its size
+        counts = {}
+        for v in out:
+            counts[v[0]] = counts.get(v[0], 0) + 1
+        top = max(counts, key=lambda q: (counts[q], q))
+        out.pop(max(i for i, v in enumerate(out) if v[0] == top))
     return out
 
 
-NEAR_VARIANTS = NEAR_VARIANTS + generated_variants(512)
-VARIANT_PARENT = {name: parent for parent, name, _ in NEAR_VARIANTS}
-# A new base joins its liked relative's group in Near Auto, and plays at that one's gain until it is measured.
-GROUP_OF = dict(VARIANT_PARENT)
-GROUP_OF.update(GROUP_PARENT)
-for _name, _parent in GROUP_PARENT.items():
-    VARIANT_PARENT.setdefault(_name, _parent)
+HAND_VARIANTS = list(NEAR_VARIANTS)   # the variants written out above, before the generated ones
+
+
+def _relations():
+    """VARIANT_PARENT and GROUP_OF from NEAR_VARIANTS and GROUP_PARENT."""
+    global VARIANT_PARENT, GROUP_OF
+    VARIANT_PARENT = {name: parent for parent, name, _ in NEAR_VARIANTS}
+    # A new base joins its liked relative's group in Near Auto, and plays at that one's gain until it is measured.
+    GROUP_OF = dict(VARIANT_PARENT)
+    GROUP_OF.update(GROUP_PARENT)
+    for _name, _parent in GROUP_PARENT.items():
+        VARIANT_PARENT.setdefault(_name, _parent)
+
+
+NEAR_VARIANTS = HAND_VARIANTS + generated_variants(512)
+_relations()
+
+
+def read_taste(path):
+    """The player's taste file (the instrument reads it with ambient::parseNearTaste, by the same rules):
+    ([liked], [never]) in the file's order. `#` begins a comment, a line that is not `like <name>` or
+    `never <name>` is skipped, and a name given twice counts as its last line says."""
+    liked, never = [], []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for raw in fh:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split(None, 1)
+            if len(parts) < 2 or parts[0].lower() not in ("like", "never") or not parts[1].strip():
+                continue
+            name = parts[1].strip()
+            for lst in (liked, never):
+                if name in lst:
+                    lst.remove(name)
+            (liked if parts[0].lower() == "like" else never).append(name)
+    return liked, never
+
+
+def use_taste(path):
+    """Builds the near bank with the player's taste (see the file comment); returns lines saying what it did."""
+    global LIKED, NEAR_VARIANTS, GROUP_PARENT
+    liked, never = read_taste(path)
+    never = set(never)
+    base = {nm for _, ps in NEAR for nm, _ in ps}
+    said = ["taste %s: %d liked, %d never again" % (path, len(liked), len(never))]
+    # Never again: the preset and every variant of it leave the bank.
+    for _fam, ps in NEAR:
+        ps[:] = [(nm, kw) for nm, kw in ps if nm not in never]
+    NEAR[:] = [(fam, ps) for fam, ps in NEAR if ps]
+    GROUP_PARENT = {n: p for n, p in GROUP_PARENT.items() if n not in never}
+    gone = sorted(never & base)
+    if gone:
+        said.append("left out with their variants: " + ", ".join(gone))
+    elsewhere = sorted(never - base)
+    if elsewhere:
+        said.append("never again, not a preset of its own here (a variant is simply not made): " + ", ".join(elsewhere))
+    # Liked: a parent of variants; a liked variant counts for its parent.
+    likes = [p for p in LIKED if p not in never]
+    for nm in liked:
+        target = nm if nm in base else VARIANT_PARENT.get(nm)
+        if target is None or target in never or target not in base:
+            said.append("liked, not in the bank: " + nm)
+            continue
+        if target not in likes:
+            likes.append(target)
+            said.append("joins LIKED: %s%s" % (target, "" if target == nm else " (for its variant %s)" % nm))
+    LIKED = likes
+    NEAR_VARIANTS = [v for v in HAND_VARIANTS if v[0] not in never and v[1] not in never]
+    NEAR_VARIANTS = NEAR_VARIANTS + generated_variants(512, exclude=never)
+    _relations()
+    return said
 
 
 def near_bank():
@@ -1024,7 +1107,11 @@ def near_bank():
     return out
 
 
+CHECK = []   # --check: (path, same) for every file write_bank would have written
+
+
 def write_bank(path, array, cat_array, off_name, off_settings, families, what):
+    """Writes a bank's .inc (under --check: compares it with the file instead). @return the presets with the Off entry"""
     nl = chr(10)
     lines = ["// Generated by Tools/make_layer_presets.py -- do not edit.",
              "/// %s" % what,
@@ -1061,22 +1148,43 @@ def write_bank(path, array, cat_array, off_name, off_settings, families, what):
         lines.append('    "%s",' % fam)
     lines.append("};")
     lines.append("")
+    text = nl.join(lines)
+    if CHECK_MODE:
+        old = open(path, encoding="utf-8").read() if os.path.isfile(path) else None
+        CHECK.append((path, old == text))
+        return len(cats) + 1
     with open(path, "w", encoding="utf-8") as f:
-        f.write(nl.join(lines))
+        f.write(text)
     return len(cats) + 1
 
 
+CHECK_MODE = False
+
+
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="Generate the Cosmos, Strike and near banks (Core/src/*Presets.inc).")
+    ap.add_argument("--taste", metavar="PATH", help="the player's near taste file (like / never again)")
+    ap.add_argument("--allow-missing-clips", action="store_true", help="a clone without the archive")
+    ap.add_argument("--check", action="store_true", help="write nothing; exit 1 if a generated file would differ")
+    a = ap.parse_args()
+    global CHECK_MODE
+    CHECK_MODE = a.check
+    if a.check:
+        a.allow_missing_clips = True   # the comparison is about the text, not about the archive being there
+    if a.taste:
+        for line in use_taste(a.taste):
+            print(line)
     n = write_bank(COSMOS_OUT, "CosmosPresets", "CosmosPresetCategory", "Cosmos Off", "",
                    COSMOS, "%d presets in %d families, touching only the Cosmos section."
                    % (sum(len(p) for _, p in COSMOS) + 1, len(COSMOS)))
-    print("wrote %s: %d presets in %d families" % (COSMOS_OUT, n, len(COSMOS)))
+    print("%s %s: %d presets in %d families" % ("checked" if CHECK_MODE else "wrote", COSMOS_OUT, n, len(COSMOS)))
     fams = [(f, [(nm, fmt(**kw)) for nm, kw in ps]) for f, ps in STRIKE]
     n = write_bank(STRIKE_OUT, "StrikePresets", "StrikePresetCategory", "Strike Off",
                    "strike_level=0", fams,
                    "%d presets in %d families, touching only the Strike section."
                    % (sum(len(p) for _, p in fams) + 1, len(fams)))
-    print("wrote %s: %d presets in %d families" % (STRIKE_OUT, n, len(fams)))
+    print("%s %s: %d presets in %d families" % ("checked" if CHECK_MODE else "wrote", STRIKE_OUT, n, len(fams)))
     # Every clip a near preset names must exist under Library/ -- the archive's file names went
     # through fetch_archive.py's safe_name (no dots, no commas), and two presets naming the titles
     # as written on the page pointed at nothing, silently. Fatal, not a warning: a bank entry
@@ -1087,7 +1195,7 @@ def main():
     missing = [kw["__clip__"] for _, ps in bank for _, kw in ps
                if kw.get("__clip__") and os.path.isdir(os.path.join(library, "Archive"))
                and not (os.path.isfile(os.path.join(library, kw["__clip__"])) or os.path.isdir(os.path.join(library, kw["__clip__"])))]
-    if missing and "--allow-missing-clips" not in sys.argv:
+    if missing and not a.allow_missing_clips:
         sys.exit("near bank: %d clip(s) not found under Library/ (a clone without the archive may pass --allow-missing-clips):\n  %s"
                  % (len(missing), "\n  ".join(missing)))
     # The measured gain of every near preset (14.09.2026): what brings its loudest moment to the
@@ -1126,7 +1234,17 @@ def main():
                    "fore_level=0", fams,
                    "%d presets in %d families, touching only the Near Source and Near Events sections."
                    % (sum(len(p) for _, p in fams) + 1, len(fams)))
-    print("wrote %s: %d presets in %d families" % (NEAR_OUT, n, len(fams)))
+    print("%s %s: %d presets in %d families" % ("checked" if CHECK_MODE else "wrote", NEAR_OUT, n, len(fams)))
+    if a.check:
+        sys.path.insert(0, os.path.join(HERE, "library"))
+        import near_table
+        CHECK.append((near_table.TABLE, near_table.table_text(near_table.updated_table(quiet=True)) ==
+                      open(near_table.TABLE, encoding="utf-8").read()))
+        bad = [p for p, same in CHECK if not same]
+        for p, same in CHECK:
+            print("%s %s" % ("same     " if same else "DIFFERENT", p))
+        print("layer presets: %s" % ("the generated files differ from the tree" if bad else "the tree is what the generator makes"))
+        sys.exit(1 if bad else 0)
 
 
 if __name__ == "__main__":

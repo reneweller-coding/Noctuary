@@ -66,6 +66,11 @@ if(AMBIENT_BUILD_TOOLS)
                  --tsv "${CMAKE_BINARY_DIR}/music_audit/check.tsv")
         set_tests_properties(music_audit PROPERTIES LABELS "slow" TIMEOUT 1800)
     endif()
+    # The layer banks (20.11.2026, plan C2): the generator's default run, without a taste file, makes exactly the
+    # near, Cosmos and Strike banks and the near table in the tree. A few seconds.
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME layer_presets COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/make_layer_presets.py" --check)
+    endif()
 endif()
 
 if(AMBIENT_BUILD_PLUGIN)

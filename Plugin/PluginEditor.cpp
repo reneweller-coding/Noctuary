@@ -1119,7 +1119,37 @@ void NoctuaryEditor::buildCells()
             }
         };
         m_nearPresetBox = nb.get();
-        addExtraCell( "Near Events", std::move( nb ), "Preset", 3 );
+        // Like and never again (20.11.2026, plan C2): beside the box, in its cell, so no section grows.
+        auto cell = std::make_unique<NearPresetCell>();
+        cell->m_box = std::move( nb );
+        cell->m_like = std::make_unique<TasteButton>( false );
+        cell->m_never = std::make_unique<TasteButton>( true );
+        cell->addAndMakeVisible( *cell->m_box );
+        cell->addAndMakeVisible( *cell->m_like );
+        cell->addAndMakeVisible( *cell->m_never );
+        m_nearLike = cell->m_like.get();
+        m_nearNever = cell->m_never.get();
+        auto verdict = [this]( ambient::NearTasteE t )
+        {
+            const int idx = m_proc.nearPresetIndex();
+            if ( idx <= 0 ) return;
+            m_proc.setNearTaste( idx, m_proc.nearTasteOf( idx ) == t ? ambient::NearTasteE::NONE : t );
+            m_nearTasteShown = -2;
+            refreshNearTaste();
+        };
+        m_nearLike->onClick = [verdict] { verdict( ambient::NearTasteE::LIKED ); };
+        m_nearNever->onClick = [verdict] { verdict( ambient::NearTasteE::NEVER ); };
+        registerHelpText(
+            m_nearLike, "NEAR EVENTS   Like",
+            "You like the near preset that is playing: Auto draws it twice as often (it stays one voice among the artist's list). "
+            "Kept by name in Documents/Noctuary/near_taste.txt, which the bank's generator reads too. Click again to take it back." );
+        registerHelpText(
+            m_nearNever, "NEAR EVENTS   Never again",
+            "Auto never draws this near preset again, from now on; if Auto is playing it, Auto draws another at once. It stays in "
+            "the box, dimmed, to be chosen by hand -- choose it and click here again to take the verdict back. Kept by name in "
+            "Documents/Noctuary/near_taste.txt." );
+        refreshNearTaste();
+        addExtraCell( "Near Events", std::move( cell ), "Preset", 3 );
         // The near source's own clip: what its Clip, Texture, Stretch and Spectral types read.
         auto clip = std::make_unique<juce::TextButton>( "Clip..." );
         clip->setTooltip(
@@ -2660,13 +2690,24 @@ void NoctuaryEditor::registerHelp( juce::Component *c, ambient::ParamIdE id )
     c->addMouseListener( this, false );
 }
 
+void NoctuaryEditor::registerHelpText( juce::Component *c, const juce::String &title, const juce::String &body )
+{
+    if ( c == nullptr ) return;
+    m_helpTextOf[c] = { title, body };
+    c->addMouseListener( this, false );
+}
+
 void NoctuaryEditor::mouseEnter( const juce::MouseEvent &e )
 {
     auto      it = m_helpParamOf.find( e.eventComponent );
     const int param = it != m_helpParamOf.end() ? it->second : -1;
-    if ( param != m_hoveredParam )
+    const auto txt = m_helpTextOf.find( e.eventComponent );
+    const juce::String title = txt != m_helpTextOf.end() ? txt->second.first : juce::String();
+    if ( param != m_hoveredParam || title != m_hoverTitle )
     {
         m_hoveredParam = param;
+        m_hoverTitle = title;
+        m_hoverBody = txt != m_helpTextOf.end() ? txt->second.second : juce::String();
         repaint();
     }
 }
@@ -2679,6 +2720,89 @@ void NoctuaryEditor::mouseExit( const juce::MouseEvent &e )
         m_hoveredParam = -1;
         repaint();
     }
+    if ( m_helpTextOf.count( e.eventComponent ) > 0 && m_hoverTitle.isNotEmpty() )
+    {
+        m_hoverTitle = {};
+        m_hoverBody = {};
+        repaint();
+    }
+}
+
+void NoctuaryEditor::TasteButton::paintButton( juce::Graphics &g, bool over, bool down )
+{
+    const auto   r = getLocalBounds().toFloat().reduced( 1.0f );
+    const bool   on = getToggleState();
+    const juce::Colour lit = m_never ? juce::Colour( 0xffd9675f ) : ui::MorphCol;
+    const juce::Colour ink = !isEnabled() ? ui::Faint : on ? lit : ( over ? ui::Text : ui::Dim );
+    g.setColour( on ? lit.withAlpha( down ? 0.35f : 0.22f ) : ui::CardColour.brighter( over ? 0.12f : 0.05f ) );
+    g.fillEllipse( r );
+    g.setColour( ink.withAlpha( 0.7f ) );
+    g.drawEllipse( r.reduced( 0.5f ), 1.0f );
+    const auto  c = r.getCentre();
+    const float s = r.getWidth() * 0.22f;
+    g.setColour( ink );
+    if ( m_never )
+    {   // a struck circle: not this one
+        g.drawEllipse( c.x - s, c.y - s, 2.0f * s, 2.0f * s, 1.4f );
+        g.drawLine( c.x - s * 0.7f, c.y + s * 0.7f, c.x + s * 0.7f, c.y - s * 0.7f, 1.4f );
+    }
+    else
+    {   // a heart: two lobes and a point
+        juce::Path h;
+        h.startNewSubPath( c.x, c.y + s * 1.05f );
+        h.cubicTo( c.x - s * 1.6f, c.y - s * 0.1f, c.x - s * 0.9f, c.y - s * 1.3f, c.x, c.y - s * 0.45f );
+        h.cubicTo( c.x + s * 0.9f, c.y - s * 1.3f, c.x + s * 1.6f, c.y - s * 0.1f, c.x, c.y + s * 1.05f );
+        h.closeSubPath();
+        if ( on )
+            g.fillPath( h );
+        else
+            g.strokePath( h, juce::PathStrokeType( 1.3f ) );
+    }
+}
+
+void NoctuaryEditor::NearPresetCell::resized()
+{
+    auto      r = getLocalBounds().reduced( 1, 0 );
+    const int b = 22;
+    r = r.withSizeKeepingCentre( r.getWidth(), 24 );
+    m_never->setBounds( r.removeFromRight( b ).withSizeKeepingCentre( b, b ) );
+    r.removeFromRight( 3 );
+    m_like->setBounds( r.removeFromRight( b ).withSizeKeepingCentre( b, b ) );
+    r.removeFromRight( 4 );
+    m_box->setBounds( r );
+}
+
+void NoctuaryEditor::refreshNearTaste()
+{
+    if ( m_nearPresetBox == nullptr ) return;
+    juce::String selected;
+    for ( juce::PopupMenu::MenuItemIterator it( *m_nearPresetBox->getRootMenu() ); it.next(); )
+    {
+        auto     &item = it.getItem();
+        const int idx = item.itemID - 1;
+        if ( idx <= 0 || idx >= numNearPresets() ) continue;   // a heading, or Near Off
+        const auto   t = m_proc.nearTasteOf( idx );
+        juce::String text( nearPreset( idx ).m_name );
+        if ( t == ambient::NearTasteE::LIKED ) text << "  (liked)";
+        if ( t == ambient::NearTasteE::NEVER ) text << "  (never again)";
+        item.text = text;
+        item.colour = t == ambient::NearTasteE::NEVER   ? ui::Faint
+                      : t == ambient::NearTasteE::LIKED ? ui::MorphCol
+                                                        : juce::Colour();
+        if ( item.itemID == m_nearPresetBox->getSelectedId() ) selected = text;
+    }
+    if ( selected.isNotEmpty() && m_nearPresetBox->getText() != selected )
+        m_nearPresetBox->setText( selected, juce::dontSendNotification );   // the box's own line, marked too
+    const int  idx = m_proc.nearPresetIndex();
+    const auto t = idx > 0 ? m_proc.nearTasteOf( idx ) : ambient::NearTasteE::NONE;
+    for ( TasteButton *b : { m_nearLike, m_nearNever } )
+    {
+        if ( b == nullptr ) continue;
+        b->setEnabled( idx > 0 );
+        b->setToggleState( t == ( b->m_never ? ambient::NearTasteE::NEVER : ambient::NearTasteE::LIKED ),
+                           juce::dontSendNotification );
+    }
+    m_nearTasteShown = idx;
 }
 
 // ---------------------------------------------------------------- undo, redo, A/B, the die
@@ -3978,6 +4102,7 @@ void NoctuaryEditor::timerCallback()
         if ( m_nearPresetBox != nullptr && m_proc.nearPresetIndex() >= 0 &&
              m_nearPresetBox->getSelectedId() != m_proc.nearPresetIndex() + 1 )
             m_nearPresetBox->setSelectedId( m_proc.nearPresetIndex() + 1, juce::dontSendNotification );
+        if ( m_proc.nearPresetIndex() != m_nearTasteShown ) refreshNearTaste();   // the buttons follow the preset
         if ( m_journeyStatus != nullptr )
         {
             const juce::String s =
@@ -4654,7 +4779,12 @@ void NoctuaryEditor::paint( juce::Graphics &g )
         g.setColour( ui::CardColour.withAlpha( 0.6f ) );
         g.fillRoundedRectangle( m_helpLine.toFloat(), 5.0f );
         juce::String title, body;
-        if ( m_hoveredParam >= 0 && m_hoveredParam < NumParams )
+        if ( m_hoverTitle.isNotEmpty() )
+        {   // a control without a parameter (the near preset's like and never again)
+            title = m_hoverTitle;
+            body = m_hoverBody;
+        }
+        else if ( m_hoveredParam >= 0 && m_hoveredParam < NumParams )
         {
             const ParamIdE   id = static_cast<ParamIdE>( m_hoveredParam );
             const ParamDesc &d = paramDesc( id );

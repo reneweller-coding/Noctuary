@@ -12,7 +12,11 @@ and every artist's weighting -- the others share its weight); every variant of m
 (NEAR_VARIANTS) joins its parent's group; then every artist's list is rebuilt. Run it, then
 Tools/make_near_auto.py.
 
-    python Tools/library/near_table.py [--dry-run]
+    python Tools/library/near_table.py [--dry-run] [--taste PATH]
+
+--taste (20.11.2026, plan C2) builds the bank as make_layer_presets.py --taste does: the player's "never again"
+presets and their variants are not in it, so they leave their groups and Auto; a liked one gets more variants, which
+join its group. Without it nothing is read and the table comes out as before, byte for byte.
 """
 import argparse
 import json
@@ -24,10 +28,14 @@ TABLE = os.path.join(HERE, "near_by_artist.json")
 CLASS_FACTOR = {"H": [0.6, 1.0], "G": [1.0, 2.0], "S": [2.0, 4.0]}
 
 
-def bank():
-    """The near bank as make_layer_presets.py builds it: {name: settings}, and its variants."""
+def bank(taste=None):
+    """The near bank as make_layer_presets.py builds it (with the player's taste file, if one is named):
+    {name: settings}, and its variants."""
     sys.path.insert(0, os.path.dirname(HERE))
     import make_layer_presets as m
+    if taste:
+        for line in m.use_taste(taste):
+            print(line)
     names = {}
     for _, ps in m.near_bank():
         for nm, kw in ps:
@@ -60,12 +68,15 @@ def rebuild(d):
         a["presets"] = out
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--dry-run", action="store_true")
-    a = ap.parse_args()
+def table_text(d):
+    """The table as the file holds it (no newline at its end)."""
+    return json.dumps(d, ensure_ascii=False, indent=1)
+
+
+def updated_table(taste=None, quiet=False):
+    """The table with the bank's presets and variants placed in their groups and every artist's list rebuilt."""
     d = json.load(open(TABLE, encoding="utf-8"))
-    names, variants = bank()
+    names, variants = bank(taste)
     removed = sorted({p for g in d["groups"].values() for p in g["presets"] if p not in names and p not in
                       {v for _, v, _ in variants}})
     for g in d["groups"].values():
@@ -94,14 +105,24 @@ def main():
     before = sum(len(x["presets"]) for x in d["artists"].values())
     rebuild(d)
     after = sum(len(x["presets"]) for x in d["artists"].values())
-    print("removed from the table: %s; groups emptied and dropped: %s" % (", ".join(removed) or "none", ", ".join(empty) or "none"))
-    print("variants placed in their parents' groups: %d; artists' entries %d -> %d" % (len(set(added)), before, after))
-    lost = [v for _, v, _ in variants if v in names and v not in set(added)]
-    if lost:
-        print("variants whose parent is in no group (not in Auto): " + ", ".join(lost))
+    if not quiet:
+        print("removed from the table: %s; groups emptied and dropped: %s" % (", ".join(removed) or "none", ", ".join(empty) or "none"))
+        print("variants placed in their parents' groups: %d; artists' entries %d -> %d" % (len(set(added)), before, after))
+        lost = [v for _, v, _ in variants if v in names and v not in set(added)]
+        if lost:
+            print("variants whose parent is in no group (not in Auto): " + ", ".join(lost))
+    return d
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--taste", metavar="PATH", help="the player's near taste file (like / never again)")
+    a = ap.parse_args()
+    d = updated_table(a.taste)
     if not a.dry_run:
         with open(TABLE, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(d, f, ensure_ascii=False, indent=1)   # as the file was written: no newline at its end
+            f.write(table_text(d))   # as the file was written: no newline at its end
         print("wrote " + TABLE)
     return 0
 

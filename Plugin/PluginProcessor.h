@@ -736,6 +736,30 @@ public:
     /** @} */
 
     /**
+     * @name The near bank's taste (20.11.2026, plan C2)
+     * "Like" and "never again" for near presets, beside the near preset box. By name, in the player's own file beside
+     * the favourites (Documents\\Noctuary\\near_taste.txt, `like <name>` / `never <name>`, see ambient::NearTasteLists),
+     * read when the instrument starts and written only when a verdict changes. Auto (ambient::nearAutoPick) never
+     * draws a "never again" preset and draws a liked one ambient::NearLikedFactor times as often.
+     * @{ */
+    /**
+     * @param[in] nearIndex  a near preset of the bank
+     * @return the player's verdict on it
+     */
+    ambient::NearTasteE nearTasteOf( int nearIndex ) const { return ambient::nearTaste( nearIndex ); }
+    /**
+     * @brief Gives a near preset a verdict (NONE takes it back) and writes the file. A "never again" for the near
+     *        preset Auto is playing draws Auto again at once, for the sound preset that is playing; one chosen by
+     *        hand (Auto off) plays on.
+     * @param[in] nearIndex  a near preset of the bank (1 ..; Near Off has no verdict)
+     * @param[in] verdict    the verdict
+     */
+    void setNearTaste( int nearIndex, ambient::NearTasteE verdict );
+    /** @return Documents/Noctuary/near_taste.txt, its folder made if need be */
+    static juce::File nearTasteFile();
+    /** @} */
+
+    /**
      * @brief Bumped whenever any parameter changes, from wherever.
      *
      * A display that draws nothing but
@@ -1061,6 +1085,7 @@ private:
     void loadFavourites();
     /** @brief Writes the file: a header line, the "first" switch, one name a line. */
     void saveFavourites() const;
+    ambient::NearTasteLists m_nearTaste;   ///< the near taste file's lists, names the bank lacks kept
     juce::String m_routeText;   ///< the route in its text form, for the state
     /** @brief set timeline (recording appends on the audio thread; save/load on the message thread while stopped) */
     ambient::SetTimeline m_setRec, m_setPlay;   ///< the set being played

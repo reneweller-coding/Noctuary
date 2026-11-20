@@ -2,6 +2,24 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**The near bank learns your taste: like and never again** (20.11.2026). On 19.11. Rene rated fifteen near presets
+by ear; the thirteen he liked became a list in the generator's source. Now the instrument asks: beside the near
+preset box (Near Events) a heart (like) and a struck circle (never again), for the near preset that is playing, with
+their meaning in the help line. Never again takes effect at once: Auto no longer draws that preset (and if Auto is
+playing it, draws another straight away); it stays in the box, dimmed and marked "(never again)", to be chosen by
+hand and taken back with the same button. A liked preset is marked "(liked)" and Auto draws it twice as often --
+twice, because an artist's list holds about 130 entries in groups Rene weighted, so a handful of likes leans inside
+his table instead of replacing it (ten likes of average weight go from about 8 % to about 14 % of the draws). The
+verdicts are kept by name in `Documents/Noctuary/near_taste.txt` beside the favourites, one `like <name>` or
+`never <name>` a line, written atomically when a verdict changes and never at load; a missing or garbled file is
+harmless. `Tools/make_layer_presets.py --taste` and `Tools/library/near_table.py --taste` read the same file: a liked
+preset becomes a parent of variants (a liked variant counts for its parent), a turned-down one and its variants are
+left out, and the bank stays at 512. Without `--taste` both make today's banks and table byte for byte, which a new
+ctest, `layer_presets` (`make_layer_presets.py --check`), now keeps. The bank was not regenerated. Selftest over 20000
+preset names of one pack: the most drawn near preset (Flute Phrase, 1588 times) is drawn 0 times once turned down,
+every name still gets a foreground, and a liked one (Shakuhachi) goes from 1483 to 2746, x1.85 against the x1.86
+the arithmetic expects.
+
 **Who plays: the stage names the source of every note** (20.11.2026). Rene could not tell which part of the
 instrument had played a note he did not like. The stage now colours its dots by who plays them -- keys orange, the
 conductor blue, the second conductor violet, the near layer green (before, the second conductor and the near layer

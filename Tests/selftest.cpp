@@ -13631,6 +13631,108 @@ static void setEnvForTest( const char *name, const char *value )
 }
 
 /**
+ * @brief The near bank learns the player's taste (20.11.2026, plan C2).
+ *
+ * Rene rated near presets by ear and the liked ones were a list in the generator's source. Now "like" and "never
+ * again" are verdicts of the instrument (ambient::useNearTaste) that Auto honours. Checked over 20000 sound preset names
+ * of one artist's pack, a long stretch of Auto: the near preset Auto drew most often is never drawn once it is turned
+ * down, and every name still gets a foreground; a liked one is drawn NearLikedFactor times as often as before, as
+ * the arithmetic says (2T / (T + w) for an entry of weight w in a list of T: a little under two); without a verdict
+ * the draw is the one it was. The file: written and read back the same, atomically (no file left beside it), and a
+ * missing or garbled file is harmless (empty lists, or only the lines it understands).
+ */
+void testNearTaste()
+{
+    std::printf( "\n--- the near bank learns the player's taste ---\n" );
+    const char *pack = "Sleep Concert";
+    const int   names = 20000;
+    useNearTaste( {} );
+    auto count = [&]( std::vector<int> &picks )
+    {
+        picks.assign( static_cast<size_t>( numNearPresets() ), 0 );
+        int none = 0;
+        for ( int i = 0; i < names; ++i )
+        {
+            char name[48];
+            std::snprintf( name, sizeof( name ), "Night Preset %d", i );
+            float     f = 0.0f;
+            const int p = nearAutoPick( pack, name, f );
+            if ( p > 0 && p < numNearPresets() )
+                ++picks[static_cast<size_t>( p )];
+            else
+                ++none;
+        }
+        return none;
+    };
+    std::vector<int> before, never, liked;
+    const int        noneBefore = count( before );
+    // the most drawn is turned down; the most drawn after it (with a weight of its own) is liked
+    int top = 1, second = -1;
+    for ( int i = 1; i < numNearPresets(); ++i )
+        if ( before[static_cast<size_t>( i )] > before[static_cast<size_t>( top )] ) top = i;
+    for ( int i = 1; i < numNearPresets(); ++i )
+        if ( i != top && ( second < 0 || before[static_cast<size_t>( i )] > before[static_cast<size_t>( second )] ) )
+            second = i;
+    NearTasteLists t;
+    t.m_never.push_back( nearPreset( top ).m_name );
+    useNearTaste( t );
+    const int noneNever = count( never );
+    CHECK( nearTaste( top ) == NearTasteE::NEVER && nearTaste( second ) == NearTasteE::NONE,
+           "near taste: the verdict lands on the named near preset only" );
+    t = {};
+    t.m_liked.push_back( nearPreset( second ).m_name );
+    useNearTaste( t );
+    count( liked );
+    // the expected factor for the liked entry: its weight w doubles in a list of total T
+    const double share = static_cast<double>( before[static_cast<size_t>( second )] ) / names;
+    const double expect = NearLikedFactor / ( 1.0 + ( NearLikedFactor - 1.0 ) * share );
+    const double got =
+        static_cast<double>( liked[static_cast<size_t>( second )] ) / std::max( 1, before[static_cast<size_t>( second )] );
+    std::printf( "  [probe] %d names of %s: '%s' drawn %d times, never again: %d; '%s' drawn %d times, liked: %d "
+                 "(x%.2f, expected x%.2f); without a foreground %d / %d\n",
+                 names, pack, nearPreset( top ).m_name, before[static_cast<size_t>( top )], never[static_cast<size_t>( top )],
+                 nearPreset( second ).m_name, before[static_cast<size_t>( second )], liked[static_cast<size_t>( second )],
+                 got, expect, noneBefore, noneNever );
+    CHECK( before[static_cast<size_t>( top )] > 100 && never[static_cast<size_t>( top )] == 0,
+           "near taste: Auto never draws a near preset turned down" );
+    CHECK( noneNever == noneBefore, "near taste: and every name still gets its foreground, another one" );
+    CHECK( before[static_cast<size_t>( second )] > 100 && std::fabs( got / expect - 1.0 ) < 0.12,
+           "near taste: a liked near preset is drawn about NearLikedFactor times as often" );
+    useNearTaste( {} );
+    std::vector<int> again;
+    count( again );
+    CHECK( again == before, "near taste: without a verdict the draw is the one it always was" );
+
+    // The file: round trip, atomic, missing and garbled.
+    std::error_code             ec;
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "noctuary_neartaste";
+    std::filesystem::remove_all( dir, ec );
+    std::filesystem::create_directories( dir, ec );
+    const std::string path = ( dir / "near_taste.txt" ).string();
+    NearTasteLists    w;
+    w.m_liked = { "Bowed Line", "Krell Circuit Slow Long", "A Name Not In The Bank" };
+    w.m_never = { "Seed Pod", "Geiger Counter" };
+    CHECK( writeNearTasteFile( path, w ), "near taste: the file is written" );
+    const NearTasteLists r = readNearTasteFile( path );
+    CHECK( r.m_liked == w.m_liked && r.m_never == w.m_never, "near taste: and read back the same, unknown names kept" );
+    w.m_liked.pop_back();
+    CHECK( writeNearTasteFile( path, w ) && readNearTasteFile( path ).m_liked == w.m_liked &&
+               !std::filesystem::exists( path + ".tmp" ),
+           "near taste: written again in one step, nothing left beside it" );
+    const NearTasteLists missing = readNearTasteFile( ( dir / "no_such_file.txt" ).string() );
+    CHECK( missing.m_liked.empty() && missing.m_never.empty(), "near taste: a missing file is no verdict" );
+    const NearTasteLists garbled = parseNearTaste(
+        std::string( "\x01\x02\xff garbage\nlike\nnever   \n  LIKE   Bowed Line  \r\nfavourite Seed Pod\nnever Bowed Line\n"
+                     "like Whistler\n# never Whistler\n" ) );
+    CHECK( garbled.m_liked == std::vector<std::string>{ "Whistler" } &&
+               garbled.m_never == std::vector<std::string>{ "Bowed Line" },
+           "near taste: a garbled file gives only the lines it understands, the last word on a name counts" );
+    useNearTaste( garbled );
+    useNearTaste( {} );
+    std::filesystem::remove_all( dir, ec );
+}
+
+/**
  * @brief Self test: which library is loaded, and whether it is older than the program (20.11.2026, plan A8).
  *
  * Rene played the program built on 13.11. for weeks with the packs of 14.09. out of C:\\ProgramData, and nothing said
@@ -13811,6 +13913,7 @@ int main( int argc, char **argv )
         { "testChangeoverByPitch", testChangeoverByPitch },
         { "testPitchInvariants", testPitchInvariants },
         { "testLibraryStamp", testLibraryStamp },
+        { "testNearTaste", testNearTaste },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );
     std::vector<bool> pick( static_cast<size_t>( count ), true );

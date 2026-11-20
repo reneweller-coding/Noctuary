@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <atomic>
 #if defined( _WIN32 )
   #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
@@ -729,6 +730,12 @@ double hashUnit( const char *text, unsigned salt )
 }
 }   // namespace
 
+/**
+ * @brief Every entry of NearAutoEntries to its near preset's index in the bank (-1 for a name the bank lacks), built once.
+ * @return the indices, in the order of NearAutoEntries
+ */
+const std::vector<int> &nearAutoBankIndex();
+
 int nearAutoPick( const char *packName, const char *presetName, float &rateFactor )
 {
     rateFactor = 1.0f;
@@ -743,25 +750,175 @@ int nearAutoPick( const char *packName, const char *presetName, float &rateFacto
     if ( pk == nullptr || pk->m_count <= 0 ) return -1;
     if ( hashUnit( presetName, 1u ) >= static_cast<double>( pk->m_share ) )
         return 0;   // no foreground for this one: Near Off
+    // The player's taste (20.11.2026): a "never again" entry weighs nothing, a liked one NearLikedFactor times its
+    // weight. Without a verdict every factor is 1 and the draw is the one it always was.
+    const std::vector<int> &bankIndex = nearAutoBankIndex();
+    auto                    weight = [&]( int entry )
+    {
+        const NearTasteE t = nearTaste( bankIndex[static_cast<size_t>( entry )] );
+        const float      w = NearAutoEntries[entry].m_weight;
+        return t == NearTasteE::NEVER ? 0.0f : t == NearTasteE::LIKED ? w * NearLikedFactor : w;
+    };
     double total = 0.0;
-    for ( int i = 0; i < pk->m_count; ++i ) total += NearAutoEntries[pk->m_first + i].m_weight;
-    double               u = hashUnit( presetName, 2u ) * total;
-    const NearAutoEntry *pick = &NearAutoEntries[pk->m_first + pk->m_count - 1];
+    int    last = -1;   // the last entry that can be drawn: where rounding at the end of the walk lands
     for ( int i = 0; i < pk->m_count; ++i )
     {
-        const NearAutoEntry &e = NearAutoEntries[pk->m_first + i];
-        if ( u < e.m_weight )
+        const float w = weight( pk->m_first + i );
+        total += w;
+        if ( w > 0.0f ) last = pk->m_first + i;
+    }
+    if ( last < 0 ) return 0;   // the player has turned down every foreground the artist's list offers
+    double               u = hashUnit( presetName, 2u ) * total;
+    const NearAutoEntry *pick = &NearAutoEntries[last];
+    for ( int i = 0; i < pk->m_count; ++i )
+    {
+        const float w = weight( pk->m_first + i );
+        if ( w > 0.0f && u < w )
         {
-            pick = &e;
+            pick = &NearAutoEntries[pk->m_first + i];
             break;
         }
-        u -= e.m_weight;
+        u -= w;
     }
     rateFactor =
         pick->m_rateLo + ( pick->m_rateHi - pick->m_rateLo ) * static_cast<float>( hashUnit( presetName, 3u ) );
-    for ( int i = 0; i < numNearPresets(); ++i )
-        if ( std::strcmp( nearPreset( i ).m_name, pick->m_preset ) == 0 ) return i;
-    return -1;
+    return bankIndex[static_cast<size_t>( pick - NearAutoEntries )];
+}
+
+// ---------------------------------------------------------------- the near bank's taste (20.11.2026)
+
+namespace
+{
+constexpr int MaxNearTaste = 4096;   ///< near presets a verdict can be kept for (the bank has 512)
+/** @brief One verdict per near preset of the bank (NearTasteE), written by useNearTaste, read by nearAutoPick. */
+std::atomic<unsigned char> g_nearTaste[MaxNearTaste];
+
+/**
+ * @brief A taste line's name: the text after its keyword, trimmed.
+ * @param[in] s  the rest of the line
+ * @return the name, empty when there is none
+ */
+std::string trimmed( const std::string &s )
+{
+    size_t a = 0, b = s.size();
+    while ( a < b && std::isspace( static_cast<unsigned char>( s[a] ) ) ) ++a;
+    while ( b > a && std::isspace( static_cast<unsigned char>( s[b - 1] ) ) ) --b;
+    return s.substr( a, b - a );
+}
+
+/**
+ * @brief A path from UTF-8 text (the player's documents folder may have any name).
+ * @param[in] s  the path, UTF-8
+ * @return the path
+ */
+std::filesystem::path utf8Path( const std::string &s )
+{
+    return std::filesystem::path( std::u8string( s.begin(), s.end() ) );
+}
+}   // namespace
+
+const std::vector<int> &nearAutoBankIndex()
+{
+    // Every entry of the artists' table to its near preset's index in the bank, once (7519 names against 512):
+    // the draw used to look the one it picked up by name, and now weighs every entry by its verdict.
+    static const std::vector<int> index = []
+    {
+        const int        entries = static_cast<int>( sizeof( NearAutoEntries ) / sizeof( NearAutoEntries[0] ) );
+        std::vector<int> out( static_cast<size_t>( entries ), -1 );
+        for ( int e = 0; e < entries; ++e )
+            for ( int i = 0; i < numNearPresets(); ++i )
+                if ( std::strcmp( nearPreset( i ).m_name, NearAutoEntries[e].m_preset ) == 0 )
+                {
+                    out[static_cast<size_t>( e )] = i;
+                    break;
+                }
+        return out;
+    }();
+    return index;
+}
+
+NearTasteLists parseNearTaste( const std::string &text )
+{
+    NearTasteLists out;
+    auto           drop = []( std::vector<std::string> &v, const std::string &n )
+    { v.erase( std::remove( v.begin(), v.end(), n ), v.end() ); };
+    size_t pos = 0;
+    while ( pos <= text.size() )
+    {
+        size_t end = text.find( '\n', pos );
+        if ( end == std::string::npos ) end = text.size();
+        std::string line = trimmed( text.substr( pos, end - pos ) );
+        pos = end + 1;
+        if ( line.empty() || line[0] == '#' ) continue;
+        std::string key = line.substr( 0, line.find_first_of( " \t" ) );
+        for ( char &c : key ) c = static_cast<char>( std::tolower( static_cast<unsigned char>( c ) ) );
+        const std::string name = key.size() < line.size() ? trimmed( line.substr( key.size() ) ) : std::string();
+        if ( name.empty() || ( key != "like" && key != "never" ) ) continue;   // not a line of this file
+        drop( out.m_liked, name );
+        drop( out.m_never, name );
+        ( key == "like" ? out.m_liked : out.m_never ).push_back( name );
+    }
+    return out;
+}
+
+std::string nearTasteText( const NearTasteLists &lists )
+{
+    std::string t = "# Noctuary: your verdicts on the near presets, by name (the near preset box's like and never again).\n"
+                    "# like <name>   Auto draws it twice as often; never <name>   Auto never draws it.\n"
+                    "# Read by Tools/make_layer_presets.py --taste as well. A name not in the bank is kept.\n";
+    for ( const std::string &n : lists.m_liked ) t += "like " + n + "\n";
+    for ( const std::string &n : lists.m_never ) t += "never " + n + "\n";
+    return t;
+}
+
+NearTasteLists readNearTasteFile( const std::string &path )
+{
+    std::ifstream f( utf8Path( path ), std::ios::binary );
+    if ( !f ) return {};
+    std::string text( ( std::istreambuf_iterator<char>( f ) ), std::istreambuf_iterator<char>() );
+    for ( char &c : text )
+        if ( c == '\r' ) c = '\n';   // a file saved by a Windows editor
+    return parseNearTaste( text );
+}
+
+bool writeNearTasteFile( const std::string &path, const NearTasteLists &lists )
+{
+    const std::filesystem::path p = utf8Path( path );
+    std::filesystem::path       tmp = p;
+    tmp += ".tmp";
+    {
+        std::ofstream f( tmp, std::ios::binary | std::ios::trunc );
+        if ( !f ) return false;
+        const std::string text = nearTasteText( lists );
+        f.write( text.data(), static_cast<std::streamsize>( text.size() ) );
+        if ( !f.flush() ) return false;
+    }
+    std::error_code ec;
+    std::filesystem::rename( tmp, p, ec );   // replaces the old file in one step
+    if ( ec ) std::filesystem::remove( tmp, ec );
+    return !ec;
+}
+
+void useNearTaste( const NearTasteLists &lists )
+{
+    const int n = std::min( numNearPresets(), MaxNearTaste );
+    for ( int i = 0; i < n; ++i )
+    {
+        const std::string name = nearPreset( i ).m_name;
+        NearTasteE        t = NearTasteE::NONE;
+        if ( std::find( lists.m_liked.begin(), lists.m_liked.end(), name ) != lists.m_liked.end() )
+            t = NearTasteE::LIKED;
+        if ( std::find( lists.m_never.begin(), lists.m_never.end(), name ) != lists.m_never.end() )
+            t = NearTasteE::NEVER;
+        g_nearTaste[i].store( static_cast<unsigned char>( t ), std::memory_order_relaxed );
+    }
+}
+
+NearTasteE nearTaste( int nearIndex )
+{
+    return nearIndex >= 0 && nearIndex < MaxNearTaste
+               ? static_cast<NearTasteE>( g_nearTaste[nearIndex].load( std::memory_order_relaxed ) )
+               : NearTasteE::NONE;
 }
 
 const Preset &preset( int index )

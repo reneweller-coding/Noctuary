@@ -158,6 +158,9 @@ NoctuaryProcessor::NoctuaryProcessor()
     // Preset packs (thousands of presets as text files) before anything reads the preset list.
     loadDefaultPresetPacks();
     loadFavourites();   // by name, so after the packs: the names have to be there to be found
+    // The near bank's taste (20.11.2026): read, never written here -- only a verdict changed writes the file.
+    m_nearTaste = ambient::readNearTasteFile( nearTasteFile().getFullPathName().toStdString() );
+    ambient::useNearTaste( m_nearTaste );
     // The map's parameter vectors for those presets, on a thread of its own: a second of work
     // that only the map needs, and nothing should wait for it to open a window or start playing.
     PresetMap::warmupAsync();
@@ -1711,6 +1714,32 @@ void NoctuaryProcessor::setFavourite( int index, bool on )
     else
         m_favouriteNames.removeString( name );
     saveFavourites();
+}
+
+juce::File NoctuaryProcessor::nearTasteFile()
+{
+    const juce::File dir =
+        juce::File::getSpecialLocation( juce::File::userDocumentsDirectory ).getChildFile( "Noctuary" );
+    dir.createDirectory();
+    return dir.getChildFile( "near_taste.txt" );
+}
+
+void NoctuaryProcessor::setNearTaste( int nearIndex, ambient::NearTasteE verdict )
+{
+    if ( nearIndex <= 0 || nearIndex >= numNearPresets() ) return;   // Near Off is no foreground to judge
+    const std::string name = nearPreset( nearIndex ).m_name;
+    auto              drop = [&]( std::vector<std::string> &v )
+    { v.erase( std::remove( v.begin(), v.end(), name ), v.end() ); };
+    drop( m_nearTaste.m_liked );
+    drop( m_nearTaste.m_never );
+    if ( verdict == ambient::NearTasteE::LIKED ) m_nearTaste.m_liked.push_back( name );
+    if ( verdict == ambient::NearTasteE::NEVER ) m_nearTaste.m_never.push_back( name );
+    ambient::writeNearTasteFile( nearTasteFile().getFullPathName().toStdString(), m_nearTaste );
+    ambient::useNearTaste( m_nearTaste );
+    // Turned down while Auto plays it: Auto draws again now, and finds something else.
+    if ( verdict == ambient::NearTasteE::NEVER && nearIndex == m_nearIndex &&
+         live().getParam( ParamIdE::FORE_AUTO ) >= 0.5f )
+        applyNearAuto( m_soundIndex );
 }
 
 juce::File NoctuaryProcessor::userJourneyFolder()

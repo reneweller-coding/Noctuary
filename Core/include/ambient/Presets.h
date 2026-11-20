@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <string>
+#include <vector>
 #include "Params.h"
 #include <cstring>
 
@@ -495,6 +496,77 @@ int presetPack( int presetIndex );
  * @return the near preset's index, 0 for none, -1 when the pack has no table
  */
 int nearAutoPick( const char *packName, const char *presetName, float &rateFactor );
+
+/**
+ * @name The near bank learns the player's taste (20.11.2026, plan C2)
+ *
+ * Rene rated fifteen near presets by ear on 19.11.2026; the thirteen he liked were written into the generator by hand
+ * (LIKED in Tools/make_layer_presets.py). Now the instrument asks: "like" and "never again" beside the near preset box,
+ * kept by name in the player's own file (Documents/Noctuary/near_taste.txt, beside the favourites), read by the
+ * generator as well (`--taste`). In the instrument a "never again" preset is not drawn by Auto (nearAutoPick) any
+ * more, at once; a liked one is drawn NearLikedFactor times as often as its place in the artist's table says.
+ *
+ * The file is plain text, one entry a line, for a hand to edit: `like <name>` or `never <name>`; `#` begins a comment,
+ * anything else is ignored, and a name given twice counts as its last line says.
+ * @{ */
+/** @brief A player's verdict on a near preset. */
+enum class NearTasteE : unsigned char
+{
+    NONE = 0,    ///< no verdict: Auto draws it at its table weight
+    LIKED = 1,   ///< liked: drawn NearLikedFactor times as often
+    NEVER = 2    ///< never again: Auto does not draw it
+};
+/**
+ * @brief How much more often Auto draws a liked near preset. Twice: an artist's list holds about a hundred and thirty
+ *        entries in groups Rene weighted per artist, so a handful of likes at two times stays a lean inside his
+ *        table rather than replacing it (ten likes of average weight move from about 8 % of the draws to about
+ *        14 %); and it is the factor the generator gives its liked presets, which get twice the variants.
+ */
+constexpr float NearLikedFactor = 2.0f;
+/** @brief The two lists of the taste file, by name, in the file's order; names the bank does not have are kept. */
+struct NearTasteLists
+{
+    std::vector<std::string> m_liked;   ///< `like` lines
+    std::vector<std::string> m_never;   ///< `never` lines
+};
+/**
+ * @brief Reads the taste file's text. Comments, empty lines and lines it does not understand are skipped.
+ * @param[in] text  the file's content
+ * @return the lists (a name in both ends up in the one of its last line)
+ */
+NearTasteLists parseNearTaste( const std::string &text );
+/**
+ * @brief The taste file's text: a comment saying what it is, then the liked names, then the never-again ones.
+ * @param[in] lists  the lists
+ * @return the text, `\n` line ends
+ */
+std::string nearTasteText( const NearTasteLists &lists );
+/**
+ * @brief Reads a taste file. A missing or unreadable file gives empty lists.
+ * @param[in] path  the file
+ * @return the lists
+ */
+NearTasteLists readNearTasteFile( const std::string &path );
+/**
+ * @brief Writes a taste file atomically: into a file beside it, then renamed over it, so a crash never leaves half a file.
+ * @param[in] path   the file (its folder must exist)
+ * @param[in] lists  the lists
+ * @return whether it was written
+ */
+bool writeNearTasteFile( const std::string &path, const NearTasteLists &lists );
+/**
+ * @brief Gives the instrument the lists: each near preset of the bank named in them gets its verdict, every other one
+ *        none. Any thread; nearAutoPick reads the verdicts lock-free (one atomic byte per near preset).
+ * @param[in] lists  the lists
+ */
+void useNearTaste( const NearTasteLists &lists );
+/**
+ * @brief The verdict on a near preset of the bank.
+ * @param[in] nearIndex  0 .. numNearPresets()-1
+ * @return its verdict, NONE out of range
+ */
+NearTasteE nearTaste( int nearIndex );
+/** @} */
 /**
  * @brief The folders the library may lie in, in the order resolveLibraryFile searches them: for anything
  *        that lists a library folder (the journeys under \<root\>/Journeys, say) rather than one file.

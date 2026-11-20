@@ -218,6 +218,54 @@ private:
     bool keyPressed( const juce::KeyPress & ) override;
     int                              m_hoveredParam = -1;   ///< what the mouse is over, for the help line
     std::map<juce::Component *, int> m_helpParamOf;         ///< every control that has a parameter behind it
+    /** @brief Controls without a parameter that still explain themselves in the help line: title and text. */
+    std::map<juce::Component *, std::pair<juce::String, juce::String>> m_helpTextOf;
+    juce::String m_hoverTitle,   ///< the help line's title for such a control under the mouse, empty for none
+        m_hoverBody;             ///< and its text
+    /**
+     * @brief A control without a parameter explains itself in the help line while the mouse is over it.
+     * @param[in,out] c      the control; it also gets this editor as a mouse listener
+     * @param[in]     title  the help line's title
+     * @param[in]     body   what it does
+     */
+    void registerHelpText( juce::Component *c, const juce::String &title, const juce::String &body );
+    /**
+     * @brief A small round button beside the near preset box (20.11.2026, plan C2): a heart for "like" or a struck
+     *        circle for "never again", lit while that verdict stands on the near preset that is playing.
+     */
+    struct TasteButton : juce::Button
+    {
+        /**
+         * @param[in] never  the "never again" button (false: "like")
+         */
+        explicit TasteButton( bool never ) : juce::Button( never ? "never again" : "like" ), m_never( never ) {}
+        /**
+         * @brief The heart or the struck circle, lit while on, brighter under the mouse.
+         * @param[in,out] g     the graphics
+         * @param[in]     over  the mouse is over it
+         * @param[in]     down  it is pressed
+         */
+        void paintButton( juce::Graphics &g, bool over, bool down ) override;
+        bool m_never;   ///< "never again" (false: "like")
+    };
+    /** @brief The near preset box and its two verdict buttons in one cell, the box as wide as the buttons leave. */
+    struct NearPresetCell : juce::Component
+    {
+        /** @brief The box on the left, the two buttons on the right, all 24 points high, centred. */
+        void resized() override;
+        std::unique_ptr<juce::ComboBox> m_box;     ///< the near preset box
+        std::unique_ptr<TasteButton>    m_like,    ///< "like"
+            m_never;                               ///< "never again"
+    };
+    TasteButton *m_nearLike = nullptr,   ///< the near preset cell's "like" (not owned)
+        *m_nearNever = nullptr;          ///< and its "never again"
+    int m_nearTasteShown = -2;           ///< the near preset the buttons were last lit for
+    /**
+     * @brief The near preset box's marks after a verdict changed: every liked entry in the warm colour with
+     *        "(liked)", every "never again" one dimmed with "(never again)" (still there to choose and take back),
+     *        and the two buttons lit for the near preset that is playing.
+     */
+    void refreshNearTaste();
 public:
     /**
      * @brief the modulation strip registers its own
