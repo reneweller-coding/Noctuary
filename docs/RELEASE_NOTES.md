@@ -5,12 +5,14 @@
 **A fourth layout, Pages, after Empyrean's** (20.11.2026). "Could we consider an arrangement of the elements like
 Empyrean's?" Settings > Layout > Pages: a strip under the header names seventeen pages under five headings -- Sound,
 Space, Worlds, Conductor, Movement -- with a dot beside each that is lit while something on the page is on, and one
-page is open at a time, its sections fitted to the page and its picture beside them. Every section of the tabbed page
+page is open at a time: its sections fitted to two thirds of the width, and beside them, the height of the page, the
+picture of what they change (beside rather than above: above made the page taller and, on a 32:9 screen, everything a
+fifth smaller). Every section of the tabbed page
 stands on exactly one page; hosttest checks every parameter of the table against the pages (the header, the
-modulation strip and the browser's map are shared by all layouts). Maximised on a 32:9 screen: labels 15 pixels
-high and knobs 130 across, against 9 and 70 before (Empyrean: 12 and 99 at its default zoom). Normal stays the
+modulation strip and the browser's map are shared by all layouts). Maximised on a 32:9 screen: labels 14 to 15
+pixels high and knobs 120 to 130 across, against 9 and 70 before (Empyrean: 12 and 99 at its default zoom). Normal stays the
 default; Pages is kept under a key of its own in the session, so a build without it opens Normal (hosttest checks
-that too). `AMBIENT_LAYOUT=3` and `AMBIENT_PAGE=<n>` open it on a page for a picture.
+that too). A standalone window that comes back taller than its screen is made smaller to fit. `AMBIENT_LAYOUT=3` and `AMBIENT_PAGE=<n>` open it on a page for a picture.
 
 **Maximised, the page fits the screen, on a wide one in three columns** (20.11.2026). "Extremely small and hard to
 read when I start it maximised." On a 32:9 screen (7680 x 2160 at 150 %) the page, 1.7 to 1 and with its ratio fixed,

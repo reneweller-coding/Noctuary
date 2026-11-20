@@ -1536,6 +1536,26 @@ void NoctuaryEditor::resized()
                                                                        static_cast<double>( safe->m_designW ) ) );
             } );
     }
+    // A window taller than its screen (the standalone's window brought back at the width it had, in a layout of
+    // another shape) is made smaller to fit, keeping the ratio; only the standalone, a host's window is the host's.
+    const bool pictures = juce::SystemStats::getEnvironmentVariable( "AMBIENT_SHOT", "" ).isNotEmpty() ||
+                          juce::SystemStats::getEnvironmentVariable( "AMBIENT_MANUAL", "" ).isNotEmpty();
+    if ( !full && !pictures && juce::JUCEApplicationBase::isStandaloneApp() && isShowing() )
+        if ( auto *top = getTopLevelComponent(); top != nullptr && top != this )
+            if ( const auto *display = juce::Desktop::getInstance().getDisplays().getDisplayForRect(
+                     top->getScreenBounds() ) )
+            {
+                const int avail = display->userArea.getHeight() - ( top->getHeight() - getHeight() );
+                if ( avail > 200 && getHeight() > avail + 1 )
+                    juce::MessageManager::callAsync(
+                        [safe = juce::Component::SafePointer<NoctuaryEditor>( this ), avail]
+                        {
+                            if ( safe != nullptr && !safe->fillsScreen() && safe->getHeight() > avail + 1 )
+                                safe->setSize( juce::roundToInt( avail * static_cast<double>( safe->m_designW ) /
+                                                                 static_cast<double>( safe->m_designH ) ),
+                                               avail );
+                        } );
+            }
     m_wasFull = full;
     // Every child is laid out in design coordinates and scaled to the window -- except the corner
     // resizer, which is JUCE's own and which JUCE places at the window's bottom right in window
@@ -1726,18 +1746,41 @@ void NoctuaryEditor::buildPages()
     // The pages, after Empyrean's (20.11.2026, Rene: "eine ähnliche Anordnung der Elemente wie bei Empyrean"): the
     // sections of the tabbed page cut into pages of a few each, under five headings. Every section of the tabbed
     // page stands on exactly one page, and every picture beside the sections it shows (paramsMissingFromPages).
+    // A page is two columns: its sections, each row fitted to the column (layoutTabbed), and its picture beside
+    // them, one or two displays the height of the page and as wide as the sections leave (Stufe 2, 20.11.2026).
+    // Beside rather than above, as Empyrean has it: on the 32:9 screen this was asked about, a picture band above
+    // made the page taller and everything on it a fifth smaller; beside, it takes the width the screen has over.
+    // A page with no picture of its own borrows the one that shows what it changes: the stage for the planes.
     auto one = [this]( const char *name, juce::Colour colour, std::vector<std::vector<juce::String>> rows,
                        std::vector<juce::Component *> displays, int minRowH = 0 )
     {
-        Group g;
+        std::vector<Group> out;
+        Group              g;
         g.m_name = name;
         g.m_colour = colour;
         g.m_rows = std::move( rows );
-        g.m_displays = std::move( displays );
         g.m_minRowH = minRowH;
-        // The last row grows into the height the tallest page leaves, if it has a picture to grow.
-        g.m_stretch = !g.m_displays.empty() && g.m_displays.size() == g.m_rows.size() && g.m_displays.back() != nullptr;
-        return std::vector<Group>{ g };
+        if ( g.m_rows.size() == 1 && g.m_rows[0].empty() )   // a picture alone (the spectrum)
+        {
+            g.m_displays = std::move( displays );
+            g.m_stretch = true;
+            out.push_back( g );
+            return out;
+        }
+        out.push_back( g );
+        Group pic;
+        pic.m_colour = colour;
+        pic.m_column = 1;
+        pic.m_minRowH = 160;
+        pic.m_stretch = true;
+        for ( auto *d : displays )
+            if ( d != nullptr )
+            {
+                pic.m_rows.push_back( {} );
+                pic.m_displays.push_back( d );
+            }
+        if ( !pic.m_rows.empty() ) out.push_back( pic );
+        return out;
     };
     m_pages = {
         { "Source 1", "SOUND", one( "VOICE", VoiceHue, { { "Source 1", "Strands" } }, { m_source1View.get() } ) },
@@ -1751,14 +1794,15 @@ void NoctuaryEditor::buildPages()
         { "Stage", "SPACE", one( "VOICE", VoiceHue, { { "Space", "Foundation" } }, { m_stageView.get() } ) },
         { "Foreground", "SPACE",
           one( "FOREGROUND", ForeHue, { { "Ensemble", "Delay" }, { "Delay 2", "Loop" }, { "Near Reverb", "Blur" } },
-               {} ) },
+               { m_stageView.get() } ) },
         { "Background", "SPACE",
           one( "BACKGROUND", BackHue,
-               { { "Cloud", "Far Reverb" }, { "Feedback", "Room" }, { "Early Room", "Body", "Patina" } }, {} ) },
+               { { "Cloud", "Far Reverb" }, { "Feedback", "Room" }, { "Early Room", "Body", "Patina" } },
+               { m_stageView.get() } ) },
         { "Cosmos", "WORLDS",
           one( "COSMOS", CosmosHue, { { "Strike" }, { "Cosmos" } }, { nullptr, m_cosmosView.get() } ) },
-        { "Memory", "WORLDS", one( "COSMOS", CosmosHue, { { "Memory" } }, {} ) },
-        { "Near Layer", "WORLDS", one( "COSMOS", CosmosHue, { { "Near Source" }, { "Near Events" } }, {} ) },
+        { "Memory", "WORLDS", one( "COSMOS", CosmosHue, { { "Memory" } }, { m_spectrumView.get() } ) },
+        { "Near Layer", "WORLDS", one( "COSMOS", CosmosHue, { { "Near Source" }, { "Near Events" } }, { m_stageView.get() } ) },
         { "Brain", "CONDUCTOR", one( "CONDUCTOR", ConductorHue, { { "Cluster Brain" } }, { m_brainView.get() } ) },
         { "Autoplay", "CONDUCTOR",
           one( "CONDUCTOR", ConductorHue, { { "Autoplay" }, { "Brain 2" } },
@@ -2365,7 +2409,16 @@ void NoctuaryEditor::layoutTabbed()
     if ( m_compact )
         for ( size_t c = 0; c < NC; ++c )
             colWidth[c] = std::max( narrow[c], juce::roundToInt( colWidth[c] * CompactFactor ) );
-    if ( m_paged && NC == 1 ) colWidth[0] = std::max( colWidth[0], m_minColW );   // every page as wide as the widest
+    // Pages: every page as wide as the widest, its picture (the second column) taking what the sections leave.
+    if ( m_paged && NC == 1 ) colWidth[0] = std::max( colWidth[0], m_minColW );
+    // The picture a third of the page, the sections the rest -- as wide as the tabbed page's columns, so they stand in
+    // as few rows as there; never narrower than the narrowest fit.
+    if ( m_paged && NC == 2 && m_minColW > 0 )
+    {
+        colWidth[1] = std::max( DisplayMinW + 2 * Pad, m_minColW / 3 );
+        colWidth[0] = std::max( narrow[0], m_minColW - Pad - colWidth[1] );
+        colWidth[1] = std::max( DisplayMinW + 2 * Pad, m_minColW - Pad - colWidth[0] );
+    }
     colX[0] = Pad;
     for ( size_t ci = 1; ci < colX.size(); ++ci ) colX[ci] = colX[ci - 1] + colWidth[ci - 1] + Pad;
 
