@@ -238,8 +238,15 @@ and four seconds of two threads writing every parameter while it plays. Run it *
 everything a window can change, as fast as it can; it exists because nearly every serious fault
 this instrument has had was a handover between those two threads.
 
+The self test takes a few minutes in full. `--list` numbers its test functions, and `--only` runs
+some of them — numbers, ranges or parts of a name, comma-separated — so a change to the conductor
+needs `--only conductor`, not the whole run. Every run prints each test's wall time and the five
+slowest.
+
 ```bash
 build/Tests/Release/ambient_selftest.exe
+build/Tests/Release/ambient_selftest.exe --list
+build/Tests/Release/ambient_selftest.exe --only 64-66,brain
 build/Tests/Release/ambient_hosttest.exe
 build/Tests/Release/ambient_racetest.exe 4
 ```

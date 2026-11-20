@@ -17,9 +17,12 @@
  * Lines beginning `[probe]` print the measured figures beside the checks so a failure can be read
  * without a debugger.
  *
- * Built as `ambient_selftest` (Tests/CMakeLists.txt) and run by ctest as `selftest`; it takes no
+ * Built as `ambient_selftest` (Tests/CMakeLists.txt) and run by ctest as `selftest`, without
  * arguments. Every check goes through the CHECK macro, which prints `FAIL: <what> (file:line)` and
- * counts; main() runs every test function and returns 0 only when nothing failed. Three groups of
+ * counts; main() runs every test function and returns 0 only when nothing failed. To work on one
+ * part, `--list` numbers the test functions and `--only 64-66` or `--only conductor` (numbers,
+ * ranges or parts of a name, comma-separated) runs just those; every run prints each test's wall
+ * time and the five slowest (20.11.2026). Three groups of
  * checks are shared with the dedicated test programs and included as headers: the convolver's
  * (ConvolverChecks.h, also ambient_convtest), the partial bank's (BankChecks.h, also
  * ambient_banktest) and the real-input FFT's (FftChecks.h). Some tests need the measured preset
@@ -82,6 +85,8 @@
 #include <map>
 #include <set>
 #include <array>
+#include <algorithm>
+#include <cctype>
 
 using namespace ambient;
 
@@ -13124,83 +13129,184 @@ void testConductorsNoUnison()
 }
 
 /**
- * @brief Runs every test function in turn and reports.
+ * @brief Runs the test functions in turn -- all of them, or those the arguments pick -- and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
- * unbuffered); every test is independent and none reads another's state. Prints
- * `selftest: all checks passed` or the number of failures.
+ * unbuffered); every test is independent and none reads another's state. After each test a line
+ * `[time] <name> <seconds> s` gives its wall time, and at the end the five slowest are listed
+ * (20.11.2026: the whole run takes about four and a half minutes, and nobody knew where they went).
+ * The last line is `selftest: all checks passed` or the number of failures, as ctest expects.
  *
- * @return 0 when every check passed, 1 otherwise
+ * Arguments (none: every test, which is what ctest runs):
+ * - `--list` prints the tests, numbered in run order, and runs nothing;
+ * - `--only a,b,...` runs only the tests that match one of the comma-separated items: a number or
+ *   a range of numbers from `--list` (`62,63-65`), or a part of the function's name, case ignored
+ *   (`Conductor` picks testConductorsListen, testConductorOwnVoices and testConductorsNoUnison).
+ *   A selection that matches nothing is an error (exit 2), so a typo never passes as green.
+ *
+ * @param[in] argc  the number of arguments
+ * @param[in] argv  the arguments: nothing, `--list`, or `--only <items>`
+ * @return 0 when every check passed, 1 when one failed, 2 for arguments it does not understand
  */
-int main()
+int main( int argc, char **argv )
 {
-    ambient::ensureMainStack( nullptr, 64ull << 20 );   // Linux: the stack Windows and macOS link in (MainStack.h)
-    testNearLayer();
-    testCalibrationMenuRecorder();
-    testFeaturesRound7();
-    testOscAndGestures();
-    testMorph();
-    testCloudAndLayers();
-    testCloudAether();
-    testMemory();
-    testSpectralShifter();
-    testCosmos();
-    testParams();
-    testTuning();
-    testEnvelope();
-    testEngineMidi();
-    testNoteTap();
-    testJam();
-    testBrain();
-    testDeterminism();
-    testUserScale();
-    testDelay();
-    testMidSide();
-    testPresets();
-    testPresetPacks();
-    testModulation();
-    testModulationEngine();
-    testSpace();
-    testRichCarving();
-    testFeedback();
-    testStackAndWander();
-    testSources();
-    testCycleTable();
-    testStereoInputs();
-    testPresetText();
-    testPresetMap();
-    testRoom();
-    testRoute();
-    testZPlane();
-    testTimeline();
-    testFloor();
-    testPurityFreezeSleep();
-    testGhostPortaInertiaTapeCoherence();
-    testParamTable();
-    testVoicingRules();
-    testAutoplay();
-    testScore();
-    testStems();
-    testSampleRates();
-    testExpressionBodyPatina();
-    testEnvShapePresets();
-    testSourceEnvelopes();
-    testBeatSource();
-    testDelayDuck();
-    testGuideRound();
-    testGuideRound2();
-    testReviewRound();
-    testZModal();
-    testZPlaneBank();
-    testFilterModels();
-    testCircuitFilters();
-    testMixDeskFive();
-    testAfterTheClassics();
-    testBrainTimbre();
-    testResearchBatch();
-    testConductorsListen();
-    testConductorOwnVoices();
-    testConductorsNoUnison();
+    ambient::ensureMainStack( argv, 64ull << 20 );   // Linux: the stack Windows and macOS link in (MainStack.h)
+    struct TestS
+    {
+        const char *m_name;
+        void ( *m_fn )();
+    };
+    static const TestS tests[] = {
+        { "testNearLayer", testNearLayer },
+        { "testCalibrationMenuRecorder", testCalibrationMenuRecorder },
+        { "testFeaturesRound7", testFeaturesRound7 },
+        { "testOscAndGestures", testOscAndGestures },
+        { "testMorph", testMorph },
+        { "testCloudAndLayers", testCloudAndLayers },
+        { "testCloudAether", testCloudAether },
+        { "testMemory", testMemory },
+        { "testSpectralShifter", testSpectralShifter },
+        { "testCosmos", testCosmos },
+        { "testParams", testParams },
+        { "testTuning", testTuning },
+        { "testEnvelope", testEnvelope },
+        { "testEngineMidi", testEngineMidi },
+        { "testNoteTap", testNoteTap },
+        { "testJam", testJam },
+        { "testBrain", testBrain },
+        { "testDeterminism", testDeterminism },
+        { "testUserScale", testUserScale },
+        { "testDelay", testDelay },
+        { "testMidSide", testMidSide },
+        { "testPresets", testPresets },
+        { "testPresetPacks", testPresetPacks },
+        { "testModulation", testModulation },
+        { "testModulationEngine", testModulationEngine },
+        { "testSpace", testSpace },
+        { "testRichCarving", testRichCarving },
+        { "testFeedback", testFeedback },
+        { "testStackAndWander", testStackAndWander },
+        { "testSources", testSources },
+        { "testCycleTable", testCycleTable },
+        { "testStereoInputs", testStereoInputs },
+        { "testPresetText", testPresetText },
+        { "testPresetMap", testPresetMap },
+        { "testRoom", testRoom },
+        { "testRoute", testRoute },
+        { "testZPlane", testZPlane },
+        { "testTimeline", testTimeline },
+        { "testFloor", testFloor },
+        { "testPurityFreezeSleep", testPurityFreezeSleep },
+        { "testGhostPortaInertiaTapeCoherence", testGhostPortaInertiaTapeCoherence },
+        { "testParamTable", testParamTable },
+        { "testVoicingRules", testVoicingRules },
+        { "testAutoplay", testAutoplay },
+        { "testScore", testScore },
+        { "testStems", testStems },
+        { "testSampleRates", testSampleRates },
+        { "testExpressionBodyPatina", testExpressionBodyPatina },
+        { "testEnvShapePresets", testEnvShapePresets },
+        { "testSourceEnvelopes", testSourceEnvelopes },
+        { "testBeatSource", testBeatSource },
+        { "testDelayDuck", testDelayDuck },
+        { "testGuideRound", testGuideRound },
+        { "testGuideRound2", testGuideRound2 },
+        { "testReviewRound", testReviewRound },
+        { "testZModal", testZModal },
+        { "testZPlaneBank", testZPlaneBank },
+        { "testFilterModels", testFilterModels },
+        { "testCircuitFilters", testCircuitFilters },
+        { "testMixDeskFive", testMixDeskFive },
+        { "testAfterTheClassics", testAfterTheClassics },
+        { "testBrainTimbre", testBrainTimbre },
+        { "testResearchBatch", testResearchBatch },
+        { "testConductorsListen", testConductorsListen },
+        { "testConductorOwnVoices", testConductorOwnVoices },
+        { "testConductorsNoUnison", testConductorsNoUnison },
+    };
+    const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );
+    std::vector<bool> pick( static_cast<size_t>( count ), true );
+    bool list = false;
+    for ( int a = 1; a < argc; ++a )
+    {
+        const std::string arg = argv[a];
+        if ( arg == "--list" )
+            list = true;
+        else if ( arg == "--only" && a + 1 < argc )
+        {
+            std::fill( pick.begin(), pick.end(), false );
+            std::string items = argv[++a];
+            size_t      from  = 0;
+            while ( from <= items.size() )
+            {
+                const size_t comma = items.find( ',', from );
+                const std::string item = items.substr( from, comma == std::string::npos ? std::string::npos : comma - from );
+                from = comma == std::string::npos ? items.size() + 1 : comma + 1;
+                if ( item.empty() ) continue;
+                bool hit = false;
+                int  lo = 0, hi = 0;
+                char dash = 0;
+                const int got = std::sscanf( item.c_str(), "%d%c%d", &lo, &dash, &hi );
+                if ( got >= 1 && item.find_first_not_of( "0123456789-" ) == std::string::npos )
+                {
+                    if ( got < 3 ) hi = lo;
+                    for ( int n = std::max( 1, lo ); n <= std::min( count, hi ); ++n )
+                    {
+                        pick[static_cast<size_t>( n - 1 )] = true;
+                        hit = true;
+                    }
+                }
+                else
+                {
+                    std::string low = item;
+                    for ( char &c : low ) c = static_cast<char>( std::tolower( static_cast<unsigned char>( c ) ) );
+                    for ( int n = 0; n < count; ++n )
+                    {
+                        std::string name = tests[n].m_name;
+                        for ( char &c : name ) c = static_cast<char>( std::tolower( static_cast<unsigned char>( c ) ) );
+                        if ( name.find( low ) != std::string::npos )
+                        {
+                            pick[static_cast<size_t>( n )] = true;
+                            hit = true;
+                        }
+                    }
+                }
+                if ( !hit )
+                {
+                    std::printf( "selftest: --only item '%s' matches no test (see --list)\n", item.c_str() );
+                    return 2;
+                }
+            }
+        }
+        else
+        {
+            std::printf( "usage: ambient_selftest [--list] [--only number|from-to|name-part[,...]]\n" );
+            return 2;
+        }
+    }
+    if ( list )
+    {
+        for ( int n = 0; n < count; ++n )
+            std::printf( "%3d  %s\n", n + 1, tests[n].m_name );
+        return 0;
+    }
+    std::vector<std::pair<double, const char *>> times;
+    for ( int n = 0; n < count; ++n )
+    {
+        if ( !pick[static_cast<size_t>( n )] ) continue;
+        const auto start = std::chrono::steady_clock::now();
+        tests[n].m_fn();
+        const double secs = std::chrono::duration<double>( std::chrono::steady_clock::now() - start ).count();
+        std::printf( "[time] %s %.2f s\n", tests[n].m_name, secs );
+        times.emplace_back( secs, tests[n].m_name );
+    }
+    std::sort( times.begin(), times.end(), []( const auto &x, const auto &y ) { return x.first > y.first; } );
+    double total = 0.0;
+    for ( const auto &t : times ) total += t.first;
+    std::printf( "[time] %d test(s) in %.1f s; the slowest:", static_cast<int>( times.size() ), total );
+    for ( size_t k = 0; k < times.size() && k < 5; ++k )
+        std::printf( "%s %s %.1f s", k == 0 ? "" : ",", times[k].second, times[k].first );
+    std::printf( "\n" );
     if ( failures == 0 )
         std::printf( "selftest: all checks passed\n" );
     else
