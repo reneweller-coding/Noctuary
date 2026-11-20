@@ -218,7 +218,7 @@ void NoctuaryProcessor::linkTick()
     m_link.tick();
     // The family jam (02.10.2026, Jam.h): the role from the settings.
     m_jam.setRole( frame::Settings::of( "Noctuary" ).jamRole() );
-    m_jam.setHear( frame::Settings::of( "Noctuary" ).jamHear() );   // "Hear leader" (plan E3): off by default
+    m_jam.setHear( frame::Settings::of( "Noctuary" ).jamHear() );   // "Hear leader" (plan E3): on by default
     if ( const char *logFile = std::getenv( "FAMILY_JAM_LOG" ) )
     {   // a test aid: what the jam does, whenever it changes
         const juce::String line = m_jam.status() + "; root " + juce::String( live().brainRoot() % 12 );

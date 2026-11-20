@@ -784,9 +784,9 @@ static int runOnce( int argc, char **argv )
     if ( const char *env = std::getenv( "AMBIENT_BRAIN_ARRIVE" ) ) arriveMask = std::atoi( env );
     // The family jam offline (plan E3, 20.11.2026; JamSim.h): --jam-lead writes what a leader's audio thread posts
     // before each block (its root, its conductors' notes, on a change); --jam-follow plays the live engine as a
-    // follower of such a file, the leader's root held (setJam) and with --jam-hear 1 its notes heard (setJamHeard).
+    // follower of such a file, the leader's root held (setJam) and its notes heard (setJamHeard) unless --jam-hear 0.
     std::string       jamLead, jamFollow;
-    int               jamHear = 0;
+    int               jamHear = 1;
     frame::JamNetwork jamNet;
     engine.setArriveMask( arriveMask );
 
@@ -800,7 +800,7 @@ static int runOnce( int argc, char **argv )
             jamLead = next();
         else if ( a == "--jam-follow" )   // plan E3: follow such a file over a simulated network
             jamFollow = next();
-        else if ( a == "--jam-hear" )   // "Hear leader": 1 hears the leader's notes, 0 (the default) does not
+        else if ( a == "--jam-hear" )   // "Hear leader": 1 (the default, as in the instrument) hears the leader's notes, 0 does not
             jamHear = std::atoi( next().c_str() );
         else if ( a == "--jam-seed" )
             jamNet.m_seed = std::strtoull( next().c_str(), nullptr, 10 );

@@ -43,7 +43,8 @@
  * `L,<seconds>,<root>,<count>,<Hz>...`; `--jam-follow FILE` plays this engine as a follower of such a file -- the
  * leader's bus, a network that loses `--jam-loss` of the datagrams (default 0.05) and delays and reorders them
  * (`--jam-seed`, default 1), and the follower's side of Jam.cpp -- its root held on the leader's (setJam) and, with
- * `--jam-hear 1` ("Hear leader"), the leader's notes heard (setJamHeard). A line `# jam ...` (JamSim::summary) ends
+ * `--jam-hear 1` ("Hear leader", the default as in the instrument since 20.11.2026; 0 switches it off), the leader's
+ * notes heard (setJamHeard). A line `# jam ...` (JamSim::summary) ends
  * each preset's lines. The other instrument's audit (Empyrean's additiv_brain_audit) reads and writes the same file.
  * @author Rene Weller
  */
@@ -166,7 +167,7 @@ int main( int argc, char **argv )
     std::vector<std::string>                         presetNames;
     std::vector<std::pair<std::string, std::string>> sets;
     std::string                                      jamLead, jamFollow;   // plan E3: the offline jam
-    int                                              jamHear = 0;
+    int                                              jamHear = 1;   // "Hear leader", on as in the instrument
     frame::JamNetwork                                net;
     for ( int i = 1; i < argc; ++i )
     {

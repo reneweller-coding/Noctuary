@@ -189,7 +189,7 @@ Source on Host follows it). The manual's chapters Clock and sync and MIDI, OSC, 
 
 **The family jam** (Settings > Family jam): the five instruments of the family play as one band on the local network.
 Noctuary following holds the leader's root and takes the energy of its sections on its filters; leading, it gives the
-others its root, its tuning and the notes its conductors sound. With **Hear leader** on (off by default) a follower
+others its root, its tuning and the notes its conductors sound. With **Hear leader** on (the default) a follower
 chooses its notes against the leader's too, and lets go of one the leader's new note rubs against. **Score cues** (Settings > Score cues for a visualiser) send its bars, its key and its
 scenes over OSC; [KaleidoscopeEnhanced](https://github.com/reneweller-coding/KaleidoscopeEnhanced) cuts its pictures
 to them, as to the other four's.

@@ -24,7 +24,7 @@
  * (-1) it acts when the message arrives.
  *
  * **The leader's notes** (plan E3, 20.11.2026; JamNotes.h): a pitched leader also says the notes its conductors sound.
- * A follower takes them only while its "Hear leader" is on (Settings::jamHear, off by default) and hands them to its
+ * A follower takes them only while its "Hear leader" is on (Settings::jamHear, on by default) and hands them to its
  * conductors as further notes of another; with it off nothing a follower plays changes. Late, doubled and malformed
  * messages are ignored, and the notes are forgotten two seconds after the last one.
  *
