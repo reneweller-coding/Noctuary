@@ -65,7 +65,8 @@ PRE = 0.3                         # seconds of the curve kept before an event be
 SPAN_MAX = 150.0                  # seconds of an event that are measured (a sequence's bloom peaks at its middle)
 HEARD_DB = 20.0                   # the span of an event: from the first to the last window within this of its peak
 
-# The limits (decided from the data, see the report and plan_tools_2026-11-20/C3): no event rises faster than RISE_DB
+# The limits (set from the data, see the report and plan_tools_2026-11-20/C3; accepted by Rene on 20.11.2026 after the
+# listening comparison -- Night itself stays the player's switch, off by default): no event rises faster than RISE_DB
 # within 100 ms over the background, none stands PEAK_DB over its own mean as heard. MARGIN is what the table keeps
 # under them, because the table is computed from curves and the engine applies the fade to the voices.
 RISE_DB = 15.0
