@@ -243,6 +243,7 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
     m_auxRng.seed( 0xA5A5A5A5ull );
     m_strikeRng.seed( 0x57A1CEull );
     m_near.reset( 0x4E454152ull + static_cast<uint64_t>( m_seed + 1 ) );
+    m_guardEvent = -1;
     m_nearPickRng =
         0x9E3779B9u ^ ( static_cast<uint32_t>( m_seed + 1 ) * 2654435761u );   // the pool's draw, never zero
     if ( m_nearPickRng == 0u ) m_nearPickRng = 0x9E3779B9u;                    // its own stream, from the seed
@@ -267,6 +268,7 @@ void Engine::reset()
     m_strikeRng.seed( 0x57A1CEull );   // its own stream, so a reset gives the same piece back
     m_strikeExcAvg = 0.0;
     m_near.reset( 0x4E454152ull + static_cast<uint64_t>( m_seed + 1 ) );
+    m_guardEvent = -1;
     m_nearPickRng =
         0x9E3779B9u ^ ( static_cast<uint32_t>( m_seed + 1 ) * 2654435761u );   // the pool's draw, never zero
     if ( m_nearPickRng == 0u ) m_nearPickRng = 0x9E3779B9u;
@@ -315,6 +317,7 @@ bool Engine::applyStrikePreset( int index )
 bool Engine::applyNearPreset( int index )
 {
     if ( index < 0 || index >= numNearPresets() ) return false;
+    setNearGuard( nearGuardOf( index ) );   // its night guard, used only while Night is on (20.11.2026)
     return ambient::applyPreset(
         nearPreset( index ), [this]( ParamIdE id, float v ) { setParam( id, v ); }, PresetScopeE::NEAR_LAYER );
 }
@@ -1182,11 +1185,23 @@ void Engine::startNearNote( const NearNote &e )
     if ( m_noteTap != nullptr && tapChannel( OWNER_NEAR ) > 0 )
         m_noteTap->add( m_tapPos, tapChannel( OWNER_NEAR ), e.m_note, e.m_velocity, true );
     tickNote( OWNER_NEAR, true, e.m_note, e.m_ghost ? 3 : m_near.kind() );   // the stage's ticker, with the kind
+    // The night guard (20.11.2026, plan C3): decided once, at the first note of an event, from Night and the near
+    // preset's row -- a fade-in over the event's first seconds and a level -- and then only carried out. Nothing
+    // listens to the event while it plays, nothing draws a die, so when and what it plays stay as they were.
+    if ( m_near.events() != m_guardEvent )
+    {
+        m_guardEvent = m_near.events();
+        const NearGuard row = nearGuard();
+        m_guardEvOn = m_nightOn && row.any();
+        m_guardEvFade = std::max( 0.0f, row.m_fade );
+        m_guardEvLevel = dbToGain( std::min( 0.0f, row.m_gainDb ) );
+    }
     Voice *v = allocate( e.m_note, OWNER_NEAR );
     v->m_order = ++m_order;
     v->setPlace( true, true );
     v->setNearShape( e.m_releaseMul, e.m_cutoffMul, 6.0f * clampv( m_np.m_proximity, 0.0f, 1.0f ), e.m_pan,
                      m_nearGain );
+    v->setNearGuard( m_guardEvOn, m_near.elapsed(), m_guardEvFade, m_guardEvLevel, m_sr );
     v->noteOn( e.m_note, frequencyOf( e.m_note ), e.m_velocity, OWNER_NEAR, e.m_distance, m_vpNear,
                m_vpNear.m_strikeLevel > 0.0f, 0.0f );
 }

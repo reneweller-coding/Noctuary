@@ -33,6 +33,7 @@
  * paste of a settings string and the tests use to turn a value's text into a parameter value.
  * @author Rene Weller
  */
+#include <algorithm>
 #include <cmath>
 #include "ambient/Presets.h"
 #include <cstring>
@@ -12299,7 +12300,29 @@ namespace
 #include "ZPlanePresets.inc"
 #include "StrikePresets.inc"
 #include "NearPresets.inc"
+/** @brief One row of the near layer's night guard (NearNight.inc): the preset it belongs to, its fade-in and gain. */
+struct NearGuardRow
+{
+    const char *m_name;     ///< the near preset, as the bank names it
+    float       m_fade;     ///< seconds of the fade-in
+    float       m_gainDb;   ///< the gain in dB
+};
+#include "NearNight.inc"
 }   // namespace
+
+NearGuard nearGuardOf( int index )
+{
+    constexpr int rows = static_cast<int>( sizeof( NearGuardRows ) / sizeof( NearGuardRows[0] ) );
+    NearGuard     g;
+    // The table is generated in the bank's order; a row that names another preset (a bank rebuilt and the table not)
+    // guards nothing rather than the wrong preset. ctest near_night keeps the two in step.
+    if ( index <= 0 || index >= rows || index >= numNearPresets() ||
+         std::strcmp( NearGuardRows[index].m_name, NearPresets[index].m_name ) != 0 )
+        return g;
+    g.m_fade = std::max( 0.0f, NearGuardRows[index].m_fade );
+    g.m_gainDb = std::min( 0.0f, NearGuardRows[index].m_gainDb );
+    return g;
+}
 
 /**
  * @brief How many presets the Near bank holds, the Off entry included.

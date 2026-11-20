@@ -726,7 +726,12 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
                 10000,
                 [this, shot]
                 {
-                    const juce::Image img = createComponentSnapshot( getLocalBounds(), true, 1.0f );
+                    // AMBIENT_SHOT_SCALE=\<factor\>: the picture that many times the editor's pixels, so small text
+                    // can be read in it (20.11.2026); 1 by default.
+                    const float scale = juce::jlimit(
+                        0.25f, 8.0f,
+                        juce::SystemStats::getEnvironmentVariable( "AMBIENT_SHOT_SCALE", "1" ).getFloatValue() );
+                    const juce::Image img = createComponentSnapshot( getLocalBounds(), true, scale );
                     juce::File        f( shot );
                     f.deleteFile();
                     juce::PNGImageFormat png;

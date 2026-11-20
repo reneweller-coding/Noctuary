@@ -934,7 +934,12 @@ enum class ParamIdE : int
     BALANCE,       ///< 0 .. 1: the tonal balance in six bands toward Ultimae's and Polymorph's masters (Balance.h)
     FLOOR,   ///< 0 .. 1: the Foundation set where Ultimae's floor lies, a voice in the bass over the sub (Balance.h)
     BRAIN_ROOT_EVERY,   ///< seconds a root stands at least (R6.1: 240); it must move after three times it (13.11.2026)
-    COUNT               ///< one past the last: NumParams
+    /// The near layer's night guard (20.11.2026, plan C3): on, an event of a near preset that would rise faster over
+    /// the background, or stand further out of its own mean, than the bank's measured limits gets a longer fade-in and
+    /// less level, decided once as it begins from the preset's row in Core/src/NearNight.inc. The player's setting,
+    /// never a preset's: no preset sets it or clears it. Off by default, and off it changes nothing.
+    FORE_NIGHT,   ///< the near layer's night guard (off by default)
+    COUNT              ///< one past the last: NumParams
 };
 
 extern const char *const NearKindNames[3];    ///< "Note", "Phrase", "Sequence"

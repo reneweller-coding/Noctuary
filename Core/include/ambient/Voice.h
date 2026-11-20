@@ -370,6 +370,25 @@ public:
         m_panOffset = clampv( pan, -1.0f, 1.0f );
         m_nearGain = std::max( gain, 0.0f );
     }
+    /**
+     * @brief A near event's night guard (20.11.2026, plan C3), set before its noteOn: the event fades in over its first
+     *        @p fade seconds -- a smoothstep of the time since the EVENT began, so a note that starts half-way through
+     *        the fade starts half-way up it -- at @p level. Off (the default, and for every other note), nothing of
+     *        it is computed and the voice renders exactly as before.
+     * @param[in] on       whether the event is guarded
+     * @param[in] since    seconds from the event's beginning to this note's
+     * @param[in] fade     seconds of the fade-in (0: none, the level alone)
+     * @param[in] level    the event's gain as a linear factor, 0 .. 1
+     * @param[in] sr       the sample rate
+     */
+    void setNearGuard( bool on, double since, float fade, float level, double sr )
+    {
+        m_guardOn = on;
+        if ( !on ) return;
+        m_guardLevel = clampv( level, 0.0f, 1.0f );
+        m_guardStep = fade > 0.0f ? 1.0 / ( static_cast<double>( fade ) * sr ) : 0.0;
+        m_guardPos = fade > 0.0f ? std::max( 0.0, since ) / static_cast<double>( fade ) : 1.0;
+    }
     uint64_t m_order = 0;   ///< allocation order for voice stealing
 
     /**
@@ -670,7 +689,11 @@ private:
         m_proxDb = 0.0f,         ///< @brief the near field's lift in dB
         m_panOffset = 0.0f;      ///< the event's pan, added to the centre
     float m_nearGain = 1.0f;     ///< the event's Gain (fore_gain), folded into the pan pair at note-on
-    float m_proxAmt = 0.0f,      ///< @brief the lift as a linear gain minus one
+    bool   m_guardOn = false;    ///< the night guard shapes this note (setNearGuard)
+    float  m_guardLevel = 1.0f;  ///< its level, linear
+    double m_guardPos = 1.0,     ///< @brief where in the fade-in the note stands, 0 .. 1 (and on past 1)
+        m_guardStep = 0.0;       ///< what a sample adds to it
+    float m_proxAmt = 0.0f,     ///< @brief the lift as a linear gain minus one
         m_proxLoCoef = 0.0f,     ///< @brief one-pole coefficient at 120 Hz
         m_proxHiCoef = 0.0f;     ///< one-pole coefficient at 300 Hz
     float m_proxLoL = 0.0f,      ///< @brief the 120 Hz one-pole's state, left

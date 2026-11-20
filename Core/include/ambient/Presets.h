@@ -190,6 +190,24 @@ int numNearPresets();
  */
 const Preset &nearPreset( int index );
 /**
+ * @brief The night guard of one near preset (20.11.2026, plan C3): what an event of it gets when the near layer's
+ *        Night is on -- a fade-in over the event's first seconds and a gain -- so that it rises over the background
+ *        no faster, and stands out of its own mean no further, than the bank's limits (Tools/library/near_night.py).
+ */
+struct NearGuard
+{
+    float m_fade = 0.0f;     ///< seconds of the fade-in from the event's beginning (0: none)
+    float m_gainDb = 0.0f;   ///< the event's gain in dB (0 or less)
+    /** @return whether this changes anything at all */
+    bool any() const { return m_fade > 0.0f || m_gainDb < 0.0f; }
+};
+/**
+ * @brief The night guard measured for a preset of the near bank (Core/src/NearNight.inc).
+ * @param[in] index  0 .. numNearPresets()-1
+ * @return its row; none (no fade, 0 dB) for Near Off, an index out of range, or a row that does not name the preset
+ */
+NearGuard nearGuardOf( int index );
+/**
  * @brief The family a near preset is filed under.
  * @param[in] index  0 .. numNearPresets()-1
  * @return the family index for nearPresetFamily(), or 255 for the Off entry and for any index out of range -- 255
@@ -233,17 +251,19 @@ inline bool isStrikeParam( ParamIdE id )
     return sectionOf( id ) == ParamSectionE::STRIKE;
 }
 /**
- * @brief What a near PRESET carries: the Near Source and Near Events sections, Auto excepted.
+ * @brief What a near PRESET carries: the Near Source and Near Events sections, Auto and Night excepted.
  *
- * Auto is the one Near Events control that is not part of a near preset: it decides whether a
+ * Auto is a Near Events control that is not part of a near preset: it decides whether a
  * sound preset brings its own foreground, and a near preset chosen by hand must not switch it on.
+ * Night (20.11.2026) is the player's guard for the night, which no preset may switch either way.
  * @param[in] id  the parameter
- * @return true for the near layer's parameters other than ForeAuto
+ * @return true for the near layer's parameters other than ForeAuto and ForeNight
  */
 inline bool isNearParam( ParamIdE id )
 {
     const ParamSectionE s = sectionOf( id );
-    return ( s == ParamSectionE::NEAR_SOURCE || s == ParamSectionE::NEAR_EVENTS ) && id != ParamIdE::FORE_AUTO;
+    return ( s == ParamSectionE::NEAR_SOURCE || s == ParamSectionE::NEAR_EVENTS ) && id != ParamIdE::FORE_AUTO &&
+           id != ParamIdE::FORE_NIGHT;
 }
 /**
  * @brief The layer as a whole, Auto included.
@@ -317,15 +337,16 @@ inline bool isPerformanceParam( ParamIdE id )
 /**
  * @brief Whether a preset of the given scope may SET a parameter.
  *
- * Performance state never; the section scopes their own section; Sound everything that is not
- * the Cosmos or the near layer; Full everything else.
+ * Performance state never, nor the near layer's Night (the player's guard for the night, 20.11.2026: a sound preset
+ * applied as a whole would otherwise put it back to off at every journey step); the section scopes their own section;
+ * Sound everything that is not the Cosmos or the near layer; Full everything else.
  * @param[in] id     the parameter
  * @param[in] scope  the preset's scope
  * @return true when a key naming @p id in a preset of that scope is applied
  */
 inline bool inScope( ParamIdE id, PresetScopeE scope )
 {
-    if ( isPerformanceParam( id ) ) return false;
+    if ( isPerformanceParam( id ) || id == ParamIdE::FORE_NIGHT ) return false;
     switch ( scope )
     {
     case PresetScopeE::COSMOS: return isCosmosParam( id );

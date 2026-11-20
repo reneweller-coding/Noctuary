@@ -222,7 +222,30 @@ public:
      * @param[in] n  the state the leaving engine's nearState() gave
      * @pre called on the message thread
      */
-    void adoptNear( const NearEvents &n ) { m_near = n; }
+    void adoptNear( const NearEvents &n )
+    {
+        m_near = n;
+        m_guardEvent = -1;   // the night guard is decided again at the next note, from where the event stands
+    }
+    /**
+     * @brief The night guard's row for the near preset loaded (20.11.2026, plan C3; nearGuardOf()). Used only while
+     *        the near layer's Night is on, and then decided once as each event begins. applyNearPreset() sets it; a
+     *        host that applies near presets itself (the plugin) sets it here. Any thread.
+     * @param[in] g  the row; NearGuard{} for none
+     */
+    void setNearGuard( const NearGuard &g )
+    {
+        m_guardFade.store( g.m_fade, std::memory_order_relaxed );
+        m_guardGainDb.store( g.m_gainDb, std::memory_order_relaxed );
+    }
+    /** @return the night guard's row as set */
+    NearGuard nearGuard() const
+    {
+        NearGuard g;
+        g.m_fade = m_guardFade.load( std::memory_order_relaxed );
+        g.m_gainDb = m_guardGainDb.load( std::memory_order_relaxed );
+        return g;
+    }
     /** @} */
 
     /**
@@ -1898,7 +1921,14 @@ private:
     NearEvents  m_near;                ///< the scheduler
     NearParams  m_np;                  ///< its parameters this block
     float       m_nearGain = 1.0f;     ///< fore_gain as a factor, read with the rest of the near layer
-    VoiceParams m_vpNear;              ///< what a near event's voice renders with
+    bool        m_nightOn = false;     ///< fore_night, read with the rest of the near layer
+    std::atomic<float> m_guardFade{ 0.0f },   ///< @brief the night guard's row (setNearGuard): seconds of fade-in
+        m_guardGainDb{ 0.0f };                ///< and the gain in dB
+    int   m_guardEvent = -1;      ///< the event (m_near.events()) the guard below was decided for, -1 none yet
+    bool  m_guardEvOn = false;    ///< @brief that event is guarded
+    float m_guardEvFade = 0.0f,   ///< @brief its fade-in in seconds
+        m_guardEvLevel = 1.0f;    ///< and its level, linear
+    VoiceParams m_vpNear;            ///< what a near event's voice renders with
     bool        m_rolesUsed = false;   ///< any slot with a role other than All: the places are then kept
     /** @} */
     /**

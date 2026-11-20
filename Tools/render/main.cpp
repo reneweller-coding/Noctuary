@@ -1145,6 +1145,18 @@ static int runOnce( int argc, char **argv )
                 return 2;
             }
         }
+        else if ( a == "--near-guard" )
+        {   // the night guard's row by hand, "FADE,DB" (20.11.2026, plan C3): for near settings that are not a preset
+            // of the bank (Tools/library/near_night.py renders the two removed ones with it); Night still decides
+            const std::string v = next();
+            NearGuard         gd;
+            if ( std::sscanf( v.c_str(), "%f,%f", &gd.m_fade, &gd.m_gainDb ) != 2 )
+            {
+                std::fprintf( stderr, "bad --near-guard %s (FADE,DB)\n", v.c_str() );
+                return 2;
+            }
+            engine.setNearGuard( gd );
+        }
         else if ( a == "--list-near-presets" )
         {
             for ( int p = 0; p < numNearPresets(); ++p )
@@ -1555,6 +1567,7 @@ static int runOnce( int argc, char **argv )
         // the engine that is playing did, and is how --set survives a step.
         for ( int i = 0; i < NumParams; ++i )
             in.setParam( static_cast<ParamIdE>( i ), out.getParam( static_cast<ParamIdE>( i ) ) );
+        in.setNearGuard( out.nearGuard() );   // the near preset's night guard goes with it (Auto may bring another)
         in.applyPreset( idx );
         applyNearAutoTo( in, idx, false );
         in.setClockHourOverride( clockHour );

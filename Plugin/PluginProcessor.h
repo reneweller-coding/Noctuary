@@ -333,7 +333,11 @@ public:
      */
     void applyNearPreset( int index );
     /**
-     * @brief Auto: the foreground a pack preset brings (the artist's table); applied with the sound
+     * @brief Hands the night guard's row of the near preset loaded to every engine (20.11.2026, plan C3).
+     */
+    void pushNearGuard();
+    /**
+     * @brief Auto:the foreground a pack preset brings (the artist's table); applied with the sound
      *        preset while fore_auto is on, and again when it is switched on for the preset playing.
      * @param[in] soundIndex  the sound preset whose table entry is looked up
      */

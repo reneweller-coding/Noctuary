@@ -256,6 +256,7 @@ void Voice::noteOn( int note, double freqHz, float velocity, int owner, float di
         m_proxDb = 0.0f;
         m_panOffset = 0.0f;
         m_nearGain = 1.0f;
+        m_guardOn = false;   // the night guard belongs to the near event that set it, never to a later note
     }
     // The near field's lift is a band, 120 to 300 Hz, and not a shelf: below it stand the
     // Foundation and Bass Mono, and a shelf there muddied the sub, which is where the depth lives.
@@ -1298,8 +1299,14 @@ void Voice::render( float *nearL, float *nearR, float *farL, float *farR, int n,
                 outL += m_ghostGain * gl;
                 outR += m_ghostGain * gr;
             }
-            const float g = e * m_velocity * m_gLevel;
-            outL *= g * m_panL;   // a near event's place in the field; one and one for every other note
+            float g = e * m_velocity * m_gLevel;
+            if ( m_guardOn )
+            {   // the night guard (setNearGuard): a smoothstep of the event's time, at the event's level
+                const float u = m_guardPos < 1.0 ? static_cast<float>( m_guardPos ) : 1.0f;
+                g *= m_guardLevel * u * u * ( 3.0f - 2.0f * u );
+                m_guardPos += m_guardStep;
+            }
+            outL *= g * m_panL;  // a near event's place in the field; one and one for every other note
             outR *= g * m_panR;
             if ( doFm )
             {   // self-modulation of a partial by its own output carries a DC term (J1 of the index): block it

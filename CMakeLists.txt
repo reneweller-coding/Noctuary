@@ -79,6 +79,10 @@ if(AMBIENT_BUILD_TOOLS)
         # from the library's measurement (work/library/packs.json; skipped where that is not at hand). A few seconds.
         add_test(NAME night_table COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/make_night.py" --check)
         set_tests_properties(night_table PROPERTIES SKIP_RETURN_CODE 77)
+        # The near layer's night guard (20.11.2026, plan C3): Tools/library/near_night.json has a row for every preset
+        # of the near bank, Core/src/NearNight.inc is what it makes, and each row's fade and gain keep the preset's
+        # measured events inside the limits. The renders themselves are a tool (near_night.py verify). Seconds.
+        add_test(NAME near_night COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/library/near_night.py" --check)
     endif()
 endif()
 

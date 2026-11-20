@@ -177,6 +177,8 @@ public:
     bool sequenceRunning() const { return m_active && m_kind == 2; }
     /** @return how far through the current event, 0 .. 1 (0 when none) */
     float progress() const { return m_active && m_length > 0.0 ? static_cast<float>( m_elapsed / m_length ) : 0.0f; }
+    /** @return seconds into the current event (0 when none), for the night guard's fade-in (20.11.2026) */
+    double elapsed() const { return m_active ? m_elapsed : 0.0; }
     /** @return events begun since reset() */
     int events() const { return m_events; }
     /** @return due moments that were refused by a rule or the coin since reset() */

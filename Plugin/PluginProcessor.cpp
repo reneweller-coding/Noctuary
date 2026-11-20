@@ -1241,6 +1241,17 @@ void NoctuaryProcessor::applyStrikePreset( int index )
     applyScoped( strikePreset( index ), PresetScopeE::STRIKE );
 }
 
+/**
+ * The row is the bank's (Core/src/NearNight.inc), looked up by the preset loaded; with none loaded (-1, Near Off, a
+ * name the bank no longer has) the guard does nothing. Both engines get it, so a crossfade carries it.
+ */
+void NoctuaryProcessor::pushNearGuard()
+{
+    const ambient::NearGuard g = ambient::nearGuardOf( m_nearIndex );
+    for ( auto &e : m_engines )
+        if ( e != nullptr ) e->setNearGuard( g );
+}
+
 void NoctuaryProcessor::applyNearPreset( int index )
 {
     if ( index < 0 || index >= numNearPresets() ) return;
@@ -1248,6 +1259,7 @@ void NoctuaryProcessor::applyNearPreset( int index )
     const Preset &pr = nearPreset( index );
     m_nearName = pr.m_name;
     applyScoped( pr, PresetScopeE::NEAR_LAYER );
+    pushNearGuard();   // its night guard, used only while Night is on (20.11.2026, plan C3)
     // The preset's clip, named relative to the library's root, or none: a preset that names no
     // clip takes the one that was loaded away, so the flute preset after the radio preset does
     // not find a voice in its slot.
@@ -1934,6 +1946,7 @@ ambient::Engine &NoctuaryProcessor::ensureEngine( int i )
 void NoctuaryProcessor::carryUserData( ambient::Engine &e )
 {
     ambient::Engine &from = live();
+    e.setNearGuard( from.nearGuard() );   // the near preset's night guard (20.11.2026)
     if ( m_scalaText.isNotEmpty() )
     {
         FixedScale sc;
@@ -2316,6 +2329,7 @@ void NoctuaryProcessor::setStateInformation( const void *data, int sizeInBytes )
                         m_nearIndex = i;
                         break;
                     }
+            pushNearGuard();
             m_compact = static_cast<int>( tree.getProperty( "compact", 0 ) ) != 0;
             m_layoutMode = static_cast<int>( tree.getProperty( "layout", m_compact ? 1 : 0 ) );
             if ( static_cast<int>( tree.getProperty( "pages", 0 ) ) != 0 ) m_layoutMode = 3;

@@ -1604,6 +1604,7 @@ void Engine::readParams()
     m_np.m_attack = g( ParamIdE::FORE_ATTACK );
     m_np.m_release = g( ParamIdE::FORE_RELEASE );
     m_nearGain = dbToGain( g( ParamIdE::FORE_GAIN ) );
+    m_nightOn = g( ParamIdE::FORE_NIGHT ) >= 0.5f;   // the night guard, decided per event (startNearNote)
     {
         // What a near event's voice renders with: the sound preset's voice with its four slots
         // put out and the Near Source in the last one, its own envelope, its own filter, its own
