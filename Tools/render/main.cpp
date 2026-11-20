@@ -37,6 +37,7 @@
 #include "ambient/Timeline.h"
 #include "ambient/Score.h"
 #include "ambient/Journey.h"
+#include "ambient/NameList.h"
 #include "ambient/Cosmos.h"         // Fft, for the tonal probe
 #include "ambient/ClusterBrain.h"   // peakRoughness: one Plomp-Levelt curve for the conductor and the map
 #include <cstdio>
@@ -750,6 +751,7 @@ static int runOnce( int argc, char **argv )
     Journey                         journey;
     bool                            haveJourney = false;
     uint64_t                        journeySeed = 1;
+    std::vector<std::string>        journeyNever;   // presets the journey passes over (--never-again)
     loadDefaultPresetPacks();   // $AMBIENT_PACKS or ~/Documents/Noctuary/Packs; --packs adds more
     std::vector<int> notes;
     std::string      sclPath;
@@ -1167,6 +1169,11 @@ static int runOnce( int argc, char **argv )
         }
         else if ( a == "--journey-seed" )
             journeySeed = static_cast<uint64_t>( std::strtoull( next().c_str(), nullptr, 10 ) ) | 1ull;
+        else if ( a == "--never-again" )
+        {   // the player's never-again file (20.11.2026): the journey passes over those presets, as the instrument's
+            journeyNever = readNameList( next() );
+            std::printf( "never again: %d preset names\n", static_cast<int>( journeyNever.size() ) );
+        }
         else if ( a == "--bench" )
         {
             // Realtime factor per preset (rendered seconds per wall second). Run on the device via adb
@@ -1368,6 +1375,7 @@ static int runOnce( int argc, char **argv )
     JourneyPlayer journeyPlayer;
     if ( haveJourney )
     {
+        journeyPlayer.setSkip( journeyNever );
         journeyPlayer.start( journey, journeySeed, 0 );
         JourneyStep st;
         double      fade = 0.0;

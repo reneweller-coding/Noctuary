@@ -75,6 +75,10 @@ if(AMBIENT_BUILD_TOOLS)
         # Under a second.
         add_test(NAME brain_in_sync COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/family/sync_brain.py"
                  --check "${CMAKE_SOURCE_DIR}/Core/include/ambient/ClusterBrain.h" --product ambient)
+        # The night director's table (20.11.2026, plan D3): Core/src/NightDirector.inc is what Tools/make_night.py makes
+        # from the library's measurement (work/library/packs.json; skipped where that is not at hand). A few seconds.
+        add_test(NAME night_table COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/make_night.py" --check)
+        set_tests_properties(night_table PROPERTIES SKIP_RETURN_CODE 77)
     endif()
 endif()
 

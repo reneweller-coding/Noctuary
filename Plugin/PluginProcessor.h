@@ -48,6 +48,7 @@
 #include "ambient/Osc.h"
 #include "ambient/Timeline.h"
 #include "ambient/Journey.h"
+#include "ambient/NightDirector.h"
 #include "LinkClock.h"
 #include "Jam.h"
 #include <array>
@@ -760,6 +761,54 @@ public:
     /** @} */
 
     /**
+     * @name Never again (20.11.2026, plan C2: the counterpart to the favourites)
+     * A sound preset the player never wants to hear again: marked in the browser beside its star, kept by name in a
+     * plain text file beside the favourites (Documents\\Noctuary\\never_again.txt, one name a line, see
+     * ambient::readNameList; AMBIENT_NEVER_AGAIN_FILE names another file for tests and screenshots). Read the first
+     * time it is asked for, never written when the instrument loads, written whole (beside it, then renamed) when a
+     * mark changes. The night director never takes such a preset, and every journey passes over its steps (the one
+     * before crossfades into the one after; marked while a journey runs, from its next step on; a journey whose every
+     * step is marked plays as written). The browser, its search and the map still show them -- dimmed.
+     * @{ */
+    /**
+     * @param[in] preset  preset index
+     * @return whether the player never wants it again
+     */
+    bool isNeverAgain( int preset ) const;
+    /**
+     * @brief Marks or unmarks a preset as never again, writes the file and tells the journey under way.
+     * @param[in] preset  preset index; out of range does nothing
+     * @param[in] on      marked or not
+     */
+    void setNeverAgain( int preset, bool on );
+    /** @return how many installed presets are marked */
+    int neverAgainCount() const;
+    /** @return the file's names, in its order (names the library lacks kept) */
+    const std::vector<std::string> &neverAgainNames() const;
+    /** @return the file: AMBIENT_NEVER_AGAIN_FILE, or Documents/Noctuary/never_again.txt */
+    static juce::File neverAgainFile();
+    /** @} */
+
+    /**
+     * @name The night director (20.11.2026, plan D3)
+     * A whole night as a journey with a form (ambient::composeNight): falling asleep, a deep middle in waves of about
+     * ninety minutes, a morning. It becomes the journey being written (the timeline shows it; the disk saves it);
+     * nothing starts by itself.
+     * @{ */
+    /**
+     * @brief Composes a night from the presets this library has, none of the never-again ones, and makes it the
+     *        journey being written.
+     * @param[in] hours       how long, 1 .. 14
+     * @param[in] choice      the presets drawn from (ambient::nightChoiceName)
+     * @param[in] seed        the dice
+     * @param[in] favourites  whether the favourites are preferred
+     * @param[in] name        the journey's name
+     * @return the night and how it came about (its journey empty when nothing could be chosen)
+     */
+    ambient::NightPlan makeNight( double hours, int choice, uint64_t seed, bool favourites, const std::string &name );
+    /** @} */
+
+    /**
      * @brief Bumped whenever any parameter changes, from wherever.
      *
      * A display that draws nothing but
@@ -1086,6 +1135,11 @@ private:
     /** @brief Writes the file: a header line, the "first" switch, one name a line. */
     void saveFavourites() const;
     ambient::NearTasteLists m_nearTaste;   ///< the near taste file's lists, names the bank lacks kept
+    /** @brief Reads the never-again file the first time it is needed (message thread). */
+    void loadNeverAgain() const;
+    mutable bool                     m_neverAgainLoaded = false;   ///< the file has been read
+    mutable std::vector<std::string> m_neverAgain;   ///< the never-again file's names, in its order
+    mutable juce::BigInteger         m_neverAgainBits;   ///< one bit per installed preset: never again
     juce::String m_routeText;   ///< the route in its text form, for the state
     /** @brief set timeline (recording appends on the audio thread; save/load on the message thread while stopped) */
     ambient::SetTimeline m_setRec, m_setPlay;   ///< the set being played

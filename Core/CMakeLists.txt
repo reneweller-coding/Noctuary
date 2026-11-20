@@ -37,6 +37,7 @@ add_library(NoctuaryCore STATIC
     src/Help.cpp
     src/Timeline.cpp
     src/Score.cpp
+    src/NightDirector.cpp
 )
 if(WIN32)
     target_link_libraries(NoctuaryCore PUBLIC ws2_32)

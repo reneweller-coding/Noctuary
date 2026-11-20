@@ -13,6 +13,11 @@
  * step's own near preset ("keep" pins what plays). The arc of the presets that follow the clock (arc_clock) hears the
  * hour the rendering would be played at -- from now, or from 23:00 -- running with the file. The dwells and fades are
  * drawn from the journey's ranges with the dice, so the length is known before.
+ * Beside them three nights of the night director (NightDirector.h, 20.11.2026): Night 6 h, 8 h and 10 h, every pack,
+ * the first dice, once through. Every journey passes over the presets the player never wants again (the instrument's
+ * never_again.txt, read here and never written): its length, its chapters and its rendering are those of the journey
+ * without them. A night of another length or from other packs is made in the instrument and saved; it is then listed
+ * under "Yours". A dialog for that here would mean inputs in the family's RenderKit, which ten instruments share.
  * @note The media after the plugin's loadPresetFiles, the crossfade after its beginTransition and carryUserData, the
  *       near layer per step after NoctuaryProcessor::journeyTick (16.10.2026).
  * @author Rene Weller
@@ -21,6 +26,8 @@
 #include "ambient/ClusterBrain.h"
 #include "ambient/Engine.h"
 #include "ambient/Journey.h"
+#include "ambient/NameList.h"
+#include "ambient/NightDirector.h"
 #include "ambient/Params.h"
 #include "ambient/Presets.h"
 #include "ambient/Sources.h"
@@ -33,6 +40,7 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <unordered_set>
 
 namespace
 {
@@ -607,15 +615,38 @@ public:
         juce::StringArray names;   // a template in two library folders (the installed one, the source tree's) once
         int               own = 0;
         const juce::Array<juce::File> files = journeyFiles( own );
+        // The player's "never again" (20.11.2026): the instrument's file, read here, never written. Every journey passes
+        // over its presets as the instrument's player does (the step before crossfades into the one after), so its
+        // length, its chapters and its rendering are those of the journey without them.
+        const std::vector<std::string> never = ambient::readNameList( ambient::neverAgainPath(
+            juce::File::getSpecialLocation( juce::File::userDocumentsDirectory ).getFullPathName().toStdString() ) );
+        std::vector<std::pair<ambient::Journey, juce::String>> journeys;
         for ( int k = 0; k < files.size(); ++k )
         {
             ambient::Journey j;
             if ( !j.load( files[k].getFullPathName().toRawUTF8() ) || j.m_steps.empty() ) continue;
+            if ( j.m_name.empty() ) j.m_name = files[k].getFileNameWithoutExtension().toStdString();
+            journeys.emplace_back( ambient::journeyPassingOver( j, never ), k < own ? "Yours" : "Template" );
+        }
+        // Three nights of the night director (plan D3): every pack, the first dice, once through.
+        auto loaded = std::make_shared<std::unordered_set<std::string>>();
+        for ( int p = 0; p < ambient::numPresets(); ++p ) loaded->insert( ambient::preset( p ).m_name );
+        for ( const double hours : { 6.0, 8.0, 10.0 } )
+        {
+            ambient::NightRequest r;
+            r.m_hours = hours;
+            r.m_exclude = never;
+            r.m_available = [loaded]( const std::string &n ) { return loaded->count( n ) > 0; };
+            ambient::NightPlan plan = ambient::composeNight( r );
+            if ( !plan.m_journey.m_steps.empty() ) journeys.emplace_back( std::move( plan.m_journey ), "Night director" );
+        }
+        for ( auto &[j, kind] : journeys )
+        {
             renderkit::Item item;
-            item.m_name = j.m_name.empty() ? files[k].getFileNameWithoutExtension() : juce::String( j.m_name );
+            item.m_name = juce::String( j.m_name );
             if ( names.contains( item.m_name ) ) continue;
             names.add( item.m_name );
-            item.m_kind = k < own ? "Yours" : "Template";
+            item.m_kind = kind;
             double shortest = 0.0, longest = 0.0;
             for ( const ambient::JourneyStep &st : j.m_steps )
             {

@@ -136,13 +136,20 @@ map is where a preset sounds, not where somebody put it.
 ![The browser](docs/browser.png)
 
 Sort and filter by family, character, motion and features, or search; star what you like and the
-favourites rise to the top of any sort and ring gold on the map. A **route** walks the map by
+favourites rise to the top of any sort and ring gold on the map; mark what you never want to hear again
+and the night director and every journey pass over it. A **route** walks the map by
 itself between waypoints. A **journey** is a list of presets for an evening that plays itself —
 each held for a time drawn from a range, then crossfaded into the next — and 119 of them ship with
 the library, a journey and a night for every pack and a crossing for every family. **Noctuary Journeys**
 (`NoctuaryJourneys.exe`, in the Start menu) renders them into files with a small window of its own: every journey with
 the length of its rendering, as WAV or FLAC (24 bit), Ogg Vorbis or MP3 (320 kbit/s), faster than real time and
 crossfaded as the instrument plays it; `NoctuaryJourneys --render "NAME" --format flac` without the window.
+
+The **night director** (the Journey button, then Night ...) writes a whole night as a journey with a form --
+falling asleep, a deep middle in waves of about ninety minutes, a morning -- along a curve of the measured
+stillness and brightness, every crossfade a step to a preset that measures alike, never one twice. Its table
+of the library is `Core/src/NightDirector.inc` (`Tools/make_night.py`, from the measurement the journeys are made
+from); `ambient_night` prints a night and `Tools/night_plot.py` draws it.
 
 Beside the presets: **8686 samples** (5748 textures and 2938 field recordings, every one of the
 latter made seamless by construction), **2191 wavetables** on three shelves, and **1100 impulse
@@ -161,7 +168,7 @@ sonifications from NASA, 724 cylinder and early-radio transfers from the Library
 |---|---|---|
 | `Core/` | The whole synthesizer: parameters, tuning, voices, spatial routing, effects, conductor, presets, engine. Pure C++20, no allocations while rendering. | nothing |
 | `Plugin/` | JUCE wrapper: VST3 + standalone, the panel, preset browser and map, state. | JUCE 9 (fetched by CMake) |
-| `Tools/render/` | `ambient_render`: offline renderer to WAV with per-second measurements, journeys and a rule-book audit of the conductor. | Core |
+| `Tools/render/` | `ambient_render`: offline renderer to WAV with per-second measurements, journeys and a rule-book audit of the conductor; `ambient_night`: the night director's night as a table. | Core |
 | `Tools/library/` | The library pipeline: generates, renders, measures and lays out the presets. | Python, numpy |
 | `Tests/` | The self test, the host test, the race test and the SIMD path tests (below). | Core, JUCE for the host test |
 | `Deploy/` | `build_release.ps1` builds, checks and packages; `Noctuary.iss` is the installer. | Inno Setup 6+ |

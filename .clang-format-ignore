@@ -4,6 +4,7 @@ Core/src/CosmosPresets.inc
 Core/src/HarmonicEntropy.inc
 Core/src/NearAuto.inc
 Core/src/NearPresets.inc
+Core/src/NightDirector.inc
 Core/src/PresetClusters.inc
 Core/src/PresetPhrases.inc
 Core/src/StrikePresets.inc

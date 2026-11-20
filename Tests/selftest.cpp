@@ -43,6 +43,8 @@
 #include "ambient/Filter.h"
 #include "ambient/Score.h"
 #include "ambient/Journey.h"
+#include "ambient/NameList.h"
+#include "ambient/NightDirector.h"
 #include "ambient/Gesture.h"
 #include "ambient/Osc.h"
 #include "ambient/Menu.h"
@@ -14016,6 +14018,334 @@ void testLibraryStamp()
 }
 
 /**
+ * @brief Spearman's rank correlation of two equally long series (the night director's yardstick).
+ * @param[in] a  one series
+ * @param[in] b  the other
+ * @return -1 .. 1; 0 when either is constant or they are shorter than two
+ */
+static double spearmanForTest( const std::vector<double> &a, const std::vector<double> &b )
+{
+    const size_t n = std::min( a.size(), b.size() );
+    if ( n < 2 ) return 0.0;
+    auto ranks = [n]( const std::vector<double> &v )
+    {
+        std::vector<size_t> order( n );
+        for ( size_t i = 0; i < n; ++i ) order[i] = i;
+        std::stable_sort( order.begin(), order.end(), [&]( size_t x, size_t y ) { return v[x] < v[y]; } );
+        std::vector<double> r( n );
+        for ( size_t k = 0; k < n; ++k ) r[order[k]] = static_cast<double>( k );
+        return r;
+    };
+    const std::vector<double> ra = ranks( a ), rb = ranks( b );
+    const double              m = ( static_cast<double>( n ) - 1.0 ) / 2.0;
+    double                    num = 0.0, da = 0.0, db = 0.0;
+    for ( size_t i = 0; i < n; ++i )
+    {
+        num += ( ra[i] - m ) * ( rb[i] - m );
+        da += ( ra[i] - m ) * ( ra[i] - m );
+        db += ( rb[i] - m ) * ( rb[i] - m );
+    }
+    return da > 0.0 && db > 0.0 ? num / std::sqrt( da * db ) : 0.0;
+}
+
+/**
+ * @brief The night director (20.11.2026, plan D3), without audio and without a library (its table is compiled in).
+ *
+ * A night of three, eight and ten hours with three seeds each, from every pack, and an eight-hour night from the Sleep
+ * family: it lasts what was asked (within 1 %), plays no preset twice, and follows its curve -- the stillness of its
+ * presets against the curve's stillness at the middle of each stay by Spearman at least 0.85 (0.8 for the family), on
+ * average no more than four percentile points off (five for the family) and nowhere more than fifteen; the brightness
+ * by Spearman at least 0.6. The yardstick bites: the same presets shuffled reach at most 0.2 (the mean of fifty
+ * shuffles). Its neighbours measure alike: the mean step is under half a random pair's (the journeys' distance). No
+ * preset rougher than the candidates' 60th percentile while falling asleep. The stays vary (a short and a long one in
+ * every night of eight hours and more). The same request gives the same night, another seed another; excluded presets
+ * are never taken, the preferred ones more often; and a night drawn only from the presets an instrument has takes none
+ * it lacks; a single pack makes a night too.
+ */
+void testNightDirector()
+{
+    std::printf( "\n--- the night director ---\n" );
+    double worstSpear = 1.0, worstBright = 1.0, worstMean = 0.0, worstMax = 0.0, worstShuffled = -1.0, worstStep = 0.0,
+           worstLength = 0.0, worstRough = 0.0;
+    int nights = 0, steps = 0, doubled = 0, monotone = 0;
+    // A random pair's distance in sound, over the table.
+    double pairs = 0.0;
+    {
+        uint64_t  rng = 0x2545F4914F6CDD1Dull;
+        const int n = nightRowCount();
+        for ( int k = 0; k < 4000; ++k )
+        {
+            rng ^= rng << 13;
+            rng ^= rng >> 7;
+            rng ^= rng << 17;
+            const int a = static_cast<int>( rng % static_cast<uint64_t>( n ) );
+            const int b = static_cast<int>( ( rng >> 32 ) % static_cast<uint64_t>( n ) );
+            pairs += nightDistance( a, b );
+        }
+        pairs /= 4000.0;
+    }
+    struct CaseS
+    {
+        double m_hours;
+        int    m_choice;
+        int    m_seed;
+    };
+    std::vector<CaseS> cases;
+    for ( double h : { 3.0, 8.0, 10.0 } )
+        for ( int s = 1; s <= 3; ++s ) cases.push_back( { h, 0, s } );
+    cases.push_back( { 8.0, 1, 1 } );   // the Sleep family
+    for ( const CaseS &c : cases )
+    {
+        NightRequest r;
+        r.m_hours = c.m_hours;
+        r.m_choice = c.m_choice;
+        r.m_seed = static_cast<uint64_t>( c.m_seed );
+        const NightPlan p = composeNight( r );
+        const bool      family = c.m_choice != 0;
+        ++nights;
+        steps += static_cast<int>( p.m_steps.size() );
+        std::vector<double> still, target, bright, targetB;
+        double              mean = 0.0, most = 0.0, step = 0.0, rough = 0.0;
+        std::set<std::string> seen;
+        int                   cls[3] = {};
+        double asleep = 0.0, morning = 0.0;
+        int    waves = 1;
+        nightPhases( c.m_hours, asleep, morning, waves );
+        for ( size_t k = 0; k < p.m_steps.size(); ++k )
+        {
+            const NightStep &s = p.m_steps[k];
+            still.push_back( s.m_still );
+            target.push_back( s.m_targetStill );
+            bright.push_back( s.m_bright );
+            targetB.push_back( s.m_targetBright );
+            mean += std::fabs( s.m_still - s.m_targetStill );
+            most = std::max( most, std::fabs( s.m_still - s.m_targetStill ) );
+            if ( k > 0 ) step += s.m_distance;
+            if ( ( s.m_at + 0.5 * s.m_stay ) / ( c.m_hours * 3600.0 ) < asleep ) rough = std::max( rough, s.m_rough );
+            if ( !seen.insert( nightRowName( s.m_row ) ).second ) ++doubled;
+            ++cls[s.m_class];
+        }
+        mean /= std::max<size_t>( 1, p.m_steps.size() );
+        step /= std::max<size_t>( 1, p.m_steps.size() - 1 );
+        const double spear = spearmanForTest( still, target ), spearB = spearmanForTest( bright, targetB );
+        // the yardstick: the same presets, shuffled (the mean of fifty shuffles)
+        double   shuf = 0.0;
+        uint64_t rng = 0x9E3779B97F4A7C15ull + static_cast<uint64_t>( c.m_seed );
+        for ( int t = 0; t < 50; ++t )
+        {
+            std::vector<double> shuffled = still;
+            for ( size_t i = shuffled.size(); i > 1; --i )
+            {
+                rng ^= rng << 13;
+                rng ^= rng >> 7;
+                rng ^= rng << 17;
+                std::swap( shuffled[i - 1], shuffled[static_cast<size_t>( rng % i )] );
+            }
+            shuf += spearmanForTest( shuffled, target ) / 50.0;
+        }
+        const double length = std::fabs( p.m_journey.meanLength() / ( c.m_hours * 3600.0 ) - 1.0 );
+        std::printf( "  [probe] %4.1f h, %s, seed %d: %d presets of %d, stillness Spearman %.2f (shuffled %.2f), "
+                     "%.1f / %.1f points off (mean / most), brightness %.2f, step %.2f (a random pair %.2f), "
+                     "roughest falling asleep %.2f, stays %d/%d/%d, length %+.2f %%\n",
+                     c.m_hours, nightChoiceName( c.m_choice ).c_str(), c.m_seed, static_cast<int>( p.m_steps.size() ),
+                     p.m_candidates, spear, shuf, 100.0 * mean, 100.0 * most, spearB, step, pairs, rough, cls[0],
+                     cls[1], cls[2], 100.0 * ( p.m_journey.meanLength() / ( c.m_hours * 3600.0 ) - 1.0 ) );
+        CHECK( !p.m_journey.m_cyclic && p.m_journey.m_steps.size() == p.m_steps.size(),
+               "night director: a journey once through, a step per preset" );
+        CHECK( spear >= ( family ? 0.8 : 0.85 ), "night director: the stillness follows the curve (Spearman)" );
+        CHECK( mean <= ( family ? 0.05 : 0.04 ) && most <= 0.15,
+               "night director: the stillness stays near the curve at every step" );
+        CHECK( spearB >= 0.6, "night director: the brightness follows the curve (Spearman)" );
+        CHECK( shuf <= 0.2, "night director: the yardstick bites (the same presets shuffled do not follow)" );
+        CHECK( step <= 0.5 * pairs, "night director: neighbours measure alike (under half a random pair)" );
+        CHECK( rough <= 0.6, "night director: nothing rough while falling asleep" );
+        CHECK( c.m_hours < 8.0 || ( cls[0] > 0 && cls[2] > 0 ), "night director: the stays vary, short and long" );
+        worstSpear = std::min( worstSpear, spear );
+        worstBright = std::min( worstBright, spearB );
+        worstMean = std::max( worstMean, mean );
+        worstMax = std::max( worstMax, most );
+        worstShuffled = std::max( worstShuffled, shuf );
+        worstStep = std::max( worstStep, step / pairs );
+        worstLength = std::max( worstLength, length );
+        worstRough = std::max( worstRough, rough );
+        // falling asleep stiller and darker than the evening, the morning brighter than the deep
+        if ( p.m_steps.size() > 4 && p.m_steps.front().m_still > p.m_steps[2].m_still &&
+             p.m_steps.back().m_bright > p.m_steps[p.m_steps.size() / 2].m_bright )
+            ++monotone;
+    }
+    std::printf( "  [probe] %d nights, %d steps: Spearman at least %.2f (brightness %.2f, shuffled at most %.2f), "
+                 "%.1f points off on average at most, %.1f at a step at most, step at most %.2f of a random pair, "
+                 "length at most %.2f %% off, roughest falling asleep %.2f\n",
+                 nights, steps, worstSpear, worstBright, worstShuffled, 100.0 * worstMean, 100.0 * worstMax, worstStep,
+                 100.0 * worstLength, worstRough );
+    CHECK( doubled == 0, "night director: no preset twice in a night" );
+    CHECK( worstLength <= 0.01, "night director: a night lasts what was asked" );
+    CHECK( monotone == nights, "night director: falling asleep gets stiller, the morning brighter" );
+
+    // The same request, the same night; another seed, another.
+    NightRequest r;
+    r.m_hours = 8.0;
+    const NightPlan a = composeNight( r ), b = composeNight( r );
+    r.m_seed = 2;
+    const NightPlan c = composeNight( r );
+    CHECK( a.m_journey.text() == b.m_journey.text(), "night director: the same request gives the same night" );
+    CHECK( a.m_journey.text() != c.m_journey.text(), "night director: another seed another night" );
+    // Excluded never taken: the first night's presets excluded from the second.
+    r.m_seed = 1;
+    for ( const NightStep &s : a.m_steps ) r.m_exclude.push_back( nightRowName( s.m_row ) );
+    const NightPlan e = composeNight( r );
+    int             again = 0;
+    for ( const NightStep &s : e.m_steps )
+        again += std::find( r.m_exclude.begin(), r.m_exclude.end(), nightRowName( s.m_row ) ) != r.m_exclude.end();
+    std::printf( "  [probe] the %d presets of a night excluded: the next night of %d presets plays %d of them\n",
+                 static_cast<int>( r.m_exclude.size() ), static_cast<int>( e.m_steps.size() ), again );
+    CHECK( !e.m_steps.empty() && again == 0, "night director: an excluded preset is never taken" );
+    // The preferred more often: every 23rd row preferred.
+    r.m_exclude.clear();
+    for ( int row = 0; row < nightRowCount(); row += 23 ) r.m_prefer.push_back( nightRowName( row ) );
+    int with = 0, without = 0;
+    for ( int s = 1; s <= 3; ++s )
+    {
+        r.m_seed = static_cast<uint64_t>( s );
+        for ( const NightStep &st : composeNight( r ).m_steps ) with += st.m_preferred ? 1 : 0;
+        NightRequest plain = r;
+        plain.m_prefer.clear();
+        for ( const NightStep &st : composeNight( plain ).m_steps ) without += st.m_row % 23 == 0 ? 1 : 0;
+    }
+    std::printf( "  [probe] every 23rd preset preferred: %d of three nights' steps with the preference, %d without\n",
+                 with, without );
+    CHECK( with > 2 * without + 5, "night director: the preferred are chosen more often" );
+    // Only what an instrument has: half the table available.
+    NightRequest half;
+    half.m_available = []( const std::string &n ) { return nightRowOf( n ) % 2 == 0; };
+    int odd = 0;
+    const NightPlan h = composeNight( half );
+    for ( const NightStep &s : h.m_steps ) odd += s.m_row % 2;
+    CHECK( !h.m_steps.empty() && odd == 0, "night director: only presets the instrument has" );
+    CHECK( nightRowOf( nightRowName( 100 ) ) == 100 && nightRowOf( "No Such Preset" ) < 0,
+           "night director: a preset's row by its name" );
+    // A single pack: fewer candidates than a long night has steps is still a night, every preset once.
+    NightRequest pack;
+    pack.m_hours = 14.0;
+    pack.m_choice = numNightChoices() - 1;
+    const NightPlan pp = composeNight( pack );
+    std::printf( "  [probe] %s, 14 h: %d presets of %d candidates\n", nightChoiceName( pack.m_choice ).c_str(),
+                 static_cast<int>( pp.m_steps.size() ), pp.m_candidates );
+    CHECK( !pp.m_steps.empty() && static_cast<int>( pp.m_steps.size() ) <= pp.m_candidates,
+           "night director: a single pack makes a night" );
+}
+
+/**
+ * @brief Never again for sound presets (20.11.2026, plan C2): the file, and every journey passing over them.
+ *
+ * The file: written and read back the same (names with umlauts too), in one step (no .new left beside it); a missing
+ * file is an empty list; a garbled one (a byte order mark, CR LF, blank lines, a comment, control characters, broken
+ * UTF-8, an overlong line, repeats) gives exactly the names in it; AMBIENT_NEVER_AGAIN_FILE points the instrument's
+ * path elsewhere. The journeys: of eight steps three marked, a cyclic journey of a thousand steps never plays them and
+ * every step after a passed-over one fades in (it is a crossfade from the step before, never a cut); once through it
+ * plays five, the same five journeyPassingOver keeps; marked while it runs, from the next step on; all eight marked,
+ * it plays as written. The night director with the list read back takes none of them.
+ */
+void testNeverAgain()
+{
+    std::printf( "\n--- never again for sound presets ---\n" );
+    std::error_code             ec;
+    const std::filesystem::path dir = std::filesystem::temp_directory_path() / "noctuary_neveragain";
+    std::filesystem::remove_all( dir, ec );
+    std::filesystem::create_directories( dir, ec );
+    const std::string        path = ( dir / "never_again.txt" ).string();
+    std::vector<std::string> names;
+    for ( int k = 0; k < 24; ++k ) names.push_back( nightRowName( k * 97 ) );
+    names.push_back( "Gr\xc3\xbc" "ne St\xc3\xa4ttte" );   // umlauts, a name the library does not have
+    CHECK( writeNameList( path, names ), "never again: the file is written" );
+    CHECK( readNameList( path ) == names, "never again: and read back the same, umlauts and unknown names kept" );
+    CHECK( !std::filesystem::exists( path + ".new" ), "never again: written in one step, nothing left beside it" );
+    CHECK( readNameList( ( dir / "no_such_file.txt" ).string() ).empty(), "never again: a missing file is no list" );
+    {
+        std::ofstream g( ( dir / "garbled.txt" ).string(), std::ios::binary );
+        g << "\xEF\xBB\xBF" << "First Name\r\n\r\n   \n# a comment\nSecond Name  \r\n\x01\x02 control\n"
+          << "bad \xff\xfe utf\n" << std::string( 300, 'x' ) << "\nFirst Name\nThird\xc3\n Fourth Name\n";
+    }
+    const std::vector<std::string> garbled = readNameList( ( dir / "garbled.txt" ).string() );
+    CHECK( ( garbled == std::vector<std::string>{ "First Name", "Second Name", "Fourth Name" } ),
+           "never again: a garbled file gives exactly the names in it" );
+    setEnvForTest( "AMBIENT_NEVER_AGAIN_FILE", path.c_str() );
+    CHECK( neverAgainPath( "C:/Somebody/Documents" ) == path, "never again: the environment names another file" );
+    setEnvForTest( "AMBIENT_NEVER_AGAIN_FILE", nullptr );
+    CHECK( neverAgainPath( "C:/Somebody/Documents" ).find( "Noctuary" ) != std::string::npos &&
+               neverAgainPath( "C:/Somebody/Documents" ).find( "never_again.txt" ) != std::string::npos,
+           "never again: else the file beside the favourites" );
+
+    // A journey of eight steps, three of them marked.
+    Journey j;
+    j.m_name = "Eight";
+    for ( int k = 0; k < 8; ++k )
+    {
+        JourneyStep st;
+        st.m_preset = "Step " + std::to_string( k );
+        st.m_dwellLo = st.m_dwellHi = 60.0;
+        st.m_fadeLo = st.m_fadeHi = 20.0;
+        j.m_steps.push_back( st );
+    }
+    const std::vector<std::string> marked = { "Step 1", "Step 4", "Step 7" };
+    JourneyPlayer                  p;
+    p.setSkip( marked );
+    p.start( j, 7 );
+    JourneyStep st;
+    double      fade = 0.0;
+    int         played = 0, playedMarked = 0, unfaded = 0;
+    for ( int k = 0; k < 1000 && p.advance( 60.0, st, fade ); ++k )
+    {
+        ++played;
+        playedMarked += std::find( marked.begin(), marked.end(), st.m_preset ) != marked.end();
+        unfaded += fade <= 0.0;
+    }
+    CHECK( played == 1000 && playedMarked == 0 && unfaded == 0,
+           "never again: a cyclic journey passes over the marked steps, every step crossfaded in" );
+    j.m_cyclic = false;
+    p.start( j, 7 );
+    std::vector<std::string> once;
+    while ( p.advance( 60.0, st, fade ) ) once.push_back( st.m_preset );
+    std::vector<std::string> kept;
+    for ( const JourneyStep &s : journeyPassingOver( j, marked ).m_steps ) kept.push_back( s.m_preset );
+    std::printf( "  [probe] once through: %d of 8 steps played (%s ... %s), journeyPassingOver keeps %d\n",
+                 static_cast<int>( once.size() ), once.empty() ? "" : once.front().c_str(),
+                 once.empty() ? "" : once.back().c_str(), static_cast<int>( kept.size() ) );
+    CHECK( once.size() == 5 && once == kept, "never again: once through it plays the five unmarked, as passed over" );
+    // Marked while it runs: from the next step on.
+    JourneyPlayer q;
+    q.start( j, 7 );
+    std::vector<std::string> run;
+    for ( int k = 0; k < 2 && q.advance( 60.0, st, fade ); ++k ) run.push_back( st.m_preset );   // Step 0, Step 1
+    q.setSkip( marked );
+    while ( q.advance( 60.0, st, fade ) ) run.push_back( st.m_preset );
+    int after = 0;
+    for ( size_t k = 2; k < run.size(); ++k ) after += std::find( marked.begin(), marked.end(), run[k] ) != marked.end();
+    CHECK( run.size() == 6 && run[1] == "Step 1" && after == 0,
+           "never again: marked while it runs, it counts from the next step on" );
+    // Every step marked: as written.
+    std::vector<std::string> all;
+    for ( const JourneyStep &s : j.m_steps ) all.push_back( s.m_preset );
+    p.setSkip( all );
+    p.start( j, 7 );
+    int whole = 0;
+    while ( p.advance( 60.0, st, fade ) ) ++whole;
+    CHECK( whole == 8 && journeyPassingOver( j, all ).m_steps.size() == 8,
+           "never again: a journey whose every step is marked plays as written" );
+    // The night director with the list read back.
+    NightRequest r;
+    r.m_exclude = readNameList( path );
+    const NightPlan n = composeNight( r );
+    int             taken = 0;
+    for ( const NightStep &s : n.m_steps )
+        taken += std::find( r.m_exclude.begin(), r.m_exclude.end(), nightRowName( s.m_row ) ) != r.m_exclude.end();
+    std::printf( "  [probe] a night with %d names never again: %d presets, %d of them\n",
+                 static_cast<int>( r.m_exclude.size() ), static_cast<int>( n.m_steps.size() ), taken );
+    CHECK( !n.m_steps.empty() && taken == 0, "never again: the night director takes none of them" );
+    std::filesystem::remove_all( dir, ec );
+}
+
+/**
  * @brief Runs the test functions in turn -- all of them, or those the arguments pick -- and reports.
  *
  * The order is deliberate only in that the near layer goes first (it switches stdout to
@@ -14119,6 +14449,8 @@ int main( int argc, char **argv )
         { "testPitchInvariants", testPitchInvariants },
         { "testLibraryStamp", testLibraryStamp },
         { "testNearTaste", testNearTaste },
+        { "testNightDirector", testNightDirector },
+        { "testNeverAgain", testNeverAgain },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );
     std::vector<bool> pick( static_cast<size_t>( count ), true );

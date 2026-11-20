@@ -1383,8 +1383,12 @@ private:
         int              m_mode = 0;                                ///< the view that is on: 0 columns, 1 map
         juce::TextButton m_modeClassic{ "Columns" },                ///< the column view
             m_modeMap{ "Map" },                                     ///< the map view
-            m_star{ "Favourite" };                                  ///< stars or unstars the selected preset
+            m_star{ "Favourite" },                                  ///< stars or unstars the selected preset
+            m_never{ "Never again" };   ///< marks or unmarks the selected preset as never again (20.11.2026)
         juce::ToggleButton m_onlyFavourites{ "only favourites" };   ///< the list narrowed to the starred presets
+        juce::ToggleButton m_onlyNever{
+            "only never again"
+        };   ///< the list narrowed to the presets marked never again: where to find them to take a mark back
         juce::ToggleButton m_favouritesFirst{
             "favourites first"
         };   ///< the starred ones at the top, whatever the sort

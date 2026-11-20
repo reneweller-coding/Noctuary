@@ -123,6 +123,58 @@ private:
     int                  m_dropAt = -1;      ///< where a moved block would land, -1 nowhere
 };
 
+/**
+ * @brief The night director's controls (20.11.2026, plan D3; Empyrean's NightPanel the model): how long the night is
+ *        (until a wake time from now, or so many hours), which presets it draws from (every pack, a family of packs, one
+ *        pack), whether the favourites are preferred, the dice, Make; under them what came of it and its curve -- the
+ *        stillness and brightness the night wants (dashed) and the presets chosen (solid). Make writes the night into the
+ *        journey being written (the timeline below shows it); Save ... and Play are the player's, nothing starts by
+ *        itself.
+ */
+class NightBar final : public juce::Component
+{
+public:
+    /**
+     * @brief The controls for @p proc's night director.
+     * @param[in,out] proc  the processor (ambient::composeNight through makeNight)
+     */
+    explicit NightBar( NoctuaryProcessor &proc );
+    /** @brief The lengths offered again (the wake times are counted from now). */
+    void refreshLengths();
+    /**
+     * @brief Makes a night now.
+     * @param[in] hours  how long; 0: what the length box says
+     * @param[in] seed   the dice; 0: the bar's own
+     */
+    void make( double hours = 0.0, uint64_t seed = 0 );
+    std::function<void()> m_onSave;   ///< Save ...: the editor's "Save journey" dialog
+    /**
+     * @brief The frame, the curve and the chosen presets.
+     * @param[in,out] g  where
+     */
+    void paint( juce::Graphics &g ) override;
+    /** @brief One row of controls, the summary, the curve. */
+    void resized() override;
+
+private:
+    /** @brief The curve's rectangle. @return pixels */
+    juce::Rectangle<float> curveArea() const;
+    NoctuaryProcessor  &m_proc;                                  ///< whose director
+    juce::ComboBox      m_length;                                ///< until a wake time, or so many hours
+    std::vector<double> m_lengthHours;                           ///< the hours behind each item of m_length (id - 1)
+    juce::ComboBox      m_choice;                                ///< every pack, a family, a pack
+    juce::ToggleButton  m_favourites{ "Prefer my favourites" };  ///< the stars count
+    juce::TextButton    m_dice{ "New dice" };                    ///< another seed, and made at once
+    juce::TextButton    m_make{ "Make" };                        ///< composes the night
+    juce::TextButton    m_save{ "Save ..." };                    ///< writes the journey being written
+    juce::TextButton    m_play{ "Play" };                        ///< starts it
+    juce::Label         m_summary;                               ///< what came of it
+    uint64_t            m_seed = 1;                              ///< the dice
+    double              m_startHour = 23.0;                      ///< the clock at the night's start (now, when made)
+    ambient::NightPlan  m_plan;                                  ///< the night last made
+    double              m_hours = 0.0;                           ///< its length
+};
+
 /** @brief The timeline as an overlay over the panel: a title, the timeline, a close button; Esc or a click beside it closes it. */
 class JourneyPanel final : public juce::Component
 {
@@ -137,6 +189,13 @@ public:
                   std::function<void( int )> startAt );
     /** @brief Opens it over its parent. */
     void open();
+    /**
+     * @brief Opens it with the night director's controls shown.
+     * @param[in] makeHours  when above 0, a night of that many hours is made at once (seed 1; the screenshots)
+     */
+    void openNight( double makeHours = 0.0 );
+    /** @return the night director's controls (the editor gives them its Save dialog) */
+    NightBar &nightBar() { return m_night; }
     /**
      * @brief The dimmed window and the panel's frame.
      * @param[in,out] g  where
@@ -159,6 +218,13 @@ public:
 private:
     /** @brief The panel's rectangle. @return pixels */
     juce::Rectangle<int> panel() const;
-    JourneyTimeline  m_timeline;           ///< the bands
-    juce::TextButton m_close{ "Close" };   ///< closes the overlay
+    /**
+     * @brief Shows or hides the night director's controls.
+     * @param[in] on  shown
+     */
+    void showNight( bool on );
+    JourneyTimeline  m_timeline;                     ///< the bands
+    NightBar         m_night;                        ///< the night director's controls, hidden until "Night ..."
+    juce::TextButton m_nightButton{ "Night ..." };   ///< shows or hides them
+    juce::TextButton m_close{ "Close" };             ///< closes the overlay
 };

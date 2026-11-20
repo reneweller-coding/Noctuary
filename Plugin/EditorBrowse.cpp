@@ -47,6 +47,8 @@ const juce::Colour FamilyColours[] = {
     juce::Colour( 0xffb094d8 ), juce::Colour( 0xff70c8c8 ), juce::Colour( 0xffe09a60 ), juce::Colour( 0xffa0b8e0 ),
     juce::Colour( 0xffc8d870 ), juce::Colour( 0xffd880b8 ), juce::Colour( 0xff90d0f0 ), juce::Colour( 0xffd0d0d0 ),
 };
+/** @brief The never-again mark when it is set: the near layer's never-again red (20.11.2026). */
+const juce::Colour NeverRed{ 0xffd9675f };
 }   // namespace
 namespace edt
 {
@@ -192,6 +194,20 @@ NoctuaryEditor::BrowseView::BrowseView( NoctuaryProcessor &p ) : m_proc( p ), m_
             applyFilter();
         }
     };
+    // Never again (20.11.2026): the counterpart to the star. The preset stays in the list, the search and the map --
+    // dimmed -- but the night director never takes it and every journey passes over it.
+    m_never.setTooltip(
+        "Never again: the night director never takes the selected preset and every journey passes over it (the step before crossfades into the one after). It stays here, dimmed, to be found and taken back. Kept in Documents\\Noctuary\\never_again.txt. The ring beside a row's star does the same." );
+    m_never.onClick = [this]
+    {
+        if ( m_selected >= 0 )
+        {
+            m_proc.setNeverAgain( m_selected, !m_proc.isNeverAgain( m_selected ) );
+            applyFilter();
+        }
+    };
+    m_onlyNever.setTooltip( "Narrows the list to the presets marked never again: where to find them to take a mark back" );
+    m_onlyNever.onClick = [this] { applyFilter(); };
     m_onlyFavourites.onClick = [this] { applyFilter(); };
     m_favouritesFirst.setToggleState( m_proc.favouritesFirst(), juce::dontSendNotification );
     m_favouritesFirst.setTooltip(
@@ -204,7 +220,7 @@ NoctuaryEditor::BrowseView::BrowseView( NoctuaryProcessor &p ) : m_proc( p ), m_
     m_hideDull.onClick = [this] { applyFilter(); };
     m_hideDull.setTooltip(
         "Hides presets that measured as barely moving and barely wide -- the dull tail of a generated library" );
-    for ( auto *b : { &m_load, &m_toA, &m_toB, &m_star } ) addAndMakeVisible( *b );
+    for ( auto *b : { &m_load, &m_toA, &m_toB, &m_star, &m_never } ) addAndMakeVisible( *b );
     // The map already knows which presets are alike: its neighbours are the ones that measured
     // alike. This narrows the list to the selected preset's six nearest and zooms the map onto
     // them; off again, the list is what the other filters make it.
@@ -232,6 +248,7 @@ NoctuaryEditor::BrowseView::BrowseView( NoctuaryProcessor &p ) : m_proc( p ), m_
         "Narrow the list to the presets that measured most like the selected one, and zoom the map onto them" );
     addAndMakeVisible( m_similar );
     addAndMakeVisible( m_onlyFavourites );
+    addAndMakeVisible( m_onlyNever );
     addAndMakeVisible( m_favouritesFirst );
     addAndMakeVisible( m_hideDull );
     addAndMakeVisible( m_info2 );
@@ -488,6 +505,7 @@ void NoctuaryEditor::BrowseView::applyFilter()
         const PresetMeta &m = presetMeta( i );
         if ( needle.isNotEmpty() && !juce::String( preset( i ).m_name ).toLowerCase().contains( needle ) ) continue;
         if ( m_onlyFavourites.getToggleState() && !m_proc.isFavourite( i ) ) continue;
+        if ( m_onlyNever.getToggleState() && !m_proc.isNeverAgain( i ) ) continue;
         if ( !m_similarSet.empty() && std::find( m_similarSet.begin(), m_similarSet.end(), i ) == m_similarSet.end() )
             continue;
         // Dull, measured rather than judged: in the bottom fifth for movement and for width, and
@@ -708,9 +726,18 @@ void NoctuaryEditor::BrowseView::paintListBoxItem( int row, juce::Graphics &g, i
     g.setColour( m_proc.isFavourite( i ) ? juce::Colour( 0xffe0c070 ) : SectionFill );
     g.setFont( juce::FontOptions( 13.0f ) );
     g.drawText( juce::String( juce::CharPointer_UTF8( "\xe2\x98\x85" ) ), 18, 0, 16, h, juce::Justification::centred );
-    g.setColour( Text );
+    // Never again (20.11.2026): a ring with a bar through it beside the star, red when set; the row dimmed.
+    const bool never = m_proc.isNeverAgain( i );
+    {
+        const float cx = 45.0f, cy = static_cast<float>( h ) * 0.5f, r = 5.0f;
+        g.setColour( never ? NeverRed : SectionFill );
+        g.drawEllipse( cx - r, cy - r, 2.0f * r, 2.0f * r, 1.6f );
+        g.drawLine( cx - r * 0.7f, cy + r * 0.7f, cx + r * 0.7f, cy - r * 0.7f, 1.6f );
+    }
+    g.setColour( never ? Dim.withAlpha( 0.6f ) : Text );
     g.setFont( juce::FontOptions( 13.0f ) );
-    g.drawText( preset( i ).m_name, 38, 0, w - 320, h, juce::Justification::centredLeft );
+    g.drawText( never ? juce::String( preset( i ).m_name ) + "  (never again)" : juce::String( preset( i ).m_name ), 58,
+                0, w - 340, h, juce::Justification::centredLeft );
     if ( m_mode == 0 )
     {
         g.setColour( Dim );
@@ -735,6 +762,15 @@ void NoctuaryEditor::BrowseView::listBoxItemClicked( int row, const juce::MouseE
 {
     if ( row < 0 || row >= static_cast<int>( m_filtered.size() ) ) return;
     m_selected = m_filtered[static_cast<size_t>( row )];
+    if ( e.x >= 36 && e.x < 56 )
+    {   // the never-again ring
+        m_proc.setNeverAgain( m_selected, !m_proc.isNeverAgain( m_selected ) );
+        if ( m_onlyNever.getToggleState() )
+            applyFilter();
+        else
+            m_list.repaint();
+        return;
+    }
     if ( e.x >= 16 && e.x < 36 )
     {   // the star
         m_proc.setFavourite( m_selected, !m_proc.isFavourite( m_selected ) );
@@ -855,6 +891,7 @@ void NoctuaryEditor::BrowseView::resized()
     m_sort.setBounds( top.removeFromLeft( 150 ) );
     top.removeFromLeft( 12 );
     m_onlyFavourites.setBounds( top.removeFromLeft( 130 ) );
+    m_onlyNever.setBounds( top.removeFromLeft( 140 ) );
     m_favouritesFirst.setBounds( top.removeFromLeft( 130 ) );
     m_similar.setBounds( top.removeFromLeft( 150 ) );
     m_hideDull.setBounds( top.removeFromLeft( 160 ) );
@@ -867,6 +904,8 @@ void NoctuaryEditor::BrowseView::resized()
     m_toB.setBounds( buttons.removeFromLeft( 60 ) );
     buttons.removeFromLeft( 6 );
     m_star.setBounds( buttons.removeFromLeft( 90 ) );
+    buttons.removeFromLeft( 6 );
+    m_never.setBounds( buttons.removeFromLeft( 100 ) );
     buttons.removeFromLeft( 12 );
     m_morphOnSelect.setBounds( buttons.removeFromLeft( 130 ) );
     m_morphSeconds.setBounds( buttons.removeFromLeft( juce::jmin( 190, juce::jmax( 110, buttons.getWidth() / 3 ) ) ) );

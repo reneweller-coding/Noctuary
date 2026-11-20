@@ -28,8 +28,11 @@
 #include "PluginEditor.h"
 #include "ambient/Tuning.h"
 #include "ambient/Presets.h"
+#include "ambient/NameList.h"
 #include <cstdlib>
+#include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <cstdio>      // the crash log writes with C file I/O: no allocation in a broken process
 #include <exception>   // std::set_terminate
 #include <mutex>       // std::call_once
@@ -1607,7 +1610,9 @@ bool NoctuaryProcessor::startJourney( const ambient::Journey &j )
         setParam( ParamIdE::MAP_ACTIVE, 0.0f );
     }
     // Seeded from the clock: the same journey runs differently every evening. A render that
-    // wants it repeatable seeds the player itself (ambient_render --journey-seed).
+    // wants it repeatable seeds the player itself (ambient_render --journey-seed). The presets never wanted again are
+    // passed over (20.11.2026).
+    m_journeyPlayer.setSkip( neverAgainNames() );
     m_journeyPlayer.start( m_journey, static_cast<uint64_t>( juce::Time::currentTimeMillis() ) | 1ull, 0 );
     m_journeyLastTick = 0.0;
     journeyTick();   // the first step begins now
@@ -1740,6 +1745,89 @@ void NoctuaryProcessor::setNearTaste( int nearIndex, ambient::NearTasteE verdict
     if ( verdict == ambient::NearTasteE::NEVER && nearIndex == m_nearIndex &&
          live().getParam( ParamIdE::FORE_AUTO ) >= 0.5f )
         applyNearAuto( m_soundIndex );
+}
+
+// ---------------------------------------------------------------- never again
+
+juce::File NoctuaryProcessor::neverAgainFile()
+{
+    const std::string documents =
+        juce::File::getSpecialLocation( juce::File::userDocumentsDirectory ).getFullPathName().toStdString();
+    return juce::File( juce::String::fromUTF8( ambient::neverAgainPath( documents ).c_str() ) );
+}
+
+/**
+ * Read once, the first time anything asks (the browser painting a row, a journey starting, the night director), never
+ * written here: a missing or garbled file is an empty list or the names it holds.
+ */
+void NoctuaryProcessor::loadNeverAgain() const
+{
+    if ( m_neverAgainLoaded ) return;
+    m_neverAgainLoaded = true;
+    m_neverAgain = ambient::readNameList( neverAgainFile().getFullPathName().toStdString() );
+    m_neverAgainBits.clear();
+    if ( m_neverAgain.empty() ) return;
+    std::unordered_map<std::string, int> index;   // the first preset of a name, as the favourites
+    for ( int i = 0; i < numPresets(); ++i ) index.emplace( preset( i ).m_name, i );
+    for ( const std::string &n : m_neverAgain )
+    {
+        const auto it = index.find( n );
+        if ( it != index.end() ) m_neverAgainBits.setBit( it->second, true );
+    }
+}
+
+bool NoctuaryProcessor::isNeverAgain( int preset ) const
+{
+    loadNeverAgain();
+    return preset >= 0 && m_neverAgainBits[preset];
+}
+
+int NoctuaryProcessor::neverAgainCount() const
+{
+    loadNeverAgain();
+    return m_neverAgainBits.countNumberOfSetBits();
+}
+
+const std::vector<std::string> &NoctuaryProcessor::neverAgainNames() const
+{
+    loadNeverAgain();
+    return m_neverAgain;
+}
+
+void NoctuaryProcessor::setNeverAgain( int index, bool on )
+{
+    if ( index < 0 || index >= numPresets() ) return;
+    loadNeverAgain();
+    const std::string name = preset( index ).m_name;
+    m_neverAgainBits.setBit( index, on );
+    m_neverAgain.erase( std::remove( m_neverAgain.begin(), m_neverAgain.end(), name ), m_neverAgain.end() );
+    if ( on ) m_neverAgain.push_back( name );
+    ambient::writeNameList( neverAgainFile().getFullPathName().toStdString(), m_neverAgain );
+    // The journey under way passes over it from its next step on (the step playing now plays out).
+    m_journeyPlayer.setSkip( m_neverAgain );
+}
+
+// ---------------------------------------------------------------- the night director
+
+ambient::NightPlan NoctuaryProcessor::makeNight( double hours, int choice, uint64_t seed, bool favourites,
+                                                 const std::string &name )
+{
+    ambient::NightRequest r;
+    r.m_hours = hours;
+    r.m_choice = choice;
+    r.m_seed = seed;
+    r.m_name = name;
+    r.m_exclude = neverAgainNames();
+    if ( favourites )
+        for ( const juce::String &f : m_favouriteNames ) r.m_prefer.push_back( f.toStdString() );
+    // Only what this library has: a preset of the director's table that is not installed is no step to play.
+    auto loaded = std::make_shared<std::unordered_set<std::string>>();
+    loaded->reserve( static_cast<size_t>( numPresets() ) );
+    for ( int i = 0; i < numPresets(); ++i ) loaded->insert( preset( i ).m_name );
+    r.m_available = [loaded]( const std::string &n ) { return loaded->count( n ) > 0; };
+    ambient::NightPlan plan = ambient::composeNight( r );
+    if ( !plan.m_journey.m_steps.empty() ) m_journey = plan.m_journey;
+    return plan;
 }
 
 juce::File NoctuaryProcessor::userJourneyFolder()

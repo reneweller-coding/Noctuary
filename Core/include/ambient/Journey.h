@@ -37,6 +37,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace ambient
@@ -275,17 +276,68 @@ struct Journey
 };
 
 /**
+ * @brief A journey without the steps whose preset the player never wants again (20.11.2026, plan C2): what a
+ *        JourneyPlayer with setSkip plays, as a journey of its own -- for a host that lays the whole run out before
+ *        it plays it (the render app: its length, its chapters). Unless every step names one: then the journey as
+ *        written (the player asked for this journey).
+ * @param[in] j      the journey
+ * @param[in] names  the presets passed over, by name
+ * @return the journey with those steps left out
+ */
+inline Journey journeyPassingOver( const Journey &j, const std::vector<std::string> &names )
+{
+    if ( names.empty() ) return j;
+    Journey out = j;
+    out.m_steps.clear();
+    for ( const JourneyStep &st : j.m_steps )
+        if ( std::find( names.begin(), names.end(), st.m_preset ) == names.end() ) out.m_steps.push_back( st );
+    return out.m_steps.empty() ? j : out;
+}
+
+/**
  * @brief Plays a journey: which step is on, how long it has left, and what the next one asks for.
  *
  * The
  * host advances it with the seconds that passed (a timer, or the render's blocks) and acts on
  * the step it is handed -- the preset to bring up, over how many seconds, and what the
  * foreground should do. Dwell and fade are drawn from their ranges with the player's own
- * generator, so a seed makes a run repeatable and no seed makes an evening.
+ * generator, so a seed makes a run repeatable and no seed makes an evening. A step whose preset
+ * the player never wants again (setSkip) is passed over: the journey crossfades from the step
+ * before it into the one after it.
  */
 class JourneyPlayer
 {
 public:
+    /**
+     * @brief The presets passed over (20.11.2026: the player's "never again"): a step that names one is not played,
+     *        the next one that does not is -- crossfaded into from what sounds, as any step. Unless every step names
+     *        one: then they are played as written (the player asked for this journey). May be called while it runs;
+     *        it counts from the next step on.
+     * @param[in] names  the presets' names, as the bank spells them
+     */
+    void setSkip( std::vector<std::string> names ) { m_skip = std::move( names ); }
+    /**
+     * @brief Whether a step is passed over (setSkip).
+     * @param[in] i  the step's index
+     * @return true when its preset is one of those passed over
+     */
+    bool skips( int i ) const
+    {
+        if ( m_skip.empty() || i < 0 || i >= static_cast<int>( m_journey.m_steps.size() ) ) return false;
+        return std::find( m_skip.begin(), m_skip.end(), m_journey.m_steps[static_cast<size_t>( i )].m_preset ) !=
+               m_skip.end();
+    }
+    /**
+     * @brief How many of the journey's steps are played in a pass (setSkip): all of them when every one is passed over.
+     * @return the count
+     */
+    int playedSteps() const
+    {
+        const int n = static_cast<int>( m_journey.m_steps.size() );
+        int       played = 0;
+        for ( int i = 0; i < n; ++i ) played += skips( i ) ? 0 : 1;
+        return played > 0 ? played : n;
+    }
     /**
      * @brief Begins a journey from its first step (or another), with the generator seeded.
      *
@@ -346,18 +398,23 @@ public:
             if ( m_left > 0.0 ) return false;
         }
         m_pending = false;
-        const int n = static_cast<int>( m_journey.m_steps.size() );
-        int       next = m_step + 1;
-        if ( next >= n )
+        const int  n = static_cast<int>( m_journey.m_steps.size() );
+        const bool passOver = playedSteps() < n;   // some step is passed over (and not every one)
+        int        next = m_step;
+        do
         {
-            if ( !m_journey.m_cyclic )
+            next = next + 1;
+            if ( next >= n )
             {
-                m_running = false;
-                return false;
+                if ( !m_journey.m_cyclic )
+                {
+                    m_running = false;
+                    return false;
+                }
+                next = 0;
+                ++m_passes;
             }
-            next = 0;
-            ++m_passes;
-        }
+        } while ( passOver && skips( next ) );
         m_step = next;
         const JourneyStep &st = m_journey.m_steps[static_cast<size_t>( m_step )];
         fade = draw( st.m_fadeLo, st.m_fadeHi );
@@ -382,8 +439,9 @@ private:
         const double u = static_cast<double>( m_rng >> 11 ) * ( 1.0 / 9007199254740992.0 );
         return lo + ( hi - lo ) * u;
     }
-    Journey  m_journey;                       ///< the journey being played, copied in start()
-    uint64_t m_rng = 0x9E3779B97F4A7C15ull;   ///< xorshift64 state; never zero
+    Journey                  m_journey;                       ///< the journey being played, copied in start()
+    std::vector<std::string> m_skip;                          ///< presets passed over (setSkip)
+    uint64_t                 m_rng = 0x9E3779B97F4A7C15ull;   ///< xorshift64 state; never zero
     /** @var int m_step
      *  @brief index of the current step, -1 before the first (start() puts it one before the step asked for) */
     int    m_step = -1, m_passes = 0;   ///< m_passes: completed cycles of a cyclic journey

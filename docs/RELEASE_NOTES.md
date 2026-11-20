@@ -2,6 +2,36 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**The night director** (20.11.2026). A journey of the library is twelve presets of one pack, round and round, the
+same all evening. A night has eight hours and a course. The night director writes one: the Journey button at the
+top, then **Night ...**: how long (until a wake time, counted from now, or three to ten hours), which presets (every
+pack, one family of artists, one pack), whether your favourites come a little more often, **Make**. The night has a
+form: falling asleep (the first 30 to 45 minutes, darker and stiller), a deep middle in waves of about ninety minutes
+(the later ones a little higher, as sleep grows lighter towards the morning), and a morning (the last 30 to 45
+minutes, brighter). Stillness and brightness are measured -- the motion of a minute of every pack preset (its flux
+and how its level and tone evolve over the minute) and its spectral centroid -- and the curve asks for ranks among the
+presets chosen from, so it fits any choice; the rougher two fifths are kept out of the falling asleep and the deep.
+Step by step the director takes the preset nearest the curve that also measures like the one before, by the
+journeys' own distance (eighteen measures); never one twice, never one marked never again. Each step stays as the
+library's Nights do, by how much the preset moves by itself (3-6, 6-10 or 10-15 minutes). The result is the journey
+being written: the panel draws its curve and the timeline its steps; Save ... keeps it, Play starts it; nothing
+starts by itself, and at the end the morning's preset stays (there is no sleep timer). An eight-hour night from every
+pack (seed 1): 58 presets; its stillness follows the curve with a Spearman of 0.94 (1.6 percentile points off on
+average), its brightness with 0.85, and a step between neighbours measures 2.0 against 5.8 for a random pair and for
+the steps of the library's Nights. Noctuary Journeys lists three ready nights (6, 8 and 10 hours); `ambient_night`
+prints a night, `Tools/night_plot.py` draws it. A new selftest (`testNightDirector`) and ctest (`night_table`).
+
+**Never again for sound presets** (20.11.2026), the counterpart to the favourites: in the browser a ring with a bar
+beside each row's star (or **Never again** under the list) marks a preset you never want to hear again. The night
+director never takes it, and every journey passes over it -- the step before crossfades into the one after; marked
+while a journey runs, it counts from the next step; a journey whose every step is marked plays as written. Noctuary
+Journeys passes over them too (and `ambient_render --never-again FILE`). The preset stays in the list, the search and
+the map, dimmed and marked "(never again)", to be found and taken back; "only never again" lists just these. Kept by
+name in `Documents/Noctuary/never_again.txt` beside the favourites, one a line: read when first needed, never written
+when the instrument loads, written whole when a mark changes (beside it, then renamed); a missing or garbled file is
+harmless. `AMBIENT_NEVER_AGAIN_FILE` points tests and screenshots at another file. Noctuary has no preset arrows and
+no random preset choice, so there is nothing else to skip. A new selftest (`testNeverAgain`).
+
 **Inside: notes that arrive before they go, as a switch that is off** (20.11.2026). Rene: the conductor strikes
 notes that make no sense under long attack times -- a tone that swells and is gone before it is there. The library
 measured, 13591 of 786882 conductor notes ended before their attack was over, by four paths. The conductor now knows

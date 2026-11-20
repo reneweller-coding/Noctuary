@@ -766,7 +766,7 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
     };
     m_journeyButton = std::make_unique<juce::TextButton>( "Journey" );
     m_journeyButton->setTooltip(
-        "The journeys over time: the one chosen or under way, step by step (a click goes there), and the one being written, to change by hand" );
+        "The journeys over time: the one chosen or under way, step by step (a click goes there), and the one being written, to change by hand; and the night director (Night ...): a whole night as a journey" );
     m_journeyButton->onClick = [this]
     {
         if ( m_journeyPanel != nullptr ) m_journeyPanel->open();
@@ -789,10 +789,22 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
     m_journeyPanel = std::make_unique<JourneyPanel>(
         m_proc, [this]( ambient::Journey &j ) { return chosenJourney( j ); },
         [this]( int step ) { startJourneyAt( step ); } );
+    m_journeyPanel->nightBar().m_onSave = [this] { saveJourneyAs(); };
     for ( juce::Component *c :
           { static_cast<juce::Component *>( m_palette.get() ), static_cast<juce::Component *>( m_tour.get() ),
             static_cast<juce::Component *>( m_journeyPanel.get() ) } )
         addChildComponent( c );
+    {   // AMBIENT_SHOT_NIGHT=\<hours\>: two seconds in, the journeys' panel opens with the night director and makes a
+        // night of so many hours (seed 1, the favourites preferred) -- for a picture of it (20.11.2026).
+        const double nh = juce::SystemStats::getEnvironmentVariable( "AMBIENT_SHOT_NIGHT", "" ).getDoubleValue();
+        if ( nh > 0.0 )
+            juce::Timer::callAfterDelay( 2000,
+                                         [safe = juce::Component::SafePointer<NoctuaryEditor>( this ), nh]
+                                         {
+                                             if ( safe != nullptr && safe->m_journeyPanel != nullptr )
+                                                 safe->m_journeyPanel->openNight( nh );
+                                         } );
+    }
     {   // A knob's menu: its routes, each with its depth to drag and a button to remove it, and every source to add.
         frame::ModAccess a;
         a.m_rowsOn = [this]( int id )
@@ -1203,7 +1215,7 @@ void NoctuaryEditor::buildCells()
         auto jb = std::make_unique<juce::ComboBox>();
         jb->setTextWhenNothingSelected( "Journey" );
         jb->setTooltip(
-            "A journey: presets in a row, each held for a while drawn from its range and crossfaded into the next over a drawn fade, round and round when it is cyclic. Choosing one starts it. The files are plain text (*.journey): one preset a line with its dwell and fade, editable by hand. Noctuary Journeys, beside the instrument, renders one into a WAV, FLAC, Ogg or MP3 file." );
+            "A journey: presets in a row, each held for a while drawn from its range and crossfaded into the next over a drawn fade, round and round when it is cyclic. Choosing one starts it. The files are plain text (*.journey): one preset a line with its dwell and fade, editable by hand. Noctuary Journeys, beside the instrument, renders one into a WAV, FLAC, Ogg or MP3 file. A whole night with a form: the Journey button at the top, Night ..." );
         m_journeyBox = jb.get();
         fillJourneyBox();
         jb->onChange = [this]
@@ -4043,6 +4055,11 @@ void NoctuaryEditor::showSettings()
                           {
                               if ( m_journeyPanel != nullptr ) m_journeyPanel->open();
                           } );
+            menu.addItem( "Night director: a whole night as a journey ...",
+                          [this]
+                          {
+                              if ( m_journeyPanel != nullptr ) m_journeyPanel->openNight();
+                          } );
             menu.addItem( "Search: any knob, preset or action (Ctrl+K) ...", [this] { openPalette(); } );
             menu.addItem( "First steps (the tour) ...", [this] { startTour(); } );
         };
@@ -5118,6 +5135,11 @@ std::vector<frame::CommandPalette::Command> NoctuaryEditor::paletteCommands()
             [this]
             {
                 if ( m_journeyPanel != nullptr ) m_journeyPanel->open();
+            } );
+    action( "Night director", "a whole night as a journey: falling asleep, waves, a morning",
+            [this]
+            {
+                if ( m_journeyPanel != nullptr ) m_journeyPanel->openNight();
             } );
     action( "Stop the journey", "", [this] { m_proc.stopJourney(); } );
     action( "First steps", "the tour of the panel", [this] { startTour(); } );

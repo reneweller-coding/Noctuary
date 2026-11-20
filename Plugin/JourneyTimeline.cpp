@@ -372,14 +372,220 @@ void JourneyTimeline::mouseUp( const juce::MouseEvent & )
     repaint();
 }
 
+// ---------------------------------------------------------------- the night director's controls
+
+NightBar::NightBar( NoctuaryProcessor &proc ) : m_proc( proc )
+{
+    m_length.setTooltip( "How long the night is: until a wake time (counted from now), or so many hours" );
+    for ( int c = 0; c < ambient::numNightChoices(); ++c ) m_choice.addItem( ambient::nightChoiceName( c ), c + 1 );
+    m_choice.setSelectedId( 1, juce::dontSendNotification );
+    m_choice.setTooltip(
+        "Which presets the night draws from: every pack, the packs of one family of artists (Sleep, Deep, Ritual, Cold, British, Luminous, Space), or a single pack. The curve is in percentiles of what is chosen, so it fits any choice." );
+    m_favourites.setToggleState( true, juce::dontSendNotification );
+    m_favourites.setTooltip( "The starred presets (the browser's favourites) are chosen a little more readily" );
+    m_dice.setTooltip( "Another night of the same kind: new dice, made at once" );
+    m_make.setTooltip(
+        "Writes the night as the journey being written (the timeline below shows it). Nothing starts by itself: Save ... keeps it, Play starts it." );
+    m_save.setTooltip( "Writes the journey being written into Documents/Noctuary/Journeys under a name" );
+    m_play.setTooltip( "Starts the night now (once through; at its end the morning's preset stays)" );
+    m_dice.onClick = [this]
+    {
+        m_seed = static_cast<uint64_t>( juce::Random::getSystemRandom().nextInt64() ) | 1ull;
+        make();
+    };
+    m_make.onClick = [this] { make(); };
+    m_save.onClick = [this]
+    {
+        if ( m_onSave ) m_onSave();
+    };
+    m_play.onClick = [this]
+    {
+        if ( !m_proc.journey().m_steps.empty() ) m_proc.startJourney( m_proc.journey() );
+    };
+    m_summary.setJustificationType( juce::Justification::topLeft );
+    m_summary.setColour( juce::Label::textColourId, ui::Text );
+    m_summary.setFont( juce::FontOptions( 13.0f ) );
+    m_summary.setText( "A whole night as a journey: falling asleep (darker, stiller), a deep middle in waves of about "
+                       "ninety minutes, a morning (brighter). Choose the length and the presets, then Make.",
+                       juce::dontSendNotification );
+    for ( juce::Component *c : { static_cast<juce::Component *>( &m_length ), static_cast<juce::Component *>( &m_choice ),
+                                 static_cast<juce::Component *>( &m_favourites ), static_cast<juce::Component *>( &m_dice ),
+                                 static_cast<juce::Component *>( &m_make ), static_cast<juce::Component *>( &m_save ),
+                                 static_cast<juce::Component *>( &m_play ), static_cast<juce::Component *>( &m_summary ) } )
+        addAndMakeVisible( c );
+    refreshLengths();
+}
+
+void NightBar::refreshLengths()
+{
+    // The wake times a night may run to from now (one to fourteen hours away, to five minutes), then plain lengths.
+    const juce::Time now = juce::Time::getCurrentTime();
+    const double     hourNow = now.getHours() + now.getMinutes() / 60.0;
+    const int        keep = m_length.getSelectedId();
+    const juce::String kept = keep > 0 ? m_length.getItemText( keep - 1 ) : juce::String();
+    m_length.clear( juce::dontSendNotification );
+    m_lengthHours.clear();
+    int preselect = 0;
+    for ( int half = 10; half <= 18; ++half )   // 5:00 .. 9:00
+    {
+        const double wake = half * 0.5;
+        double       h = wake - hourNow;
+        if ( h <= 0.0 ) h += 24.0;
+        h = std::round( h * 12.0 ) / 12.0;
+        if ( h < 1.0 || h > 14.0 ) continue;
+        m_lengthHours.push_back( h );
+        const juce::String text = "Until " + juce::String( half / 2 ) + ( half % 2 ? ":30" : ":00" );
+        m_length.addItem( text, static_cast<int>( m_lengthHours.size() ) );
+        if ( half == 14 && h >= 3.0 && h <= 10.0 ) preselect = static_cast<int>( m_lengthHours.size() );
+    }
+    for ( int h = 3; h <= 10; ++h )
+    {
+        m_lengthHours.push_back( h );
+        m_length.addItem( juce::String( h ) + " hours", static_cast<int>( m_lengthHours.size() ) );
+        if ( h == 8 && preselect == 0 ) preselect = static_cast<int>( m_lengthHours.size() );
+    }
+    int again = 0;   // what was chosen, if it is still offered
+    for ( int i = 0; i < m_length.getNumItems() && kept.isNotEmpty(); ++i )
+        if ( m_length.getItemText( i ) == kept ) again = i + 1;
+    m_length.setSelectedId( again > 0 ? again : preselect, juce::dontSendNotification );
+}
+
+void NightBar::make( double hours, uint64_t seed )
+{
+    if ( seed != 0 ) m_seed = seed;
+    const int id = m_length.getSelectedId();
+    if ( hours <= 0.0 )
+        hours = id > 0 && id <= static_cast<int>( m_lengthHours.size() ) ? m_lengthHours[static_cast<size_t>( id - 1 )]
+                                                                          : 8.0;
+    const juce::Time now = juce::Time::getCurrentTime();
+    m_startHour = now.getHours() + now.getMinutes() / 60.0;
+    // The name, which is also the file's when it is saved: no colon.
+    const juce::String name = "Night " + juce::String( std::round( hours * 4.0 ) / 4.0 ) + " h (" +
+                              now.formatted( "%d.%m." ) + ")";
+    m_hours = hours;
+    m_plan = m_proc.makeNight( hours, std::max( 0, m_choice.getSelectedId() - 1 ), m_seed,
+                               m_favourites.getToggleState(), name.toStdString() );
+    if ( m_plan.m_journey.m_steps.empty() )
+    {
+        m_summary.setText( "No preset to choose from: this library has none of the director's presets in that choice "
+                           "(or every one is marked never again).",
+                           juce::dontSendNotification );
+        repaint();
+        return;
+    }
+    double asleep = 0.0, morning = 0.0;
+    int    waves = 1;
+    ambient::nightPhases( hours, asleep, morning, waves );
+    const double middle = ( 1.0 - asleep - morning ) * hours * 60.0;
+    int          preferred = 0;
+    for ( const ambient::NightStep &s : m_plan.m_steps ) preferred += s.m_preferred ? 1 : 0;
+    juce::String text;
+    text << name << ": " << static_cast<int>( m_plan.m_steps.size() ) << " presets of " << m_plan.m_candidates
+         << " -- falling asleep " << juce::roundToInt( asleep * hours * 60.0 ) << " min, " << waves
+         << ( waves == 1 ? " wave of " : " waves of " ) << juce::roundToInt( middle / waves ) << " min, morning "
+         << juce::roundToInt( morning * hours * 60.0 ) << " min" << ( preferred > 0 ? ", " : "" )
+         << ( preferred > 0 ? juce::String( preferred ) + " of your favourites" : juce::String() ) << ".\n"
+         << "It is the journey being written now (below). Save ... keeps it, Play starts it; New dice makes another.";
+    m_summary.setText( text, juce::dontSendNotification );
+    repaint();
+    if ( auto *p = getParentComponent() ) p->repaint();
+}
+
+juce::Rectangle<float> NightBar::curveArea() const
+{
+    return getLocalBounds().toFloat().withTrimmedTop( 34.0f + 44.0f ).reduced( 40.0f, 4.0f ).withTrimmedBottom( 16.0f );
+}
+
+void NightBar::resized()
+{
+    auto r = getLocalBounds();
+    auto row = r.removeFromTop( 28 );
+    m_length.setBounds( row.removeFromLeft( 150 ) );
+    row.removeFromLeft( 8 );
+    m_choice.setBounds( row.removeFromLeft( 230 ) );
+    row.removeFromLeft( 8 );
+    m_favourites.setBounds( row.removeFromLeft( 180 ) );
+    row.removeFromLeft( 8 );
+    m_dice.setBounds( row.removeFromLeft( 90 ) );
+    row.removeFromLeft( 6 );
+    m_make.setBounds( row.removeFromLeft( 80 ) );
+    m_play.setBounds( row.removeFromRight( 70 ) );
+    row.removeFromRight( 6 );
+    m_save.setBounds( row.removeFromRight( 90 ) );
+    r.removeFromTop( 6 );
+    m_summary.setBounds( r.removeFromTop( 42 ) );
+}
+
+void NightBar::paint( juce::Graphics &g )
+{
+    const auto area = curveArea();
+    if ( area.getHeight() < 30.0f ) return;
+    const float  laneH = ( area.getHeight() - 8.0f ) / 2.0f;
+    const double hours = m_hours > 0.0 ? m_hours : 8.0;
+    const double total = hours * 3600.0;
+    g.setFont( juce::FontOptions( 11.0f ) );
+    for ( int lane = 0; lane < 2; ++lane )
+    {
+        const juce::Rectangle<float> r = area.withHeight( laneH ).translated( 0.0f, lane * ( laneH + 8.0f ) );
+        g.setColour( ui::CardColour );
+        g.fillRoundedRectangle( r, 4.0f );
+        g.setColour( ui::Dim );
+        g.drawText( lane == 0 ? "still" : "bright", juce::Rectangle<float>( 0.0f, r.getY(), 38.0f, r.getHeight() ),
+                    juce::Justification::centred );
+        // the curve, dashed
+        juce::Path curve;
+        for ( int k = 0; k <= 200; ++k )
+        {
+            double s = 0.0, b = 0.0;
+            ambient::nightCurve( k / 200.0, hours, s, b );
+            const float x = r.getX() + r.getWidth() * static_cast<float>( k / 200.0 );
+            const float y = r.getBottom() - r.getHeight() * static_cast<float>( lane == 0 ? s : b );
+            if ( k == 0 )
+                curve.startNewSubPath( x, y );
+            else
+                curve.lineTo( x, y );
+        }
+        juce::Path      dashed;
+        const float     dash[2] = { 5.0f, 4.0f };
+        juce::PathStrokeType( 1.5f ).createDashedStroke( dashed, curve, dash, 2 );
+        g.setColour( ui::Live.withAlpha( 0.85f ) );
+        g.fillPath( dashed );
+        // the presets chosen
+        g.setColour( lane == 0 ? ui::Accent : ui::BackCol );
+        for ( const ambient::NightStep &s : m_plan.m_steps )
+        {
+            const float x0 = r.getX() + r.getWidth() * static_cast<float>( s.m_at / total );
+            const float x1 = r.getX() + r.getWidth() * static_cast<float>( std::min( 1.0, ( s.m_at + s.m_stay ) / total ) );
+            const float y = r.getBottom() - r.getHeight() * static_cast<float>( lane == 0 ? s.m_still : s.m_bright );
+            g.fillRect( juce::Rectangle<float>( x0, y - 1.5f, std::max( 1.0f, x1 - x0 - 1.0f ), 3.0f ) );
+        }
+    }
+    // the hours under it, on the clock from the night's start
+    g.setColour( ui::Dim );
+    for ( int h = 0; h <= static_cast<int>( hours ); ++h )
+    {
+        const float x = area.getX() + area.getWidth() * static_cast<float>( h * 3600.0 / total );
+        const int   m = juce::roundToInt( ( m_startHour + h ) * 60.0 ) % ( 24 * 60 );
+        g.drawText( juce::String( m / 60 ) + ":" + juce::String( m % 60 ).paddedLeft( '0', 2 ),
+                    juce::Rectangle<float>( x - 20.0f, area.getBottom() + 2.0f, 40.0f, 13.0f ),
+                    juce::Justification::centred );
+    }
+}
+
 // ---------------------------------------------------------------- the overlay
 
 JourneyPanel::JourneyPanel( NoctuaryProcessor &proc, std::function<bool( ambient::Journey & )> chosen,
                             std::function<void( int )> startAt )
-    : m_timeline( proc, std::move( chosen ), std::move( startAt ) )
+    : m_timeline( proc, std::move( chosen ), std::move( startAt ) ), m_night( proc )
 {
     m_close.onClick = [this] { setVisible( false ); };
+    m_nightButton.setClickingTogglesState( true );
+    m_nightButton.setTooltip(
+        "The night director: a whole night as a journey with a form -- falling asleep, a deep middle in waves, a morning" );
+    m_nightButton.onClick = [this] { showNight( m_nightButton.getToggleState() ); };
     addAndMakeVisible( m_timeline );
+    addChildComponent( m_night );
+    addAndMakeVisible( m_nightButton );
     addAndMakeVisible( m_close );
     setWantsKeyboardFocus( true );
     setVisible( false );
@@ -394,10 +600,27 @@ void JourneyPanel::open()
     grabKeyboardFocus();
 }
 
+void JourneyPanel::openNight( double makeHours )
+{
+    open();
+    showNight( true );
+    if ( makeHours > 0.0 ) m_night.make( makeHours, 1 );
+}
+
+void JourneyPanel::showNight( bool on )
+{
+    m_nightButton.setToggleState( on, juce::dontSendNotification );
+    if ( on ) m_night.refreshLengths();
+    m_night.setVisible( on );
+    resized();
+    repaint();
+}
+
 juce::Rectangle<int> JourneyPanel::panel() const
 {
-    const int w = std::min( 1100, getWidth() - 60 ), h = std::min( 300, getHeight() - 160 );
-    return { ( getWidth() - w ) / 2, 140, w, h };
+    const int w = std::min( 1100, getWidth() - 60 );
+    const int h = std::min( m_night.isVisible() ? 560 : 300, getHeight() - 160 );
+    return { ( getWidth() - w ) / 2, m_night.isVisible() ? 90 : 140, w, h };
 }
 
 void JourneyPanel::resized()
@@ -405,7 +628,14 @@ void JourneyPanel::resized()
     auto r = panel().reduced( 10 );
     auto top = r.removeFromTop( 28 );
     m_close.setBounds( top.removeFromRight( 80 ).reduced( 2 ) );
+    top.removeFromRight( 6 );
+    m_nightButton.setBounds( top.removeFromRight( 96 ).reduced( 2 ) );
     r.removeFromTop( 6 );
+    if ( m_night.isVisible() )
+    {
+        m_night.setBounds( r.removeFromTop( 250 ).reduced( 8, 0 ) );
+        r.removeFromTop( 6 );
+    }
     m_timeline.setBounds( r );
 }
 
