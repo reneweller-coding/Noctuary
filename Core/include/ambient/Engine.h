@@ -153,15 +153,17 @@ public:
                          const std::function<void( double )>      &listen = nullptr );
     /**
      * @brief Which arrival repairs the two conductors play with (BrainParams::m_arrive): a sum of the
-     *        BrainParams::Arrive bits, 0 for none -- the conductor as it was, which is the default.
+     *        BrainParams::Arrive bits; BrainParams::ArriveAll (15, all four repairs) by default, 0 for none -- the
+     *        conductor as it was before plan F1b.
      *
-     * A developer's switch for the measurement and the listening comparison of plan F1b (20.11.2026): the render tool
-     * and the conductor audit set it from `--arrive N` or AMBIENT_BRAIN_ARRIVE. No panel, preset or pack reads or
+     * The repairs of plan F1b (20.11.2026) are on by default since Rene heard them the same evening. This is a
+     * developer's switch for measurements and comparisons: the render tool and the conductor audit set it from
+     * `--arrive N` or AMBIENT_BRAIN_ARRIVE (0 gives the old conductor exactly). No panel, preset or pack reads or
      * writes it. Takes effect at the next readParams().
      * @param[in] mask  the bits, 0 .. 63
      */
     void setArriveMask( int mask ) { m_arriveMask = mask; }
-    /** @return the arrival repairs set with setArriveMask(), 0 by default */
+    /** @return the arrival repairs set with setArriveMask(), BrainParams::ArriveAll by default */
     int arriveMask() const { return m_arriveMask; }
     /**
      * @brief Loads a preset of the main bank as a sound layer.
@@ -2081,11 +2083,11 @@ private:
     VoiceParams m_vp;    ///< what the voices render with this block
     BrainParams m_bp;    ///< the first conductor's parameters this block
     /**
-     * @brief The arrival repairs both conductors play with (BrainParams::m_arrive, plan F1b, 20.11.2026): 0, the
-     *        conductor as it was, until Rene has heard them. Set by the tools only (setArriveMask()); README.md,
-     *        "Arrival repairs", says how it would be switched on by default.
+     * @brief The arrival repairs both conductors play with (BrainParams::m_arrive, plan F1b, 20.11.2026): all four
+     *        (BrainParams::ArriveAll), decided by Rene after the listening comparison on 20.11.2026. Only the tools
+     *        set anything else (setArriveMask(); 0 is the conductor as it was); README.md, "Arrival repairs".
      */
-    int m_arriveMask = 0;
+    int m_arriveMask = BrainParams::ArriveAll;
     Drifter     m_arc;   ///< the hour-scale arc's own drift
     /** @var float m_arcAmount
      *  @brief how far the arc leans on density, brightness and depth */

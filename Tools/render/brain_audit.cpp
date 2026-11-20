@@ -23,8 +23,8 @@
  * that ended the note (ClusterBrain::M_OffWhy), for the study of notes shorter than their attack (20.11.2026).
  *
  * `--arrive N` (or AMBIENT_BRAIN_ARRIVE=N; the option wins) plays the conductors with the arrival repairs of plan F1b
- * switched on: a sum of BrainParams::Arrive* bits, 0 for none; without either the engine's default (none). README.md, "Arrival repairs", lists them
- * and says how they would become the default.
+ * given: a sum of BrainParams::Arrive* bits, 0 for none (the conductor as it was); without either the engine's default,
+ * all four (15, since 20.11.2026). README.md, "Arrival repairs", lists them.
  *
  * Under AMBIENT_BRAIN_EAR the ear's log of plan B1 (ClusterBrain::M_Ear, 20.11.2026) is printed beside the events: per
  * decision a line D,\<seq\>,\<seconds\>,\<conductor\>,\<kind\>,\<from\>,\<chosen\>,\<best\>,\<root\>,\<consonance\>,

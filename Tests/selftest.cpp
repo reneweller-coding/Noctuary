@@ -13625,86 +13625,98 @@ void testFigureMoves()
  * itself: at each window's end the voices on the old root's pitch class (within ten cents of it or of an octave of it,
  * as the conductor reads a pitch class) are let go within two seconds, and hardly a voice on another pitch goes with
  * them.
+ *
+ * Played twice: with the arrival repairs off (mask 0, the conductor this was written for) none of them stays; with the
+ * engine's default (all four repairs, since 20.11.2026) the pivot tone stays on purpose (BrainParams::ArrivePivot), so
+ * at most one voice per window may, and still only a few of all.
  */
 void testChangeoverByPitch()
 {
     std::printf( "\n--- a changeover lets go the old root's pitch ---\n" );
-    int windows = 0, onOld = 0, stayed = 0, wrong = 0;
-    for ( float seed : { 1611.0f, 1612.0f, 1613.0f } )
+    for ( const int mask : { 0, BrainParams::ArriveAll } )
     {
-        Engine e;
-        neutralMaster( e );
-        e.prepare( ambient::DefaultSampleRate, 256 );
-        for ( int i = 0; i < NumParams; ++i )
-            e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
-        neutralMaster( e );
-        e.setParam( ParamIdE::SEED, seed );
-        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
-        e.setParam( ParamIdE::SCALE, 9.0f );   // Bohlen-Pierce (JI)
-        e.setParam( ParamIdE::BRAIN_PIVOT, 20.0f );
-        e.setParam( ParamIdE::BRAIN_ROOT_EVERY, 60.0f );   // windows never overlap: a root stands a minute
-        e.setParam( ParamIdE::BRAIN_WANDER, 1.0f );
-        e.setParam( ParamIdE::BRAIN_RATE, 6.0f );
-        e.setParam( ParamIdE::BRAIN_DENSITY, 8.0f );
-        e.setParam( ParamIdE::BRAIN_HOLD_MIN, 500.0f );
-        e.setParam( ParamIdE::BRAIN_HOLD_MAX, 600.0f );
-        e.setParam( ParamIdE::BRAIN_CONSONANCE, 0.2f );
-        e.reset();
-        std::vector<std::pair<double, int>>          changes;   // (time the root moved, the old root)
-        std::map<int, double>                        on;        // note -> its onset
-        std::vector<std::tuple<int, double, double>> notes;     // note, onset, release
-        int                                          last = -1;
-        e.auditConductor(
-            2400.0, 0.01,
-            [&]( double t, int which, const BrainEvent &ev )
-            {
-                if ( which != 1 ) return;
-                if ( ev.m_type == BrainEvent::TypeE::NOTE_ON )
-                    on[ev.m_note] = t;
-                else if ( on.count( ev.m_note ) )
-                {
-                    notes.emplace_back( ev.m_note, on[ev.m_note], t );
-                    on.erase( ev.m_note );
-                }
-            },
-            [&]( double t, int root )
-            {
-                if ( last >= 0 && t > 0.0 ) changes.emplace_back( t, last );
-                last = root;
-            } );
-        for ( const auto &o : on ) notes.emplace_back( o.first, o.second, 1.0e9 );   // still sounding at the end
-        // The window ends half a Pivot after the root moved; a voice asked to go there goes within a second.
-        for ( const auto &c : changes )
+        int windows = 0, onOld = 0, stayed = 0, wrong = 0;
+        for ( float seed : { 1611.0f, 1612.0f, 1613.0f } )
         {
-            const double end = c.first + 10.0;   // half the Pivot
-            const double oldHz = e.frequencyOf( c.second );
-            ++windows;
-            for ( const auto &n : notes )
-            {
-                const double a = std::get<1>( n ), b = std::get<2>( n );
-                if ( !( a < end - 0.02 && b > end - 0.02 ) ) continue;   // sounding as the window ends
-                double cents = std::fmod( std::fabs( 1200.0 * std::log2( e.frequencyOf( std::get<0>( n ) ) / oldHz ) ),
-                                          1200.0 );
-                cents = std::min( cents, 1200.0 - cents );
-                const bool goes = b < end + 2.0;
-                // the old root's pitch class as the conductor reads it (pitchClassEqual: within ten cents of an
-                // octave of it); Bohlen-Pierce has no octave, and its eighth step stands 13.8 cents from one
-                if ( cents < 10.0 )
+            Engine e;
+            neutralMaster( e );
+            e.prepare( ambient::DefaultSampleRate, 256 );
+            e.setArriveMask( mask );
+            for ( int i = 0; i < NumParams; ++i )
+                e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+            neutralMaster( e );
+            e.setParam( ParamIdE::SEED, seed );
+            e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+            e.setParam( ParamIdE::SCALE, 9.0f );   // Bohlen-Pierce (JI)
+            e.setParam( ParamIdE::BRAIN_PIVOT, 20.0f );
+            e.setParam( ParamIdE::BRAIN_ROOT_EVERY, 60.0f );   // windows never overlap: a root stands a minute
+            e.setParam( ParamIdE::BRAIN_WANDER, 1.0f );
+            e.setParam( ParamIdE::BRAIN_RATE, 6.0f );
+            e.setParam( ParamIdE::BRAIN_DENSITY, 8.0f );
+            e.setParam( ParamIdE::BRAIN_HOLD_MIN, 500.0f );
+            e.setParam( ParamIdE::BRAIN_HOLD_MAX, 600.0f );
+            e.setParam( ParamIdE::BRAIN_CONSONANCE, 0.2f );
+            e.reset();
+            std::vector<std::pair<double, int>>          changes;   // (time the root moved, the old root)
+            std::map<int, double>                        on;        // note -> its onset
+            std::vector<std::tuple<int, double, double>> notes;     // note, onset, release
+            int                                          last = -1;
+            e.auditConductor(
+                2400.0, 0.01,
+                [&]( double t, int which, const BrainEvent &ev )
                 {
-                    ++onOld;
-                    if ( !goes ) ++stayed;
+                    if ( which != 1 ) return;
+                    if ( ev.m_type == BrainEvent::TypeE::NOTE_ON )
+                        on[ev.m_note] = t;
+                    else if ( on.count( ev.m_note ) )
+                    {
+                        notes.emplace_back( ev.m_note, on[ev.m_note], t );
+                        on.erase( ev.m_note );
+                    }
+                },
+                [&]( double t, int root )
+                {
+                    if ( last >= 0 && t > 0.0 ) changes.emplace_back( t, last );
+                    last = root;
+                } );
+            for ( const auto &o : on ) notes.emplace_back( o.first, o.second, 1.0e9 );   // still sounding at the end
+            // The window ends half a Pivot after the root moved; a voice asked to go there goes within a second.
+            for ( const auto &c : changes )
+            {
+                const double end = c.first + 10.0;   // half the Pivot
+                const double oldHz = e.frequencyOf( c.second );
+                ++windows;
+                for ( const auto &n : notes )
+                {
+                    const double a = std::get<1>( n ), b = std::get<2>( n );
+                    if ( !( a < end - 0.02 && b > end - 0.02 ) ) continue;   // sounding as the window ends
+                    const double hz = e.frequencyOf( std::get<0>( n ) );
+                    double       cents = std::fmod( std::fabs( 1200.0 * std::log2( hz / oldHz ) ), 1200.0 );
+                    cents = std::min( cents, 1200.0 - cents );
+                    const bool goes = b < end + 2.0;
+                    // the old root's pitch class as the conductor reads it (pitchClassEqual: within ten cents of an
+                    // octave of it); Bohlen-Pierce has no octave, and its eighth step stands 13.8 cents from one
+                    if ( cents < 10.0 )
+                    {
+                        ++onOld;
+                        if ( !goes ) ++stayed;
+                    }
+                    else if ( cents > 25.0 && b < end + 1.1 )
+                        ++wrong;
                 }
-                else if ( cents > 25.0 && b < end + 1.1 )
-                    ++wrong;
             }
         }
+        std::printf( "  [probe] arrival mask %d: %d windows: %d voices on the old root's pitch at their end, %d of "
+                     "them stayed; %d voices on other pitches let go with them\n",
+                     mask, windows, onOld, stayed, wrong );
+        CHECK( windows > 30, "changeover: the root moves through the hours" );
+        if ( mask == 0 )
+            CHECK( onOld > 5 && stayed == 0, "changeover: the voices on the old root's pitch go at the window's end" );
+        else
+            CHECK( onOld > 5 && stayed <= windows && stayed * 4 < onOld,
+                   "changeover, repairs on: of the old root's voices only the pivot tone stays, at most one a window" );
+        CHECK( wrong <= windows / 10, "changeover: voices on other pitches are not asked to go" );
     }
-    std::printf( "  [probe] %d windows: %d voices on the old root's pitch at their end, %d of them stayed; %d voices on "
-                 "other pitches let go with them\n",
-                 windows, onOld, stayed, wrong );
-    CHECK( windows > 30, "changeover: the root moves through the hours" );
-    CHECK( onOld > 5 && stayed == 0, "changeover: the voices on the old root's pitch go at the window's end" );
-    CHECK( wrong <= windows / 10, "changeover: voices on other pitches are not asked to go" );
 }
 
 /** @brief What M_OffWhy reported for the NoteOff about to be emitted (testConductorArrives): the note, -1 when none. */

@@ -16,8 +16,8 @@
  *                  [--write-default-ir file.wav] (the Room's built-in hall as a WAV at --sr, then exit)
  *                  [--route "name or text" [speed]] (walk a route over the map; --list-routes)
  *                  [--set-file set.ambientset] (replay a recorded set; length = set + 20 s unless --seconds)
- *                  [--arrive N] (the conductors' arrival repairs, a sum of BrainParams::Arrive* bits; 0 = off,
- *                  the default, also from AMBIENT_BRAIN_ARRIVE)
+ *                  [--arrive N] (the conductors' arrival repairs, a sum of BrainParams::Arrive* bits; 15 = all
+ *                  four, the default; 0 = the conductor as it was; also from AMBIENT_BRAIN_ARRIVE)
  *                  [--jam-lead FILE | --jam-follow FILE [--jam-hear 0|1] [--jam-seed N] [--jam-loss P]]
  *                  (the family jam offline, plan E3: JamSim.h, as ambient_brain_audit)
  * @endcode
@@ -776,9 +776,9 @@ static int runOnce( int argc, char **argv )
     double                  fadeSeconds = 0.0, fadeHead = 0.0;
     auto                    live = [&]() -> Engine                    &{ return *liveEngine; };
 
-    // The arrival repairs of plan F1b (20.11.2026), off unless asked for: AMBIENT_BRAIN_ARRIVE=N, or --arrive N below,
-    // which wins. A sum of BrainParams::Arrive* bits (README.md, "Arrival repairs"); a developer's switch for the
-    // listening comparison, never read by the instrument.
+    // The arrival repairs of plan F1b (20.11.2026), all four by default since Rene heard them: AMBIENT_BRAIN_ARRIVE=N,
+    // or --arrive N below, which wins, plays others (0: the conductor as it was). A sum of BrainParams::Arrive* bits
+    // (README.md, "Arrival repairs"); a developer's switch for comparisons, never read by the instrument.
     // Without either the engine's own default stands.
     int arriveMask = engine.arriveMask();
     if ( const char *env = std::getenv( "AMBIENT_BRAIN_ARRIVE" ) ) arriveMask = std::atoi( env );

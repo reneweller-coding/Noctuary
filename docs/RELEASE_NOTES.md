@@ -46,17 +46,19 @@ when the instrument loads, written whole when a mark changes (beside it, then re
 harmless. `AMBIENT_NEVER_AGAIN_FILE` points tests and screenshots at another file. Noctuary has no preset arrows and
 no random preset choice, so there is nothing else to skip. A new selftest (`testNeverAgain`).
 
-**Inside: notes that arrive before they go, as a switch that is off** (20.11.2026). Rene: the conductor strikes
+**Notes that arrive before they go** (20.11.2026; on by default since the same evening). Rene: the conductor strikes
 notes that make no sense under long attack times -- a tone that swells and is gone before it is there. The library
 measured, 13591 of 786882 conductor notes ended before their attack was over, by four paths. The conductor now knows
 each voice's attack (Attack, and what Vel to Attack makes of it at the note's velocity), and four repairs are built,
 one bit each: the pivot tone of a changeover stays (1), Layers never shortens a hold below the attack (2), Chords
-never exchanges a voice that has not arrived (4), Free never retires one when the room is full (8). All of them are
-**off**: presets play exactly as before (the music audit's 200 presets give a byte-identical table, and a new
-selftest, `testConductorArrives`, checks the conductor's events against those of the code before the change). They
-are for listening first: `ambient_render --arrive 15`, `ambient_brain_audit --arrive 15` or `AMBIENT_BRAIN_ARRIVE=15`;
-the README ("Arrival repairs") says how one would become the default. With all four on, the selftest's twenty draws
-let no note go early by those paths (159 before).
+never exchanges a voice that has not arrived (4), Free never retires one when the room is full (8). Rene heard them
+and all four are **on** by default: presets whose conductor let notes go early play differently from the first changed
+decision on. Over the music audit's 200 presets (an hour each) notes shorter than their attack fall from 87 to 27,
+onsets per hour 54.3 to 53.7, rubs within a conductor 0.62 to 0.66 % and between the two 1.03 to 1.14 % of the time;
+over the 2441 affected presets of the library 12733 to 2124 (-83 %), with 80 of them more than a third slower
+(Waning Afternoon, Coolant Drift). `--arrive 0` (`ambient_render`, `ambient_brain_audit`, or `AMBIENT_BRAIN_ARRIVE=0`)
+plays the conductor exactly as before them; a new selftest, `testConductorArrives`, checks both sides. With all four
+on, its twenty draws let no note go early by those paths (159 before).
 
 **Inside: one conductor for the family** (20.11.2026). The conductor, `ClusterBrain.h`, lived three times -- in
 Noctuary, Empyrean and Zodiacal -- and every fix of 19. and 20.11. had to be carried into the other copies by hand,
