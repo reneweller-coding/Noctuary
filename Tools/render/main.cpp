@@ -18,6 +18,8 @@
  *                  [--set-file set.ambientset] (replay a recorded set; length = set + 20 s unless --seconds)
  *                  [--arrive N] (the conductors' arrival repairs, a sum of BrainParams::Arrive* bits; 0 = off,
  *                  the default, also from AMBIENT_BRAIN_ARRIVE)
+ *                  [--jam-lead FILE | --jam-follow FILE [--jam-hear 0|1] [--jam-seed N] [--jam-loss P]]
+ *                  (the family jam offline, plan E3: JamSim.h, as ambient_brain_audit)
  * @endcode
  *
  * The usage line is the tool as it started; runOnce() reads the whole list, which has grown to
@@ -40,6 +42,7 @@
 #include "ambient/NameList.h"
 #include "ambient/Cosmos.h"         // Fft, for the tonal probe
 #include "ambient/ClusterBrain.h"   // peakRoughness: one Plomp-Levelt curve for the conductor and the map
+#include "JamSim.h"                 // the family jam offline (plan E3)
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -779,6 +782,12 @@ static int runOnce( int argc, char **argv )
     // Without either the engine's own default stands.
     int arriveMask = engine.arriveMask();
     if ( const char *env = std::getenv( "AMBIENT_BRAIN_ARRIVE" ) ) arriveMask = std::atoi( env );
+    // The family jam offline (plan E3, 20.11.2026; JamSim.h): --jam-lead writes what a leader's audio thread posts
+    // before each block (its root, its conductors' notes, on a change); --jam-follow plays the live engine as a
+    // follower of such a file, the leader's root held (setJam) and with --jam-hear 1 its notes heard (setJamHeard).
+    std::string       jamLead, jamFollow;
+    int               jamHear = 0;
+    frame::JamNetwork jamNet;
     engine.setArriveMask( arriveMask );
 
     for ( int i = 1; i < argc; ++i )
@@ -787,6 +796,16 @@ static int runOnce( int argc, char **argv )
         auto        next = [&]() -> std::string { return ( i + 1 < argc ) ? argv[++i] : ""; };
         if ( a == "--out" )
             out = next();
+        else if ( a == "--jam-lead" )   // plan E3: write the posts a leader's audio thread makes (JamSim.h)
+            jamLead = next();
+        else if ( a == "--jam-follow" )   // plan E3: follow such a file over a simulated network
+            jamFollow = next();
+        else if ( a == "--jam-hear" )   // "Hear leader": 1 hears the leader's notes, 0 (the default) does not
+            jamHear = std::atoi( next().c_str() );
+        else if ( a == "--jam-seed" )
+            jamNet.m_seed = std::strtoull( next().c_str(), nullptr, 10 );
+        else if ( a == "--jam-loss" )
+            jamNet.m_loss = std::atof( next().c_str() );
         else if ( a == "--arrive" )
         {
             arriveMask = std::atoi( next().c_str() );
@@ -1652,9 +1671,53 @@ static int runOnce( int argc, char **argv )
     if ( stats ) std::printf( "sec, rmsL_dB, rmsR_dB, peak, voices, root, arc\n" );
     float secPeak = 0.0f;
 
+    std::unique_ptr<frame::JamSim> jamSim;
+    std::FILE                     *jamOut = nullptr;
+    frame::JamLeadPost             jamPosted;
+    bool                           jamHavePosted = false;
+    if ( !jamFollow.empty() )
+    {
+        std::vector<frame::JamLeadPost> posts;
+        if ( !frame::readJamLeadPosts( jamFollow.c_str(), posts ) )
+        {
+            std::fprintf( stderr, "cannot read %s\n", jamFollow.c_str() );
+            return 2;
+        }
+        jamSim = std::make_unique<frame::JamSim>( posts, static_cast<double>( total ) / sr, jamNet, jamHear != 0 );
+    }
+    std::unique_ptr<std::FILE, int ( * )( std::FILE * )> jamOutFile( nullptr, &std::fclose );
+    if ( !jamLead.empty() ) jamOutFile.reset( jamOut = std::fopen( jamLead.c_str(), "w" ) );
+    if ( !jamLead.empty() && jamOut == nullptr )
+    {
+        std::fprintf( stderr, "cannot write %s\n", jamLead.c_str() );
+        return 2;
+    }
     for ( long done = 0; done < total; done += block )
     {
         const int n = static_cast<int>( std::min<long>( block, total - done ) );
+        if ( jamSim )
+        {   // plan E3: what the follower's audio thread hands its engine before the block (PluginProcessor)
+            const double t = static_cast<double>( done ) / sr;
+            jamSim->advance( t );
+            const int r = jamSim->root( t );
+            live().setJam( r, r >= 0 ? 0.5f : -1.0f );
+            double    hz[frame::JamNotes::MaxNotes];
+            const int k = jamSim->notes( t, hz );
+            live().setJamHeard( hz, k );
+        }
+        if ( jamOut != nullptr )
+        {   // plan E3: what the leader's audio thread posts before the block
+            frame::JamLeadPost p;
+            p.m_t = static_cast<double>( done ) / sr;
+            p.m_root = ( ( live().brainRoot() % 12 ) + 12 ) % 12;
+            p.m_notes.m_count = live().jamNotes( p.m_notes.m_hz, frame::JamNotes::MaxNotes );
+            if ( !jamHavePosted || p.m_root != jamPosted.m_root || !p.m_notes.sameNotes( jamPosted.m_notes ) )
+            {
+                frame::writeJamLeadPost( jamOut, p );
+                jamPosted = p;
+                jamHavePosted = true;
+            }
+        }
         if ( !routeText.empty() )
         {
             float rx, ry, rr;

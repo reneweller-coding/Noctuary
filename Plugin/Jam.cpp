@@ -4,6 +4,7 @@
  * @author Rene Weller
  */
 #include "Jam.h"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -174,6 +175,8 @@ void JamBus::setRole( Settings::JamRoleE r )
     m_role.store( want, std::memory_order_relaxed );
     m_leaderRoot.store( -1, std::memory_order_relaxed );
     m_leaderSeenMs.store( 0, std::memory_order_relaxed );
+    m_haveNotes = false;   // the thread is stopped: the bus thread's state is ours for the moment
+    m_notesOrder.clear();
     {
         const juce::ScopedLock g( m_lock );
         m_leaderName = m_leaderId = m_leaderMode = {};
@@ -218,6 +221,43 @@ void JamBus::postKey( int root, const char *mode )
     o.m_root = static_cast<int8_t>( ( ( root % 12 ) + 12 ) % 12 );
     std::strncpy( o.m_mode, mode != nullptr ? mode : "", sizeof( o.m_mode ) - 1 );
     m_out.push( o );
+}
+
+void JamBus::postNotes( const float *hz, int n )
+{
+    JamNotes set;
+    set.m_count = std::clamp( n, 0, JamNotes::MaxNotes );
+    for ( int k = 0; k < set.m_count; ++k ) set.m_hz[k] = hz[k];
+    if ( !m_notesDirty && set.sameNotes( m_postedNotes ) ) return;
+    m_postedNotes = set;
+    m_notesDirty = !m_notesOut.push( set );   // full: posted again with the next block
+}
+
+void JamBus::sendNotes()
+{
+    m_sentNotes.m_seq = m_notesSeq++;
+    char      bytes[JamNotes::MaxBytes];
+    const int n = encodeJamNotes( bytes, sizeof( bytes ), m_id.toRawUTF8(), m_sentNotes );
+    if ( n > 0 && m_socket != nullptr ) m_socket->write( Group, Port, bytes, n );
+    m_notesSentMs = juce::Time::currentTimeMillis();
+}
+
+int JamBus::leaderNotes( double *hz )
+{
+    NotesIn in;
+    if ( role() != Settings::JamRoleE::FOLLOW || !hearing() )
+    {
+        while ( m_notesIn.pop( in ) )
+        {
+        }
+        m_heldNotes.clear();
+        m_heardCount.store( 0, std::memory_order_relaxed );
+        return 0;
+    }
+    while ( m_notesIn.pop( in ) ) m_heldNotes.take( in.m_notes, in.m_atMs );
+    const int n = m_heldNotes.notesAt( juce::Time::currentTimeMillis(), hz );
+    m_heardCount.store( n, std::memory_order_relaxed );
+    return n;
 }
 
 void JamBus::run()
@@ -269,6 +309,20 @@ void JamBus::run()
             putString( b, m_id.toRawUTF8() );
             putInt( b, m_role.load( std::memory_order_relaxed ) );
             send( b.getMemoryBlock() );
+        }
+        {   // the leader's notes (plan E3): the newest set posted goes out at once, and again every RepeatMs
+            JamNotes set;
+            bool     fresh = false;
+            while ( m_notesOut.pop( set ) ) fresh = true;
+            if ( fresh )
+            {
+                m_sentNotes = set;
+                m_haveNotes = true;
+            }
+            if ( !leading )
+                m_haveNotes = false;
+            else if ( m_haveNotes && ( fresh || now - m_notesSentMs >= JamNotes::RepeatMs ) )
+                sendNotes();
         }
         if ( leading && now - lastRepeat >= 2000 )
         {   // the key and the section once more, for a follower who joins late
@@ -339,6 +393,20 @@ void JamBus::receive( const char *d, int size )
         return;
     }
     if ( role() != Settings::JamRoleE::FOLLOW ) return;   // keys and sections are for followers
+    if ( std::strcmp( address, JamNotesAddress ) == 0 )
+    {   // the leader's notes (plan E3): only while they are heard, only well-formed, only newer than the newest taken
+        if ( !hearing() ) return;
+        NotesIn in;
+        if ( !decodeJamNotes( d, size, id, sizeof( id ), in.m_notes ) || m_id == id ) return;
+        {
+            const juce::ScopedLock g( m_lock );
+            if ( m_leaderId.isNotEmpty() && m_leaderId != id && !leaderGone( now ) ) return;   // one leader at a time
+        }
+        if ( !m_notesOrder.accept( id, in.m_notes.m_seq, now ) ) return;
+        in.m_atMs = now;
+        m_notesIn.push( in );   // full: the audio thread is behind, and a newer set follows within RepeatMs
+        return;
+    }
     if ( std::strcmp( address, "/family/key" ) == 0 && std::strcmp( tags, ",sis" ) == 0 )
     {
         int32_t root = -1;
@@ -457,7 +525,9 @@ juce::String JamBus::status() const
     const int                root = m_leaderRoot.load( std::memory_order_relaxed );
     static const char *const Roots[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
     return "following " + m_leaderName +
-           ( root >= 0 ? " (" + juce::String( Roots[root] ) + " " + m_leaderMode + ")" : juce::String() );
+           ( root >= 0 ? " (" + juce::String( Roots[root] ) + " " + m_leaderMode + ")" : juce::String() ) +
+           ( hearing() ? "; hearing " + juce::String( m_heardCount.load( std::memory_order_relaxed ) ) + " of its notes"
+                       : juce::String() );
 }
 
 }   // namespace frame

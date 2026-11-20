@@ -996,6 +996,20 @@ void Settings::setJamRole( JamRoleE r )
     sendChangeMessage();
 }
 
+bool Settings::jamHear() const
+{
+    // FAMILY_JAM_HEAR=1|0 sets it for one process (a test aid, as FAMILY_JAM is the role's).
+    if ( const char *e = std::getenv( "FAMILY_JAM_HEAR" ) ) return std::strcmp( e, "1" ) == 0;
+    return m_file->getBoolValue( "jamHear", false );
+}
+
+void Settings::setJamHear( bool on )
+{
+    m_file->setValue( "jamHear", on );
+    m_file->saveIfNeeded();
+    sendChangeMessage();
+}
+
 juce::String Settings::value( const juce::String &key, const juce::String &fallback ) const
 {
     return m_file->getValue( key, fallback );
@@ -1057,6 +1071,9 @@ void SettingsMenu::show( juce::Component &target ) const
                    [&s] { s.setJamRole( RT::LEAD ); } );
         j.addItem( "Follow: take up the leader's key, energy, breaks and drops", true, role == RT::FOLLOW,
                    [&s] { s.setJamRole( RT::FOLLOW ); } );
+        if ( m_jamHear )   // plan E3: off by default; it changes what a follower plays
+            j.addItem( "Hear leader: when following, weigh the notes the leader sounds too", true, s.jamHear(),
+                       [&s] { s.setJamHear( !s.jamHear() ); } );
         j.addSeparator();
         j.addItem( m_jamStatus(), false, false, nullptr );
         m.addSubMenu( "Family jam", j );

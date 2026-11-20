@@ -59,6 +59,7 @@
 #include "ambient/Timeline.h"
 #include "ambient/Modulation.h"
 #include "ambient/Loudness.h"
+#include "../Plugin/JamNotes.h"   // the family jam's notes (plan E3): JUCE-free, the plugin's own code
 #include <thread>
 #include <chrono>
 #if defined( _WIN32 )
@@ -12828,6 +12829,149 @@ void testJam()
 }
 
 /**
+ * @brief The family jam's notes on the wire (plan E3, 20.11.2026; Plugin/JamNotes.h): a set goes and comes back
+ *        exactly; a message that is not exactly one is turned away; a late or doubled one is turned away; another
+ *        leader only after two seconds of silence; the notes are forgotten two seconds after the last set.
+ */
+void testJamNotes()
+{
+    using frame::JamNotes;
+    JamNotes set;
+    set.m_seq = 7;
+    set.m_count = 3;
+    set.m_hz[0] = 110.0f;
+    set.m_hz[1] = 164.8138f;
+    set.m_hz[2] = 277.1826f;
+    char      bytes[JamNotes::MaxBytes];
+    const int n = frame::encodeJamNotes( bytes, sizeof( bytes ), "a1b2c3", set );
+    JamNotes  got;
+    char      id[24];
+    CHECK( n > 0 && n % 4 == 0 && frame::decodeJamNotes( bytes, n, id, sizeof( id ), got ),
+           "jam notes: a set is encoded and read back" );
+    CHECK( std::strcmp( id, "a1b2c3" ) == 0 && got.m_seq == 7 && got.sameNotes( set ),
+           "jam notes: the same instance, number and notes, to the bit" );
+    JamNotes bad;
+    CHECK( !frame::decodeJamNotes( bytes, n - 4, id, sizeof( id ), bad ), "jam notes: a message cut short is ignored" );
+    CHECK( !frame::decodeJamNotes( bytes, n - 1, id, sizeof( id ), bad ), "jam notes: a length not of words is ignored" );
+    {
+        char wrong[JamNotes::MaxBytes];
+        std::memcpy( wrong, bytes, static_cast<size_t>( n ) );
+        wrong[std::strlen( "/family/notes" ) + 4 + 4] = 'i';   // a note's type tag 'f' made an 'i'
+        CHECK( !frame::decodeJamNotes( wrong, n, id, sizeof( id ), bad ), "jam notes: wrong type tags are ignored" );
+        std::memcpy( wrong, bytes, static_cast<size_t>( n ) );
+        const uint32_t nan = 0x7FC00000u;
+        for ( int k = 0; k < 4; ++k ) wrong[n - 4 + k] = static_cast<char>( nan >> ( 24 - 8 * k ) );
+        CHECK( !frame::decodeJamNotes( wrong, n, id, sizeof( id ), bad ), "jam notes: a note that is no number is ignored" );
+        std::memcpy( wrong, bytes, static_cast<size_t>( n ) );
+        wrong[1] = 'g';   // "/gamily/notes"
+        CHECK( !frame::decodeJamNotes( wrong, n, id, sizeof( id ), bad ), "jam notes: another address is ignored" );
+    }
+    JamNotes many;
+    many.m_count = JamNotes::MaxNotes + 5;
+    for ( float &h : many.m_hz ) h = 220.0f;
+    const int m = frame::encodeJamNotes( bytes, sizeof( bytes ), "a1b2c3", many );
+    CHECK( m > 0 && frame::decodeJamNotes( bytes, m, id, sizeof( id ), got ) && got.m_count == JamNotes::MaxNotes,
+           "jam notes: at most MaxNotes go out" );
+    frame::JamNotesOrder order;
+    CHECK( order.accept( "lead", 5, 1000 ), "jam notes: the first message is taken" );
+    CHECK( !order.accept( "lead", 4, 1010 ), "jam notes: an older one, late on the way, is ignored" );
+    CHECK( !order.accept( "lead", 5, 1020 ), "jam notes: the same one twice is ignored" );
+    CHECK( order.accept( "lead", 6, 1030 ), "jam notes: the next is taken" );
+    CHECK( !order.accept( "other", 100, 1500 ), "jam notes: another leader is not heard while this one speaks" );
+    CHECK( order.accept( "lead", 1, 1030 + JamNotes::ForgetMs ), "jam notes: after silence any number is new again" );
+    frame::JamNotesOrder wrap;
+    CHECK( wrap.accept( "lead", 0x7FFFFFFF, 10000 ) && wrap.accept( "lead", static_cast<int32_t>( 0x80000000u ), 10010 ),
+           "jam notes: the numbers wrap round" );
+    frame::JamNotesHeld held;
+    double              hz[JamNotes::MaxNotes];
+    CHECK( held.notesAt( 0, hz ) == 0, "jam notes: nothing held before anything came" );
+    held.take( set, 1000 );
+    CHECK( held.notesAt( 1000 + JamNotes::ForgetMs - 1, hz ) == 3 && hz[1] == static_cast<double>( set.m_hz[1] ),
+           "jam notes: held until two seconds after the last set" );
+    CHECK( held.notesAt( 1000 + JamNotes::ForgetMs, hz ) == 0, "jam notes: forgotten two seconds after the last set" );
+}
+
+/**
+ * @brief A follower hears the leader (plan E3, 20.11.2026; Engine::setJamHeard, ClusterBrain::hearAlso): with no notes
+ *        it plays what it played before, bit for bit; with the leader's notes its conductor takes none a semitone or a
+ *        tritone from them (Consonance 1) and none on their very pitch, and it still plays.
+ */
+void testJamHeard()
+{
+    auto setUp = []( Engine &e )
+    {
+        neutralMaster( e );
+        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+        e.setParam( ParamIdE::BRAIN_RATE, 2.0f );
+        e.setParam( ParamIdE::BRAIN_DENSITY, 4.0f );
+        e.setParam( ParamIdE::BRAIN_CONSONANCE, 1.0f );
+        e.setParam( ParamIdE::BRAIN2_ON, 1.0f );
+        e.prepare( 48000.0, 256 );
+    };
+    {   // nothing heard: the same samples as an engine never told anything
+        auto a = std::make_unique<Engine>();
+        auto b = std::make_unique<Engine>();
+        setUp( *a );
+        setUp( *b );
+        std::vector<float> la( 256 ), ra( 256 ), lb( 256 ), rb( 256 );
+        bool               same = true;
+        double             hz[1] = { 0.0 };
+        for ( int k = 0; k < static_cast<int>( 48000.0 * 30.0 / 256.0 ); ++k )
+        {
+            a->setJam( 2, 0.5f );
+            b->setJam( 2, 0.5f );
+            b->setJamHeard( hz, 0 );   // what a follower with "Hear leader" off is handed every block
+            a->process( la.data(), ra.data(), 256 );
+            b->process( lb.data(), rb.data(), 256 );
+            same = same && std::memcmp( la.data(), lb.data(), sizeof( float ) * 256 ) == 0 &&
+                   std::memcmp( ra.data(), rb.data(), sizeof( float ) * 256 ) == 0;
+        }
+        CHECK( same, "jam heard: no notes heard, every sample as before" );
+    }
+    // The leader holds a chord on D (a pitch class the conductor's root is held on): D, F#, A in three octaves.
+    auto e = std::make_unique<Engine>();
+    setUp( *e );
+    std::vector<double> leader;
+    for ( int oct = 0; oct < 3; ++oct )
+        for ( int st : { 0, 4, 7 } ) leader.push_back( 73.4162 * std::pow( 2.0, oct + st / 12.0 ) );
+    int  ons = 0, rubs = 0, unisons = 0;
+    auto against = [&]( double f )
+    {
+        for ( double l : leader )
+        {
+            const double d = std::fabs( 1200.0 * std::log2( f / l ) );
+            if ( d < 25.0 ) ++unisons;
+            if ( d >= 2400.0 ) continue;
+            double c = std::fmod( d, 1200.0 );
+            c = std::min( c, 1200.0 - c );
+            if ( ( c > 25.0 && c < 150.0 ) || ( c > 550.0 && c < 650.0 ) ) return true;
+        }
+        return false;
+    };
+    Engine *eng = e.get();
+    e->auditConductor(
+        1800.0, 0.01,
+        [&]( double, int which, const BrainEvent &ev )
+        {
+            if ( which > 2 || ev.m_type != BrainEvent::TypeE::NOTE_ON ) return;
+            ++ons;
+            if ( against( eng->frequencyOf( ev.m_note ) ) ) ++rubs;
+        },
+        nullptr,
+        [&]( double )
+        {
+            eng->setJam( 2, 0.5f );
+            eng->setJamHeard( leader.data(), static_cast<int>( leader.size() ) );
+        } );
+    CHECK( ons >= 20, "jam heard: the follower still plays (at least 20 onsets in half an hour)" );
+    CHECK( rubs == 0, "jam heard: no onset a semitone or a tritone from the leader's notes" );
+    CHECK( unisons == 0, "jam heard: no onset on a pitch the leader sounds" );
+    float     out[frame::JamNotes::MaxNotes];
+    const int sounding = e->jamNotes( out, frame::JamNotes::MaxNotes );
+    CHECK( sounding > 0 && sounding <= frame::JamNotes::MaxNotes, "jam heard: a leader says the notes it sounds" );
+}
+
+/**
  * @brief MIDI out (02.10.2026, NoteTap.h): the conductor's notes are tapped on channel 1, inside their block, every off
  *        after its on; a key played on the keyboard is not tapped; allNotesOff gives every held note its off.
  */
@@ -14447,6 +14591,8 @@ int main( int argc, char **argv )
         { "testNoteTap", testNoteTap },
         { "testWhoPlaysTicker", testWhoPlaysTicker },
         { "testJam", testJam },
+        { "testJamNotes", testJamNotes },
+        { "testJamHeard", testJamHeard },
         { "testBrain", testBrain },
         { "testDeterminism", testDeterminism },
         { "testUserScale", testUserScale },

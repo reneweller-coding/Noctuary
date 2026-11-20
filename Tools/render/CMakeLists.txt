@@ -2,6 +2,7 @@ add_executable(ambient_render main.cpp)
 target_link_libraries(ambient_render PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_render PRIVATE /W4 /permissive- /utf-8)
+    target_compile_definitions(ambient_render PRIVATE _CRT_SECURE_NO_WARNINGS)   # JamSim.h's fopen and sscanf
 endif()
 # How much stack the program needs is a property of the program, not of the compiler that built
 # it: an Engine is a few hundred kilobytes and more than one of them stands on the stack here.
@@ -18,6 +19,7 @@ add_executable(ambient_brain_audit brain_audit.cpp)
 target_link_libraries(ambient_brain_audit PRIVATE NoctuaryCore)
 if(MSVC)
     target_compile_options(ambient_brain_audit PRIVATE /W4 /permissive- /utf-8)
+    target_compile_definitions(ambient_brain_audit PRIVATE _CRT_SECURE_NO_WARNINGS)   # JamSim.h's fopen and sscanf
 endif()
 if(WIN32)
     target_link_options(ambient_brain_audit PRIVATE "LINKER:/STACK:67108864")

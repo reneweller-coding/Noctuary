@@ -1279,6 +1279,9 @@ class ClusterBrain
 public:
     static constexpr int Slots =
         12;   ///< the most notes a cluster holds, and the length the arrays of soundingNotes() and adopt() must have
+    static constexpr int HeardMax =
+        32;   ///< the most notes hearAlso() adds to the other conductor's: another instrument's (the family jam's leader)
+    static constexpr int OtherMax = 2 * Slots + HeardMax;   ///< the other notes a conductor weighs: listenTo() + hearAlso()
 
     /**
      * @brief Puts the conductor back to silence with a fresh random stream and a root.
@@ -1300,6 +1303,7 @@ public:
         for ( int &r : m_recent ) r = -1;
         m_recentHead = 0;
         m_otherCount = 0;
+        m_heardCount = 0;
         for ( auto &s : m_slots )
         {
             s.m_note = -1;
@@ -1524,12 +1528,128 @@ public:
     void listenTo( const ClusterBrain *other, FreqFnT &&freqOf )
     {
         m_otherCount = 0;
+        m_heardCount = 0;
         if ( !other ) return;
         for ( const auto &s : other->m_slots )
             if ( s.m_note >= 0 && m_otherCount < 2 * Slots )   // one chosen and about to begin counts: it will sound
                 m_otherHz[m_otherCount++] = freqOf( s.m_note );
         for ( const auto &l : other->m_leaving )
             if ( l.m_note >= 0 && m_otherCount < 2 * Slots ) m_otherHz[m_otherCount++] = freqOf( l.m_note );
+    }
+
+    /**
+     * @brief Notes another instrument sounds, weighed as the other conductor's are: added to what listenTo() set, until
+     *        its next call (plan E3, 20.11.2026).
+     *
+     * The family jam kept a follower's root on the leader's pitch class and nothing else: the follower chose its notes
+     * against its own root and voices, and a semitone to the leader's chord was as likely as a third. A follower that
+     * hears the leader (the jam's "Hear leader", off by default) hands the leader's sounding notes here after
+     * listenTo() and before update(): from then on they count in the weights, in againstOther()'s vetoes and in the
+     * ear's log exactly as the second conductor's notes do. Without a call, or with @p n 0, the conductor draws what
+     * it drew before.
+     *
+     * And the conductor yields to them (yieldToHeard()): the second conductor of the same instrument never moves into
+     * this one's notes, because each hears the other; the leader does not hear the follower, and it did. Measured
+     * offline over thirteen pairs (plan E3), hearing alone left the follower's own choices clean -- none of the
+     * remaining semitones was struck by the follower -- and a quarter to three quarters of the time still rubbing,
+     * every second of it a leader's new note against a note the follower held on.
+     * @param[in] hz  the notes, Hz (a value that is not a positive finite number is skipped)
+     * @param[in] n   how many; at most HeardMax are taken
+     */
+    void hearAlso( const double *hz, int n )
+    {
+        if ( hz == nullptr ) return;
+        const int limit = std::min( OtherMax, m_otherCount + HeardMax );
+        for ( int k = 0; k < n && m_otherCount < limit; ++k )
+            if ( hz[k] > 0.0 && std::isfinite( hz[k] ) )
+            {
+                m_otherHz[m_otherCount++] = hz[k];
+                ++m_heardCount;
+            }
+    }
+
+    /**
+     * @brief A note this conductor holds that another instrument's note (hearAlso()) now stands against is let go:
+     *        the same pitch, or for a conductor whose Consonance is at least a half a semitone, major seventh or
+     *        tritone within two octaves -- what againstOther() keeps it from choosing (plan E3, 20.11.2026).
+     *
+     * In Free mode the note falls due at once and the next decision is brought forward to half a second, so its
+     * replacement -- chosen against the leader's notes -- comes now and not at the clock's own pace; the note goes at
+     * once, without the Overlap and the Release Gap (each kept the rub standing for seconds after every move of the
+     * leader: 1.9 % of an hour in the worst pair), and even as the last voice (the leader sounds: the room is not
+     * empty; held as the last voice waiting for its replacement, Pearl Interval stood a minor ninth against
+     * Empyrean's leader for the last half hour of the measurement). In Chords mode it leaves its slot for the voices
+     * sounding out, let go at the next tick without the Release Gap, and the slot is filled again as the chord always
+     * is. A note chosen but not yet begun is left to begin. Called by update(); nothing happens without notes from
+     * hearAlso(), so a conductor that hears no other instrument plays exactly as before.
+     * @param[in] p       the knobs
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void yieldToHeard( const BrainParams &p, FreqFnT &&freqOf )
+    {
+        if ( m_heardCount <= 0 ) return;
+        const int from = m_otherCount - m_heardCount;
+        auto      against = [&]( double fc )
+        {
+            for ( int k = from; k < m_otherCount; ++k )
+            {
+                const double d = std::fabs( 1200.0 * std::log2( fc / m_otherHz[k] ) );
+                if ( d < 25.0 ) return true;
+                if ( p.m_consonance < 0.5f || d >= 2400.0 ) continue;
+                double c = std::fmod( d, 1200.0 );
+                c = std::min( c, 1200.0 - c );
+                if ( ( c > 25.0 && c < 150.0 ) || ( c > 550.0 && c < 650.0 ) ) return true;
+            }
+            return false;
+        };
+        for ( Slot &s : m_slots )
+        {
+            if ( s.m_note < 0 || s.m_startIn > 0.0 || !against( freqOf( s.m_note ) ) ) continue;
+            if ( p.m_mode == BrainModeE::CHORDS )
+            {
+                Leaving *free = nullptr;
+                for ( auto &x : m_leaving )
+                    if ( x.m_note < 0 && free == nullptr ) free = &x;
+                if ( free == nullptr ) continue;   // every place holds a voice sounding out: next time
+                Leaving &l = *free;
+                l.m_note = s.m_note;
+                l.m_in = 0.0;
+                l.m_why = HeardWhy;
+                l.m_age = s.m_remaining;
+                s.m_note = -1;
+                s.m_remaining = 0.0;
+            }
+            else if ( s.m_why != HeardWhy )
+            {
+                s.m_remaining = std::min( s.m_remaining, 0.0 );
+                s.m_why = HeardWhy;
+                m_timer = std::min( m_timer, 0.5 );
+            }
+        }
+    }
+    static constexpr const char *HeardWhy = "heard";   ///< Slot::m_why of a note let go for yieldToHeard()
+
+    /**
+     * @brief What another conductor hears of this one: the notes listenTo() would take from it, in its order -- the
+     *        slots (one chosen and about to begin counts) and the voices sounding out an exchange's Overlap (plan E3,
+     *        20.11.2026). The family jam's leader sends these.
+     * @param[out] out     receives the notes, Hz
+     * @param[in]  cap     room in @p out
+     * @param[in]  freqOf  the pitch a key sounds at as one of this conductor's notes
+     * @return how many were written
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    int soundingHz( double *out, int cap, FreqFnT &&freqOf ) const
+    {
+        int n = 0;
+        for ( const auto &s : m_slots )
+            if ( s.m_note >= 0 && n < cap && n < 2 * Slots ) out[n++] = freqOf( s.m_note );
+        for ( const auto &l : m_leaving )
+            if ( l.m_note >= 0 && n < cap && n < 2 * Slots ) out[n++] = freqOf( l.m_note );
+        return n;
     }
 
     /**
@@ -1897,6 +2017,7 @@ public:
                 }
         }
         if ( anchorNote >= 0 ) m_root = anchorNote;
+        yieldToHeard( p, freqOf );   // the family jam's leader, when heard (plan E3): nothing without hearAlso()
 
         // Density glides (Anti 9). A change of density -- by hand, by a macro, by the Arc -- is
         // carried out one voice at a time over Density Slew minutes instead of at once: five voices
@@ -2102,17 +2223,20 @@ public:
             // silence in it and sixteen changes that landed on nothing.
             if ( p.m_overlap > 0.0f )
             {
-                if ( activeCount() <= 1 )
+                const bool heard = s.m_why == HeardWhy;   // yieldToHeard(): another instrument stands against it
+                if ( activeCount() <= 1 && !heard )
                 {
                     lastVoiceDue = true;
                     continue;
                 }
-                const double wait = stepRubs( m_lastNote, s.m_note, p, freqOf )
+                const double wait = heard ? 0.0
+                                    : stepRubs( m_lastNote, s.m_note, p, freqOf )
                                         ? std::min( static_cast<double>( p.m_overlap ), 2.0 )
                                         : static_cast<double>( p.m_overlap );
                 if ( m_sinceOn < wait ) continue;
             }
-            if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) ) continue;
+            if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) && s.m_why != HeardWhy )
+                continue;
             if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the constellation that ends here
             traceOff( s.m_note, s.m_why, -1.0 );
             emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, s.m_note, 0.0f } );
@@ -2533,7 +2657,8 @@ private:
             if ( l.m_note < 0 ) continue;
             l.m_in -= dt;
             if ( l.m_in > 0.0 ) continue;
-            if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) ) continue;
+            if ( p.m_releaseGap > 0.0f && m_sinceOff < static_cast<double>( p.m_releaseGap ) && l.m_why != HeardWhy )
+                continue;
             if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the constellation that ends here
             traceOff( l.m_note, l.m_why, l.m_age );
             emit( BrainEvent{ BrainEvent::TypeE::NOTE_OFF, l.m_note, 0.0f } );
@@ -4202,7 +4327,7 @@ public:
         int                 m_otherCount = 0;          ///< the other conductor's notes
         double              m_own[Slots] = {};         ///< their frequencies, Hz
         double              m_left[2 * Slots + 1] = {};   ///< Hz
-        double              m_other[2 * Slots] = {};   ///< Hz
+        double              m_other[OtherMax] = {};    ///< Hz
     };
     /**
      * @brief The ear's log: called once with a decision and no candidate, then once per candidate of it.
@@ -4659,8 +4784,10 @@ private:
     }
 
     Slot   m_slots[Slots];          ///< the cluster: one voice per slot, note -1 when empty
-    double m_otherHz[2 * Slots] = {};   ///< the other conductor's notes as they sound, Hz (listenTo()): slots and Overlap
+    double m_otherHz[OtherMax] = {};   ///< the other conductor's notes as they sound, Hz (listenTo()): slots and Overlap,
+                                       ///< then another instrument's (hearAlso())
     int    m_otherCount = 0;        ///< how many of them (0: it hears no other)
+    int    m_heardCount = 0;        ///< of them, the last ones another instrument sounds (hearAlso()); 0 without
     mutable Rng
         m_rng;   ///< the conductor's own random stream, seeded by reset(); mutable so that chooseNote() can add its little life while const
     static constexpr int Ring = 16;   ///< places in the deja-vu ring; Loop may use fewer

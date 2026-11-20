@@ -17,10 +17,16 @@
  *   /family/hello   s s i       instrument, instance, role (0 off, 1 lead, 2 follow)     every second
  *   /family/key     s i s       instance, root pitch class, mode ("Aeolian", "JI Minor")  on a change, and every 2 s
  *   /family/section s s f i i   instance, kind (Intro Groove Build Drop Break Outro), energy 0..1, drop, shared bar
+ *   /family/notes   s i i f...  instance, sequence number, count, the notes in Hz     on a change, and every 0.5 s
  * @endcode
  * The shared bar is the bar of Ableton Link's timeline (the standalone) or of the host's play position (in a DAW):
  * the one bar line the instruments have in common, so a follower acts on exactly the bar the leader means. Without one
  * (-1) it acts when the message arrives.
+ *
+ * **The leader's notes** (plan E3, 20.11.2026; JamNotes.h): a pitched leader also says the notes its conductors sound.
+ * A follower takes them only while its "Hear leader" is on (Settings::jamHear, off by default) and hands them to its
+ * conductors as further notes of another; with it off nothing a follower plays changes. Late, doubled and malformed
+ * messages are ignored, and the notes are forgotten two seconds after the last one.
  *
  * **Threads.** The audio thread posts (lead) and reads (follow) through wait-free rings and atomics; the bus's own
  * thread owns the socket, sends what was posted and decodes what arrives. Nothing here allocates or locks on the
@@ -28,6 +34,7 @@
  * @author Rene Weller
  */
 #include "Frame.h"
+#include "JamNotes.h"
 #include <juce_core/juce_core.h>
 #include <array>
 #include <atomic>
@@ -121,6 +128,14 @@ public:
      * @pre called on the audio thread
      */
     void postKey( int root, const char *mode );
+    /**
+     * @brief Audio thread: the notes this instrument's conductors sound now, in Hz (plan E3); posted when they differ
+     *        from the set posted last, sent at once and again every JamNotes::RepeatMs while leading.
+     * @param[in] hz  the notes (at most JamNotes::MaxNotes are taken)
+     * @param[in] n   how many
+     * @pre called on the audio thread
+     */
+    void postNotes( const float *hz, int n );
 
     // ---- following: the bus's thread receives, the audio thread reads
     /**
@@ -131,6 +146,25 @@ public:
      * @pre called on the audio thread
      */
     JamState stateAt( double sharedBeat );
+    /**
+     * @brief Message thread: whether a follower hears the leader's notes (Settings::jamHear); off forgets them.
+     * @param[in] on  true to hear them
+     * @pre called on the message thread
+     */
+    void setHear( bool on ) { m_hear.store( on, std::memory_order_relaxed ); }
+    /**
+     * @brief Whether the leader's notes are heard (setHear()).
+     * @return true when they are
+     */
+    bool hearing() const { return m_hear.load( std::memory_order_relaxed ); }
+    /**
+     * @brief Audio thread, once a block: the leader's sounding notes as a follower that hears them holds them now --
+     *        none unless following with setHear() on, none two seconds after the last message (plan E3).
+     * @param[out] hz  receives the notes, Hz (room for JamNotes::MaxNotes)
+     * @return how many
+     * @pre called on the audio thread
+     */
+    int leaderNotes( double *hz );
     /**
      * @brief Message thread: the leader's mode as it said it last ("" when none), for the key it composes next.
      * @return the leader's mode, empty when none was heard
@@ -207,6 +241,17 @@ private:
         }
     };
 
+    /** @brief One set of the leader's notes on its way to the audio thread, with its arrival. */
+    struct NotesIn
+    {
+        JamNotes m_notes;       ///< the set
+        int64_t  m_atMs = 0;    ///< when it arrived (Time::currentTimeMillis)
+    };
+    /**
+     * @brief Bus thread: sends the leader's notes as the next numbered message.
+     */
+    void sendNotes();
+
     /** @brief The bus's thread: sends what was posted, reads what arrives, says hello every second. */
     void run() override;
     /**
@@ -252,6 +297,19 @@ private:
     juce::String                  m_leaderId;      ///< its instance
     juce::String                  m_leaderMode;    ///< its mode
     std::map<juce::String, std::pair<int, int64_t>> m_peers;   ///< instance -> (role, last heard): for the status line
+    // ---- the leader's notes (plan E3)
+    std::atomic<bool>  m_hear{ false };        ///< a follower hears the leader's notes (Settings::jamHear)
+    Ring<JamNotes, 8>  m_notesOut;             ///< audio thread -> bus thread: a leader's sets as they change
+    Ring<NotesIn, 8>   m_notesIn;              ///< bus thread -> audio thread: the sets a follower took
+    JamNotes           m_postedNotes;          ///< audio thread: the set posted last
+    bool               m_notesDirty = true;    ///< audio thread: a set still to post (the ring was full)
+    JamNotesHeld       m_heldNotes;            ///< audio thread: what a follower holds of the leader's notes
+    std::atomic<int>   m_heardCount{ 0 };      ///< audio thread -> message thread: how many it holds, for the status
+    JamNotes           m_sentNotes;            ///< bus thread: the set a leader sends, again every RepeatMs
+    bool               m_haveNotes = false;    ///< bus thread: whether m_sentNotes is one
+    int32_t            m_notesSeq = 0;         ///< bus thread: the next message's sequence number
+    int64_t            m_notesSentMs = 0;      ///< bus thread: when the notes went out last
+    JamNotesOrder      m_notesOrder;           ///< bus thread: a follower's filter on the leader's numbers
 };
 
 }   // namespace frame

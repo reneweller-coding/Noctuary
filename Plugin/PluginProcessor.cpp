@@ -218,6 +218,7 @@ void NoctuaryProcessor::linkTick()
     m_link.tick();
     // The family jam (02.10.2026, Jam.h): the role from the settings.
     m_jam.setRole( frame::Settings::of( "Noctuary" ).jamRole() );
+    m_jam.setHear( frame::Settings::of( "Noctuary" ).jamHear() );   // "Hear leader" (plan E3): off by default
     if ( const char *logFile = std::getenv( "FAMILY_JAM_LOG" ) )
     {   // a test aid: what the jam does, whenever it changes
         const juce::String line = m_jam.status() + "; root " + juce::String( live().brainRoot() % 12 );
@@ -851,10 +852,14 @@ void NoctuaryProcessor::renderBlock( juce::AudioBuffer<float> &buffer, juce::Mid
         {
             const frame::JamState js = m_jam.stateAt( -1.0 );
             e.setJam( js.m_root, js.m_root >= 0 ? js.m_energy : -1.0f );
+            double    heard[frame::JamNotes::MaxNotes];   // the leader's notes, while "Hear leader" is on (plan E3)
+            const int n = m_jam.leaderNotes( heard );
+            e.setJamHeard( heard, n );
         }
         else
         {
             e.setJam( -1, -1.0f );
+            e.setJamHeard( nullptr, 0 );
             if ( m_jam.role() == frame::Settings::JamRoleE::LEAD )
             {
                 const int pc = ( ( e.brainRoot() % 12 ) + 12 ) % 12;
@@ -865,6 +870,9 @@ void NoctuaryProcessor::renderBlock( juce::AudioBuffer<float> &buffer, juce::Mid
                     m_jamLeadKey = pc * 16 + tuning;
                     m_jam.postKey( pc, ambient::ScaleNames[tuning] );
                 }
+                float     notes[frame::JamNotes::MaxNotes];   // and the notes its conductors sound (plan E3)
+                const int n = e.jamNotes( notes, frame::JamNotes::MaxNotes );
+                m_jam.postNotes( notes, n );
             }
             else
             {

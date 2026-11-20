@@ -144,9 +144,13 @@ public:
      * @param[in] dt        the step in seconds (the render's control block, typically)
      * @param[in] sink      receives (time, conductor 1/2/3, event) for every note on and off
      * @param[in] rootSink  receives (time, root note) at the start and at every root change; may be empty
+     * @param[in] listen    called at the start of every step with the audit's clock (plan E3: the offline jam sets the
+     *                      leader's root and notes there, setJam() and setJamHeard(), and reads a leader's jamNotes());
+     *                      a root set by setJam() is followed as process() follows it. May be empty
      */
     void auditConductor( double seconds, double dt, const std::function<void( double, int, const BrainEvent & )> &sink,
-                         const std::function<void( double, int )> &rootSink );
+                         const std::function<void( double, int )> &rootSink,
+                         const std::function<void( double )>      &listen = nullptr );
     /**
      * @brief Which arrival repairs the two conductors play with (BrainParams::m_arrive): a sum of the
      *        BrainParams::Arrive bits, 0 for none -- the conductor as it was, which is the default.
@@ -283,6 +287,28 @@ public:
         m_jamRoot = rootPc;
         m_jamEnergy = energy;
     }
+    /**
+     * @brief The family jam's leader heard (plan E3, 20.11.2026), audio thread: the notes another instrument sounds,
+     *        weighed by both conductors as each weighs the other's (ClusterBrain::hearAlso) until the next call. A
+     *        follower whose "Hear leader" is on hands the leader's notes here every block; nothing else calls it, and
+     *        with @p n 0 the conductors choose as they always did.
+     * @param[in] hz  the notes, Hz
+     * @param[in] n   how many (at most ClusterBrain::HeardMax are kept)
+     */
+    void setJamHeard( const double *hz, int n )
+    {
+        m_jamHeardCount = hz != nullptr ? std::clamp( n, 0, ClusterBrain::HeardMax ) : 0;
+        for ( int k = 0; k < m_jamHeardCount; ++k ) m_jamHeard[k] = hz[k];
+    }
+    /**
+     * @brief The notes both conductors sound now, in Hz, as another conductor would hear them (plan E3): the first's,
+     *        then the second's while it is on (ClusterBrain::soundingHz). What a leader of the family jam sends.
+     * @param[out] hz   receives the notes
+     * @param[in]  cap  room in @p hz
+     * @return how many
+     * @pre the audio thread, between blocks (or the audit's own thread)
+     */
+    int jamNotes( float *hz, int cap ) const;
     /** @} */
     /** @brief Autoplay: exchange a voice of the cluster now, whatever its timer says. Any thread. */
     void autoplayStep() { m_autoStepAsked.store( true, std::memory_order_relaxed ); }
@@ -2469,6 +2495,10 @@ private:
     int              m_jamRoot = -1;        ///< the family jam's root (setJam), a pitch class; -1: none
     float            m_jamEnergy = -1.0f;   ///< the family jam's energy (setJam); negative: none
     float m_jamCutoff = 1.0f;   ///< the factor on the voices' cutoff the jam's energy asks for, glided (readParams)
+    double m_jamHeard[ClusterBrain::HeardMax] = {};   ///< the jam leader's notes, Hz (setJamHeard)
+    int    m_jamHeardCount = 0;                       ///< how many; 0 unless a follower hears the leader
+    /** @brief The family jam: the first conductor's root moved onto the leader's pitch class (setJam), the nearest. */
+    void followJamRoot();
     std::atomic<float> m_arcValue{ 0.0f };    ///< the arc times its Amount, for arcValue()
     std::atomic<float> m_noteDistance[128];   ///< per note, the distance of the voice sounding it, -1 for none
     std::atomic<float> m_noteLevel[128];      ///< per note, the loudest sounding voice's envelope level, 0 for none

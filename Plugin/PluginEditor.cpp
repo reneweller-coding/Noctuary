@@ -4017,6 +4017,7 @@ void NoctuaryEditor::showSettings()
     m.m_cueStatus = [this]
     { return m_proc.cueStatus(); };   // score cues for a visualiser, plugin and standalone (02.10.2026)
     m.m_jamStatus = [this] { return m_proc.jamStatus(); };   // the family jam (02.10.2026)
+    m.m_jamHear = true;                                      // and "Hear leader" (plan E3)
     m.m_headsetStatus = [this]
     {
         if ( !m_proc.oscRunning() ) return juce::String( "OSC off: " ) + m_proc.oscError();

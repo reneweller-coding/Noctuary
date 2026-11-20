@@ -4,7 +4,8 @@
  *
  * @code
  *   ambient_brain_audit [--preset "name"] [--presets file] [--set key=value]... [--hours 1] [--dt 0.005] [--seed N]
- *                       [--arrive N]
+ *                       [--arrive N] [--jam-lead FILE | --jam-follow FILE [--jam-hear 0|1] [--jam-seed N]
+ *                       [--jam-loss P]]
  *   ambient_brain_audit --ear-calibrate | --ear-bench
  * @endcode
  *
@@ -36,6 +37,14 @@
  * each preset line. Tools/library/ear_audit.py reads it. `--ear-calibrate` prints the standard deviations the tension
  * is scaled by and the tension of every interval from the unison to two octaves in five registers; `--ear-bench`
  * times noteTension().
+ *
+ * The family jam offline (plan E3, 20.11.2026; JamSim.h): `--jam-lead FILE` writes, as a leader's audio thread posts
+ * them, every change of the conductor's root and of the notes both conductors sound (Engine::jamNotes) as lines
+ * `L,<seconds>,<root>,<count>,<Hz>...`; `--jam-follow FILE` plays this engine as a follower of such a file -- the
+ * leader's bus, a network that loses `--jam-loss` of the datagrams (default 0.05) and delays and reorders them
+ * (`--jam-seed`, default 1), and the follower's side of Jam.cpp -- its root held on the leader's (setJam) and, with
+ * `--jam-hear 1` ("Hear leader"), the leader's notes heard (setJamHeard). A line `# jam ...` (JamSim::summary) ends
+ * each preset's lines. The other instrument's audit (Empyrean's additiv_brain_audit) reads and writes the same file.
  * @author Rene Weller
  */
 #include "ambient/Engine.h"
@@ -43,6 +52,7 @@
 #include "ambient/Params.h"
 #include "ambient/Presets.h"
 #include "ambient/ClusterBrain.h"
+#include "JamSim.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -155,6 +165,9 @@ int main( int argc, char **argv )
                                                        : -1;   // -1: the engine's own default
     std::vector<std::string>                         presetNames;
     std::vector<std::pair<std::string, std::string>> sets;
+    std::string                                      jamLead, jamFollow;   // plan E3: the offline jam
+    int                                              jamHear = 0;
+    frame::JamNetwork                                net;
     for ( int i = 1; i < argc; ++i )
     {
         const std::string a = argv[i];
@@ -184,6 +197,16 @@ int main( int argc, char **argv )
             seed = std::atoll( next().c_str() );
         else if ( a == "--arrive" )
             arrive = std::atoi( next().c_str() );
+        else if ( a == "--jam-lead" )
+            jamLead = next();
+        else if ( a == "--jam-follow" )
+            jamFollow = next();
+        else if ( a == "--jam-hear" )
+            jamHear = std::atoi( next().c_str() );
+        else if ( a == "--jam-seed" )
+            net.m_seed = std::strtoull( next().c_str(), nullptr, 10 );
+        else if ( a == "--jam-loss" )
+            net.m_loss = std::atof( next().c_str() );
         else if ( a == "--ear-calibrate" )
         {
             earCalibrate();
@@ -231,6 +254,18 @@ int main( int argc, char **argv )
         presetIndices.push_back( presetIndex );
     }
     if ( presetIndices.empty() ) presetIndices.push_back( -1 );   // no preset: the defaults
+    std::vector<frame::JamLeadPost> jamPosts;
+    if ( !jamFollow.empty() && !frame::readJamLeadPosts( jamFollow.c_str(), jamPosts ) )
+    {
+        std::fprintf( stderr, "cannot read %s\n", jamFollow.c_str() );
+        return 2;
+    }
+    std::FILE *jamOut = jamLead.empty() ? nullptr : std::fopen( jamLead.c_str(), "w" );
+    if ( !jamLead.empty() && jamOut == nullptr )
+    {
+        std::fprintf( stderr, "cannot write %s\n", jamLead.c_str() );
+        return 2;
+    }
     // With AMBIENT_BRAIN_TRACE set, every stamp of the constellation memory and every verdict it
     // gives is printed as T,\<seconds\>,\<what\>,\<note\>,\<key\>: how a repeat is traced to its cause.
     static double now = 0.0;
@@ -316,6 +351,39 @@ int main( int argc, char **argv )
         // With a just scale on D the two differ for some keys, and an audit that counted MIDI numbers
         // reported constellations coming back that never did.
         Engine *eng = engine.get();
+        // The offline jam (plan E3): as a leader, its posts; as a follower, what the network brings it.
+        std::unique_ptr<frame::JamSim> sim;
+        if ( !jamPosts.empty() ) sim = std::make_unique<frame::JamSim>( jamPosts, hours * 3600.0, net, jamHear != 0 );
+        int                            root = -1;
+        frame::JamLeadPost             posted;
+        bool                           havePosted = false;
+        std::function<void( double )> listen;
+        if ( jamOut != nullptr || sim )
+            listen = [&]( double t )
+            {
+                if ( jamOut != nullptr )
+                {
+                    frame::JamLeadPost p;
+                    p.m_t = t;
+                    p.m_root = ( ( root % 12 ) + 12 ) % 12;
+                    p.m_notes.m_count = eng->jamNotes( p.m_notes.m_hz, frame::JamNotes::MaxNotes );
+                    if ( !havePosted || p.m_root != posted.m_root || !p.m_notes.sameNotes( posted.m_notes ) )
+                    {
+                        frame::writeJamLeadPost( jamOut, p );
+                        posted = p;
+                        havePosted = true;
+                    }
+                }
+                if ( sim )
+                {
+                    sim->advance( t );
+                    const int r = sim->root( t );
+                    eng->setJam( r, r >= 0 ? 0.5f : -1.0f );   // JamState's energy when the leader sends no sections
+                    double    hz[frame::JamNotes::MaxNotes];
+                    const int n = sim->notes( t, hz );
+                    eng->setJamHeard( hz, n );
+                }
+            };
         engine->auditConductor(
             hours * 3600.0, dt,
             [eng]( double t, int which, const BrainEvent &e )
@@ -326,11 +394,15 @@ int main( int argc, char **argv )
                 std::printf( "E,%.4f,%d,%d,%d,%.3f,%d,%.3f\n", t, which, e.m_type == BrainEvent::TypeE::NOTE_ON ? 1 : 0,
                              e.m_note, static_cast<double>( e.m_velocity ), pc, hz );
             },
-            []( double t, int root )
+            [&root]( double t, int r )
             {
                 now = t;
-                std::printf( "R,%.4f,%d\n", t, root );
-            } );
+                root = r;
+                std::printf( "R,%.4f,%d\n", t, r );
+            },
+            listen );
+        if ( sim ) std::printf( "%s\n", sim->summary().c_str() );
     }
+    if ( jamOut != nullptr ) std::fclose( jamOut );
     return 0;
 }

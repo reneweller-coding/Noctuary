@@ -587,6 +587,17 @@ public:
      */
     void setJamRole( JamRoleE r );
     /**
+     * @brief Whether a follower hears the leader's notes ("Hear leader", plan E3, 20.11.2026): its conductors weigh
+     *        their choices against the notes the leader sounds too. Off by default; no preset sets it.
+     * @return true when the leader's notes are heard
+     */
+    bool jamHear() const;
+    /**
+     * @brief Hears the leader's notes or stops; written at once.
+     * @param[in] on  true to hear them
+     */
+    void setJamHear( bool on );
+    /**
      * @brief The instrument's name, as given to of().
      * @return the instrument's name
      */
@@ -634,6 +645,7 @@ struct SettingsMenu
     std::function<juce::String()> m_cueStatus;   ///< the score cues' switch, with a line on them (empty: no item)
     std::function<juce::String()>
         m_jamStatus;                         ///< the family jam's roles, with a line on what is heard (empty: no item)
+    bool m_jamHear = false;   ///< the family jam's submenu offers "Hear leader" (an instrument whose conductors can)
     std::function<juce::String()> m_about;   ///< more lines for "About"
     std::function<void()>         m_showAbout;   ///< the instrument's own About (replaces the frame's)
     /**

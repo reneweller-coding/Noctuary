@@ -116,9 +116,8 @@ void Engine::adoptCluster( const int *notes, const float *vels, int count, bool 
     if ( on && count < want ) ( second ? m_brain2 : m_brain ).requestFill();
 }
 
-void Engine::process( float *L, float *R, int n )
+void Engine::followJamRoot()
 {
-    m_blocksBegun.fetch_add( 1, std::memory_order_acq_rel );
     // The family jam (02.10.2026): the conductor's root on the leader's pitch class, the nearest such note to its own.
     if ( m_jamRoot >= 0 && ( ( m_brain.root() % 12 ) + 12 ) % 12 != m_jamRoot )
     {
@@ -127,6 +126,26 @@ void Engine::process( float *L, float *R, int n )
         if ( d > 6 ) d -= 12;
         m_brain.setRoot( r + d );
     }
+}
+
+int Engine::jamNotes( float *hz, int cap ) const
+{
+    auto   freqOf = [this]( int note ) { return frequencyOf( note ); };
+    double one[2 * ClusterBrain::Slots];
+    int    n = 0;
+    for ( int k = 0; k < 2; ++k )
+    {
+        if ( k == 1 && !m_brain2On ) break;
+        const int got = ( k == 0 ? m_brain : m_brain2 ).soundingHz( one, 2 * ClusterBrain::Slots, freqOf );
+        for ( int i = 0; i < got && n < cap; ++i ) hz[n++] = static_cast<float>( one[i] );
+    }
+    return n;
+}
+
+void Engine::process( float *L, float *R, int n )
+{
+    m_blocksBegun.fetch_add( 1, std::memory_order_acq_rel );
+    followJamRoot();
 #if AMBIENT_HAS_MXCSR
     const unsigned int savedCsr = _mm_getcsr();
     _mm_setcsr( savedCsr | 0x8040 );   // flush-to-zero + denormals-are-zero
@@ -510,6 +529,7 @@ void Engine::renderChunk( float *L, float *R, int n )
             }
             // the two conductors hear each other (19.11.2026): each weighs its choices against the other's notes too
             m_brain.listenTo( m_brain2On ? &m_brain2 : nullptr, freqOf );
+            m_brain.hearAlso( m_jamHeard, m_jamHeardCount );   // the jam's leader, when heard (plan E3)
             if ( syncOn( m_brainQuant ) && m_running )
             {
                 m_quantAcc += dt;
@@ -532,6 +552,7 @@ void Engine::renderChunk( float *L, float *R, int n )
             {
                 m_brain2.setRoot( clampv( m_brain.root() + m_brain2Interval, 0, 127 ) );
                 m_brain2.listenTo( &m_brain, freqOf );
+                m_brain2.hearAlso( m_jamHeard, m_jamHeardCount );
                 m_brain2.update( dt, m_bp2, -1, freqOf, emit2 );
             }
             stepNear( dt, [this]( const NearNote &e ) { nearEmit( e ); } );
@@ -1551,7 +1572,8 @@ namespace ambient
  */
 void Engine::auditConductor( double seconds, double dt,
                              const std::function<void( double, int, const BrainEvent & )> &sink,
-                             const std::function<void( double, int )>                     &rootSink )
+                             const std::function<void( double, int )>                     &rootSink,
+                             const std::function<void( double )>                          &listen )
 {
     readParams();
     auto   freqOf = [this]( int note ) { return frequencyOf( note ); };
@@ -1561,6 +1583,11 @@ void Engine::auditConductor( double seconds, double dt,
     const long steps = static_cast<long>( seconds / dt );
     for ( long i = 0; i < steps; ++i )
     {
+        if ( listen )
+        {   // the offline jam (plan E3): the leader's root and notes as a follower holds them at this moment
+            listen( t );
+            followJamRoot();
+        }
         {
             const BrainParams *bpNow = &m_bp;
             BrainParams        bpSlow;
@@ -1571,11 +1598,13 @@ void Engine::auditConductor( double seconds, double dt,
                 bpNow = &bpSlow;
             }
             m_brain.listenTo( m_brain2On ? &m_brain2 : nullptr, freqOf );
+            m_brain.hearAlso( m_jamHeard, m_jamHeardCount );   // the jam's leader, when heard (plan E3)
             m_brain.update( dt, *bpNow, -1, freqOf, [&]( const BrainEvent &e ) { sink( t, 1, e ); } );
             if ( m_brain2On )
             {
                 m_brain2.setRoot( clampv( m_brain.root() + m_brain2Interval, 0, 127 ) );
                 m_brain2.listenTo( &m_brain, freqOf );
+                m_brain2.hearAlso( m_jamHeard, m_jamHeardCount );
                 m_brain2.update( dt, m_bp2, -1, freqOf, [&]( const BrainEvent &e ) { sink( t, 2, e ); } );
             }
         }
