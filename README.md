@@ -243,6 +243,13 @@ some of them — numbers, ranges or parts of a name, comma-separated — so a ch
 needs `--only conductor`, not the whole run. Every run prints each test's wall time and the five
 slowest.
 
+`Tools/library/music_audit.py` plays both conductors for an hour over library presets without audio
+(`ambient_brain_audit`) and counts the musical faults found by ear — rubs inside a conductor and
+between the two, one doubling the other's note, a pitch struck again soon after it was let go, notes
+shorter than their own attack — in cents of what the tuning plays. The ctest `music_audit` (label
+`slow`) checks a fixed sample of 200 against `Tests/golden/music_audit.json`; `--update` writes it
+again, `--all` measures the whole library.
+
 ```bash
 build/Tests/Release/ambient_selftest.exe
 build/Tests/Release/ambient_selftest.exe --list

@@ -56,6 +56,16 @@ if(AMBIENT_BUILD_TOOLS)
     family_doccheck()   # every entity documented (cmake/Family.cmake, 01.10.2026)
     add_subdirectory(Tools/render)
     family_soundcheck(ambient_render)   # the sound regression check (Tools/soundcheck.py, 02.10.2026)
+    # The music audit (20.11.2026): both conductors an hour over a fixed sample of 200 library presets, without audio,
+    # measured for the faults found by ear (rubs, doublings, notes struck again, notes shorter than their attack) and
+    # checked against Tests/golden/music_audit.json. Labelled slow: about two minutes on eight cores.
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND AND TARGET ambient_brain_audit)
+        add_test(NAME music_audit COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/library/music_audit.py"
+                 --check "${CMAKE_SOURCE_DIR}/Tests/golden/music_audit.json" --exe "$<TARGET_FILE:ambient_brain_audit>"
+                 --tsv "${CMAKE_BINARY_DIR}/music_audit/check.tsv")
+        set_tests_properties(music_audit PROPERTIES LABELS "slow" TIMEOUT 1800)
+    endif()
 endif()
 
 if(AMBIENT_BUILD_PLUGIN)
