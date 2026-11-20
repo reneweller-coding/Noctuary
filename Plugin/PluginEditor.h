@@ -837,6 +837,60 @@ private:
     NoctuaryProcessor  &m_proc;             ///< the processor this editor shows
     NoctuaryLookAndFeel m_laf;              ///< the editor's look
     float               m_scale = 1.0f;     ///< window size / design size
+    juce::AffineTransform m_toWindow;       ///< design space to the editor: the scale, and the margin that centres it
+    /**
+     * @brief The window's constrainer: the design's aspect ratio while the window is a window, nothing while it fills
+     *        the screen (maximised or in full screen), where the screen's shape is what there is and the page fits into
+     *        it instead (20.11.2026: maximised on a wide screen the fixed ratio made the window taller than the
+     *        screen, and the lower half of the panel was below its edge).
+     */
+    class FitConstrainer final : public juce::ComponentBoundsConstrainer
+    {
+    public:
+        /**
+         * @brief The constrainer of @p editor's window.
+         * @param[in] editor  the editor whose window it constrains
+         */
+        explicit FitConstrainer( NoctuaryEditor &editor ) : m_editor( editor ) {}
+        /**
+         * @brief The base class's rules, or none while the editor fills the screen.
+         * @param[in,out] bounds              the bounds asked for, changed to the bounds allowed
+         * @param[in]     previousBounds      the bounds before
+         * @param[in]     limits              the area the component must stay in
+         * @param[in]     isStretchingTop     the top edge is being dragged
+         * @param[in]     isStretchingLeft    the left edge is being dragged
+         * @param[in]     isStretchingBottom  the bottom edge is being dragged
+         * @param[in]     isStretchingRight   the right edge is being dragged
+         */
+        void checkBounds( juce::Rectangle<int> &bounds, const juce::Rectangle<int> &previousBounds,
+                          const juce::Rectangle<int> &limits, bool isStretchingTop, bool isStretchingLeft,
+                          bool isStretchingBottom, bool isStretchingRight ) override;
+
+    private:
+        NoctuaryEditor &m_editor;   ///< whose window
+    };
+    FitConstrainer m_fitConstrainer{ *this };   ///< the editor's constrainer (setConstrainer in the constructor)
+    /**
+     * @brief Whether the editor fills the screen: its standalone window maximised or in full screen. Never in a host,
+     *        whose window is the host's.
+     * @return true while the window takes the whole screen
+     */
+    bool fillsScreen() const;
+    /**
+     * @brief How the groups of the tabbed page stand in columns. 0: the layout's own (two columns); 1: wide, three
+     *        columns -- the voice; the effects, the cosmos and the spectrum; the morph and the conductor. Wide is only
+     *        ever chosen while the window fills a screen whose shape it suits better (resized), so a window that is a
+     *        window always has the arrangement it had before.
+     */
+    int m_arrangement = 0;
+    /** @brief Each group's column and stretch in the layout's own arrangement, kept so the wide one can be undone. */
+    std::vector<std::pair<int, bool>> m_ownColumns;
+    bool m_wasFull = false;   ///< the editor filled the screen at the last resized (to notice the window coming back)
+    /**
+     * @brief Puts the groups of the tabbed page into arrangement @p a (see m_arrangement). Lays nothing out.
+     * @param[in] a  0 the layout's own, 1 wide
+     */
+    void setArrangement( int a );
     int                 m_designW = 1400,   ///< the design width the body is laid out at
         m_designH = 820;                    ///< measured from the layout, not guessed
     int m_bodyW = 0,                        ///< what the body needs across, from the last layoutBody

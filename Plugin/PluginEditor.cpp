@@ -583,6 +583,10 @@ NoctuaryEditor::NoctuaryEditor( NoctuaryProcessor &p ) : AudioProcessorEditor( p
 
     // Free scaling: the corner is the zoom. The ratio is fixed so the arrangement never changes,
     // only its size, and the window opens at whatever fraction of the screen actually fits.
+    // Maximised, the screen's shape is what there is: the constrainer lets go of the ratio and the
+    // page fits into the screen, on a wide one in three columns (FitConstrainer, resized).
+    for ( const auto &g : m_groups ) m_ownColumns.emplace_back( g.m_column, g.m_stretch );
+    setConstrainer( &m_fitConstrainer );
     setResizable( true, true );
     layoutBody();   // measure once: the design size is what the body needs
     // Width and height: exactly what header, body and modulation strip need, so nothing scrolls.
@@ -1466,11 +1470,69 @@ void NoctuaryEditor::resized()
 {
     // Measure the body first: the design width is whatever it needs, so the right-hand column can
     // never fall off the edge, and the scale follows from that.
-    layoutBody();
-    m_designW = std::max( MinDesignW, m_bodyW );
-    m_designH = std::max( MinDesignH, HeaderH + m_bodyH + StripH );
-    m_scale = juce::jmax( 0.05f, static_cast<float>( getWidth() ) / static_cast<float>( m_designW ) );
-    const auto tf = juce::AffineTransform::scale( m_scale );
+    const bool full = fillsScreen();
+    const auto measure = [this]
+    {
+        layoutBody();
+        m_designW = std::max( MinDesignW, m_bodyW );
+        m_designH = std::max( MinDesignH, HeaderH + m_bodyH + StripH );
+    };
+    const auto fitScale = [this]
+    {
+        return juce::jmax( 0.05f, juce::jmin( static_cast<float>( getWidth() ) / static_cast<float>( m_designW ),
+                                              static_cast<float>( getHeight() ) / static_cast<float>( m_designH ) ) );
+    };
+    // Filling the screen, the tabbed page stands in whichever arrangement the screen shows larger: on a screen
+    // much wider than the page's own shape that is three columns (20.11.2026: on a 32:9 screen two columns came
+    // out at 1.2 screen pixels a design pixel and three come out at 1.5).
+    int arrangement = 0;
+    if ( full && !m_expanded && !m_ownColumns.empty() )
+    {
+        float best = 0.0f;
+        for ( int a : { 0, 1 } )
+        {
+            setArrangement( a );
+            measure();
+            if ( fitScale() > best * 1.02f )
+            {
+                best = fitScale();
+                arrangement = a;
+            }
+        }
+    }
+    setArrangement( arrangement );
+    measure();
+    // A window is scaled by its width, as it always was (its shape is the design's); a screen-filling one fits
+    // whole, and the margin the other way is shared out on both sides.
+    float dx = 0.0f, dy = 0.0f;
+    if ( full )
+    {
+        m_scale = fitScale();
+        dx = 0.5f * ( static_cast<float>( getWidth() ) - m_scale * static_cast<float>( m_designW ) );
+        dy = 0.5f * ( static_cast<float>( getHeight() ) - m_scale * static_cast<float>( m_designH ) );
+    }
+    else
+        m_scale = juce::jmax( 0.05f, static_cast<float>( getWidth() ) / static_cast<float>( m_designW ) );
+    m_toWindow = juce::AffineTransform::scale( m_scale ).translated( std::max( 0.0f, dx ), std::max( 0.0f, dy ) );
+    const auto tf = m_toWindow;
+    // Back from the screen to a window: the ratio is the design's again, and the window takes it.
+    if ( m_wasFull && !full )
+    {
+        if ( auto *con = getConstrainer() )
+        {
+            con->setFixedAspectRatio( static_cast<double>( m_designW ) / static_cast<double>( m_designH ) );
+            con->setSizeLimits( m_designW / 3, m_designH / 3, m_designW * 2, m_designH * 2 );
+        }
+        juce::MessageManager::callAsync(
+            [safe = juce::Component::SafePointer<NoctuaryEditor>( this )]
+            {
+                if ( safe != nullptr && !safe->fillsScreen() )
+                    safe->setSize( safe->getWidth(), juce::roundToInt( safe->getWidth() *
+                                                                       static_cast<double>( safe->m_designH ) /
+                                                                       static_cast<double>( safe->m_designW ) ) );
+            } );
+    }
+    m_wasFull = full;
     // Every child is laid out in design coordinates and scaled to the window -- except the corner
     // resizer, which is JUCE's own and which JUCE places at the window's bottom right in window
     // coordinates (AudioProcessorEditor::editorResized). Scaling that one too moved it to
@@ -1528,8 +1590,16 @@ void NoctuaryEditor::resized()
     // The Master section (mid/side) sits in the header, left of the master knob.
     if ( Section *ms = findSection( "Master" ) )
     {
+        // Wide, the header has the room for all of it in one row; two rows hung its last knob over the morph below.
+        if ( m_arrangement == 1 ) ms->m_maxUnits = 64;
         layoutSection( *ms, W - 74 - sectionWidth( *ms ) - 6, 4 );
         ms->m_bounds = ms->m_bounds.withTrimmedTop( -2 );
+        if ( m_arrangement == 1 )
+        {
+            const int w = juce::jmax( 160, ms->m_bounds.getX() - 16 - W / 2 );
+            m_keys = { W / 2, 44, w, 24 };
+            if ( m_outputView ) m_outputView->setBounds( W / 2, 74, w, HeaderH - 92 );
+        }
     }
 
     // Everything else scrolls below the header.
@@ -1574,6 +1644,14 @@ void NoctuaryEditor::applyLayoutMode( int mode )
 void NoctuaryEditor::rebuildLayout()
 {
     resized();
+    // Filling the screen, the window keeps the screen's shape and the page fits into it (resized); the ratio is set
+    // again when the window comes back.
+    if ( fillsScreen() )
+    {
+        m_content.repaint();
+        repaint();
+        return;
+    }
     // The design's shape has changed, so the window has to follow: keep the width, take the new
     // height from the new ratio, and tell the constrainer about it or the corner would fight it.
     if ( auto *con = getConstrainer() )
@@ -1585,6 +1663,54 @@ void NoctuaryEditor::rebuildLayout()
              juce::roundToInt( getWidth() * static_cast<double>( m_designH ) / static_cast<double>( m_designW ) ) );
     m_content.repaint();
     repaint();
+}
+
+bool NoctuaryEditor::fillsScreen() const
+{
+    if ( juce::Desktop::getInstance().getKioskModeComponent() != nullptr ) return true;
+    // Only the standalone's own window; in a host there is no ResizableWindow above the editor.
+    if ( !juce::JUCEApplicationBase::isStandaloneApp() ) return false;
+    if ( auto *w = findParentComponentOfClass<juce::ResizableWindow>() ) return w->isFullScreen();
+    return false;
+}
+
+void NoctuaryEditor::FitConstrainer::checkBounds( juce::Rectangle<int> &bounds,
+                                                  const juce::Rectangle<int> &previousBounds,
+                                                  const juce::Rectangle<int> &limits, bool isStretchingTop,
+                                                  bool isStretchingLeft, bool isStretchingBottom,
+                                                  bool isStretchingRight )
+{
+    if ( m_editor.fillsScreen() ) return;   // the screen's shape: the page fits into it (resized)
+    juce::ComponentBoundsConstrainer::checkBounds( bounds, previousBounds, limits, isStretchingTop, isStretchingLeft,
+                                                   isStretchingBottom, isStretchingRight );
+}
+
+void NoctuaryEditor::setArrangement( int a )
+{
+    m_arrangement = a;
+    for ( size_t i = 0; i < m_groups.size() && i < m_ownColumns.size(); ++i )
+    {
+        auto &g = m_groups[i];
+        g.m_column = m_ownColumns[i].first;
+        g.m_stretch = m_ownColumns[i].second;
+        if ( a != 1 ) continue;
+        // Wide: the voice alone on the left, its stage growing to the bottom; the effects, the cosmos and the
+        // spectrum (which takes what that column has over) in the middle; the morph above the conductor on the right.
+        if ( g.m_name == "VOICE" )
+        {
+            g.m_column = 0;
+            g.m_stretch = true;
+        }
+        else if ( g.m_name == "FOREGROUND" || g.m_name == "BACKGROUND" || g.m_name == "COSMOS" )
+            g.m_column = 1;
+        else if ( g.m_name == "ANALYSIS" )
+        {
+            g.m_column = 1;
+            g.m_stretch = true;
+        }
+        else if ( g.m_name == "MORPH" || g.m_name == "CONDUCTOR" )
+            g.m_column = 2;
+    }
 }
 
 void NoctuaryEditor::layoutBody()
@@ -4186,7 +4312,7 @@ void NoctuaryEditor::paint( juce::Graphics &g )
 {
     // Everything below is drawn in the design space; one transform scales the whole editor.
     g.fillAll( ui::Bg0 );
-    g.addTransform( juce::AffineTransform::scale( m_scale ) );
+    g.addTransform( m_toWindow );
     {   // a little vertical lift, so the window is not a flat grey field
         juce::ColourGradient sky( ui::Bg1, 0.0f, 0.0f, ui::Bg0, 0.0f, static_cast<float>( HeaderH * 3 ), false );
         g.setGradientFill( sky );

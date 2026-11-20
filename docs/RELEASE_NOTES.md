@@ -2,6 +2,20 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**Maximised, the page fits the screen, on a wide one in three columns** (20.11.2026). "Extremely small and hard to
+read when I start it maximised." On a 32:9 screen (7680 x 2160 at 150 %) the page, 1.7 to 1 and with its ratio fixed,
+could only be as tall as the screen: it stood in 45 % of the width, 1.2 screen pixels a design pixel, labels 9 pixels
+high and knobs 70 across. The maximise button made it worse: the window took the width, the fixed ratio made it 4627
+pixels tall on a 2160-pixel screen, and the lower 53 % of the panel -- the morph, the conductor's lower half, the
+modulation strip -- was below the edge. Maximised (or in full screen) the window now keeps the screen's shape and the
+page fits into it whole, centred; and where the screen is much wider than the page, the tabbed page (Normal and
+Compact) stands in three columns -- the voice; the effects, the cosmos and the spectrum; the morph and the conductor --
+at about 3 to 1. On that screen: 1.5 screen pixels a design pixel, labels 11 pixels, knobs 88, 82 % of the width in
+use, nothing cut off. Expanded fits whole too (it is a tall page and stays small on a wide screen). Back in a window
+the page is the one it was, with its ratio; the corner still only zooms. No parameter, preset or sound changed.
+`Tools/shoot_gui.ps1` starts the instrument muted and can maximise it (`-Maximize`, `-Restore`), choose the layout
+(`-Layout`) and put the user's settings back byte for byte (`-KeepSettings`).
+
 **Pitches, not keys: the rest of it** (20.11.2026). A test now checks the conductors' invariants in Hz over all thirteen
 tunings, Free and Chords, two conductors on one root, Blend, Deja Vu, Overlap and a rest after each release: no voice
 within 25 cents of one the same conductor sounds, none back inside its rest, no exchange onto the note it lets go, none

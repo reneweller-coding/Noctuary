@@ -224,7 +224,7 @@ void NoctuaryEditor::showDepthPopup( ModSourceE src, ParamIdE target, juce::Colo
     hideDepthPopup();
     m_depthPopup = std::make_unique<DepthPopup>( *this, src, target, c );
     addAndMakeVisible( *m_depthPopup );
-    m_depthPopup->setTransform( juce::AffineTransform::scale( m_scale ) );
+    m_depthPopup->setTransform( m_toWindow );
     const auto at = m_depthPopup->getLocalPoint( nullptr, screenAt.toFloat() );
     // Beside the knob, and inside the panel: a popup half off the edge is worse than none.
     const int w = m_depthPopup->getWidth(), h = m_depthPopup->getHeight();
