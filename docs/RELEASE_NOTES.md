@@ -2,6 +2,19 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**Who plays: the stage names the source of every note** (20.11.2026). Rene could not tell which part of the
+instrument had played a note he did not like. The stage now colours its dots by who plays them -- keys orange, the
+conductor blue, the second conductor violet, the near layer green (before, the second conductor and the near layer
+were drawn in the keys' orange) -- with a legend along its top, and lists beside the dots the last notes begun, newest
+on top: the time on the instrument's clock, the source in its colour and the note, a conductor's exchange as
+"D3 -> F3", the near layer with its kind (note, phrase, sequence step, ghost), a phrase's slide as a move too. A
+column at the stage's right in Normal, Compact and Pages, a box in its corner in Expanded, where the stage is narrow;
+no page grew. The engine writes each note into a ring of 32 atomics where notes begin and end, the same places that
+feed MIDI out: no lock, no allocation. The plane labels "conductor" and "conductor 2" no longer print over each
+other when the two planes stand at one depth. The selftest renders three minutes of both conductors and a near
+sequence with ghosts and compares the ticker with the note log: 546 of 546 notes the same in order, source, note and
+time (24 conductor, 13 Brain 2, 236 near onsets: 160 steps, 76 ghosts). No sound changed.
+
 **A fourth layout, Pages, after Empyrean's** (20.11.2026). "Could we consider an arrangement of the elements like
 Empyrean's?" Settings > Layout > Pages: a strip under the header names seventeen pages under five headings -- Sound,
 Space, Worlds, Conductor, Movement -- with a dot beside each that is lit while something on the page is on, and one

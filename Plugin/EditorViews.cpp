@@ -148,7 +148,82 @@ void NoctuaryEditor::BrainView::paint( juce::Graphics &g )
 
 juce::Rectangle<float> NoctuaryEditor::StageView::plotRect() const
 {
-    return getLocalBounds().toFloat().reduced( 12.0f, 8.0f ).withTrimmedTop( 14.0f );
+    const float tw = tickerWidth();
+    return getLocalBounds().toFloat().reduced( 12.0f, 8.0f ).withTrimmedTop( 14.0f ).withTrimmedRight(
+        tw > 0.0f ? tw + 8.0f : 0.0f );
+}
+
+float NoctuaryEditor::StageView::tickerWidth() const
+{
+    const float w = static_cast<float>( getWidth() );
+    return w >= 380.0f ? juce::jlimit( 180.0f, 210.0f, 0.42f * w ) : 0.0f;
+}
+
+juce::Colour NoctuaryEditor::StageView::ownerColour( int owner )
+{
+    switch ( owner )
+    {
+    case 1: return ui::VoiceCol;   // the conductor
+    case 2: return ui::BackCol;    // the second conductor
+    case 3: return ui::ForeCol;    // the near layer
+    default: return ui::Live;      // a key
+    }
+}
+
+void NoctuaryEditor::StageView::paintTicker( juce::Graphics &g, juce::Rectangle<float> box, int most )
+{
+    using TickerNote = ambient::Engine::TickerNote;
+    auto name = []( int n ) { return juce::MidiMessage::getMidiNoteName( n, true, true, 4 ); };
+    const juce::String arrow( juce::CharPointer_UTF8( " \xe2\x86\x92 " ) );
+    const juce::String dot( juce::CharPointer_UTF8( " \xc2\xb7 " ) );
+    g.setColour( ui::CardColour.darker( 0.25f ).withAlpha( 0.85f ) );
+    g.fillRoundedRectangle( box, 4.0f );
+    g.setFont( ui::body( 9.5f ) );
+    int shown = 0;
+    for ( int i = 0; i < m_tickerCount; ++i )
+        if ( m_ticker[i].m_on ) ++shown;
+    g.setColour( ui::Dim );
+    g.drawText( shown == 0 ? "who plays: nothing yet" : "who plays", box.withHeight( 15.0f ).reduced( 6.0f, 0.0f ),
+                juce::Justification::centredLeft, false );
+    const float lineH = 12.0f;
+    float       y = box.getY() + 16.0f;
+    int         lines = 0;
+    for ( int i = 0; i < m_tickerCount && lines < most; ++i )
+    {
+        const TickerNote &e = m_ticker[i];
+        if ( !e.m_on ) continue;   // the releases only make the moves: "D3 -> F3"
+        juce::String what = name( e.m_note );
+        if ( e.m_from >= 0 )
+            what = name( e.m_from ) + arrow + what;   // a phrase's slide
+        else if ( e.m_owner == 1 || e.m_owner == 2 )
+            for ( int k = 0; k < m_tickerCount; ++k )
+            {   // a conductor's exchange: a note of its own let go at the same moment
+                const TickerNote &o = m_ticker[k];
+                if ( !o.m_on && o.m_owner == e.m_owner && std::abs( o.m_seconds - e.m_seconds ) < 0.0005 )
+                {
+                    what = name( o.m_note ) + arrow + what;
+                    break;
+                }
+            }
+        static const char *Kinds[4] = { "note", "phrase", "sequence", "ghost" };
+        const juce::String who = e.m_owner == 1   ? juce::String( "Conductor" )
+                                 : e.m_owner == 2 ? juce::String( "Brain 2" )
+                                 : e.m_owner == 3 ? "Near" + ( e.m_kind >= 0 && e.m_kind < 4
+                                                                   ? dot + Kinds[e.m_kind]
+                                                                   : juce::String() )
+                                                  : juce::String( "Keys" );
+        const int  s = static_cast<int>( e.m_seconds );
+        const auto row = juce::Rectangle<float>( box.getX() + 6.0f, y, box.getWidth() - 10.0f, lineH );
+        g.setColour( ui::Dim );
+        g.drawText( juce::String( s / 60 ) + ":" + juce::String( s % 60 ).paddedLeft( '0', 2 ), row.withWidth( 30.0f ),
+                    juce::Justification::centredLeft, false );
+        g.setColour( ownerColour( e.m_owner ) );
+        g.drawText( who, row.withTrimmedLeft( 31.0f ).withWidth( 80.0f ), juce::Justification::centredLeft, true );
+        g.setColour( ui::Text.withAlpha( 0.85f ) );
+        g.drawText( what, row.withTrimmedLeft( 112.0f ), juce::Justification::centredLeft, true );
+        y += lineH;
+        ++lines;
+    }
 }
 
 namespace
@@ -232,17 +307,27 @@ void NoctuaryEditor::StageView::paint( juce::Graphics &g )
     // The planes: where the conductor, the keys and the second conductor stand in the room, each
     // a line a hand can take hold of. The one under the mouse brightens; the one being dragged
     // carries its value.
+    // Each in its owner's colour (the legend's); two planes at one depth put their names side by side
+    // (20.11.2026: "conductor" and "conductor 2" were written over each other).
+    juce::Rectangle<float> labels[3];
     for ( int i = 0; i < 3; ++i )
     {
         const float d = rawParam( m_proc, StagePlanes[i].m_key );
         const float y = plot.getBottom() - 8.0f - d * ( plot.getHeight() - 16.0f );
         const bool  hot = i == m_hoverLine || i == m_dragLine;
-        g.setColour( ( i == 1 ? ui::Live : ui::VoiceCol ).withAlpha( hot ? 0.9f : 0.35f ) );
+        const int   owner = i == 0 ? 1 : i == 1 ? 0 : 2;
+        g.setColour( ownerColour( owner ).withAlpha( hot ? 0.9f : 0.35f ) );
         g.drawLine( plot.getX() + 26.0f, y, plot.getRight() - 4.0f, y, hot ? 1.6f : 1.0f );
-        g.setFont( ui::body( 9.0f ) );
-        g.drawText( juce::String( StagePlanes[i].m_label ) + ( hot ? "  " + juce::String( d, 2 ) : juce::String() ),
-                    juce::roundToInt( plot.getRight() ) - 96, juce::roundToInt( y ) - 11, 92, 10,
-                    juce::Justification::centredRight, false );
+        const auto         font = ui::body( 9.0f );
+        const juce::String text =
+            juce::String( StagePlanes[i].m_label ) + ( hot ? "  " + juce::String( d, 2 ) : juce::String() );
+        const float tw = juce::GlyphArrangement::getStringWidth( font, text ) + 2.0f;
+        auto        box = juce::Rectangle<float>( plot.getRight() - 4.0f - tw, y - 11.0f, tw, 10.0f );
+        for ( int k = 0; k < i; ++k )
+            if ( labels[k].intersects( box ) ) box.setX( labels[k].getX() - tw - 8.0f );
+        labels[i] = box;
+        g.setFont( font );
+        g.drawText( text, box, juce::Justification::centredRight, false );
     }
     // The room: near plane at the bottom, far at the top, faint depth lines between.
     g.setColour( ui::Track.withAlpha( 0.5f ) );
@@ -295,7 +380,7 @@ void NoctuaryEditor::StageView::paint( juce::Graphics &g )
         const float        x = plot.getCentreX() + d->m_x * plot.getWidth() * 0.46f;
         const float        y = plot.getBottom() - 8.0f - d->m_y * ( plot.getHeight() - 16.0f );
         const float        rad = 3.0f + 9.0f * d->m_r;
-        const juce::Colour col = v.m_owner == 1 ? ui::VoiceCol : ui::Live;
+        const juce::Colour col = ownerColour( v.m_owner );   // whose: the legend above, the ticker beside
         g.setColour( col.withAlpha( 0.18f + 0.25f * d->m_r ) );
         g.fillEllipse( x - rad * 1.8f, y - rad * 1.8f, rad * 3.6f, rad * 3.6f );
         g.setColour( col.withAlpha( 0.55f + 0.45f * ( 1.0f - d->m_y ) ) );
@@ -307,12 +392,54 @@ void NoctuaryEditor::StageView::paint( juce::Graphics &g )
     }
     for ( auto &d : m_dots )
         if ( !d.m_on ) d.m_note = -1;
-    g.setColour( ui::Dim );
-    g.setFont( ui::body( 10.0f ) );
-    g.drawText( juce::String( n ) + ( n == 1 ? " voice" : " voices" ) + "   brain " +
-                    juce::String( juce::CharPointer_UTF8( "\xe2\x97\x8f" ) ) + " keys " +
-                    juce::String( juce::CharPointer_UTF8( "\xe2\x97\x8f" ) ),
-                r.reduced( 9, 5 ), juce::Justification::topRight, false );
+    // The legend, right to left along the top: each source's dot in its colour, then the voices.
+    {
+        const auto  top = r.toFloat().reduced( 9.0f, 5.0f );
+        const auto  font = ui::body( 9.5f );
+        float       x = top.getRight();
+        static const std::pair<int, const char *> Items[] = {
+            { 3, "near" }, { 2, "brain 2" }, { 1, "conductor" }, { 0, "keys" } };
+        g.setFont( font );
+        for ( const auto &[owner, label] : Items )
+        {
+            const float tw = juce::GlyphArrangement::getStringWidth( font, label ) + 2.0f;
+            x -= tw;
+            g.setColour( ui::Dim );
+            g.drawText( label, juce::Rectangle<float>( x, top.getY(), tw, 12.0f ), juce::Justification::centredLeft,
+                        false );
+            x -= 10.0f;
+            g.setColour( ownerColour( owner ) );
+            g.fillEllipse( x + 1.0f, top.getY() + 3.0f, 6.0f, 6.0f );
+            x -= 8.0f;
+        }
+        const juce::String count = juce::String( n ) + ( n == 1 ? " voice" : " voices" );
+        const float        cw = juce::GlyphArrangement::getStringWidth( font, count ) + 2.0f;
+        if ( x - cw > top.getX() + 60.0f )   // the title's room stays free
+        {
+            g.setColour( ui::Dim );
+            g.drawText( count, juce::Rectangle<float>( x - cw, top.getY(), cw, 12.0f ),
+                        juce::Justification::centredLeft, false );
+        }
+    }
+    // Who plays: a column at the right where the view is wide, a box over the plot's top right where it is not.
+    m_tickerCount = m_proc.engine().recentNotes( m_ticker, ambient::Engine::TickerSize );
+    const float tw = tickerWidth();
+    if ( tw > 0.0f )
+    {
+        const auto col = r.toFloat().reduced( 9.0f, 8.0f ).withTrimmedTop( 14.0f );
+        const auto box = col.withLeft( col.getRight() - tw );
+        paintTicker( g, box, juce::jlimit( 1, 14, static_cast<int>( ( box.getHeight() - 20.0f ) / 12.0f ) ) );
+    }
+    else
+    {
+        const float bw = juce::jmin( plot.getWidth() - 30.0f, 180.0f );
+        const int   cap = plot.getHeight() > 2.0f * plot.getWidth() ? 8 : 4;   // a tall, narrow stage (Expanded)
+        const int   most = juce::jlimit( 1, cap, static_cast<int>( ( plot.getHeight() * 0.5f - 20.0f ) / 12.0f ) );
+        paintTicker( g,
+                     juce::Rectangle<float>( plot.getRight() - bw, plot.getY() + 2.0f, bw,
+                                             20.0f + 12.0f * static_cast<float>( most ) ),
+                     most );
+    }
 }
 
 // ---------------------------------------------------------------- tuning

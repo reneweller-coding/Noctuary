@@ -304,6 +304,7 @@ void Engine::process( float *L, float *R, int n )
         pos += chunk;
     }
     m_tapPos = 0;
+    m_tickSamples += static_cast<uint64_t>( std::max( 0, n ) );   // the ticker's clock
     // Sleep: nothing sounding and the tails gone for two seconds -> the next blocks skip the
     // effect chain (zeros out) until a voice starts. The brain keeps running inside renderChunk,
     // so a generative patch wakes itself; MIDI and OSC notes wake it through the voices.

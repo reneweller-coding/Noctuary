@@ -48,6 +48,7 @@
 #include "Near.h"
 #include "Presets.h"
 #include "Loudness.h"
+#include <array>
 #include <atomic>
 #include <vector>
 #include <cstdint>
@@ -1093,7 +1094,7 @@ public:
     };
     /**
      * @brief Every sounding voice's place, for the stage picture: pan -1..1, distance 0 near .. 1 far,
-     *        envelope level, note, owner (0 keys, 1 brain).
+     *        envelope level, note, owner (0 keys, 1 brain, 2 the second conductor, 3 a near event).
      *
      * Returns how many were written.
      * @param[out] out       receives the places
@@ -1101,6 +1102,36 @@ public:
      * @return how many were written
      */
     int voiceStage( VoiceStage *out, int maxCount ) const;
+    /**
+     * @brief A note begun or let go, as the stage's ticker shows it ("who plays", recentNotes(); 20.11.2026).
+     *
+     * Rene could not tell which part of the instrument had played a note he disliked: the conductor,
+     * the second conductor or the near layer. The engine knows the owner of every note it starts.
+     */
+    struct TickerNote
+    {
+        double m_seconds = 0.0;   ///< when, on the engine's clock (seconds of audio since prepare())
+        int    m_owner = 0;       ///< 0 a key, 1 the conductor, 2 the second conductor, 3 the near layer
+        bool   m_on = false;      ///< it began (false: it was let go)
+        int    m_note = -1;       ///< the MIDI note (a slide: where it goes)
+        int    m_from = -1;       ///< a near Phrase's slide: the note it leaves; -1 for an onset or a release
+        int    m_kind = -1;       ///< the near layer's: 0 a Note, 1 a Phrase, 2 a sequence step, 3 a ghost; -1 others
+    };
+    static constexpr int TickerSize = 32;   ///< notes the ticker's ring keeps (a power of two)
+    /**
+     * @brief The last notes begun, slid and let go, newest first: the stage's ticker. Any thread: the render
+     *        thread writes them into a ring of atomics where the notes begin and end (startNote, startNearNote,
+     *        stopNote, a slide, allNotesOff) and never locks or allocates; the same places feed the MIDI-out tap.
+     * @param[out] out   receives them
+     * @param[in]  most  room in `out` (at most TickerSize are kept)
+     * @return how many were written
+     */
+    int recentNotes( TickerNote *out, int most ) const;
+    /**
+     * @brief Notes written into the ticker's ring since prepare(), for a reader that wants only the new ones.
+     * @return the count
+     */
+    int tickerCount() const { return m_tickCount.load( std::memory_order_acquire ); }
     /**
      * @brief The last n (<= 4096) samples of the Cosmos return, mono, oldest first -- for its spectrum.
      * @param[out] out  receives the samples
@@ -2306,6 +2337,18 @@ private:
     int                m_stemPos = 0;         ///< where in them this chunk starts
     NoteTap           *m_noteTap = nullptr;   ///< where the conductors' notes go for MIDI out (setNoteTap), or null
     int                m_tapPos = 0;   ///< where in the block the chunk being rendered starts (0 outside process())
+    std::array<std::atomic<uint64_t>, TickerSize> m_tick{};           ///< the ticker's ring, packed (tickNote)
+    std::atomic<int>                              m_tickCount{ 0 };   ///< notes written into it since prepare()
+    uint64_t m_tickSamples = 0;   ///< samples processed since prepare(): the ticker's clock (render thread)
+    /**
+     * @brief Writes a note into the ticker's ring (render thread; two atomic stores, no lock, no allocation).
+     * @param[in] owner  0 a key, 1 the conductor, 2 the second conductor, 3 the near layer
+     * @param[in] on     it begins (or slides)
+     * @param[in] note   MIDI
+     * @param[in] kind   the near layer's kind (TickerNote::m_kind), -1 for the others
+     * @param[in] from   a slide's note of departure, -1 otherwise
+     */
+    void tickNote( int owner, bool on, int note, int kind = -1, int from = -1 );
     /**
      * @brief The MIDI channel of an owner's notes for MIDI out: 1 the first conductor, 2 the second, 3 near; 0 a key.
      * @param[in] owner  the notes' owner

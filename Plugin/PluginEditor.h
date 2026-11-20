@@ -2048,10 +2048,35 @@ private:
             repaint();
         }
         /**
-         * @brief The room the dots and planes are drawn in.
+         * @brief The room the dots and planes are drawn in (left of the ticker, where it has a column).
          * @return the plot rectangle inside the frame
          */
         juce::Rectangle<float> plotRect() const;
+        /**
+         * @brief The width of the ticker's column at the stage's right (20.11.2026): about two fifths of the view,
+         *        180 .. 210 points, or 0 where the view is too narrow and the ticker is a box over the plot.
+         * @return the width in points
+         */
+        float tickerWidth() const;
+        /**
+         * @brief The colour of an owner's notes, the same in the dots, the legend and the ticker: the keys warm,
+         *        the conductor blue, the second conductor violet (the background's hue), the near layer green
+         *        (the foreground's hue).
+         * @param[in] owner  0 keys, 1 the conductor, 2 the second conductor, 3 the near layer
+         * @return its colour
+         */
+        static juce::Colour ownerColour( int owner );
+        /**
+         * @brief Who plays (20.11.2026): the last notes begun, newest on top, each with its time on the engine's
+         *        clock, whose it is in its colour (the near layer with its kind: note, phrase, sequence, ghost)
+         *        and its note; a conductor's exchange and a phrase's slide as "D3 -> F3".
+         * @param[in,out] g     the graphics
+         * @param[in]     box   where
+         * @param[in]     most  lines at the most
+         */
+        void paintTicker( juce::Graphics &g, juce::Rectangle<float> box, int most );
+        ambient::Engine::TickerNote m_ticker[ambient::Engine::TickerSize]{};   ///< the last notes, newest first
+        int                         m_tickerCount = 0;                         ///< how many of them there are
         /**
          * @brief Which plane's line a position is near.
          * @param[in] pos  the position in the view's coordinates

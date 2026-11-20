@@ -12888,6 +12888,112 @@ void testNoteTap()
 }
 
 /**
+ * @brief Who plays (20.11.2026, plan E1): the stage's ticker tells what the note log saw.
+ *
+ * Rene could not tell which part of the instrument had played a note he disliked. The stage now lists the last notes
+ * with their source (Engine::recentNotes, a ring of atomics the render thread fills). Three minutes of both conductors
+ * and a near Sequence with ghosts; after every block the ticker's new entries are read and set against the MIDI-out
+ * tap of the same block -- the note log `ambient_render --note-log` prints: the same notes in the same order, from the
+ * same source (channel 1, 2, 3 = conductor, second conductor, near), on and off alike, at the same time to the
+ * millisecond. A Phrase's slide is the ticker's own (the tap has no slides) and is left out of the comparison; the near
+ * layer's onsets carry their kind, and the sequence's steps and ghosts are both told.
+ */
+void testWhoPlaysTicker()
+{
+    std::printf( "\n--- who plays: the stage's ticker against the note log ---\n" );
+    const double sr = 48000.0;
+    Engine       e;
+    neutralMaster( e );
+    e.prepare( sr, 256 );
+    for ( int i = 0; i < NumParams; ++i )
+        e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+    neutralMaster( e );
+    e.setParam( ParamIdE::SEED, 2011.0f );
+    e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+    e.setParam( ParamIdE::BRAIN_RATE, 6.0f );
+    e.setParam( ParamIdE::BRAIN_DENSITY, 3.0f );
+    e.setParam( ParamIdE::BRAIN_HOLD_MIN, 2.0f );
+    e.setParam( ParamIdE::BRAIN_HOLD_MAX, 6.0f );
+    e.setParam( ParamIdE::BRAIN2_ON, 1.0f );
+    e.setParam( ParamIdE::BRAIN2_RATE, 8.0f );
+    e.setParam( ParamIdE::BRAIN2_DENSITY, 2.0f );
+    e.setParam( ParamIdE::FORE_LEVEL, 0.8f );
+    e.setParam( ParamIdE::FORE_KIND, 2.0f );   // Sequence
+    e.setParam( ParamIdE::FORE_RATE, 20.0f );
+    e.setParam( ParamIdE::FORE_LENGTH, 40.0f );
+    e.setParam( ParamIdE::FORE_SCATTER, 1.0f );   // ghosts between the steps
+    e.reset();
+    NoteTap tap;
+    e.setNoteTap( &tap );
+    struct EvS
+    {
+        double m_t;
+        int    m_owner;
+        bool   m_on;
+        int    m_note;
+    };
+    std::vector<EvS>   logged, ticked;
+    std::vector<float> L( 256 ), R( 256 );
+    int                seen = e.tickerCount(), lost = 0, slides = 0, kinds[4] = {}, owners[4] = {};
+    uint64_t           done = 0;
+    auto               read = [&]()
+    {
+        const int now = e.tickerCount(), fresh = now - seen;
+        if ( fresh > Engine::TickerSize ) lost += fresh - Engine::TickerSize;
+        Engine::TickerNote buf[Engine::TickerSize];
+        const int          k = e.recentNotes( buf, std::min( fresh, Engine::TickerSize ) );
+        for ( int i = k - 1; i >= 0; --i )   // oldest first, as the log
+        {
+            const Engine::TickerNote &t = buf[i];
+            if ( t.m_from >= 0 )
+            {
+                ++slides;
+                continue;
+            }
+            ticked.push_back( { t.m_seconds, t.m_owner, t.m_on, t.m_note } );
+            if ( t.m_on ) ++owners[t.m_owner & 3];
+            if ( t.m_on && t.m_owner == 3 && t.m_kind >= 0 && t.m_kind < 4 ) ++kinds[t.m_kind];
+        }
+        seen = now;
+    };
+    auto take = [&]()
+    {
+        for ( int i = 0; i < tap.m_count; ++i )
+        {
+            const NoteTap::Note &nt = tap.m_notes[i];
+            logged.push_back( { static_cast<double>( done + static_cast<uint64_t>( nt.m_offset ) ) / sr,
+                                static_cast<int>( nt.m_channel ), nt.m_velocity > 0, static_cast<int>( nt.m_pitch ) } );
+        }
+        tap.clear();
+    };
+    for ( int b = 0; b < static_cast<int>( 180.0 * sr / 256.0 ); ++b )
+    {
+        e.process( L.data(), R.data(), 256 );
+        take();
+        read();
+        done += 256;
+    }
+    e.allNotesOff();   // a preset leaving: every held note's off, in the ticker as in the log
+    take();
+    read();
+    int same = 0;
+    for ( size_t i = 0; i < std::min( logged.size(), ticked.size() ); ++i )
+        if ( logged[i].m_owner == ticked[i].m_owner && logged[i].m_on == ticked[i].m_on &&
+             logged[i].m_note == ticked[i].m_note && std::fabs( logged[i].m_t - ticked[i].m_t ) < 0.0011 )
+            ++same;
+    std::printf( "  [probe] %zu notes in the log, %zu in the ticker, %d the same (order, source, note, on/off, time); "
+                 "onsets: conductor %d, brain 2 %d, near %d (note %d, phrase %d, sequence %d, ghost %d); %d slides, "
+                 "%d lost\n",
+                 logged.size(), ticked.size(), same, owners[1], owners[2], owners[3], kinds[0], kinds[1], kinds[2],
+                 kinds[3], slides, lost );
+    CHECK( lost == 0, "who plays: the ring is read before it wraps" );
+    CHECK( owners[1] > 4 && owners[2] > 2 && owners[3] > 10, "who plays: both conductors and the near layer play" );
+    CHECK( kinds[2] > 0 && kinds[3] > 0, "who plays: the sequence's steps and its ghosts are told apart" );
+    CHECK( !logged.empty() && ticked.size() == logged.size() && same == static_cast<int>( logged.size() ),
+           "who plays: the ticker shows what the note log saw, in its order, source and note" );
+}
+
+/**
  * @brief The two conductors hear each other (19.11.2026).
  *
  * The second on the fifth, both in Free mode with chords of their own, three seeds of an hour without audio
@@ -13647,6 +13753,7 @@ int main( int argc, char **argv )
         { "testEnvelope", testEnvelope },
         { "testEngineMidi", testEngineMidi },
         { "testNoteTap", testNoteTap },
+        { "testWhoPlaysTicker", testWhoPlaysTicker },
         { "testJam", testJam },
         { "testBrain", testBrain },
         { "testDeterminism", testDeterminism },

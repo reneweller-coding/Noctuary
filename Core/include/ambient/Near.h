@@ -92,6 +92,7 @@ struct NearNote
     float m_cutoffMul = 1.0f;    ///< On: the bloom, a factor on the near filter's cutoff
     float m_seconds = 0.0f;      ///< Glide, Move: how long
     float m_detune = 0.0f;       ///< Glide: semitones off the note (a flute's meri bend, a quarter tone down)
+    bool  m_ghost = false;       ///< On: a sequence's ghost between two steps (for the stage's ticker; 20.11.2026)
 };
 
 /** @brief What the scheduler is told about the piece at each step. */
@@ -825,7 +826,7 @@ private:
             Step &prev = m_steps[( m_stepPos + m_stepsUsed - 1 ) % m_stepsUsed];
             refit( prev, in, freqOf );
             if ( !prev.m_rest && m_rng.uniform() < 0.5f * p.m_scatter * gate )
-                play( prev, in.m_root, q, p, 0.3f, 0.2f, emit );
+                play( prev, in.m_root, q, p, 0.3f, 0.2f, emit, true );
             return;
         }
         if ( m_stepPos == 0 && m_elapsed > stepSec )
@@ -880,11 +881,12 @@ private:
      * @param[in] velocity   0 .. 1
      * @param[in] gateShare  how long the gate stays open, as a share of a step
      * @param[in] emit       receives the NearNotes
+     * @param[in] ghost      it is a ghost between two steps (only marked on the On, for the stage's ticker)
      * @tparam EmitFn    the sink (see update)
      */
     template <class EmitFnT>
     void play( const Step &st, int root, double q, const NearParams &p, float velocity, float gateShare,
-               EmitFnT &&emit )
+               EmitFnT &&emit, bool ghost = false )
     {
         if ( m_gateNote >= 0 )
         {
@@ -899,6 +901,7 @@ private:
         e.m_type = NearNote::TypeE::ON;
         e.m_note = clampv( root + st.m_offset + st.m_octave, 0, 127 );
         e.m_velocity = velocity;
+        e.m_ghost = ghost;
         e.m_distance = st.m_accent ? std::max( 0.8f, m_home ) : trajectory( q );
         e.m_pan = p.m_spread * m_rng.bipolar();
         e.m_releaseMul = st.m_open ? 1.0f : 0.25f;

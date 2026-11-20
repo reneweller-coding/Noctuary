@@ -93,6 +93,8 @@ void Engine::prepare( double sampleRate, int maxBlockSize )
 {
     m_sr = sampleRate;
     m_maxBlock = std::max( maxBlockSize, ControlBlock );
+    m_tickSamples = 0;   // the ticker's clock and ring begin again
+    m_tickCount.store( 0, std::memory_order_release );
     // The map's cached preset vectors are NOT built here. With the library loaded that is eight
     // thousand presets and it measured 1.75 s of the 1.78 s this function took -- paid on every
     // plugin instance, every offline render, every sample-rate change, whether or not the map was
@@ -943,6 +945,43 @@ int Engine::voiceStage( VoiceStage *out, int maxCount ) const
     return n;
 }
 
+void Engine::tickNote( int owner, bool on, int note, int kind, int from )
+{
+    if ( note < 0 || note > 127 ) return;
+    // Packed: the note (7 bits), on (1), the owner (2), the kind + 1 (3), a slide (1), its note of departure (7),
+    // the time in milliseconds (32 bits: 49 days).
+    const double   seconds = static_cast<double>( m_tickSamples + static_cast<uint64_t>( std::max( 0, m_tapPos ) ) ) /
+                           m_sr;
+    const uint64_t ms = static_cast<uint64_t>( std::max( 0.0, seconds * 1000.0 + 0.5 ) ) & 0xFFFFFFFFull;
+    const uint64_t v = static_cast<uint64_t>( note & 127 ) | ( on ? 128ull : 0ull ) |
+                       ( static_cast<uint64_t>( owner & 3 ) << 8 ) |
+                       ( static_cast<uint64_t>( std::clamp( kind, -1, 6 ) + 1 ) << 10 ) |
+                       ( from >= 0 ? ( 1ull << 13 ) | ( static_cast<uint64_t>( from & 127 ) << 14 ) : 0ull ) |
+                       ( ms << 32 );
+    const int n = m_tickCount.load( std::memory_order_relaxed );
+    m_tick[static_cast<size_t>( n & ( TickerSize - 1 ) )].store( v, std::memory_order_relaxed );
+    m_tickCount.store( n + 1, std::memory_order_release );
+}
+
+int Engine::recentNotes( TickerNote *out, int most ) const
+{
+    const int n = m_tickCount.load( std::memory_order_acquire );
+    int       k = 0;
+    for ( ; k < most && k < n && k < TickerSize; ++k )
+    {
+        const uint64_t v = m_tick[static_cast<size_t>( ( n - 1 - k ) & ( TickerSize - 1 ) )].load(
+            std::memory_order_relaxed );
+        TickerNote &t = out[k];
+        t.m_note = static_cast<int>( v & 127 );
+        t.m_on = ( v & 128 ) != 0;
+        t.m_owner = static_cast<int>( ( v >> 8 ) & 3 );
+        t.m_kind = static_cast<int>( ( v >> 10 ) & 7 ) - 1;
+        t.m_from = ( v & ( 1ull << 13 ) ) != 0 ? static_cast<int>( ( v >> 14 ) & 127 ) : -1;
+        t.m_seconds = static_cast<double>( v >> 32 ) * 0.001;
+    }
+    return k;
+}
+
 int Engine::cosmosTap( float *out, int n ) const
 {
     n = clampv( n, 0, 4096 );
@@ -994,6 +1033,7 @@ void Engine::startNote( int note, float velocity, int owner, float distance, flo
     if ( note < 0 || note > 127 ) return;
     if ( m_noteTap != nullptr && tapChannel( owner ) > 0 )
         m_noteTap->add( m_tapPos, tapChannel( owner ), note, velocity, true );   // MIDI out
+    tickNote( owner, true, note );                                               // the stage's ticker
     // The modulation envelopes run on a phrase clock: it restarts when a note arrives into
     // silence, not on every note of a cluster, or a slow shape would never get anywhere.
     bool anySounding = false;
@@ -1071,13 +1111,15 @@ void Engine::startNote( int note, float velocity, int owner, float distance, flo
 
 void Engine::stopNote( int note, int owner )
 {
-    if ( m_noteTap != nullptr && tapChannel( owner ) > 0 )   // MIDI out: the off of a note this conductor holds
-        for ( const auto &v : m_voices )
-            if ( v.isActive() && !v.isReleasing() && v.note() == note && v.owner() == owner )
-            {
+    // MIDI out and the stage's ticker: the off of a note this owner holds
+    for ( const auto &v : m_voices )
+        if ( v.isActive() && !v.isReleasing() && v.note() == note && v.owner() == owner )
+        {
+            if ( m_noteTap != nullptr && tapChannel( owner ) > 0 )
                 m_noteTap->add( m_tapPos, tapChannel( owner ), note, 0.0f, false );
-                break;
-            }
+            tickNote( owner, false, note, owner == OWNER_NEAR ? m_near.kind() : -1 );
+            break;
+        }
     for ( auto &v : m_voices )
         if ( v.isActive() && v.note() == note && v.owner() == owner ) v.noteOff();
     if ( m_rolesUsed ) updatePlaces();   // a note letting go hands its place on
@@ -1139,6 +1181,7 @@ void Engine::startNearNote( const NearNote &e )
     // startNote), so a sequencer behind the plugin saw every near note end without ever beginning.
     if ( m_noteTap != nullptr && tapChannel( OWNER_NEAR ) > 0 )
         m_noteTap->add( m_tapPos, tapChannel( OWNER_NEAR ), e.m_note, e.m_velocity, true );
+    tickNote( OWNER_NEAR, true, e.m_note, e.m_ghost ? 3 : m_near.kind() );   // the stage's ticker, with the kind
     Voice *v = allocate( e.m_note, OWNER_NEAR );
     v->m_order = ++m_order;
     v->setPlace( true, true );
@@ -1155,6 +1198,12 @@ void Engine::nearEmit( const NearNote &e )
     case NearNote::TypeE::ON: startNearNote( e ); break;
     case NearNote::TypeE::OFF: stopNote( e.m_note, OWNER_NEAR ); break;
     case NearNote::TypeE::GLIDE:
+        for ( const auto &v : m_voices )   // the stage's ticker: a Phrase's slide, from the note it leaves
+            if ( v.isActive() && v.owner() == OWNER_NEAR && !v.isReleasing() )
+            {
+                tickNote( OWNER_NEAR, true, e.m_note, m_near.kind(), v.note() );
+                break;
+            }
         for ( auto &v : m_voices )
             if ( v.isActive() && v.owner() == OWNER_NEAR && !v.isReleasing() )
                 v.glideTo( e.m_note,
@@ -1224,6 +1273,9 @@ void Engine::allNotesOff()
         for ( const auto &v : m_voices )
             if ( v.isActive() && !v.isReleasing() && tapChannel( v.owner() ) > 0 )
                 m_noteTap->add( m_tapPos, tapChannel( v.owner() ), v.note(), 0.0f, false );
+    for ( const auto &v : m_voices )   // and the stage's ticker
+        if ( v.isActive() && !v.isReleasing() )
+            tickNote( v.owner(), false, v.note(), v.owner() == OWNER_NEAR ? m_near.kind() : -1 );
     for ( auto &h : m_midiHeld ) h = false;
     for ( auto &v : m_voices ) v.noteOff();
 }
