@@ -147,6 +147,8 @@ public:
         m_stepLeft = 0.0;
         m_ghostDue = false;
         m_mutations = 0;
+        m_figureNotes = 0;
+        m_figureRepeats = 0;
         for ( auto &s : m_steps ) s = Step{};
         m_gateLeft = 0.0;
         m_gateNote = -1;
@@ -180,6 +182,10 @@ public:
     int refused() const { return m_refused; }
     /** @return sequence steps mutated since reset() */
     int mutations() const { return m_mutations; }
+    /** @return figure notes (a Sequence's steps, a Phrase's notes) drawn since reset(), for the tests */
+    int figureNotes() const { return m_figureNotes; }
+    /** @return of those, the ones the tuning plays within 25 cents of the note they were to differ from */
+    int figureRepeats() const { return m_figureRepeats; }
     /** @return the kind of the current (or last) event: 0 Note, 1 Phrase, 2 Sequence */
     int kind() const { return m_kind; }
     /** @return seconds until the next event is due (may be negative while waiting for stillness) */
@@ -356,7 +362,7 @@ private:
      * @brief A note of a figure (Empyrean's drawFigureNote): within a fifth of the one before and a sixth of the centre,
      *        weighted by how it fits the chord, a step likelier than a leap.
      * @param[in] around     the note before it (the centre for the first)
-     * @param[in] avoid      a note it must not be, -1 none
+     * @param[in] avoid      a note it must not be, nor any key the tuning plays within 25 cents of it; -1 none
      * @param[in] chordTone  only a chord tone will do (a figure's first and last)
      * @param[in] centre     the figure's centre
      * @param[in] in         the cluster
@@ -372,13 +378,18 @@ private:
         float              weight[15];
         float              total = 0.0f;
         const double       fAround = freqOf( around );
+        const double       fAvoid = avoid >= 0 ? freqOf( avoid ) : 1.0;
         for ( int d = -7; d <= 7; ++d )
         {
             const int c = around + d;
             float     w = 0.0f;
-            // a tuning with fewer than twelve degrees maps two keys to one note: that is no step
-            const bool same = d != 0 && std::fabs( 1200.0 * std::log2( freqOf( c ) / fAround ) ) < 5.0;
-            if ( c != avoid && !same && std::abs( c - centre ) <= 9 && c >= 24 && c <= 108 )
+            // A tuning with fewer than twelve degrees maps two keys to one note, or to two a few cents apart: that is
+            // no step. By the pitch, within 25 cents, as the conductors judge one pitch (20.11.2026): the neighbour
+            // of a degree in a just scale mostly stands 2 to 10 cents beside it, and five cents let it through.
+            const bool same = d != 0 && std::fabs( 1200.0 * std::log2( freqOf( c ) / fAround ) ) < 25.0;
+            const bool again =   // the note it must not be, under any key
+                avoid >= 0 && std::fabs( 1200.0 * std::log2( freqOf( c ) / fAvoid ) ) < 25.0;
+            if ( !again && !same && std::abs( c - centre ) <= 9 && c >= 24 && c <= 108 )
             {
                 const float f = fit( c, in, freqOf );
                 w = ( chordTone ? ( f >= 3.0f ? 1.0f : 0.0f ) : f ) * StepW[std::abs( d )];
@@ -386,14 +397,26 @@ private:
             weight[d + 7] = w;
             total += w;
         }
-        if ( total <= 0.0f ) return nearestFit( around, true, in, freqOf );
-        float u = m_rng.uniform() * total;
-        for ( int d = -7; d <= 7; ++d )
+        int chosen = around;
+        if ( total <= 0.0f )
+            chosen = nearestFit( around, true, in, freqOf );
+        else
         {
-            u -= weight[d + 7];
-            if ( u < 0.0f && weight[d + 7] > 0.0f ) return around + d;
+            float u = m_rng.uniform() * total;
+            for ( int d = -7; d <= 7; ++d )
+            {
+                u -= weight[d + 7];
+                if ( u < 0.0f && weight[d + 7] > 0.0f )
+                {
+                    chosen = around + d;
+                    break;
+                }
+            }
         }
-        return around;
+        ++m_figureNotes;
+        if ( avoid >= 0 && std::fabs( 1200.0 * std::log2( freqOf( chosen ) / freqOf( avoid ) ) ) < 25.0 )
+            ++m_figureRepeats;
+        return chosen;
     }
 
     /**
@@ -942,7 +965,9 @@ private:
         m_bent = 0;            ///< the meri's stage: 0 not yet, 1 bent down, 2 back
     int m_events = 0,          ///< @brief events begun since reset()
         m_refused = 0,         ///< @brief due moments refused since reset()
-        m_mutations = 0;       ///< steps mutated since reset()
+        m_mutations = 0,       ///< @brief steps mutated since reset()
+        m_figureNotes = 0,     ///< @brief figure notes drawn since reset() (drawNote())
+        m_figureRepeats = 0;   ///< those within 25 cents of the note they were to differ from
     double  m_excAvg = 0.0;    ///< the running average of the cascade's excitation, what the coin is weighted against
     Drifter m_tempoDrift,      ///< @brief the sequence tempo's slow wander
         m_timingDrift;         ///< each step's small early-or-late

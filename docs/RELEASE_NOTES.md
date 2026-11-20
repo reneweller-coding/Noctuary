@@ -2,6 +2,22 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**Pitches, not keys: the rest of it** (20.11.2026). A test now checks the conductors' invariants in Hz over all thirteen
+tunings, Free and Chords, two conductors on one root, Blend, Deja Vu, Overlap and a rest after each release: no voice
+within 25 cents of one the same conductor sounds, none back inside its rest, no exchange onto the note it lets go, none
+on a pitch the other conductor sounds, and no conductor kept to three pitches. It found one more: a voice sounding out
+an exchange's Overlap in Chords mode had left its slot, and the other conductor no longer heard it and took its very
+pitch (28 of 3549 onsets); the other conductor now hears those voices too. Over the music audit's 200 presets the
+onsets on a pitch the other sounded fell from 5 to none and the time with a semitone or tritone across the two from
+1.20 % to 1.03 %. Two more places compared keys: at the end of a changeover Free mode let go the voices whose key
+stood a multiple of twelve from the old root, which in Bohlen-Pierce (no octave, walked degree by degree) are other
+pitches (34 such in 69 changeovers, now 4, those the conductor's own retirements); it now lets go the old root's
+pitch class as the tuning plays it. And the rules asked of a deja vu note and a pivot tone read "the root sounds" by key,
+where the draws read it by pitch class; now by pitch class too. The foreground's figures (a Sequence's steps, a
+Phrase's notes) took a neighbouring key within five cents of the note before as no step; in a just scale the neighbour
+mostly stands up to ten cents away, and 122 of 2052 figure notes struck the note before again. Now within 25 cents,
+none; ghosts still repeat a step, as they are meant to.
+
 **No second voice on a pitch the conductor holds** (20.11.2026). A conductor barred a candidate by its key and a
 second key on the very same pitch within one cent. In a scale whose keys snap the neighbouring key mostly stands 2 to
 10 cents beside the degree, and both tests let it through: a new voice ten cents from one still sounding, the two

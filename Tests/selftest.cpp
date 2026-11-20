@@ -13308,6 +13308,206 @@ void testConductorNoSelfUnison()
 }
 
 /**
+ * @brief A figure's next note is another pitch (20.11.2026, plan A4).
+ *
+ * A Sequence's step and a Phrase's slide are drawn to differ from the note before (NearEvents::drawNote): the key before
+ * was barred, and a neighbouring key within five cents of it -- but in a scale whose keys snap the neighbour mostly
+ * stands 2 to 10 cents beside the degree, and a step there is the same note struck again (a ghost repeats a step on
+ * purpose; a step does not). The scheduler alone, Sequences and Phrases in JI 7-limit and JI Major on four roots,
+ * mutating: no figure note within 25 cents of the note it was drawn to differ from.
+ */
+void testFigureMoves()
+{
+    std::printf( "\n--- a figure's next note is another pitch ---\n" );
+    int notes = 0, repeats = 0;
+    for ( int scale : { 3, 1 } )
+        for ( int root : { 0, 1, 5, 9 } )
+            for ( int kind : { 2, 1 } )
+            {
+                Engine e;
+                e.prepare( ambient::DefaultSampleRate, 256 );
+                for ( int i = 0; i < NumParams; ++i )
+                    e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+                e.setParam( ParamIdE::SCALE, static_cast<float>( scale ) );
+                e.setParam( ParamIdE::ROOT_NOTE, static_cast<float>( root ) );
+                e.auditConductor( 0.01, 0.01, []( double, int, const BrainEvent & ) {}, nullptr );   // reads the tuning
+                auto        freqOf = [&]( int n ) { return e.frequencyOf( n ); };
+                BrainParams bp;
+                auto        cons = [&]( double fa, double fb ) { return bp.consonanceOf( fa, fb ); };
+                NearParams  p;
+                p.m_level = 1.0f;
+                p.m_kind = kind;
+                p.m_steps = 7;
+                p.m_stepSeconds = 0.4f;
+                p.m_mutation = 0.8f;
+                p.m_length = 30.0f;
+                p.m_rate = 20.0f;
+                p.m_chance = 1.0f;
+                NearInputs in;
+                in.m_root = 48 + root;
+                in.m_cluster[0] = 48 + root;
+                in.m_cluster[1] = 55 + root;
+                in.m_cluster[2] = 64 + root;
+                in.m_count = 3;
+                in.m_rootAge = 1.0e9;
+                NearEvents ne;
+                ne.reset( static_cast<uint64_t>( 40 + root + 10 * kind + 100 * scale ) );
+                for ( long i = 0; i < static_cast<long>( 900.0 / 0.01 ); ++i )
+                    ne.update( 0.01, p, in, freqOf, cons, []( const NearNote & ) {} );
+                notes += ne.figureNotes();
+                repeats += ne.figureRepeats();
+            }
+    std::printf( "  [probe] %d figure notes, %d of them within 25 cents of the note before\n", notes, repeats );
+    CHECK( notes > 300, "figures: many notes drawn" );
+    CHECK( repeats == 0, "figures: no note strikes the pitch it was to move from again" );
+}
+
+/**
+ * @brief A changeover lets go the voices on the old root's pitch, not those on its key modulo twelve (20.11.2026, plan
+ *        A4).
+ *
+ * At the end of a changeover's window (Pivot) whatever still sounds on the old root is asked to go. It was found by
+ * `( note - oldRoot ) % 12`, which is the old root's pitch class only where twelve keys make an octave: Bohlen-Pierce has
+ * thirteen degrees to its period and no octave, so voices twelve keys from the old root -- other pitches -- were asked
+ * to go with it. Bohlen-Pierce, Free, a root that moves every few minutes, holds of minutes so nothing leaves by
+ * itself: at each window's end the voices on the old root's pitch class (within ten cents of it or of an octave of it,
+ * as the conductor reads a pitch class) are let go within two seconds, and hardly a voice on another pitch goes with
+ * them.
+ */
+void testChangeoverByPitch()
+{
+    std::printf( "\n--- a changeover lets go the old root's pitch ---\n" );
+    int windows = 0, onOld = 0, stayed = 0, wrong = 0;
+    for ( float seed : { 1611.0f, 1612.0f, 1613.0f } )
+    {
+        Engine e;
+        neutralMaster( e );
+        e.prepare( ambient::DefaultSampleRate, 256 );
+        for ( int i = 0; i < NumParams; ++i )
+            e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
+        e.setParam( ParamIdE::SEED, seed );
+        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+        e.setParam( ParamIdE::SCALE, 9.0f );   // Bohlen-Pierce (JI)
+        e.setParam( ParamIdE::BRAIN_PIVOT, 20.0f );
+        e.setParam( ParamIdE::BRAIN_ROOT_EVERY, 60.0f );   // windows never overlap: a root stands a minute
+        e.setParam( ParamIdE::BRAIN_WANDER, 1.0f );
+        e.setParam( ParamIdE::BRAIN_RATE, 6.0f );
+        e.setParam( ParamIdE::BRAIN_DENSITY, 8.0f );
+        e.setParam( ParamIdE::BRAIN_HOLD_MIN, 500.0f );
+        e.setParam( ParamIdE::BRAIN_HOLD_MAX, 600.0f );
+        e.setParam( ParamIdE::BRAIN_CONSONANCE, 0.2f );
+        e.reset();
+        std::vector<std::pair<double, int>>          changes;   // (time the root moved, the old root)
+        std::map<int, double>                        on;        // note -> its onset
+        std::vector<std::tuple<int, double, double>> notes;     // note, onset, release
+        int                                          last = -1;
+        e.auditConductor(
+            2400.0, 0.01,
+            [&]( double t, int which, const BrainEvent &ev )
+            {
+                if ( which != 1 ) return;
+                if ( ev.m_type == BrainEvent::TypeE::NOTE_ON )
+                    on[ev.m_note] = t;
+                else if ( on.count( ev.m_note ) )
+                {
+                    notes.emplace_back( ev.m_note, on[ev.m_note], t );
+                    on.erase( ev.m_note );
+                }
+            },
+            [&]( double t, int root )
+            {
+                if ( last >= 0 && t > 0.0 ) changes.emplace_back( t, last );
+                last = root;
+            } );
+        for ( const auto &o : on ) notes.emplace_back( o.first, o.second, 1.0e9 );   // still sounding at the end
+        // The window ends half a Pivot after the root moved; a voice asked to go there goes within a second.
+        for ( const auto &c : changes )
+        {
+            const double end = c.first + 10.0;   // half the Pivot
+            const double oldHz = e.frequencyOf( c.second );
+            ++windows;
+            for ( const auto &n : notes )
+            {
+                const double a = std::get<1>( n ), b = std::get<2>( n );
+                if ( !( a < end - 0.02 && b > end - 0.02 ) ) continue;   // sounding as the window ends
+                double cents = std::fmod( std::fabs( 1200.0 * std::log2( e.frequencyOf( std::get<0>( n ) ) / oldHz ) ),
+                                          1200.0 );
+                cents = std::min( cents, 1200.0 - cents );
+                const bool goes = b < end + 2.0;
+                // the old root's pitch class as the conductor reads it (pitchClassEqual: within ten cents of an
+                // octave of it); Bohlen-Pierce has no octave, and its eighth step stands 13.8 cents from one
+                if ( cents < 10.0 )
+                {
+                    ++onOld;
+                    if ( !goes ) ++stayed;
+                }
+                else if ( cents > 25.0 && b < end + 1.1 )
+                    ++wrong;
+            }
+        }
+    }
+    std::printf( "  [probe] %d windows: %d voices on the old root's pitch at their end, %d of them stayed; %d voices on "
+                 "other pitches let go with them\n",
+                 windows, onOld, stayed, wrong );
+    CHECK( windows > 30, "changeover: the root moves through the hours" );
+    CHECK( onOld > 5 && stayed == 0, "changeover: the voices on the old root's pitch go at the window's end" );
+    CHECK( wrong <= windows / 10, "changeover: voices on other pitches are not asked to go" );
+}
+
+/**
+ * @brief The conductors' pitch invariants, in Hz, over every tuning the instrument has (20.11.2026, plan A4).
+ *
+ * The same fault came five times in two days: code that compared MIDI keys where the tuning decides what sounds. This
+ * asks what is heard, for all thirteen scales, Free and Chords, two conductors on one root, Blend, Deja Vu, Overlap and
+ * a Retrigger rest of twenty seconds, ten minutes each: no onset within 25 cents of a pitch the same conductor sounds
+ * (the voice an exchange lets go included, while it sounds out its Overlap), none within 25 cents of a pitch it let go
+ * inside its rest, none on the note an exchange let go at that instant (Overlap at nought, where the two fall on one
+ * tick), none on a pitch the other conductor sounds -- and every conductor still moves through more than three
+ * pitches.
+ */
+void testPitchInvariants()
+{
+    std::printf( "\n--- the conductors' pitch invariants over every tuning ---\n" );
+    int ons = 0, unison = 0, rest = 0, replaced = 0, doubled = 0, still = 0;
+    for ( int scale = 0; scale < NumScaleChoices; ++scale )
+    {
+        const int   r = ( scale * 5 ) % 12;
+        PitchTallyS t[3] = { pitchTally( scale, r, false, 12.0f, 20.0f, true, 600.0, static_cast<float>( 1300 + scale ) ),
+                             pitchTally( scale, ( r + 7 ) % 12, true, 12.0f, 20.0f, true, 600.0,
+                                         static_cast<float>( 1400 + scale ) ),
+                             pitchTally( scale, ( r + 2 ) % 12, true, 0.0f, 20.0f, false, 600.0,
+                                         static_cast<float>( 1500 + scale ) ) };
+        int u = 0, s = 0, x = 0, d = 0;
+        for ( const auto &k : t )
+        {
+            ons += k.m_ons;
+            u += k.m_selfUnison;
+            s += k.m_restrike;
+            x += k.m_replaced;
+            d += k.m_doubled;
+            if ( k.m_pitches <= 3 ) ++still;
+        }
+        if ( u + s + x + d > 0 || t[0].m_pitches <= 3 || t[1].m_pitches <= 3 || t[2].m_pitches <= 3 )
+            std::printf( "  [probe] %-20s unison %d, rest %d, replaced %d, doubled %d; pitches %d %d %d\n",
+                         ScaleNames[scale], u, s, x, d, t[0].m_pitches, t[1].m_pitches, t[2].m_pitches );
+        unison += u;
+        rest += s;
+        replaced += x;
+        doubled += d;
+    }
+    std::printf( "  [probe] %d onsets: %d beside a pitch held, %d inside the rest, %d on the note let go, %d on the "
+                 "other's pitch; %d conductors on three pitches or fewer\n",
+                 ons, unison, rest, replaced, doubled, still );
+    CHECK( ons > 39 * 40, "pitch invariants: every case keeps playing" );
+    CHECK( unison == 0, "pitch invariants: no second voice on a pitch the conductor sounds" );
+    CHECK( rest == 0, "pitch invariants: no pitch back inside its rest" );
+    CHECK( replaced == 0, "pitch invariants: no exchange onto the note it lets go" );
+    CHECK( doubled == 0, "pitch invariants: neither conductor on the other's pitch" );
+    CHECK( still == 0, "pitch invariants: no conductor kept to three pitches or fewer" );
+}
+
+/**
  * @brief Sets or clears an environment variable for this process (the library tests point AMBIENT_PACKS around).
  * @param[in] name   the variable
  * @param[in] value  its value, or nullptr to clear it
@@ -13500,6 +13700,9 @@ int main( int argc, char **argv )
         { "testConductorsNoUnison", testConductorsNoUnison },
         { "testChordsExchangeMoves", testChordsExchangeMoves },
         { "testConductorNoSelfUnison", testConductorNoSelfUnison },
+        { "testFigureMoves", testFigureMoves },
+        { "testChangeoverByPitch", testChangeoverByPitch },
+        { "testPitchInvariants", testPitchInvariants },
         { "testLibraryStamp", testLibraryStamp },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );
