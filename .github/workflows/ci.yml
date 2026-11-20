@@ -37,6 +37,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Python for the Python-driven ctests (layer_presets, near_night import numpy)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: numpy
+        run: python -m pip install --disable-pip-version-check numpy
+
       - name: Configure (core, tools, tests; no plugin)
         run: cmake -S . -B build -DAMBIENT_BUILD_PLUGIN=OFF
 

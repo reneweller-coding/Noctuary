@@ -27,6 +27,15 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
+
+      - name: Python for the Python-driven ctests (layer_presets, near_night import numpy)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: numpy
+        run: python -m pip install --disable-pip-version-check numpy
+
       - name: Configure (Release, arm64, the plugin and the tools)
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 -DAMBIENT_BUILD_PLUGIN=ON
 
