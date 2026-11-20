@@ -13129,6 +13129,62 @@ void testConductorsNoUnison()
 }
 
 /**
+ * @brief An exchange in Chords mode is a move, not the same note again (20.11.2026, plan A4).
+ *
+ * Chords mode replaces one voice by the note that sits best within Voice Lead of it, and the note being replaced was
+ * barred by its key alone. In a just scale whose keys snap the neighbouring key can play almost the same pitch -- in
+ * JI 7-limit on C# key 49 is 138.59 Hz and key 50 138.75, two cents -- and being the smallest move it won: the old
+ * voice let go and the same note struck again (in Empyrean 22 of 59 exchanges in that scale). JI 7-limit on C, C#, F
+ * and A, the chord moving every eight seconds, Overlap at nought so the exchange is one tick: no note begins within 25
+ * cents of the one let go at that instant.
+ */
+void testChordsExchangeMoves()
+{
+    std::printf( "\n--- an exchange in Chords mode moves to another pitch ---\n" );
+    int exchanges = 0, same = 0;
+    for ( int root : { 0, 1, 5, 9 } )
+    {
+        Engine e;
+        neutralMaster( e );
+        e.prepare( ambient::DefaultSampleRate, 256 );
+        for ( int i = 0; i < NumParams; ++i )
+            e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+        neutralMaster( e );
+        e.setParam( ParamIdE::SEED, static_cast<float>( 1180 + root ) );
+        e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+        e.setParam( ParamIdE::SCALE, 3.0f );   // JI 7-limit
+        e.setParam( ParamIdE::ROOT_NOTE, static_cast<float>( root ) );
+        e.setParam( ParamIdE::AUTO_MODE, 1.0f );   // Chords
+        e.setParam( ParamIdE::AUTO_RATE, 8.0f );
+        e.setParam( ParamIdE::BRAIN_OVERLAP, 0.0f );
+        e.reset();
+        double offAt = -1.0, offHz = 0.0;
+        e.auditConductor(
+            900.0, 0.005,
+            [&]( double t, int which, const BrainEvent &ev )
+            {
+                if ( which != 1 ) return;
+                const double hz = e.frequencyOf( ev.m_note );
+                if ( ev.m_type != BrainEvent::TypeE::NOTE_ON )
+                {
+                    offAt = t;
+                    offHz = hz;
+                    return;
+                }
+                if ( offAt >= 0.0 && t - offAt < 0.001 )
+                {
+                    ++exchanges;
+                    if ( std::fabs( 1200.0 * std::log2( hz / offHz ) ) < 25.0 ) ++same;
+                }
+            },
+            nullptr );
+    }
+    std::printf( "  [probe] %d exchanges, %d of them within 25 cents of the note let go\n", exchanges, same );
+    CHECK( exchanges > 100, "chords: the chord moves through the hour" );
+    CHECK( same == 0, "chords: an exchange never lands on the pitch it replaces" );
+}
+
+/**
  * @brief Sets or clears an environment variable for this process (the library tests point AMBIENT_PACKS around).
  * @param[in] name   the variable
  * @param[in] value  its value, or nullptr to clear it
@@ -13319,6 +13375,7 @@ int main( int argc, char **argv )
         { "testConductorsListen", testConductorsListen },
         { "testConductorOwnVoices", testConductorOwnVoices },
         { "testConductorsNoUnison", testConductorsNoUnison },
+        { "testChordsExchangeMoves", testChordsExchangeMoves },
         { "testLibraryStamp", testLibraryStamp },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );

@@ -2256,6 +2256,7 @@ private:
                 remember( add );
                 if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );   // the set that ends here
                 startIn( add, p, emit );
+                cutRubbingOverlaps( add, p, freqOf );
                 if ( p.m_memory > 0.0f ) rememberChord( chordKey( -1, freqOf ) );
             }
             // As in Free mode: a Blend fills what is added to a chord already there; the entrance
@@ -2449,6 +2450,7 @@ private:
             if ( leaving >= 0 && leaving < 128 ) m_pitchOffAt[static_cast<size_t>( leaving )] = m_now;
             m_sinceOff = 0.0;
         }
+        cutRubbingOverlaps( arriving, p, freqOf );
         m_recent[m_recentHead] = leaving;   // it has had its turn
         m_recentHead = ( m_recentHead + 1 ) % Recent;
         m_slots[moving].m_note = arriving;
@@ -2494,6 +2496,26 @@ private:
                 emit( BrainEvent{ BrainEvent::TypeE::NOTE_ON, note, s.m_vel } );
                 return;
             }
+    }
+
+    /**
+     * @brief Chords mode: every voice still sounding out its Overlap that stands a minor second or ninth from a note
+     *        just begun goes within two seconds, as the voice that note replaced does (stepRubs(); 20.11.2026).
+     *
+     * Only the voice replaced was asked. An exchange inside another's Overlap could bring a note a semitone from the
+     * voice before that, still sounding out its thirty seconds: Free mode compares every voice due with the newest note
+     * and Chords mode did not. It came out once exchanges stopped landing on the pitch they replaced (a voice beside a
+     * successor a semitone away for 5.7 s, testConductorOwnVoices).
+     * @param[in] arriving  the note just begun, MIDI
+     * @param[in] p         the knobs
+     * @param[in] freqOf    frequency of a MIDI note in the engine's current scale
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    void cutRubbingOverlaps( int arriving, const BrainParams &p, FreqFnT &&freqOf )
+    {
+        for ( auto &l : m_leaving )
+            if ( l.m_note >= 0 && stepRubs( arriving, l.m_note, p, freqOf ) ) l.m_in = std::min( l.m_in, 2.0 );
     }
 
     /**
@@ -3065,6 +3087,11 @@ private:
             // and being at zero distance it always won: the chord never moved once until this
             // line existed. The self test found it, the descriptors never would have.
             if ( from >= 0 && c == from ) continue;
+            // Nor may a key the tuning plays as the same pitch (20.11.2026): in a just scale whose keys snap the
+            // neighbouring key can stand two cents from the note replaced (JI 7-limit on C#: 49 at 138.59 Hz, 50 at
+            // 138.75), and being the smallest move it won -- the old voice let go and the same note struck again,
+            // 103 of 447 exchanges in that scale (testChordsExchangeMoves).
+            if ( from >= 0 && std::fabs( 1200.0 * std::log2( freqOf( c ) / freqOf( from ) ) ) < 25.0 ) continue;
             // What Free mode asks of every candidate, asked here too: a pitch is resting after its
             // release (R7.4), a constellation was heard lately (R6.6), and the register and interval
             // rules as one weight -- a veto ends the candidate.
@@ -3693,7 +3720,8 @@ private:
      * the stream when Deja Vu is up.
      * @param[in] fresh   the note the draw chose, MIDI, or -1 (returned unchanged)
      * @param[in] p       the knobs: Deja Vu and Loop
-     * @param[in] avoid   Chords: the note being replaced, which the ring may not offer back; -1 in Free mode
+     * @param[in] avoid   Chords: the note being replaced, which the ring may not offer back, nor any key the tuning
+     *                    plays within 25 cents of it; -1 in Free mode
      * @param[in] low     one end of the register, for admissible()
      * @param[in] high    the other end
      * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
@@ -3710,7 +3738,9 @@ private:
         if ( m_ring[m_ringPos] >= 0 && m_rng.uniform() < p.m_dejavu )
         {
             const int old = m_ring[m_ringPos];
-            if ( old != avoid && !sounding( old ) && admissible( old, low, high, p, freqOf ) &&
+            const bool again =   // the pitch of the note being replaced, under another key
+                avoid >= 0 && std::fabs( 1200.0 * std::log2( freqOf( old ) / freqOf( avoid ) ) ) < 25.0;
+            if ( old != avoid && !again && !sounding( old ) && admissible( old, low, high, p, freqOf ) &&
                  !againstOther( freqOf( old ), p ) && !rubsOwn( freqOf( old ), p, freqOf ) )
                 out = old;
         }

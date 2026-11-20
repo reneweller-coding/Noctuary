@@ -2,6 +2,23 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**An exchange moves to another pitch** (20.11.2026). Chords mode replaces one voice by the note that sits best within
+Voice Lead of it, and barred the note being replaced by its key alone. In a scale whose keys snap -- the just scales
+play twelve keys on five or seven degrees -- the neighbouring key often plays the same pitch or one 2 to 10 cents from
+it, and being the smallest move it won: the old voice sounded out its Overlap while the same note began again beside it
+(Gate Basin, JI Minor: keys 74 and 75, ten cents apart, a dozen times an hour). Now no key the tuning plays within 25
+cents of the note replaced may replace it, neither in the choice nor from the deja vu ring, as in Empyrean. JI 7-limit
+on four roots, the chord moving every eight seconds: 103 of 447 exchanges landed on the pitch let go, now none of 428.
+With the exchanges real, one more rub came out: a note a semitone from a voice still sounding out its Overlap -- not the
+one it replaced, the one before -- stood beside it for its whole Overlap; such a voice now goes within two seconds too,
+as the replaced one does and as Free mode always had it. Over 120 Chords-mode presets of the library, an hour each, the
+onsets within 25 cents of a pitch the same conductor still held fell from 1107 to 381, and the onsets that change the
+pitch rose from 5220 to 5800 (the time with a semitone or tritone across the two conductors from 1.0 % to 0.5 %); over
+the music audit's 200, from 1468 to 845, with 1 % fewer onsets in all (11097 to 10982) and no conductor left silent or
+on one pitch. Over 120 presets in the scales with the fewest pitches (Harmonic, Subharmonic, JI Pentatonic, Slendro):
+876 to 563, onsets 6653 to 6544. Sounding Dub (JI Pentatonic, Voice Lead 1) changes pitch 26 times an hour instead of
+37: within one key of a pentatonic note there was only the same pitch, and its exchanges had walked through it.
+
 **The program says when its library is older than itself** (20.11.2026). Noctuary.exe started by a double-click in
 the source tree read the installed packs out of C:\ProgramData\Noctuary\Packs, not the tree's: the program built on
 13.11. played the packs of 14.09. for weeks, and nothing anywhere said so. A library now carries a stamp,
