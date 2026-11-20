@@ -210,39 +210,39 @@
  ],
  "totals": {
   "presets": 200,
-  "ons": 10982,
-  "notes": 10198,
-  "restrike": 0,
-  "doubling": 7,
+  "ons": 10833,
+  "notes": 10058,
+  "restrike": 2,
+  "doubling": 5,
   "short": 81,
-  "self_unison": 845,
-  "own_rub": 0.0048172671609839676,
-  "cross_rub": 0.01134276779634028,
-  "changes_per_hour": 54.91,
+  "self_unison": 0,
+  "own_rub": 0.0064354496203171815,
+  "cross_rub": 0.012049528107449435,
+  "changes_per_hour": 54.165,
   "silence_s": 0.0,
   "one_note": 0,
   "mute": 0
  },
  "bands": {
   "ons": [
-   9334.7,
-   12629.3
+   9208.05,
+   12457.95
   ],
   "notes": [
-   8668.3,
-   11727.7
+   8549.3,
+   11566.7
   ],
   "changes_per_hour": [
-   46.6735,
-   63.1465
+   46.0403,
+   62.2897
   ],
   "restrike": [
    0,
-   15
+   17
   ],
   "doubling": [
    0,
-   22
+   20
   ],
   "short": [
    0,
@@ -250,15 +250,15 @@
   ],
   "self_unison": [
    0,
-   1098.5
+   50
   ],
   "own_rub": [
    0,
-   0.0096
+   0.0129
   ],
   "cross_rub": [
    0,
-   0.0213
+   0.022
   ],
   "silence_s": [
    0,

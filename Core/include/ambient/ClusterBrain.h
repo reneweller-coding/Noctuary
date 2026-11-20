@@ -1207,6 +1207,32 @@ public:
         return false;
     }
     /**
+     * @brief Whether this conductor already sounds a pitch: one of its voices within 25 cents of it, under whatever
+     *        key (20.11.2026).
+     *
+     * sounding() asks by key, and the draws added a test for a second key on the very same pitch (within one cent).
+     * In a scale whose keys snap the neighbouring key mostly plays a pitch 2 to 10 cents beside the degree, not on
+     * it, and both tests let it through: a second voice ten cents from one still held, the two beating -- the same
+     * note struck again (Gate Basin, JI Minor: 295.37 Hz beside 293.67; over the music audit's 200 presets 845 of
+     * 10982 onsets). Every voice counts that the conductor started and that sounds: the slots, a Blend note about to
+     * begin, a voice due or sounding out its Overlap, and in Chords mode the one being exchanged. An octave is another
+     * pitch, and stays allowed.
+     * @param[in] fc      the candidate, Hz
+     * @param[in] freqOf  frequency of a MIDI note in the engine's current scale
+     * @return true when a voice of this conductor stands within 25 cents of it
+     * @tparam FreqFnT  callable `double(int note)`
+     */
+    template <class FreqFnT>
+    bool holdsPitch( double fc, FreqFnT &&freqOf ) const
+    {
+        auto same = [&]( int n ) { return n >= 0 && std::fabs( 1200.0 * std::log2( freqOf( n ) / fc ) ) < 25.0; };
+        for ( const auto &s : m_slots )
+            if ( same( s.m_note ) ) return true;
+        for ( const auto &l : m_leaving )
+            if ( same( l.m_note ) ) return true;
+        return same( m_extraHeard );
+    }
+    /**
      * @brief For the tests: how often the root moved, and how many of those changeovers were announced
      * by a tone belonging to both roots.
      *
@@ -1655,7 +1681,7 @@ public:
                     for ( int i = 0; i < span; ++i )
                     {
                         const int c = lo + ( ( from - lo + i ) % span );
-                        if ( c < 0 || c > 127 || sounding( c ) ) continue;
+                        if ( c < 0 || c > 127 || sounding( c ) || holdsPitch( freqOf( c ), freqOf ) ) continue;
                         const int  a = icOf( c, m_pivotOld, p, freqOf ), b = icOf( c, m_pivotTo, p, freqOf );
                         const bool fits =
                             tier == 0 ? ( perfectTo( a ) && perfectTo( b ) ) : ( consonantTo( a ) && consonantTo( b ) );
@@ -1949,11 +1975,7 @@ public:
             const double fc = freqOf( c );
             if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
             if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
-            bool duplicate = false;                     // with snapped keys two keys can share one pitch
-            for ( auto &s : m_slots )
-                if ( s.m_note >= 0 && std::fabs( std::log2( freqOf( s.m_note ) / fc ) ) * 1200.0 < 1.0 )
-                    duplicate = true;
-            if ( duplicate ) continue;
+            if ( holdsPitch( fc, freqOf ) ) continue;   // its own pitch under another key, which snapped keys give
             const double cons = p.consonanceOf( fc, rootFreq );
             float        w = static_cast<float>( std::pow( cons, p.m_consonance * 3.0f ) );
             // the other conductor's notes, weighed as the root is (listenTo())
@@ -3102,11 +3124,7 @@ private:
             const double fc = freqOf( c );
             if ( againstOther( fc, p ) ) continue;      // the other conductor's notes (listenTo())
             if ( rubsOwn( fc, p, freqOf ) ) continue;   // its own, a minor second or ninth
-            bool duplicate = false;
-            for ( const auto &s : m_slots )
-                if ( s.m_note >= 0 && std::fabs( std::log2( freqOf( s.m_note ) / fc ) ) * 1200.0 < 1.0 )
-                    duplicate = true;
-            if ( duplicate ) continue;
+            if ( holdsPitch( fc, freqOf ) ) continue;   // its own pitch under another key, which snapped keys give
             // How it sits against the voices that stay, and against the root.
             double fit = p.consonanceOf( fc, rootFreq );
             int    n = 1;
@@ -3740,7 +3758,8 @@ private:
             const int old = m_ring[m_ringPos];
             const bool again =   // the pitch of the note being replaced, under another key
                 avoid >= 0 && std::fabs( 1200.0 * std::log2( freqOf( old ) / freqOf( avoid ) ) ) < 25.0;
-            if ( old != avoid && !again && !sounding( old ) && admissible( old, low, high, p, freqOf ) &&
+            if ( old != avoid && !again && !sounding( old ) && !holdsPitch( freqOf( old ), freqOf ) &&
+                 admissible( old, low, high, p, freqOf ) &&
                  !againstOther( freqOf( old ), p ) && !rubsOwn( freqOf( old ), p, freqOf ) )
                 out = old;
         }

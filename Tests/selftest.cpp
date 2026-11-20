@@ -13184,6 +13184,129 @@ void testChordsExchangeMoves()
     CHECK( same == 0, "chords: an exchange never lands on the pitch it replaces" );
 }
 
+/** @brief What pitchTally() counted: onsets, and those that broke one of the conductors' pitch invariants. */
+struct PitchTallyS
+{
+    int m_ons = 0;          ///< onsets of both conductors
+    int m_selfUnison = 0;   ///< onsets within 25 cents of a pitch the same conductor holds (overlap voices included)
+    int m_restrike = 0;     ///< onsets within 25 cents of a pitch the same conductor let go inside its Retrigger rest
+    int m_replaced = 0;     ///< onsets within 25 cents of a note the same conductor let go at that very instant
+    int m_doubled = 0;      ///< onsets within 25 cents of a pitch the other conductor holds
+    int m_pitches = 0;      ///< distinct pitches (to the cent) the first conductor played
+};
+
+/**
+ * @brief Runs the conductors without audio (auditConductor) and checks every onset in Hz against the invariants of
+ *        plan A4: not the pitch of a voice the same conductor holds, not one it let go inside its rest, not the note
+ *        an exchange let go at that instant, not one the other conductor holds -- 25 cents being one pitch, as in the
+ *        conductor's rules and the music audit.
+ * @param[in] scale      the Scale choice (0 .. 12)
+ * @param[in] root       the Root (0 .. 11)
+ * @param[in] chords     true for Chords mode, false for Free
+ * @param[in] overlap    Overlap, seconds
+ * @param[in] retrigger  Retrigger, seconds (0: no rest)
+ * @param[in] two        whether the second conductor plays, on the same root
+ * @param[in] seconds    simulated time
+ * @param[in] seed       the engine's seed
+ * @param[in] dt         the conductors' tick, seconds
+ * @return the counts
+ */
+static PitchTallyS pitchTally( int scale, int root, bool chords, float overlap, float retrigger, bool two, double seconds,
+                               float seed, double dt = 0.01 )
+{
+    Engine e;
+    neutralMaster( e );
+    e.prepare( ambient::DefaultSampleRate, 256 );
+    for ( int i = 0; i < NumParams; ++i )
+        e.setParam( static_cast<ParamIdE>( i ), paramTable()[static_cast<size_t>( i )].m_def );
+    neutralMaster( e );
+    e.setParam( ParamIdE::SEED, seed );
+    e.setParam( ParamIdE::BRAIN_ON, 1.0f );
+    e.setParam( ParamIdE::SCALE, static_cast<float>( scale ) );
+    e.setParam( ParamIdE::ROOT_NOTE, static_cast<float>( root ) );
+    e.setParam( ParamIdE::AUTO_MODE, chords ? 1.0f : 0.0f );
+    e.setParam( ParamIdE::AUTO_RATE, 8.0f );
+    e.setParam( ParamIdE::BRAIN_RATE, 8.0f );
+    e.setParam( ParamIdE::BRAIN_HOLD_MIN, 15.0f );
+    e.setParam( ParamIdE::BRAIN_HOLD_MAX, 50.0f );
+    e.setParam( ParamIdE::BRAIN_DENSITY, 5.0f );
+    e.setParam( ParamIdE::BRAIN_CONSONANCE, 0.3f );   // under a half: no veto against rubs thins the field
+    e.setParam( ParamIdE::BRAIN_BLEND, 0.5f );
+    e.setParam( ParamIdE::BRAIN_DEJA_VU, 0.4f );
+    e.setParam( ParamIdE::BRAIN_OVERLAP, overlap );
+    e.setParam( ParamIdE::BRAIN_RETRIGGER, retrigger );
+    e.setParam( ParamIdE::BRAIN2_ON, two ? 1.0f : 0.0f );
+    e.setParam( ParamIdE::BRAIN2_INTERVAL, 0.0f );
+    e.setParam( ParamIdE::BRAIN2_DENSITY, 3.0f );
+    e.setParam( ParamIdE::BRAIN2_RATE, 11.0f );
+    e.reset();
+    PitchTallyS                             out;
+    std::map<int, double>                   held[3];   // per conductor: note -> Hz
+    std::vector<std::pair<double, double>>  offs[3];   // per conductor: (time, Hz) of the releases
+    std::set<long>                          pitches;
+    auto same = []( double a, double b ) { return std::fabs( 1200.0 * std::log2( a / b ) ) < 25.0; };
+    e.auditConductor(
+        seconds, dt,
+        [&]( double t, int which, const BrainEvent &ev )
+        {
+            if ( which != 1 && which != 2 ) return;
+            const double hz = e.frequencyOf( ev.m_note );
+            if ( ev.m_type != BrainEvent::TypeE::NOTE_ON )
+            {
+                held[which].erase( ev.m_note );
+                offs[which].emplace_back( t, hz );
+                return;
+            }
+            ++out.m_ons;
+            if ( which == 1 ) pitches.insert( std::lround( 1200.0 * std::log2( hz / 440.0 ) ) );
+            bool unison = false, rest = false, replaced = false, doubled = false;
+            for ( const auto &h : held[which] ) unison = unison || same( hz, h.second );
+            for ( const auto &o : offs[which] )
+            {
+                if ( !same( hz, o.second ) ) continue;
+                if ( t - o.first < 1.0e-6 ) replaced = true;
+                if ( retrigger > 0.0f && t - o.first < static_cast<double>( retrigger ) - 2.0 * dt ) rest = true;
+            }
+            for ( const auto &h : held[3 - which] ) doubled = doubled || same( hz, h.second );
+            out.m_selfUnison += unison ? 1 : 0;
+            out.m_restrike += rest ? 1 : 0;
+            out.m_replaced += replaced ? 1 : 0;
+            out.m_doubled += doubled ? 1 : 0;
+            held[which][ev.m_note] = hz;
+        },
+        nullptr );
+    out.m_pitches = static_cast<int>( pitches.size() );
+    return out;
+}
+
+/**
+ * @brief A conductor never strikes a pitch it is still sounding under another key (20.11.2026, plan A4).
+ *
+ * The draws barred a candidate by its key (sounding()) and a second key on the very same pitch within one cent. In a
+ * scale whose keys snap the neighbouring key mostly plays 2 to 10 cents beside the degree, and both tests let it
+ * through: a second voice ten cents from one still held, the two beating, the same note struck again (Gate Basin, JI
+ * Minor: 295.37 Hz beside 293.67). The music audit counted 845 such onsets in 10982 over its 200 presets. The just scales
+ * whose keys snap, Free and Chords, Blend and Deja Vu up, Overlap fifteen seconds so the voices that leave are heard
+ * too, one conductor: no onset within 25 cents of a pitch the same conductor holds.
+ */
+void testConductorNoSelfUnison()
+{
+    std::printf( "\n--- a conductor never strikes a pitch it is still sounding ---\n" );
+    int ons = 0, unison = 0;
+    for ( int scale : { 1, 2, 3 } )   // JI Major, JI Minor, JI 7-limit
+        for ( bool chords : { false, true } )
+            for ( int root : { 0, 9 } )
+            {
+                const PitchTallyS t = pitchTally( scale, root, chords, 15.0f, 0.0f, false, 900.0,
+                                                  static_cast<float>( 1190 + scale * 10 + root ) );
+                ons += t.m_ons;
+                unison += t.m_selfUnison;
+            }
+    std::printf( "  [probe] %d of %d onsets within 25 cents of a pitch the same conductor holds\n", unison, ons );
+    CHECK( ons > 600, "conductor: the voices keep changing" );
+    CHECK( unison == 0, "conductor: never a second voice on a pitch it holds" );
+}
+
 /**
  * @brief Sets or clears an environment variable for this process (the library tests point AMBIENT_PACKS around).
  * @param[in] name   the variable
@@ -13376,6 +13499,7 @@ int main( int argc, char **argv )
         { "testConductorOwnVoices", testConductorOwnVoices },
         { "testConductorsNoUnison", testConductorsNoUnison },
         { "testChordsExchangeMoves", testChordsExchangeMoves },
+        { "testConductorNoSelfUnison", testConductorNoSelfUnison },
         { "testLibraryStamp", testLibraryStamp },
     };
     const int count = static_cast<int>( sizeof( tests ) / sizeof( tests[0] ) );

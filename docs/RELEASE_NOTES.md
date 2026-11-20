@@ -2,6 +2,20 @@
 
 ## 2.6.0 (16.10.2026, not released)
 
+**No second voice on a pitch the conductor holds** (20.11.2026). A conductor barred a candidate by its key and a
+second key on the very same pitch within one cent. In a scale whose keys snap the neighbouring key mostly stands 2 to
+10 cents beside the degree, and both tests let it through: a new voice ten cents from one still sounding, the two
+beating -- the same note struck again (Gate Basin, JI Minor: 295.37 Hz beside 293.67). Now no voice begins within 25
+cents of one the same conductor sounds, whatever the key -- the slots, a Blend note about to begin, a voice sounding
+out its Overlap -- in Free mode's draw, in Chords mode's choice, from the deja vu ring and for the pivot tone; an octave
+stays allowed. Over the music audit's 200 presets, an hour each: 845 such onsets of 10982, now none of 10833 (the
+onsets that change the pitch rose from 10137 to 10833); over 120 presets in the scales with the fewest pitches 563 of
+6544, now none of 6524; over 120 Chords-mode presets 381 of 6181, now none of 6289. No conductor fell silent or onto
+one pitch. Where a conductor is set for clusters (Consonance under a half) the next choice can be the minor second the
+setting allows instead of the beating unison: the time with a minor second inside a conductor went from 0.48 % to 0.64 %
+over the 200, most of it in such conductors (the second conductors of Chantry Rite, Resin Threshold and Driftwood
+Veil, Consonance 0.24 to 0.42).
+
 **An exchange moves to another pitch** (20.11.2026). Chords mode replaces one voice by the note that sits best within
 Voice Lead of it, and barred the note being replaced by its key alone. In a scale whose keys snap -- the just scales
 play twelve keys on five or seven degrees -- the neighbouring key often plays the same pitch or one 2 to 10 cents from
